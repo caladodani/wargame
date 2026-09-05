@@ -14,4 +14,14 @@
     <Compile Remove="WarGame.Core\**" />
     <Compile Remove="WarGame.Core.Tests\**" />
   </ItemGroup>
+  <!-- O runtime pack linux-bionic traz ~50 MB de bibliotecas estáticas Mono (*.a) que
+       nunca se carregam em runtime, e o export do Godot copia a pasta de publish inteira
+       para o APK. Retirá-las do RuntimePackAsset tira-as da cópia E do deps.json (apagar
+       só os ficheiros parte o arranque: o host exige tudo o que o deps.json lista). -->
+  <Target Name="RemoveStaticLibsFromRuntimePack" AfterTargets="ResolveRuntimePackAssets" Condition=" '$(GodotTargetPlatform)' == 'android' ">
+    <ItemGroup>
+      <RuntimePackAsset Remove="@(RuntimePackAsset)" Condition=" '%(Extension)' == '.a' " />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition=" '%(Extension)' == '.a' " />
+    </ItemGroup>
+  </Target>
 </Project>
