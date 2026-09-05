@@ -1,0 +1,16 @@
+# Godot
+.godot/
+.mono/
+# .NET
+bin/
+obj/
+*.user
+# Build artefacts
+build/
+*.apk
+*.aab
+# Addon binário (instalado a partir da release do godot-sqlite)
+addons/godot-sqlite/
+# SO
+.DS_Store
+Thumbs.db
