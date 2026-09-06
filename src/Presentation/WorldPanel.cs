@@ -28,7 +28,7 @@ public partial class WorldPanel : PanelContainer
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
 
-    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; }); }
+    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 

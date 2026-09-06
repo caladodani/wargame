@@ -36,7 +36,7 @@ public partial class JournalPanel : PanelContainer
         if (Visible) Fill();
     }
 
-    public void Open() { Fill(); Visible = true; }
+    public void Open() { Fill(); Visible = true; Ui.FadeIn(this); }
     public void Close() => Visible = false;
 
     private void Fill()

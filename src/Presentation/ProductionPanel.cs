@@ -35,7 +35,7 @@ public partial class ProductionPanel : PanelContainer
         _queue = new VBoxContainer(); body.AddChild(_queue);
     }
 
-    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; }); }
+    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 
@@ -71,7 +71,11 @@ public partial class ProductionPanel : PanelContainer
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
                 bool rep = o.Repeat;
-                row.AddChild(Ui.Grow(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "") + (waitingMen ? "   (à espera de homens)" : ""))));
+                var cell = Ui.Grow(new VBoxContainer());
+                cell.AddThemeConstantOverride("separation", 2);
+                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "") + (waitingMen ? "   (à espera de homens)" : "")));
+                cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : Ui.Accent)));
+                row.AddChild(cell);
                 row.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
                 row.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
                 _queue.AddChild(row);

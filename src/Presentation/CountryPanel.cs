@@ -34,7 +34,7 @@ public partial class CountryPanel : PanelContainer
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
 
-    public void Open(int countryId) { _countryId = countryId; _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; }); }
+    public void Open(int countryId) { _countryId = countryId; _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 

@@ -17,7 +17,9 @@ public partial class Hud : CanvasLayer
     private TextureRect _playerFlag = null!;
     private Button _pause = null!;
     private PanelContainer _toastBox = null!;
+    private ColorRect _accent = null!;
     private Timer _toastTimer = null!;
+    private Tween? _toastTween;   // animação de entrada/saída do toast (morre e recomeça a cada mensagem)
     private AcceptDialog _slots = null!;
     private RegionPanel _region = null!;
     private ArmySelect _multiSel = null!;
@@ -39,6 +41,7 @@ public partial class Hud : CanvasLayer
             _game = GetNode<Game>("/root/Game");
             _map = GetNode<MapView>("../MapView");
             _smoke = OS.GetCmdlineUserArgs().Contains("--smoke");
+            GetTree().Root.Theme = Ui.Theme();   // tema da janela inteira: painéis, botões e diálogos de uma vez
             BuildTopBar(); BuildToast();
             _production = new ProductionPanel(); AddChild(_production); _production.Setup(_game);
             _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
@@ -101,7 +104,12 @@ public partial class Hud : CanvasLayer
         bar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
         bar.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.08f, 0.09f, 0.12f, 0.92f), 6));
         AddChild(bar);
-        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); bar.AddChild(row);
+        // A barra leva uma tira fina por baixo, pintada com a cor do país do jogador: dá identidade
+        // ao ecrã inteiro e fica vermelha quando o país está em guerra.
+        var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 6); bar.AddChild(stack);
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); stack.AddChild(row);
+        _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
+        stack.AddChild(_accent);
         _date = Ui.Lbl("2030-01-01", 22); row.AddChild(_date);
         row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
         _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
@@ -147,10 +155,10 @@ public partial class Hud : CanvasLayer
         center.OffsetTop = 70; center.OffsetBottom = 130;
         AddChild(center);
         _toastBox = new PanelContainer { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
-        _toastBox.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0, 0, 0, 0.8f), 10));
+        _toastBox.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.92f }, 12));
         _toast = Ui.Lbl("", 20); _toastBox.AddChild(_toast); center.AddChild(_toastBox);
         _toastTimer = new Timer { WaitTime = 4, OneShot = true }; AddChild(_toastTimer);
-        _toastTimer.Timeout += () => _toastBox.Visible = false;
+        _toastTimer.Timeout += FadeOutToast;
 
         // Instrução enquanto não há jogador.
         var center2 = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -190,11 +198,34 @@ public partial class Hud : CanvasLayer
         try
         {
             if (!IsInstanceValid(this) || !IsInsideTree()) return;
-            _toast.Text = msg; _toastBox.Visible = true; _toastTimer.Start();
+            _toast.Text = msg;
+            ShowToastBox();
+            _toastTimer.Start();
             _journal?.Add(msg);
             if (_smoke) GD.Print("toast: " + msg);
         }
         catch (Exception ex) { GD.PushError("Toast: " + ex); }
+    }
+
+    /// <summary>Entrada do toast: aparece a subir e a ganhar opacidade (0,18 s).</summary>
+    private void ShowToastBox()
+    {
+        _toastTween?.Kill();
+        _toastBox.Visible = true;
+        _toastBox.Modulate = new Color(1, 1, 1, 0);
+        _toastBox.Position = new Vector2(_toastBox.Position.X, 16);
+        _toastTween = CreateTween().SetParallel();
+        _toastTween.TweenProperty(_toastBox, "modulate:a", 1f, 0.18);
+        _toastTween.TweenProperty(_toastBox, "position:y", 0f, 0.18).SetTrans(Tween.TransitionType.Cubic);
+    }
+
+    /// <summary>Saída do toast: desvanece antes de desaparecer, para não piscar.</summary>
+    private void FadeOutToast()
+    {
+        _toastTween?.Kill();
+        _toastTween = CreateTween();
+        _toastTween.TweenProperty(_toastBox, "modulate:a", 0f, 0.25);
+        _toastTween.TweenCallback(Callable.From(() => _toastBox.Visible = false));
     }
 
     // Os eventos chegam na thread do tick; aí o World é coerente (é o tick que o está a mutar), mas a UI
@@ -476,7 +507,7 @@ public partial class Hud : CanvasLayer
     private void RefreshTop()
     {
         var w = _game.World; var c = w.Clock;
-        _date.Text = c.Date.ToString("yyyy-MM-dd") + (c.Paused ? "  (pausa)" : $"  ×{c.Speed}");
+        _date.Text = c.Date.ToString("yyyy-MM-dd") + (c.Paused ? "  ⏸" : "  " + new string('\u25b6', Math.Max(1, c.Speed)));
         _pause.Text = c.Paused ? "Play" : "||";
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
@@ -484,8 +515,10 @@ public partial class Hud : CanvasLayer
             _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
             _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}  ·  Homens {FmtMen(p.Manpower)}";
             _hint.Visible = false;
+            bool atWar = p.AtWarWith.Count > 0;
+            _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; }
+        else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     private void OnRegionTapped(int regionId)

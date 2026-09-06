@@ -17,9 +17,12 @@ public partial class RegionRenderer : Node2D
     public const string CapitalMark = "★";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
+    private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
     private readonly Dictionary<int, Color> _countryColor = new();
     private readonly Dictionary<int, LabelSettings> _labelStyle = new();
+    private readonly Dictionary<int, StyleBoxFlat> _pillStyle = new();
     private readonly Dictionary<int, Node2D> _markers = new();      // região → Node2D (escala 1/zoom) com um Label
+    private readonly Dictionary<int, Tween> _pulses = new();        // região em batalha → animação do marcador
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!;
     private Game _game = null!;
     private float _markerScale = 1f;
@@ -35,10 +38,15 @@ public partial class RegionRenderer : Node2D
             var v = new Vector2[pts.Length / 2];
             for (int i = 0; i < v.Length; i++) v[i] = new Vector2(pts[2 * i], pts[2 * i + 1]);
             var poly = new Polygon2D { Polygon = v, Color = ColorFor(regionId) };
-            var outline = new Line2D { Points = v.Append(v[0]).ToArray(), Width = 1.2f, DefaultColor = new Color(0, 0, 0, 0.45f) };
-            AddChild(poly); poly.AddChild(outline);
+            var ring = v.Append(v[0]).ToArray();
+            // duas linhas por anel: uma grossa na cor do controlador (dá relevo à fronteira nacional)
+            // e uma fina preta por cima, que separa regiões do mesmo país.
+            var border = new Line2D { Points = ring, Width = 3.5f, DefaultColor = BorderFor(regionId) };
+            var outline = new Line2D { Points = ring, Width = 1.2f, DefaultColor = new Color(0, 0, 0, 0.45f) };
+            AddChild(poly); poly.AddChild(border); poly.AddChild(outline);
             if (!_byRegion.TryGetValue(regionId, out var list)) _byRegion[regionId] = list = new();
-            list.Add(poly);
+            if (!_borders.TryGetValue(regionId, out var blist)) _borders[regionId] = blist = new();
+            list.Add(poly); blist.Add(border);
         }
         // Por cima dos polígonos: primeiro o realce, depois os marcadores.
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
@@ -51,6 +59,12 @@ public partial class RegionRenderer : Node2D
         game.World.Events.Subscribe<PeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
     }
 
+    /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
+    public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
+
+    /// <summary>Cor da moldura da região: a do controlador, clareada, para a fronteira saltar à vista.</summary>
+    private Color BorderFor(int regionId) => ColorFor(regionId).Lightened(0.45f) with { A = 0.75f };
+
     private Color ColorFor(int regionId)
     {
         if (!_game.World.Regions.TryGetValue(regionId, out var r)) return Colors.Gray;
@@ -60,13 +74,19 @@ public partial class RegionRenderer : Node2D
 
     private void RecolorAll() => _game.RunWhenIdle(() =>
     {
-        foreach (var (id, polys) in _byRegion) { var col = ColorFor(id); foreach (var p in polys) p.Color = col; }
+        foreach (var (id, polys) in _byRegion)
+        {
+            var col = ColorFor(id); foreach (var p in polys) p.Color = col;
+            var bc = BorderFor(id); foreach (var b in _borders[id]) b.DefaultColor = bc;
+        }
     });
 
     // Chega na main thread (deferred); a leitura do controlador espera pelo fim do tick.
     private void Recolor(int regionId) => _game.RunWhenIdle(() =>
     {
         if (_byRegion.TryGetValue(regionId, out var polys)) foreach (var p in polys) p.Color = ColorFor(regionId);
+        if (_borders.TryGetValue(regionId, out var borders))
+        { var bc = BorderFor(regionId); foreach (var b in borders) b.DefaultColor = bc; }
     });
 
     /// <summary>Marcadores e realce à escala inversa do zoom (clamp 0.05..6): tamanho constante no ecrã —
@@ -95,31 +115,77 @@ public partial class RegionRenderer : Node2D
                 if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
-                var label = (Label)m.GetChild(0);
+                var pill = m.GetNode<PanelContainer>("Center/Pill");
+                var label = pill.GetNode<Label>("Text");
+                bool fighting = battles.Contains(r.Id);
                 label.Text = (capital ? CapitalMark : "")
-                           + (battles.Contains(r.Id) ? BattleMark : "")
+                           + (fighting ? BattleMark : "")
                            + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
                            + (r.Fort > 0 ? FortMark : "")
                            + (resisting ? ResistMark : "");
                 label.LabelSettings = StyleFor(r.ControllerId);
+                pill.AddThemeStyleboxOverride("panel", PillFor(r.ControllerId));
+                Pulse(r.Id, pill, fighting);
                 m.Visible = true;
             }
-            foreach (var (id, m) in _markers) if (!seen.Contains(id)) m.Visible = false;
+            foreach (var (id, m) in _markers)
+                if (!seen.Contains(id)) { m.Visible = false; Pulse(id, null, false); }
         }
         catch (Exception ex) { GD.PushError("RegionRenderer.Refresh: " + ex); }
     }
 
+    /// <summary>Marcador: uma "pastilha" com a cor do controlador por trás do número, centrada na região.
+    /// O CenterContainer de tamanho fixo é que centra a pastilha, que encolhe ao texto que leva dentro.</summary>
     private Node2D NewMarker(Region r)
     {
         var m = new Node2D { Position = new Vector2(r.CenterX, r.CenterY), Scale = Vector2.One * _markerScale };
-        m.AddChild(new Label
+        var center = new CenterContainer
         {
-            Size = new Vector2(160, 48), Position = new Vector2(-80, -24),
+            Name = "Center", Size = new Vector2(220, 56), Position = new Vector2(-110, -28),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        var pill = new PanelContainer { Name = "Pill", MouseFilter = Control.MouseFilterEnum.Ignore };
+        pill.AddChild(new Label
+        {
+            Name = "Text",
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
+        center.AddChild(pill); m.AddChild(center);
         _markerRoot.AddChild(m);
         return m;
+    }
+
+    /// <summary>Fundo do marcador: tom escuro da cor do controlador, com a própria cor como borda.</summary>
+    private StyleBoxFlat PillFor(int countryId)
+    {
+        if (_pillStyle.TryGetValue(countryId, out var box)) return box;
+        var c = _countryColor.GetValueOrDefault(countryId, Colors.Gray);
+        return _pillStyle[countryId] = new StyleBoxFlat
+        {
+            BgColor = c.Darkened(0.72f) with { A = 0.82f },
+            BorderColor = c, BorderWidthTop = 2, BorderWidthBottom = 2, BorderWidthLeft = 2, BorderWidthRight = 2,
+            CornerRadiusTopLeft = 14, CornerRadiusTopRight = 14, CornerRadiusBottomLeft = 14, CornerRadiusBottomRight = 14,
+            ContentMarginLeft = 12, ContentMarginRight = 12, ContentMarginTop = 2, ContentMarginBottom = 2,
+        };
+    }
+
+    /// <summary>Região em batalha pisca devagar (opacidade, não escala — a escala é do zoom).
+    /// Deixar de haver batalha mata a animação e devolve o marcador ao normal.</summary>
+    private void Pulse(int regionId, PanelContainer? pill, bool fighting)
+    {
+        if (fighting && pill is not null)
+        {
+            if (_pulses.ContainsKey(regionId)) return;
+            var t = pill.CreateTween().SetLoops();
+            t.TweenProperty(pill, "modulate:a", 0.45f, 0.6).SetTrans(Tween.TransitionType.Sine);
+            t.TweenProperty(pill, "modulate:a", 1f, 0.6).SetTrans(Tween.TransitionType.Sine);
+            _pulses[regionId] = t;
+            return;
+        }
+        if (!_pulses.Remove(regionId, out var old)) return;
+        if (old.IsValid()) old.Kill();
+        if (pill is not null) pill.Modulate = Colors.White;
     }
 
     private LabelSettings StyleFor(int countryId)

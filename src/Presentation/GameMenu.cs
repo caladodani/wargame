@@ -29,7 +29,7 @@ public partial class GameMenu : PanelContainer
         AddChild(_body);
     }
 
-    public void Open() { Fill(); Visible = true; }
+    public void Open() { Fill(); Visible = true; Ui.FadeIn(this); }
     public void Close() => Visible = false;
     public void Toggle() { if (Visible) Close(); else Open(); }
 

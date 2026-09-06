@@ -80,7 +80,7 @@ public partial class RegionPanel : PanelContainer
     public void Open(int regionId)
     {
         _regionId = regionId; _selected.Clear(); MoveMode = false; _lastKey = "";
-        _game.RunWhenIdle(() => { Fill(); Visible = true; });
+        _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); });
     }
 
     /// <summary>Relê o estado (chamado pelo Hud com o mundo parado). Sem efeito se fechado.</summary>
@@ -256,13 +256,13 @@ public partial class RegionPanel : PanelContainer
                         .OrderByDescending(d => d.CountryId == pid).ThenBy(d => d.Id).ToList();
             _mine.Clear(); _mine.AddRange(divs.Where(d => d.CountryId == pid).Select(d => d.Id));
             _selected.IntersectWith(_mine);
-            var lines = divs.Select(d => (d.Id, mine: d.CountryId == pid, text: Line(w, d))).ToList();
+            var lines = divs.Select(d => (d.Id, mine: d.CountryId == pid, text: Line(w, d), d.Hp, d.Org)).ToList();
             var key = string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
                 Ui.Clear(_rows); _boxes.Clear();
-                foreach (var (id, mine, text) in lines) _rows.AddChild(Row(id, mine, text));
+                foreach (var (id, mine, text, hp, org) in lines) _rows.AddChild(Row(id, mine, text, hp, org));
                 if (lines.Count == 0) _rows.AddChild(Ui.Lbl("Sem divisões"));
             }
 
@@ -327,14 +327,31 @@ public partial class RegionPanel : PanelContainer
     }
 
     // Divisão do jogador = CheckBox com o texto (linha inteira é alvo de toque); outras = Label.
-    private Control Row(int id, bool mine, string text)
+    /// <summary>Linha da divisão: o texto (caixa de selecção se for nossa) e, por baixo, duas barras finas —
+    /// verde para os efectivos, azul para a organização. Ver o estado da tropa sem ler números.</summary>
+    private Control Row(int id, bool mine, string text, float hp, float org)
     {
-        if (!mine) { var l = Ui.Grow(Ui.Lbl(text)); l.CustomMinimumSize = new Vector2(0, 40); return l; }
-        var cb = Ui.Grow(new CheckBox { Text = text, ButtonPressed = _selected.Contains(id), CustomMinimumSize = new Vector2(0, 48) });
-        cb.AddThemeFontSizeOverride("font_size", Ui.Font);
-        cb.Toggled += on => { try { if (on) _selected.Add(id); else _selected.Remove(id); UpdateButtons(); } catch (Exception ex) { GD.PushError(ex.ToString()); } };
-        _boxes[id] = cb;
-        return cb;
+        var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", 2);
+        if (mine)
+        {
+            var cb = Ui.Grow(new CheckBox { Text = text, ButtonPressed = _selected.Contains(id), CustomMinimumSize = new Vector2(0, 48) });
+            cb.AddThemeFontSizeOverride("font_size", Ui.Font);
+            cb.Toggled += on => { try { if (on) _selected.Add(id); else _selected.Remove(id); UpdateButtons(); } catch (Exception ex) { GD.PushError(ex.ToString()); } };
+            _boxes[id] = cb;
+            v.AddChild(cb);
+        }
+        else
+        {
+            var l = Ui.Grow(Ui.Lbl(text)); l.CustomMinimumSize = new Vector2(0, 40);
+            v.AddChild(l);
+        }
+        var bars = new HBoxContainer();
+        bars.AddThemeConstantOverride("separation", 8);
+        bars.AddChild(Ui.Grow(Ui.Bar(hp / 100f, Ui.Good)));
+        bars.AddChild(Ui.Grow(Ui.Bar(org / 100f, Ui.Accent)));
+        v.AddChild(bars);
+        return v;
     }
 
     private void UpdateButtons()
