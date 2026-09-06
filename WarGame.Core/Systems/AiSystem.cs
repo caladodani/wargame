@@ -54,7 +54,26 @@ public sealed class AiSystem : ISystem
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Retreats(w, c);
+            Peace(w, c, divsByCountry);
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
+        }
+    }
+
+    /// <summary>Guerra parada (sem progresso há peace_stale_days) em que estamos mais fracos:
+    /// oferece paz branca — o comando aceita porque a guerra está parada. O jogador nunca é alvo
+    /// (a paz far-se-ia sem o consentimento dele); a ele cabe oferecer pelo painel.</summary>
+    private static void Peace(World w, Country c, Dictionary<int, List<Division>> divsByCountry)
+    {
+        foreach (int e in c.AtWarWith.ToList())
+        {
+            if (!w.Countries.TryGetValue(e, out var t) || t.Capitulated || t.IsPlayer) continue;
+            var info = w.Wars.GetValueOrDefault(World.WarKey(c.Id, e));
+            if (info is null || w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) < w.Rule("peace_stale_days", 60f)) continue;
+            int mine = divsByCountry.GetValueOrDefault(c.Id)?.Count ?? 0;
+            int theirs = divsByCountry.GetValueOrDefault(e)?.Count ?? 0;
+            if (mine >= theirs) continue;
+            var cmd = new Commands.OfferPeaceCommand(c.Id, e);
+            if (cmd.Validate(w) is null) cmd.Execute(w);
         }
     }
 
