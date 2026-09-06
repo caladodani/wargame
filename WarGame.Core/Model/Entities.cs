@@ -98,6 +98,12 @@ public sealed record MedalDef(string Id, string Name, string Description, string
 /// ganha, e Bonus é o que a tropa ganha em recomposição de organização (moral, não força bruta).</summary>
 public sealed record HonourDef(string Id, string Title, string Description, string Metric, float Threshold, float Bonus, int Sort);
 
+/// <summary>Estação do ano (tabela season, meses pela tabela season_month). Multiplica a marcha (MoveMult),
+/// a recomposição de organização (OrgMult) e cobra Attrition de organização por dia a quem está em campo
+/// nos terrenos que ela castiga (WeatherSystem). Inverno é o que muda a guerra: as colunas ficam atoladas
+/// e a tropa em campo aberto gasta-se sem um tiro.</summary>
+public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float Attrition, string Note);
+
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
     bool Coastal = false, float SupplyRange = 0f);
 

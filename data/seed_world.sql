@@ -276,6 +276,29 @@ INSERT INTO rule (key,value,note) VALUES
  ('honour_check_days',3,'de quantos em quantos dias se conferem honras de batalha'),
  ('honour_bonus_max',0.5,'tecto do bónus de recomposição dado pela honra');
 
+-- Estações do ano (tabelas season, season_month, season_terrain; WeatherSystem). move_mult multiplica a
+-- marcha, org_mult a recomposição de organização e attrition é a organização gasta por dia a quem está em
+-- campo. season_terrain diz que terrenos a estação castiga mais (1 = a média).
+CREATE TABLE IF NOT EXISTS season (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  move_mult REAL NOT NULL, org_mult REAL NOT NULL, attrition REAL NOT NULL, note TEXT NOT NULL);
+INSERT INTO season VALUES ('inverno','Inverno','❄',0.62,0.70,0.9,'Colunas atoladas, tropa gasta em campo aberto.');
+INSERT INTO season VALUES ('primavera','Primavera','🌧',0.85,1.00,0.3,'Degelo e lama: anda-se mal, mas a tropa refaz-se.');
+INSERT INTO season VALUES ('verao','Verão','☀',1.15,1.10,0.2,'Estradas secas e dias longos: é quando se ganham guerras.');
+INSERT INTO season VALUES ('outono','Outono','🍂',0.90,0.95,0.4,'Chuva a chegar: as ofensivas começam a pesar.');
+CREATE TABLE IF NOT EXISTS season_month (month INTEGER PRIMARY KEY, season_id TEXT NOT NULL);
+INSERT INTO season_month VALUES (1,'inverno'),(2,'inverno'),(3,'primavera'),(4,'primavera'),(5,'primavera'),
+ (6,'verao'),(7,'verao'),(8,'verao'),(9,'outono'),(10,'outono'),(11,'outono'),(12,'inverno');
+CREATE TABLE IF NOT EXISTS season_terrain (season_id TEXT NOT NULL, terrain TEXT NOT NULL, bite REAL NOT NULL,
+  PRIMARY KEY (season_id, terrain));
+INSERT INTO season_terrain VALUES ('inverno','tundra',2.2),('inverno','mountain',1.8),('inverno','forest',1.2),
+ ('inverno','urban',0.5),('inverno','desert',0.8),('inverno','plain',1.0);
+INSERT INTO season_terrain VALUES ('verao','desert',2.0),('verao','urban',0.6),('verao','tundra',0.4);
+INSERT INTO season_terrain VALUES ('primavera','forest',1.3),('primavera','plain',1.2),('primavera','urban',0.5);
+INSERT INTO season_terrain VALUES ('outono','forest',1.2),('outono','mountain',1.3),('outono','urban',0.5);
+INSERT INTO rule (key,value,note) VALUES
+ ('season_shelter',0.4,'quanto do desgaste da estação sobra a quem está em terreno próprio');
+
 -- Edifícios regionais (tabela building; ConstructionSystem/BuildBuildingCommand)
 CREATE TABLE IF NOT EXISTS building (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,

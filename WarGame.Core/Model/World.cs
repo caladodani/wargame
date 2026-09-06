@@ -41,6 +41,16 @@ public sealed class World
     public Dictionary<string, MedalDef> MedalDefs { get; } = new();
     /// <summary>Honras de batalha (tabela division_honour), o nome próprio que uma divisão ganha em campanha.</summary>
     public Dictionary<string, HonourDef> HonourDefs { get; } = new();
+    /// <summary>Estações do ano (tabela season) e o mês a que cada uma manda (tabela season_month).</summary>
+    public Dictionary<string, SeasonDef> SeasonDefs { get; } = new();
+    public Dictionary<int, string> SeasonMonths { get; } = new();
+    /// <summary>Quanto cada estação castiga cada terreno (tabela season_terrain): [estação][terreno] = factor
+    /// do desgaste. Sem linha, o terreno vale 1 — a estação castiga-o como a média.</summary>
+    public Dictionary<string, Dictionary<string, float>> SeasonTerrain { get; } = new();
+
+    /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
+    public float SeasonBite(string seasonId, string terrain) =>
+        SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;
     /// <summary>Decisões nacionais (tabela decision) e as activas.</summary>
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>
@@ -165,6 +175,15 @@ public sealed class World
     public bool CanResearch(Country c, string techId) =>
         Techs.TryGetValue(techId, out var t) && !c.Techs.Contains(techId) && (t.Requires is null || c.Techs.Contains(t.Requires));
     public float MoveCost(string terrain) => Rule("move_cost:" + terrain, 1f);
+
+    /// <summary>Estação em que o calendário anda, ou null se a tabela não estiver carregada (então nada muda).</summary>
+    public SeasonDef? Season => SeasonMonths.TryGetValue(Clock.Date.Month, out var id) && SeasonDefs.TryGetValue(id, out var s) ? s : null;
+
+    /// <summary>Quanto a estação atrasa a marcha (1 = nada). Sem estação carregada vale 1.</summary>
+    public float SeasonMove => MathF.Max(0.1f, Season?.MoveMult ?? 1f);
+
+    /// <summary>Quanto a estação estraga a recomposição de organização (1 = nada).</summary>
+    public float SeasonOrg => MathF.Max(0.1f, Season?.OrgMult ?? 1f);
 
     public bool AreAtWar(int a, int b) => a != b && Countries.TryGetValue(a, out var c) && c.AtWarWith.Contains(b);
 

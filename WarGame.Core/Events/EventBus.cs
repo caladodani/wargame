@@ -26,6 +26,8 @@ public sealed record WarSummary(WarGame.Core.Model.WarRecord Record) : IGameEven
 public sealed record MedalAwarded(int DivisionId, int CountryId, string MedalId) : IGameEvent;
 /// <summary>Uma divisão passou a ter nome próprio: ganhou (ou subiu de) honra de batalha.</summary>
 public sealed record DivisionHonoured(int DivisionId, int CountryId, string HonourId, string Title) : IGameEvent;
+/// <summary>Mudou a estação do ano (WeatherSystem): a marcha, a recomposição e o desgaste mudam com ela.</summary>
+public sealed record SeasonChanged(string SeasonId, string Name, int Day) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 /// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>

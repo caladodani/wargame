@@ -25,7 +25,17 @@ public static class TestWorld
         var units = new SqlUnitRepository(db);
         var w = new World(new DateOnly(2030, 1, 1), new DivisionStatCache(units), new ModifierEngine(units.GetModifiers()), seed);
         new SqlWorldRepository(db).LoadStatic(w);   // só regras + move_cost (country/region estão vazias)
+        // Tempo neutro por omissão: quem testa marcha ou recomposição conta dias, e uma estação carregada
+        // mudava-os por baixo do teste. Quem quer tempo põe-no à mão com TestWorld.Season(w, "inverno").
+        w.SeasonMonths.Clear();
         return (w, db);
+    }
+
+    /// <summary>Põe o mundo dentro de uma estação: manda todos os meses para ela, para o calendário do teste
+    /// não interessar. Sem isto o mundo de teste anda com tempo neutro.</summary>
+    public static void Season(World w, string seasonId)
+    {
+        for (int m = 1; m <= 12; m++) w.SeasonMonths[m] = seasonId;
     }
 
     /// <summary>Mapa em linha 1-2-…-n. Regiões 1..split são do país 1 (capital 1), o resto do país 2 (capital n).

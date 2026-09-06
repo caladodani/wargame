@@ -14,6 +14,8 @@ public partial class Hud : CanvasLayer
     private Game _game = null!;
     private MapView _map = null!;
     private Label _date = null!, _country = null!, _army = null!, _toast = null!, _hint = null!;
+    private PanelContainer _season = null!;
+    private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
     private Button _pause = null!;
     private PanelContainer _toastBox = null!;
@@ -126,6 +128,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
         _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
         row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
+        _season = SeasonView.Badge(_game.World); row.AddChild(_season);
         _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
         _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
         _army = Ui.Lbl("", 20); row.AddChild(_army);
@@ -479,6 +482,11 @@ public partial class Hud : CanvasLayer
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
             Later($"▮ {unit} passa a chamar-se «{e.Title}»");
         }));
+        // Estação nova: muda a marcha, a recomposição e o desgaste de toda a gente — é notícia de primeira.
+        _subs.Add(w.Events.Subscribe<SeasonChanged>(e =>
+        {
+            if (w.SeasonDefs.TryGetValue(e.SeasonId, out var sd)) Later($"{sd.Icon} Entrou o {sd.Name}. {sd.Note}");
+        }));
         // Saldo da guerra que acabou: sai como notícia e fica no painel Guerra para consulta.
         _subs.Add(w.Events.Subscribe<WarSummary>(e =>
         {
@@ -603,6 +611,14 @@ public partial class Hud : CanvasLayer
         var w = _game.World; var c = w.Clock;
         _date.Text = c.Date.ToString("yyyy-MM-dd") + (c.Paused ? "  ⏸" : "  " + new string('\u25b6', Math.Max(1, c.Speed)));
         _pause.Text = c.Paused ? "Play" : "||";
+        // a estação muda quatro vezes por ano: só se redesenha a chapa (e se relava o mapa) quando muda
+        string season = w.Season?.Id ?? "";
+        if (season != _seasonPainted)
+        {
+            _seasonPainted = season;
+            SeasonView.Paint(_season, w);
+            _map.Regions.Modulate = SeasonView.MapTint(w);
+        }
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
             if (_playerFlag.Texture is null) { _playerFlag.Texture = Flags.Of(p.Tag); _playerFlag.Visible = _playerFlag.Texture is not null; }
@@ -647,7 +663,7 @@ public partial class Hud : CanvasLayer
             new MedalSystem().Tick(w); new DivisionHonourSystem().Tick(w);
         }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

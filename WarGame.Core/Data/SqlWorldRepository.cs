@@ -83,6 +83,18 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
+        w.SeasonDefs.Clear(); w.SeasonMonths.Clear(); w.SeasonTerrain.Clear();
+        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note FROM season"))
+            w.SeasonDefs[(string)r["id"]!] = new SeasonDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["attrition"]), (string)r["note"]!);
+        foreach (var r in _static.Query("SELECT month,season_id FROM season_month"))
+            w.SeasonMonths[Convert.ToInt32(r["month"])] = (string)r["season_id"]!;
+        foreach (var r in _static.Query("SELECT season_id,terrain,bite FROM season_terrain"))
+        {
+            string sid = (string)r["season_id"]!;
+            if (!w.SeasonTerrain.TryGetValue(sid, out var byTerrain)) w.SeasonTerrain[sid] = byTerrain = new();
+            byTerrain[(string)r["terrain"]!] = Convert.ToSingle(r["bite"]);
+        }
         foreach (var r in _static.Query("SELECT id,name,sort FROM difficulty ORDER BY sort"))
             w.DifficultyDefs[(string)r["id"]!] = new DifficultyDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToInt32(r["sort"]), new Dictionary<string, float>());
