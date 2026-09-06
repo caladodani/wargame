@@ -62,6 +62,15 @@ public partial class CountryPanel : PanelContainer
             }
             Line($"Indústria ×{c.Stat("industry"):0.00}   Produção ×{c.Stat("production_speed"):0.00}   Organização ×{c.Stat("org_regain"):0.00}   Investigação ×{c.Stat("research_speed"):0.00}");
             Line($"Divisões {w.Divisions.Values.Count(d => d.CountryId == c.Id)}   ·   Regiões {w.Regions.Values.Count(r => r.ControllerId == c.Id)}   ·   Rendimento {EconomySystem.Income(w, c.Id):0.0}/dia");
+            if (w.ResourceDefs.Count > 0)
+            {
+                var parts = w.ResourceDefs.Values.OrderBy(d => d.Id)
+                    .Select(d => (d, units: ResourceSystem.Controlled(w, c.Id, d.Id)))
+                    .Where(t => t.units > 0f)
+                    .Select(t => $"{t.d.Name} {t.units:0} (+{MathF.Min(t.units, t.d.Cap) * t.d.PerUnit:P0} {StatName(t.d.StatKey)})");
+                var txt = string.Join("   ·   ", parts);
+                if (txt.Length > 0) Line("Recursos: " + txt);
+            }
             Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
             if (mine && c.AtWarWith.Count > 0)
                 _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
@@ -257,6 +266,12 @@ public partial class CountryPanel : PanelContainer
     }
 
     private void Header(string text) { var l = Ui.Lbl(text, 20); l.Modulate = new Color(1f, 0.85f, 0.4f); _body.AddChild(l); }
+    private static string StatName(string key) => key switch
+    {
+        "production_speed" => "produção", "industry" => "indústria", "research_speed" => "investigação",
+        _ => key,
+    };
+
     private void Line(string text, int size = 18) => _body.AddChild(Ui.Lbl(text, size));
     private void Wrap(string text, int size)
     {

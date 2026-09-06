@@ -18,7 +18,7 @@ public partial class RegionPanel : PanelContainer
     private CountryPanel _countryPanel = null!;
     private Label _title = null!, _info = null!;
     private VBoxContainer _rows = null!;
-    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!;
+    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!;
     private ConfirmationDialog _warDialog = null!;
     private readonly Dictionary<string, string> _terrainNames = new();
     private readonly HashSet<int> _selected = new();
@@ -54,6 +54,7 @@ public partial class RegionPanel : PanelContainer
         _produce = Ui.Btn("Produzir", () => { Close(); _production.Open(); }); actions.AddChild(_produce);
         _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
         _fort = Ui.Btn("", () => _game.RunWhenIdle(OnFort)); actions.AddChild(_fort);
+        _retreat = Ui.Btn("Retirar", () => _game.RunWhenIdle(OnRetreat)); actions.AddChild(_retreat);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
         {
             if (!_game.World.Regions.TryGetValue(_regionId, out var r)) return;
@@ -142,6 +143,14 @@ public partial class RegionPanel : PanelContainer
         Refresh();
     }
 
+    private void OnRetreat()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new RetreatFromBattleCommand(pid, _regionId));
+        if (err is not null) _game.Notify(err);
+        Refresh();
+    }
+
     private void OnWar()
     {
         if (_game.PlayerId is not int pid) return;
@@ -176,6 +185,8 @@ public partial class RegionPanel : PanelContainer
             _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
             var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
+            foreach (var (res, amount) in r.Resources.OrderBy(kv => kv.Key))
+                if (w.ResourceDefs.TryGetValue(res, out var rd)) info += $"  ·  {rd.Name} {amount:0}";
             if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
             if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
@@ -218,6 +229,8 @@ public partial class RegionPanel : PanelContainer
                             && r.Infrastructure < w.Rule("infra_max", 2f) - 1e-4f;
             _build.Visible = canBuild;
             if (canBuild) _build.Text = $"Melhorar infra ({w.Rule("infra_build_cost", 40f):0})";
+            _retreat.Visible = hasPlayer && battle is not null
+                && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid);
             bool canFort = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.FortBuilding
                            && r.Fort < (int)w.Rule("fort_max", 5f);
             _fort.Visible = canFort;

@@ -69,6 +69,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.LawEffects.TryGetValue(lid, out var llist)) w.LawEffects[lid] = llist = new();
             llist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
+        foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap FROM resource"))
+            w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]));
         foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude FROM spy_op"))
             w.SpyOps[(string)r["id"]!] = new SpyOp((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "",
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]));
@@ -113,6 +116,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             float km = Convert.ToSingle(r["km"]);
             w.Regions[p].SeaNeighbours[q] = km; w.Regions[q].SeaNeighbours[p] = km;
         }
+        foreach (var r in _static.Query("SELECT region_id,resource,amount FROM region_resource"))
+            if (w.Regions.TryGetValue(Convert.ToInt32(r["region_id"]), out var rr))
+                rr.Resources[(string)r["resource"]!] = Convert.ToSingle(r["amount"]);
     }
 
     public void LoadStartArmies(World w)

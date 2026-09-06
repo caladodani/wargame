@@ -70,7 +70,13 @@ public sealed class Region
     public Dictionary<int, float> SeaNeighbours { get; init; } = new();
     public bool Coastal { get; init; }
     public List<int> DivisionIds { get; } = new();
+    /// <summary>Depósitos de recursos (region_resource): resource id → unidades. Rende ao controlador.</summary>
+    public Dictionary<string, float> Resources { get; init; } = new();
 }
+
+/// <summary>Tipo de recurso estratégico (tabela resource): cada unidade controlada multiplica
+/// StatKey por (1+PerUnit), até Cap unidades (ResourceSystem).</summary>
+public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap);
 
 /// <summary>Estado de uma guerra em curso (World.Wars, chave min,max).</summary>
 public sealed class WarInfo
@@ -98,9 +104,12 @@ public sealed class Country
     public StatBlock Stats { get; } = new();
     /// <summary>Multiplicadores acumulados das tecnologias concluídas (tech_effect); World.ApplyTechs recalcula.</summary>
     public Dictionary<string, float> TechMult { get; } = new();
+    /// <summary>Multiplicadores dos recursos controlados (ResourceSystem recalcula todos os dias).</summary>
+    public Dictionary<string, float> ResourceMult { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
-        (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f);
+        (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f);
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)

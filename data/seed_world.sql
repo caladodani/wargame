@@ -209,3 +209,7 @@ INSERT INTO resource (id,name,stat_key,per_unit,cap) VALUES
 -- Retirada manual de batalha (RetreatFromBattleCommand): sai do combate com penalização de organização.
 INSERT INTO rule (key,value,note) VALUES
  ('retreat_org_penalty',0.5,'multiplicador de organização ao retirar de uma batalha');
+
+-- A IA retira de batalhas muito desequilibradas (org própria < org inimiga × ai_retreat_ratio).
+INSERT INTO rule (key,value,note) VALUES
+ ('ai_retreat_ratio',0.25,'limiar de org relativa abaixo do qual a IA retira da batalha');

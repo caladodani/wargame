@@ -70,6 +70,7 @@ public partial class Game : Node
 
         // Ordem do tick — única fonte de verdade.
         World.Register(new SupplySystem());
+        World.Register(new ResourceSystem());
         World.Register(new EconomySystem());
         World.Register(new StabilitySystem());
         World.Register(new ManpowerSystem());

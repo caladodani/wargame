@@ -289,6 +289,8 @@ def main():
         db.execute('INSERT OR REPLACE INTO country_stat VALUES (?,?,?)', (c, 'industry', round(min(2.5, max(0.4, math.sqrt(ratio))), 2)))
     for f in sorted((HERE / 'data' / 'countries').glob('*.sql')):
         db.executescript(f.read_text(encoding='utf-8'))
+    # recursos por região: depende da tabela region, por isso só no fim
+    db.executescript((HERE / 'data' / 'seed_resources.sql').read_text(encoding='utf-8'))
     db.commit()
 
     # ---- 9. exército inicial + capitais (tools/seed_armies.py; re-semeável à parte)

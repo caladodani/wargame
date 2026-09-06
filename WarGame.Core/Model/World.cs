@@ -32,6 +32,8 @@ public sealed class World
     public Dictionary<string, List<NewsOption>> NewsOptions { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> NewsOptionEffects { get; } = new();
     /// <summary>Leis nacionais (tabelas law + law_effect); ActiveLaw resolve o default por grupo.</summary>
+    /// <summary>Tipos de recurso (tabela resource); depósitos vivem em Region.Resources.</summary>
+    public Dictionary<string, ResourceDef> ResourceDefs { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
 

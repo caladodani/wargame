@@ -206,6 +206,3 @@ CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qt
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
   stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL);
-CREATE TABLE IF NOT EXISTS region_resource (  -- depósitos por região (gerados no fim do import: seed_resources.sql)
-  region_id INTEGER NOT NULL, resource_id TEXT NOT NULL REFERENCES resource(id), amount REAL NOT NULL,
-  PRIMARY KEY (region_id, resource_id));
