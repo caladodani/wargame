@@ -45,7 +45,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -132,6 +132,18 @@ public partial class CountryPanel : PanelContainer
             }
             else if (_game.PlayerId is int inviter)
             {
+                // balança militar contra este país: divisões e força org×HP de cada lado
+                int myDivs = 0, theirDivs = 0; float myStr = 0f, theirStr = 0f;
+                foreach (var d in w.Divisions.Values)
+                {
+                    if (d.CountryId == inviter) { myDivs++; myStr += d.Org * d.Hp / 100f; }
+                    else if (d.CountryId == c.Id) { theirDivs++; theirStr += d.Org * d.Hp / 100f; }
+                }
+                if (myStr + theirStr > 0f)
+                {
+                    int seg = (int)MathF.Round(10f * myStr / (myStr + theirStr));
+                    Line($"Balança militar: nós {myDivs} div  {new string('█', seg)}{new string('░', 10 - seg)}  {theirDivs} div eles");
+                }
                 foreach (var f in w.FactionsOf(inviter).Where(f => !f.Members.Contains(c.Id)))
                 {
                     string fid = f.Id;

@@ -64,7 +64,11 @@ public partial class WorldPanel : PanelContainer
                 var b = Ui.Btn($"{c.Name}   {divs.GetValueOrDefault(c.Id)} div · {regions.GetValueOrDefault(c.Id)} reg · {share:0.0}% pop{atWar}",
                     () => { Close(); _countryPanel.Open(id); }, 0);
                 b.Alignment = HorizontalAlignment.Left;
-                _body.AddChild(b);
+                b.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                var row = new HBoxContainer();
+                var fl = Flags.Rect(22); fl.Texture = Flags.Of(c.Tag); fl.Visible = fl.Texture is not null;
+                row.AddChild(fl); row.AddChild(b);
+                _body.AddChild(row);
             }
 
             Header("Guerras activas");
