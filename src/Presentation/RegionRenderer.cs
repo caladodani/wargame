@@ -32,6 +32,10 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, Node2D> _countryNames = new();  // país → etiqueta com o nome no mapa
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
     private float _zoom = 1f;
+    // Modo de mapa (MapModes): o político pinta pelo controlador, os outros pela conta escolhida.
+    private string _mode = MapModes.Political, _metric = "owner";
+    private Dictionary<int, float> _shades = new();
+    private readonly Dictionary<int, int> _shadePainted = new();   // tom já pintado (0..20), para não repintar à toa
     private string _goalKey = "";                                   // objectivos desenhados (evita refazer o contorno todos os dias)
     private Tween? _goalPulse;
     private Game _game = null!;
@@ -80,8 +84,24 @@ public partial class RegionRenderer : Node2D
             foreach (var p in polys) yield return (id, p.Polygon);
     }
 
-    /// <summary>Cor actual de uma região (controlador, escurecida quando é ocupação).</summary>
+    /// <summary>Cor actual de uma região (controlador, escurecida quando é ocupação; noutro modo de mapa,
+    /// o tom da escala de calor).</summary>
     public Color ColorOf(int regionId) => ColorFor(regionId);
+
+    /// <summary>Modo de mapa escolhido (id da tabela map_mode).</summary>
+    public string Mode => _mode;
+
+    /// <summary>Troca o modo de mapa e repinta o mundo. Um id desconhecido volta ao mapa político.</summary>
+    public void SetMode(string modeId)
+    {
+        var def = _game.World.MapModeDefs.GetValueOrDefault(modeId);
+        _mode = def?.Id ?? MapModes.Political;
+        _metric = def?.Metric ?? "owner";
+        _shades = _game.PlayerId is int pid ? MapModes.Shades(_game.World, pid, _metric)
+                                            : MapModes.Shades(_game.World, 0, _metric);
+        _shadePainted.Clear();
+        RepaintAll();
+    }
 
     /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
     public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
@@ -172,8 +192,38 @@ public partial class RegionRenderer : Node2D
     private Color ColorFor(int regionId)
     {
         if (!_game.World.Regions.TryGetValue(regionId, out var r)) return Colors.Gray;
+        // Fora do mapa político manda a conta: quente onde há muito, aço frio onde não há resposta.
+        if (_metric != "owner")
+            return _shades.TryGetValue(regionId, out float t) ? Ui.Heat(t) : Ui.Surface.Darkened(0.45f);
         var c = _countryColor.GetValueOrDefault(r.ControllerId, Colors.Gray);
         return r.ControllerId == r.OwnerId ? c : c.Darkened(0.28f);   // ocupada: tom escuro do ocupante
+    }
+
+    /// <summary>Repinta o mundo inteiro já (o RecolorAll espera pelo fim do tick; a troca de modo é do
+    /// jogador e não pode ficar um segundo à espera).</summary>
+    private void RepaintAll()
+    {
+        foreach (var (id, polys) in _byRegion)
+        {
+            var col = ColorFor(id); foreach (var p in polys) p.Color = col;
+            PaintBorder(id);
+        }
+    }
+
+    /// <summary>Refaz as contas do modo actual e repinta só as regiões cujo tom mudou. Os números mexem-se
+    /// todos os dias (abastecimento, resistência): sem isto o mapa temático era uma fotografia velha.</summary>
+    private void RefreshShades()
+    {
+        if (_metric == "owner") return;
+        _shades = MapModes.Shades(_game.World, _game.PlayerId ?? 0, _metric);
+        foreach (var (id, polys) in _byRegion)
+        {
+            int step = _shades.TryGetValue(id, out float t) ? (int)MathF.Round(t * 20f) : -1;
+            if (_shadePainted.TryGetValue(id, out int before) && before == step) continue;
+            _shadePainted[id] = step;
+            var col = ColorFor(id); foreach (var p in polys) p.Color = col;
+            PaintBorder(id);
+        }
     }
 
     private void RecolorAll() => _game.RunWhenIdle(() =>
@@ -226,6 +276,7 @@ public partial class RegionRenderer : Node2D
         try
         {
             var w = _game.World;
+            RefreshShades();
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
             var portIds = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).Select(d => d.Id).ToHashSet();
             var goals = PlayerGoals(w);

@@ -344,6 +344,19 @@ INSERT INTO rule (key,value,note) VALUES
  ('factory_per_building',1,'fábricas que cada nível de um edifício de fila (building.yard) acrescenta'),
  ('yard_divisions',3,'divisões abastecidas por mar que cada estaleiro serve');
 
+-- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
+CREATE TABLE IF NOT EXISTS map_mode (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population
+  low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
+  sort INTEGER NOT NULL);
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort) VALUES
+ ('politico','Político','🌍','owner','','',0),
+ ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1),
+ ('resistencia','Resistência','✊','resistance','calma','revolta',2),
+ ('industria','Indústria','🏭','industry','terra rasa','fábricas',3),
+ ('populacao','População','♟','population','deserto','multidão',4);
+
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES
  ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),

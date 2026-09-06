@@ -92,6 +92,16 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>Escala de calor dos modos de mapa: do aço frio ao latão e do latão ao vermelho. É a mesma
+    /// leitura de qualquer mapa temático — quanto mais quente, mais daquilo há — feita com as cores da casa
+    /// em vez de um arco-íris que não pertence a esta pele.</summary>
+    public static Color Heat(float t)
+    {
+        t = Math.Clamp(t, 0f, 1f);
+        return t < 0.5f ? Surface.Lerp(Accent.Darkened(0.15f), t * 2f)
+                        : Accent.Darkened(0.15f).Lerp(Danger.Lightened(0.1f), (t - 0.5f) * 2f);
+    }
+
     /// <summary>Fila de lâmpadas: quantas de um total estão acesas. É como os jogos do género mostram
     /// fábricas, ranhuras e cais — um número diz "3 de 5", mas uma fila de chapas acesas vê-se sem ler.
     /// Acima de `max` a fila pára e o resto vai num "+n" para não atravessar o ecrã.</summary>

@@ -83,6 +83,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,icon,metric,low,high,sort FROM map_mode ORDER BY sort"))
+            w.MapModeDefs[(string)r["id"]!] = new MapModeDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                (string)r["metric"]!, (string)r["low"]!, (string)r["high"]!, Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,icon,weight FROM chronicle_kind"))
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToInt32(r["weight"]));

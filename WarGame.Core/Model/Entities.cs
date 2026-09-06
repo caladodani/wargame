@@ -134,6 +134,10 @@ public sealed record ChronicleKind(string Id, string Name, string Icon, int Weig
 /// sessão e a guerra de há dois anos ficava sem memória nenhuma.</summary>
 public sealed record ChronicleEntry(int Day, string Kind, string Text, int CountryId, int RegionId);
 
+/// <summary>Um modo de mapa (tabela map_mode): como o mapa se pinta e o que a legenda diz nas duas pontas.
+/// Métrica "owner" é o mapa político de sempre — cor do controlador, sem escala.</summary>
+public sealed record MapModeDef(string Id, string Name, string Icon, string Metric, string Low, string High, int Sort);
+
 /// <param name="Yard">Fila de fábricas que este edifício alimenta (coluna building.yard): "civil", "militar",
 /// "naval" ou vazio. É o que liga um edifício aos contadores do Industry.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
