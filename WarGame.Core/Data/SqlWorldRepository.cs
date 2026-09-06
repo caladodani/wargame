@@ -356,6 +356,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             info.SideA.DivisionsLost = Convert.ToInt32(r["a_losses"]); info.SideB.DivisionsLost = Convert.ToInt32(r["b_losses"]);
             info.SideA.BattlesWon = Convert.ToInt32(r["a_battles"]); info.SideB.BattlesWon = Convert.ToInt32(r["b_battles"]);
         }
+        foreach (var r in save.Query("SELECT a,b,country_id,region_id FROM s_war_goal"))
+            if (w.Wars.TryGetValue((Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"])), out var war))
+                war.Side(Convert.ToInt32(r["country_id"])).Goals.Add(Convert.ToInt32(r["region_id"]));
         foreach (var r in save.Query("SELECT a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war_history ORDER BY id"))
             w.WarHistory.Add(new WarRecord(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]), Convert.ToInt32(r["start_day"]), Convert.ToInt32(r["end_day"]),
                 Convert.ToInt32(r["a_regions"]), Convert.ToInt32(r["b_regions"]), Convert.ToInt32(r["a_losses"]), Convert.ToInt32(r["b_losses"]),
@@ -374,7 +377,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -433,6 +436,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                         info?.SideA.BattlesWon ?? 0, info?.SideB.BattlesWon ?? 0);
                 }
         }
+        foreach (var (key, war) in w.Wars)
+            foreach (var (side, owner) in new[] { (war.SideA, war.A), (war.SideB, war.B) })
+                foreach (int regionId in side.Goals)
+                    save.Execute("INSERT INTO s_war_goal (a,b,country_id,region_id) VALUES (?,?,?,?)", key.A, key.B, owner, regionId);
         foreach (var rec in w.WarHistory)   // pela ordem da lista (mais recente primeiro); o load lê por id e mantém-na
             save.Execute("INSERT INTO s_war_history (a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 rec.A, rec.B, rec.StartDay, rec.EndDay, rec.ARegions, rec.BRegions, rec.ALosses, rec.BLosses, rec.ABattles, rec.BBattles);

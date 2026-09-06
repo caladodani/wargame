@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -41,6 +42,7 @@ public partial class WarPanel : PanelContainer
             var mine = w.Wars.Values.Where(x => x.Involves(pid)).OrderBy(x => x.StartDay).ToList();
             var past = w.WarHistory.Where(r => r.Involves(pid)).ToList();
             var key = w.Clock.Day + "|" + mine.Count + "|" + past.Count + "|" +
+                      string.Join(",", mine.Select(x => string.Join("-", x.Side(pid).Goals.OrderBy(g => g)) + "/" + x.Side(pid).Goals.Count(g => w.Regions.TryGetValue(g, out var gr) && gr.ControllerId == pid))) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -73,6 +75,8 @@ public partial class WarPanel : PanelContainer
                 Compare(card, "Exército no terreno", front.GetValueOrDefault(pid), front.GetValueOrDefault(foe),
                         left: divs.GetValueOrDefault(pid) + " div", right: divs.GetValueOrDefault(foe) + " div");
 
+                Goals(w, card, war, pid, foe);
+
                 int stale = w.Clock.Day - war.LastProgressDay;
                 if (stale > 0) card.AddChild(Ui.Lbl($"Frente parada há {stale} dias", 15));
                 _body.AddChild(box);
@@ -98,6 +102,48 @@ public partial class WarPanel : PanelContainer
             }
         }
         catch (Exception ex) { GD.PushError("WarPanel.Fill: " + ex); }
+    }
+
+    /// <summary>Objectivo de guerra: o que viemos buscar, quanto já está nas nossas mãos e o que eles
+    /// nos pedem a nós. Cada região é uma etiqueta — verde quando já é nossa, cinzenta enquanto não for.</summary>
+    private static void Goals(World w, VBoxContainer card, WarInfo war, int pid, int foe)
+    {
+        var ours = war.Side(pid).Goals.ToList();
+        if (ours.Count > 0)
+        {
+            int held = ours.Count(id => w.Regions.TryGetValue(id, out var r) && r.ControllerId == pid);
+            bool met = held == ours.Count;
+            var head = new HBoxContainer();
+            head.AddChild(Ui.Grow(Ui.Lbl("Objectivo de guerra", 15)));
+            var state = Ui.Lbl(met ? "cumprido" : $"{held}/{ours.Count}", 15);
+            state.AddThemeColorOverride("font_color", met ? Ui.Good : Ui.TextDim);
+            head.AddChild(state);
+            card.AddChild(head);
+            card.AddChild(Ui.Bar(ours.Count == 0 ? 0f : (float)held / ours.Count, met ? Ui.Good : new Color(1f, 0.82f, 0.25f), 200f));
+            card.AddChild(Chips(w, ours, pid));
+        }
+        var theirs = war.Enemy(pid).Goals.ToList();
+        if (theirs.Count > 0)
+        {
+            card.AddChild(Ui.Lbl($"{Name(w, foe)} exige", 15));
+            card.AddChild(Chips(w, theirs, foe));
+        }
+    }
+
+    /// <summary>Etiquetas com o nome de cada região do objectivo; verdes quando `holder` já a controla.</summary>
+    private static Control Chips(World w, IEnumerable<int> regionIds, int holder)
+    {
+        var box = new HFlowContainer();
+        foreach (int id in regionIds)
+        {
+            bool held = w.Regions.TryGetValue(id, out var r) && r.ControllerId == holder;
+            var chip = new PanelContainer();
+            chip.AddThemeStyleboxOverride("panel", Ui.Box((held ? Ui.Good : Ui.SurfaceHi) with { A = held ? 0.35f : 0.6f }, 6));
+            var l = Ui.Lbl((held ? "✔ " : "") + (r?.Name ?? "#" + id), 16);
+            chip.AddChild(l);
+            box.AddChild(chip);
+        }
+        return box;
     }
 
     /// <summary>Linha de comparação: número nosso, barra dupla, número deles. A barra dá a proporção

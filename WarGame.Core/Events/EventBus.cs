@@ -16,6 +16,10 @@ public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
+/// <summary>Um beligerante fixou o que quer desta guerra (WarGoalSystem): as regiões exigidas ao inimigo.</summary>
+public sealed record WarGoalDeclared(int CountryId, int TargetCountryId, IReadOnlyList<int> RegionIds) : IGameEvent;
+/// <summary>Todas as regiões do objectivo estão nas mãos de quem as exigiu — a guerra já deu o que tinha a dar.</summary>
+public sealed record WarGoalAchieved(int CountryId, int TargetCountryId) : IGameEvent;
 /// <summary>Saldo de uma guerra que acabou de terminar (WarStatsSystem), já guardado em World.WarHistory.</summary>
 public sealed record WarSummary(WarGame.Core.Model.WarRecord Record) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>

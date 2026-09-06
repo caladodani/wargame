@@ -5,83 +5,140 @@ using Xunit;
 
 namespace WarGame.Core.Tests;
 
-/// <summary>Objectivos de guerra da IA: país 2 (aggression) contra o vizinho 1; regras da tabela sobrepostas
-/// nos testes. Desde a justificação (DiplomacySystem) a IA primeiro justifica (war_justify_days, aqui 2) e a
-/// guerra declara-se sozinha ao fim.</summary>
+/// <summary>Objectivos de guerra: o que cada lado veio buscar. Mapa em linha 1-2-3 | 4-5-6,
+/// país 1 à esquerda, país 2 à direita.</summary>
 public class WarGoalTests
 {
-    private static World Setup(float aggression, float chance = 1f, int minDay = 0)
+    private static (World w, WarGoalSystem sys) Build()
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        w.Rules["ai_war_chance"] = chance; w.Rules["ai_war_min_day"] = minDay; w.Rules["ai_war_ratio"] = 1f;
-        w.Rules["war_justify_days"] = 2f;
-        w.Countries[2].Stats["aggression"] = aggression;
-        for (int i = 0; i < 4; i++) TestWorld.AddDivision(w, 10 + i, 2, TestWorld.Inf2, 4);
-        TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 3);
-        w.Register(new DiplomacySystem()); w.Register(new AiSystem());
-        return w;
+        var sys = new WarGoalSystem();
+        w.Register(sys);
+        w.StartWar(1, 2);
+        return (w, sys);
     }
 
-    private static void Rounds(World w, int n) { int p = Math.Max(1, (int)w.Rule("ai_period_days", 3)); for (int i = 0; i < n * p; i++) w.Tick(); }
+    private static WarInfo War(World w) => w.Wars[World.WarKey(1, 2)];
 
     [Fact]
-    public void Agressivo_declara_guerra_ao_vizinho_fraco()
+    public void Border_IsTheDefaultGoal()
     {
-        var w = Setup(1f);
-        WarDeclared? evt = null; w.Events.Subscribe<WarDeclared>(e => evt = e);
-        Rounds(w, 2);
-        Assert.True(w.AreAtWar(2, 1));
-        Assert.NotNull(evt); Assert.Equal(2, evt!.Aggressor);
+        var (w, sys) = Build();
+        sys.Tick(w);
+        // só a região 4 faz fronteira com o país 1; a capital inimiga (6) não entra sem vantagem
+        Assert.Equal(new[] { 4 }, War(w).Side(1).Goals.OrderBy(x => x));
+        Assert.Equal(new[] { 3 }, War(w).Side(2).Goals.OrderBy(x => x));
     }
 
     [Fact]
-    public void Pacifico_nunca_declara()
+    public void OwnLandUnderEnemyControl_ComesFirst()
     {
-        var w = Setup(0f);
-        Rounds(w, 10);
-        Assert.False(w.AreAtWar(2, 1));
+        var (w, sys) = Build();
+        w.Regions[5].OwnerId = 1;              // região nossa no papel, controlada por eles
+        sys.Tick(w);
+        Assert.Contains(5, War(w).Side(1).Goals);   // apesar de não fazer fronteira connosco
     }
 
     [Fact]
-    public void Nao_ataca_quem_e_forte_demais()
+    public void Capital_JoinsTheGoalWhenWeAreStronger()
     {
-        var w = Setup(1f);
-        for (int i = 0; i < 6; i++) TestWorld.AddDivision(w, 20 + i, 1, TestWorld.Inf, 2);   // 7 vs 4 com ratio 1
-        Rounds(w, 5);
-        Assert.False(w.AreAtWar(2, 1));
+        var (w, sys) = Build();
+        for (int i = 1; i <= 5; i++) TestWorld.AddDivision(w, i, 1, TestWorld.Inf, 1);
+        TestWorld.AddDivision(w, 9, 2, TestWorld.Inf2, 6);
+        sys.Tick(w);
+        Assert.Contains(6, War(w).Side(1).Goals);      // 5 contra 1 chega ao rácio de 2
+        Assert.DoesNotContain(1, War(w).Side(2).Goals); // e eles não têm força para pedir a nossa
     }
 
     [Fact]
-    public void Dissuasao_nuclear_trava_quem_nao_tem_ogivas()
+    public void Goal_IsChosenOnceAndStays()
     {
-        var w = Setup(1f);
-        w.Countries[1].Nukes = 1;   // alvo é potência nuclear, agressor não
-        Rounds(w, 5);
-        Assert.False(w.AreAtWar(2, 1));
-        w.Countries[2].Nukes = 1;   // paridade nuclear: dissuasão deixa de travar
-        Rounds(w, 3);
-        Assert.True(w.AreAtWar(2, 1));
+        var (w, sys) = Build();
+        sys.Tick(w);
+        var first = War(w).Side(1).Goals.ToList();
+        w.Regions[4].ControllerId = 1;         // conquistada: a fronteira mudou
+        TestWorld.Days(w, 3);
+        sys.Tick(w);
+        Assert.Equal(first, War(w).Side(1).Goals.ToList());
     }
 
     [Fact]
-    public void Jogador_so_depois_de_ai_war_player_min_day()
+    public void Declaration_IsAnnouncedOnce()
     {
-        var w = Setup(1f); w.Countries[1].IsPlayer = true; w.Rules["ai_war_player_min_day"] = 30;
-        Rounds(w, 3);
-        Assert.False(w.AreAtWar(2, 1));
-        Assert.Null(w.Countries[2].JustifyTarget);   // nem sequer justifica antes do dia mínimo
-        while (w.Clock.Day < 30) w.Tick();
-        Rounds(w, 2);
-        Assert.True(w.AreAtWar(2, 1));
+        var (w, sys) = Build();
+        var seen = new List<WarGoalDeclared>();
+        w.Events.Subscribe<WarGoalDeclared>(seen.Add);
+        sys.Tick(w); TestWorld.Days(w, 3); sys.Tick(w);
+        Assert.Equal(2, seen.Count);            // um anúncio por lado, e não mais
+        Assert.Contains(seen, e => e.CountryId == 1 && e.TargetCountryId == 2 && e.RegionIds.Contains(4));
     }
 
     [Fact]
-    public void Guerras_iniciais_carregadas_da_tabela()
+    public void Achieved_FiresWhenEveryGoalRegionIsHeld()
     {
-        var (w, db) = TestWorld.Build();
-        w.Countries[1] = new Country { Id = 1, Tag = "RUS" }; w.Countries[2] = new Country { Id = 2, Tag = "UKR" }; w.Countries[3] = new Country { Id = 3, Tag = "PRT" };
-        new WarGame.Core.Data.SqlWorldRepository(db).LoadStartWars(w);
-        Assert.True(w.AreAtWar(1, 2)); Assert.False(w.AreAtWar(1, 3));
+        var (w, sys) = Build();
+        var seen = new List<WarGoalAchieved>();
+        w.Events.Subscribe<WarGoalAchieved>(seen.Add);
+        sys.Tick(w);
+        Assert.False(WarGoalSystem.Met(w, War(w), 1));
+
+        w.Regions[4].ControllerId = 1;
+        sys.Tick(w);
+        Assert.True(WarGoalSystem.Met(w, War(w), 1));
+        Assert.Single(seen, e => e.CountryId == 1);
+
+        TestWorld.Days(w, 3); sys.Tick(w);
+        Assert.Single(seen, e => e.CountryId == 1);   // não repete enquanto o estado não mudar
+    }
+
+    [Fact]
+    public void AiAttacksTheGoalEvenWhenItIsBetterDefended()
+    {
+        var (w, _) = TestWorld.Build();
+        w.Countries[1] = new Country { Id = 1, Tag = "A", Name = "Alfa", CapitalRegionId = 1, Manpower = 1e9f };
+        w.Countries[2] = new Country { Id = 2, Tag = "B", Name = "Beta", CapitalRegionId = 3, Manpower = 1e9f };
+        // região 1 (nossa) toca em 2 (vazia) e em 3 (defendida): sem objectivo iria à vazia
+        foreach (int i in new[] { 1, 2, 3 })
+        {
+            int owner = i == 1 ? 1 : 2;
+            w.Regions[i] = new Region { Id = i, Name = "R" + i, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner, Terrain = "plain", Population = 1_000_000 };
+        }
+        w.Regions[1].Neighbours.Add(2); w.Regions[2].Neighbours.Add(1);
+        w.Regions[1].Neighbours.Add(3); w.Regions[3].Neighbours.Add(1);
+        w.StartWar(1, 2);
+        for (int i = 1; i <= 6; i++) TestWorld.AddDivision(w, i, 1, TestWorld.Inf, 1);
+        TestWorld.AddDivision(w, 9, 2, TestWorld.Inf2, 3);
+        w.Wars[World.WarKey(1, 2)].Side(1).Goals.Add(3);
+
+        new AiSystem().Tick(w);
+
+        Assert.Contains(w.Divisions.Values, d => d.CountryId == 1 && d.TargetRegionId == 3);
+        Assert.DoesNotContain(w.Divisions.Values, d => d.CountryId == 1 && d.TargetRegionId == 2);
+    }
+
+    [Fact]
+    public void Goals_SurviveSaveAndLoad()
+    {
+        var (w, staticDb) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.StartWar(1, 2);
+        new WarGoalSystem().Tick(w);
+        var before = w.Wars[World.WarKey(1, 2)].Side(1).Goals.ToList();
+        Assert.NotEmpty(before);
+
+        using var save = new MsSqliteDatabase();
+        var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
+            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
+        WarGame.Core.Data.SqlWorldRepository.EnsureSaveSchema(save, schema);
+        var repo = new WarGame.Core.Data.SqlWorldRepository(staticDb);
+        repo.WriteSave(w, save);
+
+        var (w2, _) = TestWorld.Build();
+        TestWorld.LinearMap(w2);
+        repo.LoadSave(w2, save);
+
+        Assert.Equal(before, w2.Wars[World.WarKey(1, 2)].Side(1).Goals.ToList());
+        Assert.NotEmpty(w2.Wars[World.WarKey(1, 2)].Side(2).Goals);
     }
 }

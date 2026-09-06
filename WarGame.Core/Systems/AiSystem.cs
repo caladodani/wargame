@@ -91,6 +91,18 @@ public sealed class AiSystem : ISystem
     {
         var theirs = w.Regions.Values.Where(r => r.OwnerId == enemyId).ToList();
         if (theirs.Count == 0) return false;
+        // Objectivo cumprido: pede o objectivo e mais nada. Uma exigência pequena é aceite muito antes
+        // de uma que leve meio país, e a guerra acaba com o que a IA veio buscar.
+        var war = w.Wars.GetValueOrDefault(World.WarKey(c.Id, enemyId));
+        if (war is not null && WarGoalSystem.Met(w, war, c.Id))
+        {
+            var goals = war.Side(c.Id).Goals.Where(id => w.Regions.TryGetValue(id, out var r) && r.OwnerId == enemyId).ToList();
+            if (goals.Count > 0 && PeaceTerms.Evaluate(w, c.Id, enemyId, goals).Accepted)
+            {
+                var goalCmd = new Commands.DemandPeaceCommand(c.Id, enemyId, goals);
+                if (goalCmd.Validate(w) is null) { goalCmd.Execute(w); return true; }
+            }
+        }
         var held = theirs.Where(r => r.ControllerId == c.Id).Select(r => r.Id).ToList();
         if (held.Count == 0) return false;
         if ((float)held.Count / theirs.Count < w.Rule("ai_peace_demand_min_share", 0.25f)) return false;
@@ -381,17 +393,24 @@ public sealed class AiSystem : ISystem
         if (groups.Count == 0) return;
 
         var frontIds = new HashSet<int>(front.Select(r => r.Id));
+        // Regiões pedidas em qualquer das guerras em curso: atacam-se primeiro, mesmo que estejam
+        // mais defendidas do que a vizinha ao lado — é para lá que a guerra vai.
+        var goals = new HashSet<int>();
+        foreach (var war in w.Wars.Values) if (war.Involves(c.Id)) goals.UnionWith(war.Side(c.Id).Goals);
         foreach (var f in front)
         {
             if (!groups.TryGetValue(f.Id, out var g)) continue;
             Region? target = null; int best = int.MaxValue, total = 0;
+            Region? goalTarget = null; int goalBest = int.MaxValue;
             foreach (var n in f.Neighbours)
             {
                 var r = w.Regions[n];
                 if (!w.IsHostile(c.Id, r)) continue;
                 int def = Defenders(c, r.Id, fighters); total += def;
                 if (def < best) { best = def; target = r; }
+                if (goals.Contains(n) && def < goalBest) { goalBest = def; goalTarget = r; }
             }
+            if (goalTarget is not null) { target = goalTarget; best = goalBest; }
             if (target is not null)
             {
                 if (best == 0) { if (g.Count >= 2 || total == 0) Send(w, c, g.Take(1), target.Id); }

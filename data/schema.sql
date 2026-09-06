@@ -157,6 +157,9 @@ CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, last_
   a_losses INTEGER NOT NULL DEFAULT 0, b_losses INTEGER NOT NULL DEFAULT 0,     -- divisões perdidas por lado
   a_battles INTEGER NOT NULL DEFAULT 0, b_battles INTEGER NOT NULL DEFAULT 0,   -- batalhas ganhas por lado
   PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS s_war_goal (     -- regiões exigidas por lado em cada guerra (WarGoalSystem)
+  a INTEGER NOT NULL, b INTEGER NOT NULL, country_id INTEGER NOT NULL, region_id INTEGER NOT NULL,
+  PRIMARY KEY (a, b, country_id, region_id));
 CREATE TABLE IF NOT EXISTS s_war_history (    -- guerras terminadas, com o saldo final (WarStatsSystem)
   id INTEGER PRIMARY KEY, a INTEGER NOT NULL, b INTEGER NOT NULL,
   start_day INTEGER NOT NULL, end_day INTEGER NOT NULL,

@@ -130,6 +130,9 @@ public sealed class WarSide
     public int RegionsTaken { get; set; }    // regiões tiradas ao inimigo
     public int DivisionsLost { get; set; }   // divisões próprias destruídas
     public int BattlesWon { get; set; }      // batalhas ganhas (a atacar ou a defender)
+    /// <summary>Objectivo de guerra: as regiões do inimigo que este lado quer (WarGoalSystem escolhe-as
+    /// no início da guerra e nunca mais mexe). Vazio enquanto não houver candidatas.</summary>
+    public HashSet<int> Goals { get; } = new();
 }
 
 /// <summary>Estado de uma guerra em curso (World.Wars, chave min,max).</summary>

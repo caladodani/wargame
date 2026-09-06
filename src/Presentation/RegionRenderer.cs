@@ -15,6 +15,8 @@ public partial class RegionRenderer : Node2D
     public const string ResistMark = "✊";
     /// <summary>Capital de um país vivo.</summary>
     public const string CapitalMark = "★";
+    /// <summary>Região que o jogador exigiu numa guerra (objectivo de guerra).</summary>
+    public const string GoalMark = "🎯";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
@@ -23,7 +25,9 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, StyleBoxFlat> _pillStyle = new();
     private readonly Dictionary<int, Node2D> _markers = new();      // região → Node2D (escala 1/zoom) com um Label
     private readonly Dictionary<int, Tween> _pulses = new();        // região em batalha → animação do marcador
-    private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!;
+    private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!;
+    private string _goalKey = "";                                   // objectivos desenhados (evita refazer o contorno todos os dias)
+    private Tween? _goalPulse;
     private Game _game = null!;
     private float _markerScale = 1f;
 
@@ -51,6 +55,7 @@ public partial class RegionRenderer : Node2D
         // Por cima dos polígonos: primeiro o realce, depois os marcadores.
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
+        _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
         _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
         // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
@@ -97,6 +102,7 @@ public partial class RegionRenderer : Node2D
         foreach (var m in _markers.Values) m.Scale = Vector2.One * _markerScale;
         foreach (var c in _highlightRoot.GetChildren()) if (c is Line2D l) l.Width = 4f * _markerScale;
         foreach (var c in _multiRoot.GetChildren()) if (c is Line2D l2) l2.Width = 4f * _markerScale;
+        foreach (var c in _goalRoot.GetChildren()) if (c is Line2D l3) l3.Width = 5f * _markerScale;
     }
 
     /// <summary>Um Label por região com divisões: "N" ou "⚔ N" se há batalha, "■" se há forte, cor do controlador. Esconde os vazios.</summary>
@@ -106,19 +112,23 @@ public partial class RegionRenderer : Node2D
         {
             var w = _game.World;
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
+            var goals = PlayerGoals(w);
+            DrawGoals(goals);
             var capitals = new HashSet<int>(w.Countries.Values.Where(c => !c.Capitulated).Select(c => c.CapitalRegionId));
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
                 bool resisting = r.Resistance >= 0.5f;
                 bool capital = capitals.Contains(r.Id);
-                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital) continue;
+                bool goal = goals.Contains(r.Id);
+                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital && !goal) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var pill = m.GetNode<PanelContainer>("Center/Pill");
                 var label = pill.GetNode<Label>("Text");
                 bool fighting = battles.Contains(r.Id);
-                label.Text = (capital ? CapitalMark : "")
+                label.Text = (goal ? GoalMark : "")
+                           + (capital ? CapitalMark : "")
                            + (fighting ? BattleMark : "")
                            + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
                            + (r.Fort > 0 ? FortMark : "")
@@ -132,6 +142,39 @@ public partial class RegionRenderer : Node2D
                 if (!seen.Contains(id)) { m.Visible = false; Pulse(id, null, false); }
         }
         catch (Exception ex) { GD.PushError("RegionRenderer.Refresh: " + ex); }
+    }
+
+    /// <summary>Regiões que o jogador exigiu nas guerras em curso (objectivos de guerra) e ainda não controla.</summary>
+    private HashSet<int> PlayerGoals(World w)
+    {
+        var set = new HashSet<int>();
+        if (_game.PlayerId is not int pid) return set;
+        foreach (var war in w.Wars.Values)
+            if (war.Involves(pid))
+                foreach (int id in war.Side(pid).Goals)
+                    if (w.Regions.TryGetValue(id, out var r) && r.ControllerId != pid) set.Add(id);
+        return set;
+    }
+
+    /// <summary>Contorno dourado a pulsar nas regiões do objectivo — a guerra tem um destino e vê-se no mapa.
+    /// Só refaz o desenho quando o conjunto muda; a animação é uma só, na camada inteira.</summary>
+    private void DrawGoals(HashSet<int> goals)
+    {
+        string key = string.Join(",", goals.OrderBy(x => x));
+        if (key == _goalKey) return;
+        _goalKey = key;
+        if (_goalPulse is not null && _goalPulse.IsValid()) _goalPulse.Kill();
+        _goalPulse = null;
+        foreach (var c in _goalRoot.GetChildren()) { _goalRoot.RemoveChild(c); c.QueueFree(); }
+        var gold = new Color(1f, 0.82f, 0.25f);
+        foreach (int id in goals)
+            if (_byRegion.TryGetValue(id, out var polys))
+                foreach (var p in polys)
+                    _goalRoot.AddChild(new Line2D { Points = p.Polygon.Append(p.Polygon[0]).ToArray(), Width = 5f * _markerScale, DefaultColor = gold });
+        if (goals.Count == 0) { _goalRoot.Modulate = Colors.White; return; }
+        _goalPulse = _goalRoot.CreateTween().SetLoops();
+        _goalPulse.TweenProperty(_goalRoot, "modulate:a", 0.35f, 0.9).SetTrans(Tween.TransitionType.Sine);
+        _goalPulse.TweenProperty(_goalRoot, "modulate:a", 1f, 0.9).SetTrans(Tween.TransitionType.Sine);
     }
 
     /// <summary>Marcador: uma "pastilha" com a cor do controlador por trás do número, centrada na região.

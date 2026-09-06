@@ -415,6 +415,16 @@ public partial class Hud : CanvasLayer
                 Later(white ? $"🕊 Paz branca entre {Country(e.A)} e {Country(e.B)} — cada um fica com o que controla"
                             : $"Paz entre {Country(e.A)} e {Country(e.B)}");
         }));
+        _subs.Add(w.Events.Subscribe<WarGoalDeclared>(e =>
+        {
+            if (Player(e.CountryId)) Later($"🎯 Objectivo de guerra contra {Country(e.TargetCountryId)}: {Regions(e.RegionIds)}");
+            else if (Player(e.TargetCountryId)) Later($"🎯 {Country(e.CountryId)} quer tirar-nos {Regions(e.RegionIds)}");
+        }));
+        _subs.Add(w.Events.Subscribe<WarGoalAchieved>(e =>
+        {
+            if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz");
+            else if (Player(e.TargetCountryId)) Later($"⚠ {Country(e.CountryId)} já tem o que veio buscar");
+        }));
         // Saldo da guerra que acabou: sai como notícia e fica no painel Guerra para consulta.
         _subs.Add(w.Events.Subscribe<WarSummary>(e =>
         {
@@ -520,6 +530,13 @@ public partial class Hud : CanvasLayer
             _warPanel.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
+    }
+
+    /// <summary>Nomes das regiões de um objectivo, cortados para o toast não virar parágrafo.</summary>
+    private string Regions(IReadOnlyList<int> ids)
+    {
+        var names = ids.Take(3).Select(RegionName).ToList();
+        return string.Join(", ", names) + (ids.Count > names.Count ? $" (+{ids.Count - names.Count})" : "");
     }
 
     private static string FmtMen(float m) =>
