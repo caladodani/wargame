@@ -17,6 +17,7 @@ public partial class RegionPanel : PanelContainer
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private Label _title = null!, _info = null!;
+    private TextureRect _flag = null!;
     private VBoxContainer _rows = null!;
     private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!;
     private ConfirmationDialog _warDialog = null!;
@@ -38,7 +39,9 @@ public partial class RegionPanel : PanelContainer
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
-        _title = Ui.Lbl("", 22); v.AddChild(_title);
+        var titleRow = new HBoxContainer(); v.AddChild(titleRow);
+        _flag = Flags.Rect(26); titleRow.AddChild(_flag);
+        _title = Ui.Lbl("", 22); titleRow.AddChild(_title);
         _info = Ui.Lbl("", 18); v.AddChild(_info);
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
@@ -182,6 +185,7 @@ public partial class RegionPanel : PanelContainer
             int? pid = _game.PlayerId;
             var ctrl = w.Countries.GetValueOrDefault(r.ControllerId);
 
+            _flag.Texture = ctrl is not null ? Flags.Of(ctrl.Tag) : null;
             _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
             var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
