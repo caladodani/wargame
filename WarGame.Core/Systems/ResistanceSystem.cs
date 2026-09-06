@@ -4,7 +4,7 @@ using WarGame.Core.Model;
 namespace WarGame.Core.Systems;
 
 /// <summary>Resistência nas regiões ocupadas (HoI4 simplificado, 0..1 por região). Enquanto o dono original
-/// está vivo cresce resistance_growth por dia; uma divisão do ocupante na região suprime-a (desce
+/// está vivo cresce resistance_growth por dia (× stat resistance_growth do ocupante — leis de ocupação); uma divisão do ocupante na região suprime-a (desce
 /// resistance_suppress, ocupação "garrisonada" fica em paz). O rendimento da região ocupada cai com a
 /// resistência (EconomySystem × (1 − Resistance × resistance_output_hit)). Ao chegar a 1.0 sem guarnição
 /// a região revolta-se: o controlo volta ao dono e sai RegionRevolted. Dono capitulado ou região devolvida →
@@ -27,7 +27,8 @@ public sealed class ResistanceSystem : ISystem
                 if (r.Resistance > 0f) r.Resistance = MathF.Max(0f, r.Resistance - suppress);
                 continue;
             }
-            r.Resistance = MathF.Min(1f, r.Resistance + growth);
+            float mult = w.Countries.TryGetValue(r.ControllerId, out var occ) ? occ.Stat("resistance_growth") : 1f;
+            r.Resistance = MathF.Min(1f, r.Resistance + growth * mult);
             if (r.Resistance >= 1f)
             {
                 int old = r.ControllerId;

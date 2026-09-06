@@ -174,3 +174,13 @@ INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
 INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('seg_vigilancia','counter_intel',1.5),('seg_vigilancia','industry',0.97),
  ('seg_policial','counter_intel',2.0),('seg_policial','industry',0.92),('seg_policial','org_regain',0.97);
+
+-- Políticas de ocupação (grupo occupation): modulam a resistência nas regiões ocupadas
+-- (ResistanceSystem × resistance_growth do ocupante) e o rendimento ocupado (EconomySystem × occupied_yield).
+INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
+ ('occ_gentle','occupation','Ocupação branda','Mão leve: menos resistência, menos extração.',0,0),
+ ('occ_standard','occupation','Ocupação padrão','Administração militar normal.',1,1),
+ ('occ_harsh','occupation','Ocupação dura','Extração máxima: a população resiste mais.',2,0);
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('occ_gentle','resistance_growth',0.5),('occ_gentle','occupied_yield',0.85),
+ ('occ_harsh','resistance_growth',1.5),('occ_harsh','occupied_yield',1.2);
