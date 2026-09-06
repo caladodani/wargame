@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -62,6 +62,7 @@ public partial class CountryPanel : PanelContainer
             }
             Line($"Indústria ×{c.Stat("industry"):0.00}   Produção ×{c.Stat("production_speed"):0.00}   Organização ×{c.Stat("org_regain"):0.00}   Investigação ×{c.Stat("research_speed"):0.00}");
             Line($"Divisões {w.Divisions.Values.Count(d => d.CountryId == c.Id)}   ·   Regiões {w.Regions.Values.Count(r => r.ControllerId == c.Id)}   ·   Rendimento {EconomySystem.Income(w, c.Id):0.0}/dia");
+            Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
 
             // espíritos
             Header("Espíritos nacionais");

@@ -30,7 +30,7 @@ public sealed class ManpowerSystem : ISystem
             var p = pop.GetValueOrDefault(c.Id);
             float cap = p * capShare * c.Stat("conscription");
             if (c.Manpower < 0f) { c.Manpower = cap * startShare; continue; }
-            c.Manpower = MathF.Min(cap, c.Manpower + p / 1e6f * perMillion * c.Stat("conscription"));
+            c.Manpower = MathF.Min(cap, c.Manpower + p / 1e6f * perMillion * c.Stat("conscription") * c.StabilityFactor);
         }
     }
 }

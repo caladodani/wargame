@@ -17,7 +17,7 @@ public sealed class EconomySystem : ISystem
         foreach (var r in w.Regions.Values)
             income[r.ControllerId] = income.GetValueOrDefault(r.ControllerId) + Yield(r, perMillion, occupied);
         foreach (var (countryId, v) in income)
-            if (w.Countries.TryGetValue(countryId, out var c)) c.Money += v * c.Stat("industry");
+            if (w.Countries.TryGetValue(countryId, out var c)) c.Money += v * c.Stat("industry") * c.StabilityFactor;
     }
 
     /// <summary>Rendimento diário de um país (UI: "+X/dia"). Sem regiões controladas → 0.</summary>
@@ -26,7 +26,7 @@ public sealed class EconomySystem : ISystem
         float perMillion = w.Rule("points_per_million", 0.1f), occupied = w.Rule("occupied_yield", 0.5f), sum = 0f;
         foreach (var r in w.Regions.Values)
             if (r.ControllerId == countryId) sum += Yield(r, perMillion, occupied);
-        return sum * (w.Countries.TryGetValue(countryId, out var c) ? c.Stat("industry") : 1f);
+        return sum * (w.Countries.TryGetValue(countryId, out var c) ? c.Stat("industry") * c.StabilityFactor : 1f);
     }
 
     private static float Yield(Region r, float perMillion, float occupied) =>

@@ -64,6 +64,9 @@ public sealed class Country
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
+    public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
+    /// <summary>Efeito da estabilidade no rendimento e no recrutamento: 0.5 (colapso) a 1.5 (união nacional).</summary>
+    public float StabilityFactor => 0.5f + Stability / 100f;
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
     public string? CurrentFocus { get; set; }      // foco nacional em curso (FocusSystem)

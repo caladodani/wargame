@@ -40,6 +40,12 @@ INSERT INTO rule (key,value,note) VALUES
  ('reinforce_hp_manpower',30,'homens por ponto de HP recuperado (RecoverySystem)'),
  ('reinforce_hp_money',0.05,'pontos de produção por ponto de HP recuperado');
 
+-- rules: stability (StabilitySystem — estabilidade 0..100, alvo situacional)
+INSERT INTO rule (key,value,note) VALUES
+ ('stability_speed',0.5,'pontos por dia em direcção ao alvo'),
+ ('stability_war_penalty',10,'alvo desce isto por guerra activa (conta no máximo 2 guerras)'),
+ ('stability_occupied_penalty',40,'alvo desce isto × fracção da população própria ocupada por inimigos');
+
 -- rules: peace (PeaceSystem — capitulação estilo HoI4)
 INSERT INTO rule (key,value,note) VALUES
  ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção da população das suas regiões'),
