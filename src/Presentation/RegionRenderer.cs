@@ -39,10 +39,21 @@ public partial class RegionRenderer : Node2D
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
+        // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
+        game.World.Events.Subscribe<CountryCapitulated>(_ => Callable.From(RecolorAll).CallDeferred());
     }
 
-    private Color ColorFor(int regionId) =>
-        _game.World.Regions.TryGetValue(regionId, out var r) ? _countryColor.GetValueOrDefault(r.ControllerId, Colors.Gray) : Colors.Gray;
+    private Color ColorFor(int regionId)
+    {
+        if (!_game.World.Regions.TryGetValue(regionId, out var r)) return Colors.Gray;
+        var c = _countryColor.GetValueOrDefault(r.ControllerId, Colors.Gray);
+        return r.ControllerId == r.OwnerId ? c : c.Darkened(0.28f);   // ocupada: tom escuro do ocupante
+    }
+
+    private void RecolorAll() => _game.RunWhenIdle(() =>
+    {
+        foreach (var (id, polys) in _byRegion) { var col = ColorFor(id); foreach (var p in polys) p.Color = col; }
+    });
 
     // Chega na main thread (deferred); a leitura do controlador espera pelo fim do tick.
     private void Recolor(int regionId) => _game.RunWhenIdle(() =>
