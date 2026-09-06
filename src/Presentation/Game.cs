@@ -88,6 +88,7 @@ public partial class Game : Node
         World.Register(new TruceSystem());
         World.Register(new ConstructionSystem());
         World.Register(new ResistanceSystem());
+        World.Register(new IntegrationSystem());
         World.Register(new EspionageSystem());
         World.Register(new VictorySystem());
         World.Register(new DiplomacySystem());

@@ -58,6 +58,8 @@ public sealed record BattleRetreat(int RegionId, int CountryId, int Divisions) :
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;
+/// <summary>Região ocupada integrada no país do controlador (IntegrationSystem): OwnerId mudou.</summary>
+public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
 /// <summary>Edifício concluído numa região (ConstructionSystem): nível novo.</summary>
 public sealed record BuildingBuilt(int RegionId, string BuildingId, int Level) : IGameEvent;
 

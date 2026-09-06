@@ -207,6 +207,7 @@ public partial class RegionPanel : PanelContainer
             if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var pd))
                 info += $"  🏗 {pd.Name}: {(int)MathF.Ceiling(pd.Days - r.ProjectProgress)} dias";
             if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
+            if (r.Integration > 0.5f) info += $"  ·  🤝 integração {r.Integration / MathF.Max(1f, w.Rule("integration_days", 150f)):P0}";
             if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);

@@ -268,3 +268,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),
  ('air_combat_weight',0.15,'peso máximo da superioridade aérea na força (±15%)'),
  ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões');
+
+-- Integração de território ocupado (IntegrationSystem)
+INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');
+INSERT INTO rule VALUES ('integration_max_resist', 0.1, 'resistência máxima para a integração avançar');
+INSERT INTO rule VALUES ('integration_decay', 2, 'recuo diário do progresso com resistência alta');
+INSERT INTO law_effect VALUES ('occ_gentle', 'integration_speed', 1.5);
+INSERT INTO law_effect VALUES ('occ_harsh', 'integration_speed', 0.6);

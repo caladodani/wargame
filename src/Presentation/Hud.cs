@@ -248,6 +248,12 @@ public partial class Hud : CanvasLayer
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
                 Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})");
         }));
+        _subs.Add(w.Events.Subscribe<RegionIntegrated>(e =>
+        {
+            if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r)
+                && (e.NewOwner == p || e.OldOwner == p))
+                Later(e.NewOwner == p ? $"{r.Name} integrada no nosso país" : $"Perdemos {r.Name}: integrada por {Country(e.NewOwner)}");
+        }));
         _subs.Add(w.Events.Subscribe<BuildingBuilt>(e =>
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p
