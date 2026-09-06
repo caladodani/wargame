@@ -1,5 +1,6 @@
 using Godot;
 using Timer = Godot.Timer;
+using WarGame.Core.Commands;
 using WarGame.Core.Events;
 using WarGame.Core.Model;
 using WarGame.Core.Systems;
@@ -94,9 +95,18 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
         _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
         _army = Ui.Lbl("", 20); row.AddChild(_army);
+        row.AddChild(Ui.Btn("Frente", DefendBorders));
         row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Guardar", () => { _game.Save(); Toast("Jogo guardado"); }));
         row.AddChild(Ui.Btn("Novo jogo", () => _confirmNew.PopupCentered()));
+    }
+
+    /// <summary>Plano de batalha simplificado: manda as divisões paradas guardar a fronteira com o inimigo.</summary>
+    private void DefendBorders()
+    {
+        if (_game.PlayerId is not int pid) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        var err = _game.Dispatch(new DefendBordersCommand(pid));
+        Toast(err ?? "Divisões a caminho da frente");
     }
 
     private void OpenCountry()

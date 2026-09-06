@@ -168,6 +168,53 @@ public sealed record JustifyWarCommand(int CountryId, int TargetCountryId) : ICo
     }
 }
 
+/// <summary>Plano de batalha simplificado (HoI4: frentes sem micro): distribui as divisões paradas
+/// pelas regiões de fronteira com inimigos, equilibrando o número por região e escolhendo para cada
+/// divisão a fronteira alcançável mais perto (menos saltos). Divisões em combate ou já em marcha ficam.</summary>
+public sealed record DefendBordersCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País inexistente";
+        if (c.AtWarWith.Count == 0) return "Sem guerras — não há frente para guardar";
+        return FrontRegions(w, CountryId).Count == 0 ? "Sem fronteira com o inimigo" : null;
+    }
+
+    public void Execute(World w)
+    {
+        var front = FrontRegions(w, CountryId);
+        var load = front.ToDictionary(r => r, r => w.Regions[r].DivisionIds.Count(id =>
+            w.Divisions.TryGetValue(id, out var d) && d.CountryId == CountryId));
+        var idle = w.Divisions.Values
+            .Where(d => d.CountryId == CountryId && d.Path.Count == 0 && !w.InBattle(d.Id) && !front.Contains(d.RegionId))
+            .OrderBy(d => d.Id).ToList();
+        foreach (var d in idle)
+        {
+            // fronteira menos guarnecida; empate = caminho mais curto a partir da divisão
+            int best = -1; List<int>? bestPath = null;
+            foreach (var r in front.OrderBy(r => load[r]))
+            {
+                if (best >= 0 && load[r] > load[best]) break;   // já só restam mais carregadas
+                var path = MoveDivisionCommand.FindPath(w, d.RegionId, r, CountryId);
+                if (path is null) continue;
+                if (best < 0 || load[r] < load[best] || path.Count < bestPath!.Count) { best = r; bestPath = path; }
+            }
+            if (best < 0) continue;
+            d.SetPath(bestPath!); load[best]++;
+        }
+    }
+
+    /// <summary>Regiões controladas pelo país com pelo menos um vizinho controlado por um inimigo.</summary>
+    internal static List<int> FrontRegions(World w, int countryId)
+    {
+        var list = new List<int>();
+        foreach (var r in w.Regions.Values)
+            if (r.ControllerId == countryId && r.Neighbours.Any(n => w.Regions.TryGetValue(n, out var nr) && w.AreAtWar(countryId, nr.ControllerId)))
+                list.Add(r.Id);
+        return list;
+    }
+}
+
 /// <summary>Encomenda uma divisão de um template do próprio país. ProductionSystem gasta Country.Money nela.</summary>
 public sealed record BuildDivisionCommand(int CountryId, int TemplateId) : ICommand
 {
