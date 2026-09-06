@@ -39,8 +39,8 @@ wargame/
 6. Testes: `dotnet test WarGame.Core.Tests`.
 
 ## Mapa
-`data/static.db` já inclui o mapa real: **988 regiões, 247 países, ~49k vértices, 2160 adjacências**, projecção Robinson (8000 unidades de largura), gerado por `tools/import_map.py` a partir do Natural Earth (mirror GitHub `nvkelso/natural-earth-vector`).
-Para regenerar: `pip install shapely pyproj numpy scikit-learn matplotlib` → `python3 tools/import_map.py --ne <pasta com os geojson> --target 1000`.
+`data/static.db` já inclui o mapa real: **2987 regiões, 247 países, ~65k vértices, 7028 adjacências**, projecção Robinson (8000 unidades de largura), gerado por `tools/import_map.py` a partir do Natural Earth (mirror GitHub `nvkelso/natural-earth-vector`).
+Para regenerar: `uv venv ~/.venvs/wargame-tools && uv pip install --python ~/.venvs/wargame-tools/bin/python shapely pyproj numpy scikit-learn matplotlib` → `~/.venvs/wargame-tools/bin/python tools/import_map.py --ne <pasta com os geojson> --target 3000 --min-per-country 3`. Orçamento por país ∝ √(área × população), tecto = admin-1 do Natural Earth (França 96, Alemanha 16).
 Limitações actuais (TODO, tudo em dados): população distribuída ∝ área dentro do país (usar raster GPW/WorldPop);
 floresta por heurística de latitude; sem regiões marítimas (naval).
 

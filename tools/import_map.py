@@ -1,5 +1,5 @@
 """Natural Earth → static.db
-Uso: python3 tools/import_map.py --ne ../ne --out data/static.db [--target 1000]
+Uso: ~/.venvs/wargame-tools/bin/python tools/import_map.py --ne ~/ne --out data/static.db [--target 3000] [--min-per-country 3]
 
 Etapas:
  1. admin-1 (10m) agrupado por país; k-means nos centróides até ao orçamento de regiões por país (∝ área)
@@ -66,7 +66,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--ne', default=str(HERE.parent / 'ne'))
     ap.add_argument('--out', default=str(HERE / 'data' / 'static.db'))
-    ap.add_argument('--target', type=int, default=1000)
+    ap.add_argument('--target', type=int, default=3000)
+    ap.add_argument('--min-per-country', type=int, default=3, help='regiões mínimas por país (se o NE tiver admin-1 que chegue)')
     ap.add_argument('--world-width', type=float, default=8000.0, help='largura do mapa em unidades Godot')
     ap.add_argument('--preview', default=str(HERE / 'data' / 'map_preview.png'))
     a = ap.parse_args()
@@ -89,11 +90,17 @@ def main():
         by_country[p['adm0_a3']].append((g, p['name'] or p.get('name_en') or '?', approx_area_km2(g)))
 
     country_area = {c: sum(x[2] for x in v) or 1 for c, v in by_country.items()}
-    total_area = sum(country_area.values())
 
-    # orçamento ∝ área, iterar k até somar ~target
+    # orçamento ∝ √(área × população), com mínimo por país: só área dava 156 países com
+    # uma região (Portugal inteiro era "Beja") e 23 à Argélia. Um país pequeno e denso
+    # vale mais regiões do que um deserto grande. Tecto = nº de admin-1 que o NE tem.
+    country_pop = {c: float(adm0.get(c, {}).get('POP_EST') or 0) for c in by_country}
+    weight = {c: math.sqrt(country_area[c] * max(country_pop[c], 1e5)) for c in by_country}
+    total_w = sum(weight.values())
+
     def budgets(k):
-        return {c: max(1, min(len(by_country[c]), round(k * country_area[c] / total_area))) for c in by_country}
+        return {c: min(len(by_country[c]), max(a.min_per_country, round(k * weight[c] / total_w)))
+                for c in by_country}
     k = a.target
     for _ in range(20):
         b = budgets(k); s = sum(b.values())

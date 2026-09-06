@@ -59,14 +59,21 @@ public partial class Game : Node
 
     public string? Dispatch(ICommand c) => Commands.Dispatch(World, c);
 
+    // Copia res:// → user:// na 1ª execução e sempre que a base do pacote mudar (um APK
+    // novo por cima do antigo ficava com o mapa velho). O md5 da última cópia fica ao lado.
     private static string EnsureUserCopy(string res, string user)
     {
         var abs = ProjectSettings.GlobalizePath(user);
-        if (!FileAccess.FileExists(user))
+        var stamp = user + ".md5";
+        var md5 = FileAccess.GetMd5(res);
+        var last = FileAccess.FileExists(stamp) ? FileAccess.GetFileAsString(stamp) : "";
+        if (!FileAccess.FileExists(user) || last != md5)
         {
-            using var src = FileAccess.Open(res, FileAccess.ModeFlags.Read);
-            using var dst = FileAccess.Open(user, FileAccess.ModeFlags.Write);
-            dst.StoreBuffer(src.GetBuffer((long)src.GetLength()));
+            using (var src = FileAccess.Open(res, FileAccess.ModeFlags.Read))
+            using (var dst = FileAccess.Open(user, FileAccess.ModeFlags.Write))
+                dst.StoreBuffer(src.GetBuffer((long)src.GetLength()));
+            using var st = FileAccess.Open(stamp, FileAccess.ModeFlags.Write);
+            st.StoreString(md5);
         }
         return abs;
     }
