@@ -23,6 +23,10 @@ public partial class RegionRenderer : Node2D
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
+    private readonly Dictionary<int, List<Vector2[]>> _rings = new();  // anéis crus, para as contas da fronteira
+    // por anel, e aresta a aresta: região vizinha que aquela aresta acompanha (-1 = costa ou terra de ninguém)
+    private readonly Dictionary<int, List<int[]>> _edgeOf = new();
+    private readonly Dictionary<int, Node2D> _frontier = new();        // região → linhas da fronteira nacional
     private readonly Dictionary<int, Color> _countryColor = new();
     private readonly Dictionary<int, LabelSettings> _labelStyle = new();
     private readonly Dictionary<int, StyleBoxFlat> _pillStyle = new();
@@ -31,6 +35,7 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, float> _area = new();          // região → área do polígono (peso do centróide do país)
     private readonly Dictionary<int, Node2D> _countryNames = new();  // país → etiqueta com o nome no mapa
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
+    private Node2D _frontierRoot = null!;
     private float _zoom = 1f;
     // Modo de mapa (MapModes): o político pinta pelo controlador, os outros pela conta escolhida.
     private string _mode = MapModes.Political, _metric = "owner";
@@ -62,9 +67,13 @@ public partial class RegionRenderer : Node2D
             AddChild(poly); poly.AddChild(border); poly.AddChild(outline);
             if (!_byRegion.TryGetValue(regionId, out var list)) _byRegion[regionId] = list = new();
             if (!_borders.TryGetValue(regionId, out var blist)) _borders[regionId] = blist = new();
-            list.Add(poly); blist.Add(border);
+            if (!_rings.TryGetValue(regionId, out var rlist)) _rings[regionId] = rlist = new();
+            list.Add(poly); blist.Add(border); rlist.Add(v);
         }
-        // Por cima dos polígonos: primeiro o realce, depois os marcadores.
+        // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
+        _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
+        MapEdges(game.World);
+        foreach (int id in _rings.Keys) PaintFrontier(id);
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
         _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
@@ -106,24 +115,125 @@ public partial class RegionRenderer : Node2D
     /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
     public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
 
-    /// <summary>Cor da moldura da região. A fronteira com outro país é quase branca — vê-se onde acaba um
-    /// país e começa o outro mesmo que os dois tenham cores parecidas, que era o que acontecia com a
-    /// Polónia e a Rússia. Dentro do mesmo país a moldura é discreta, na cor dele.</summary>
-    private Color BorderFor(int regionId) =>
-        IsFrontier(regionId) ? new Color(0.96f, 0.97f, 1f, 0.95f) : ColorFor(regionId).Lightened(0.3f) with { A = 0.35f };
+    /// <summary>Cor da moldura da região: um risco discreto na cor do controlador, que separa regiões do
+    /// mesmo país. A fronteira nacional não se desenha aqui — ver PaintFrontier.</summary>
+    private Color BorderFor(int regionId) => ColorFor(regionId).Lightened(0.3f) with { A = 0.35f };
 
-    /// <summary>Espessura da moldura: as fronteiras nacionais são traço grosso, as internas um risco fino.</summary>
-    private float BorderWidth(int regionId) => IsFrontier(regionId) ? 5f : 1.5f;
+    /// <summary>Espessura da moldura interna (a fronteira nacional tem linha própria, FrontierWidth).</summary>
+    private static float BorderWidth(int regionId) => 1.5f;
 
-    /// <summary>Região com pelo menos um vizinho de outro país (por terra ou por mar estreito).</summary>
-    private bool IsFrontier(int regionId)
+    /// <summary>Cor e grossura da linha de fronteira nacional: quase branca, para se ver onde acaba um país
+    /// e começa o outro mesmo que os dois tenham cores parecidas (Polónia e Rússia saíam do mesmo branco).</summary>
+    private static readonly Color FrontierColor = new(0.96f, 0.97f, 1f, 0.95f);
+    private const float FrontierWidth = 5f;
+    /// <summary>Distância (unidades de mundo) a que uma aresta ainda conta como colada à terra do vizinho.
+    /// Os polígonos vêm simplificados região a região e quase nunca casam vértice a vértice: sem folga não
+    /// haveria fronteira nenhuma, com folga a mais um risco interior passava por fronteira.</summary>
+    private const float EdgeSnap = 4f;
+
+    /// <summary>Descobre, uma vez só e para sempre, que vizinha é que cada aresta de cada anel acompanha.
+    ///
+    /// Isto é o que faltava para desenhar a fronteira como no HoI4: antes, uma região com um vizinho
+    /// estrangeiro levava o anel INTEIRO a branco grosso, e o mapa ficava com os estados de fronteira todos
+    /// marcados à volta em vez da linha que os separa. A geometria não traz topologia (cada região foi
+    /// simplificada por si), por isso a vizinhança de uma aresta mede-se por distância: se as duas pontas
+    /// caem a menos de EdgeSnap da orla da vizinha, aquela aresta é o traço comum das duas.
+    ///
+    /// Guardado o id da vizinha por aresta, quem manda na cor é o controlador do dia — a mesma linha serve
+    /// de fronteira internacional ou de linha da frente conforme quem manda de cada lado.</summary>
+    private void MapEdges(World w)
     {
-        var w = _game.World;
-        if (!w.Regions.TryGetValue(regionId, out var r)) return false;
-        foreach (int n in r.Neighbours)
-            if (w.Regions.TryGetValue(n, out var o) && o.ControllerId != r.ControllerId) return true;
+        foreach (var (id, rings) in _rings)
+        {
+            var list = new List<int[]>();
+            var foes = new List<(Vector2[][] Rings, Rect2 Box, int Id)>();
+            if (w.Regions.TryGetValue(id, out var reg))
+                foreach (int n in reg.Neighbours)
+                    if (_rings.TryGetValue(n, out var nr)) foes.Add((nr.ToArray(), Box(nr).Grow(EdgeSnap), n));
+
+            foreach (var ring in rings)
+            {
+                var edge = new int[ring.Length];
+                for (int i = 0; i < ring.Length; i++)
+                {
+                    edge[i] = -1;
+                    var a = ring[i]; var b = ring[(i + 1) % ring.Length];
+                    foreach (var f in foes)
+                        if (f.Box.HasPoint(a) && f.Box.HasPoint(b) && Hugs(a, f.Rings) && Hugs(b, f.Rings)) { edge[i] = f.Id; break; }
+                }
+                list.Add(edge);
+            }
+            _edgeOf[id] = list;
+        }
+    }
+
+    private static Rect2 Box(List<Vector2[]> rings)
+    {
+        var box = new Rect2(rings[0][0], Vector2.Zero);
+        foreach (var ring in rings) foreach (var p in ring) box = box.Expand(p);
+        return box;
+    }
+
+    /// <summary>Ponto colado à orla de outra região (a menos de EdgeSnap de uma das arestas dela).</summary>
+    private static bool Hugs(Vector2 p, Vector2[][] rings)
+    {
+        float limit = EdgeSnap * EdgeSnap;
+        foreach (var ring in rings)
+            for (int i = 0; i < ring.Length; i++)
+                if (DistSq(p, ring[i], ring[(i + 1) % ring.Length]) < limit) return true;
         return false;
     }
+
+    private static float DistSq(Vector2 p, Vector2 a, Vector2 b)
+    {
+        var ab = b - a;
+        float len = ab.LengthSquared();
+        float t = len <= 0f ? 0f : Mathf.Clamp((p - a).Dot(ab) / len, 0f, 1f);
+        return p.DistanceSquaredTo(a + ab * t);
+    }
+
+    /// <summary>Redesenha a linha de fronteira desta região: só as arestas que acompanham terra de outro
+    /// controlador, cosidas em tiras seguidas (uma Line2D por tira, não uma por aresta).</summary>
+    private void PaintFrontier(int regionId)
+    {
+        if (!_frontier.TryGetValue(regionId, out var node))
+        {
+            node = new Node2D { Name = "F" + regionId };
+            _frontierRoot.AddChild(node);
+            _frontier[regionId] = node;
+        }
+        foreach (var c in node.GetChildren()) { node.RemoveChild(c); c.QueueFree(); }
+        if (!_rings.TryGetValue(regionId, out var rings) || !_edgeOf.TryGetValue(regionId, out var edges)) return;
+        var w = _game.World;
+        if (!w.Regions.TryGetValue(regionId, out var r)) return;
+
+        for (int k = 0; k < rings.Count; k++)
+        {
+            var ring = rings[k]; var edge = edges[k];
+            int n = ring.Length;
+            var split = new bool[n];
+            int marked = 0;
+            for (int i = 0; i < n; i++)
+                if (edge[i] >= 0 && w.Regions.TryGetValue(edge[i], out var o) && o.ControllerId != r.ControllerId)
+                { split[i] = true; marked++; }
+            if (marked == 0) continue;
+
+            if (marked == n) { node.AddChild(Frontier(ring.Append(ring[0]).ToArray())); continue; }
+            for (int i = 0; i < n; i++)
+            {
+                if (!split[i] || split[(i - 1 + n) % n]) continue;      // só começa tira onde a anterior não é fronteira
+                var pts = new List<Vector2> { ring[i] };
+                for (int j = i; j < i + n && split[j % n]; j++) pts.Add(ring[(j + 1) % n]);
+                node.AddChild(Frontier(pts.ToArray()));
+            }
+        }
+    }
+
+    private static Line2D Frontier(Vector2[] pts) => new()
+    {
+        Points = pts, Width = FrontierWidth, DefaultColor = FrontierColor,
+        JointMode = Line2D.LineJointMode.Round, BeginCapMode = Line2D.LineCapMode.Round, EndCapMode = Line2D.LineCapMode.Round,
+    };
 
     /// <summary>Área do anel (fórmula do sapateiro), para o nome do país cair no meio do território que conta.</summary>
     private static float Area(Vector2[] v)
@@ -232,6 +342,7 @@ public partial class RegionRenderer : Node2D
         {
             var col = ColorFor(id); foreach (var p in polys) p.Color = col;
             PaintBorder(id);
+            PaintFrontier(id);
         }
     });
 
@@ -248,9 +359,10 @@ public partial class RegionRenderer : Node2D
     {
         if (_byRegion.TryGetValue(regionId, out var polys)) foreach (var p in polys) p.Color = ColorFor(regionId);
         PaintBorder(regionId);
+        PaintFrontier(regionId);
         // mudar de dono muda a fronteira dos dois lados: os vizinhos têm de ser repintados também
         if (_game.World.Regions.TryGetValue(regionId, out var reg))
-            foreach (int n in reg.Neighbours) PaintBorder(n);
+            foreach (int n in reg.Neighbours) { PaintBorder(n); PaintFrontier(n); }
     });
 
     /// <summary>Marcadores e realce à escala inversa do zoom (clamp 0.05..6): tamanho constante no ecrã —
@@ -488,6 +600,9 @@ public partial class RegionRenderer : Node2D
                 foreach (var p in polys)
                     _multiRoot.AddChild(new Line2D { Points = p.Polygon.Append(p.Polygon[0]).ToArray(), Width = 4f * _markerScale, DefaultColor = Colors.Yellow });
     }
+
+    /// <summary>--smoke: tiras de fronteira nacional desenhadas (uma por troço seguido de arestas).</summary>
+    public int FrontierLines() => _frontier.Values.Sum(n => n.GetChildCount());
 
     /// <summary>Hit-test para toque: região cujo polígono contém o ponto (mundo).</summary>
     public int? RegionAt(Vector2 worldPos)

@@ -889,7 +889,8 @@ public partial class Hud : CanvasLayer
         var w = _game.World;
         if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c) || !w.Regions.TryGetValue(c.CapitalRegionId, out var cap)) return;
         OnRegionTapped(cap.Id); _region.SelectAll(); _region.BeginMove();
-        GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos");
+        GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos, "
+               + $"{_map.Regions.FrontierLines()} tiras de fronteira");
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         // uma leva de prisioneiros, para os campos e a balança do painel Guerra terem o que desenhar
         if (c.Prisoners.Count == 0 && w.Countries.Values.FirstOrDefault(x => x.Id != pid) is Country foe)
