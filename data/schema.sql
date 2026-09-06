@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS news_event_option_effect (
   option_id TEXT NOT NULL REFERENCES news_event_option(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (option_id, stat_key)
 );
+CREATE TABLE IF NOT EXISTS s_country_law (       -- lei activa por grupo (save)
+  country_id INTEGER, grp TEXT, law_id TEXT, PRIMARY KEY (country_id, grp));
 CREATE TABLE IF NOT EXISTS s_news_choice (       -- escolha feita por evento (save)
   event_id TEXT PRIMARY KEY, option_id TEXT NOT NULL
 );
@@ -152,6 +154,13 @@ CREATE TABLE IF NOT EXISTS s_faction (            -- facções fundadas em jogo 
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT);
 CREATE TABLE IF NOT EXISTS s_faction_member (     -- fotografia da composição; linhas presentes = substitui a estática
   faction_id TEXT, country_id INTEGER, PRIMARY KEY (faction_id, country_id));
+CREATE TABLE IF NOT EXISTS law (              -- leis nacionais (grupos: conscription, economy…); World.Laws
+  id TEXT PRIMARY KEY, grp TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
+  sort INTEGER NOT NULL DEFAULT 0,            -- maior = mais mobilizada (a IA escala em guerra)
+  is_default INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
+  law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (law_id, stat_key));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)

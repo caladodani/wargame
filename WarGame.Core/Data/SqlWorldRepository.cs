@@ -60,6 +60,15 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.NewsOptionEffects.TryGetValue(oid, out var olist)) w.NewsOptionEffects[oid] = olist = new();
             olist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
+        foreach (var r in _static.Query("SELECT id,grp,name,description,sort,is_default FROM law ORDER BY grp,sort"))
+            w.Laws[(string)r["id"]!] = new Law((string)r["id"]!, (string)r["grp"]!, (string)r["name"]!,
+                r["description"] as string ?? "", Convert.ToInt32(r["sort"]), Convert.ToInt32(r["is_default"]) == 1);
+        foreach (var r in _static.Query("SELECT law_id,stat_key,value FROM law_effect"))
+        {
+            var lid = (string)r["law_id"]!;
+            if (!w.LawEffects.TryGetValue(lid, out var llist)) w.LawEffects[lid] = llist = new();
+            llist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
         foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
@@ -227,6 +236,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cf)) cf.FocusesDone.Add((string)r["focus_id"]!);
         foreach (var r in save.Query("SELECT event_id,option_id FROM s_news_choice"))
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
+        foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress FROM s_region"))
         {
@@ -268,7 +279,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -295,6 +306,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
+            foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
             foreach (var e in c.AtWarWith)

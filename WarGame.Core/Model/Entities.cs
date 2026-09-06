@@ -13,6 +13,9 @@ public sealed record Tech(string Id, string Branch, string Name, float Cost, str
 public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title, string Body);
 /// <summary>Escolha de um evento noticioso (news_event_option). A IA fica com a primeira (sort).</summary>
 public sealed record NewsOption(string Id, string EventId, string Title, int Sort);
+/// <summary>Lei nacional (tabela law): grupos (conscrição, economia…) com uma lei activa por grupo.
+/// Sort maior = mais mobilizada (a IA escala em guerra). Efeitos em law_effect.</summary>
+public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault);
 /// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
 public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);
 
@@ -83,6 +86,8 @@ public sealed class Country
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
+    /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
+    public Dictionary<string, string> Laws { get; } = new();
     public int? JustifyTarget { get; set; }        // a justificar guerra contra (DiplomacySystem)
     public float JustifyProgress { get; set; }
     /// <summary>Efeito da estabilidade no rendimento e no recrutamento: 0.5 (colapso) a 1.5 (união nacional).</summary>

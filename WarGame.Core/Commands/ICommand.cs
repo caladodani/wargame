@@ -412,3 +412,26 @@ public sealed record BuildInfrastructureCommand(int CountryId, int RegionId) : I
         r.Building = true; r.BuildProgress = 0f;
     }
 }
+
+/// <summary>Mudar a lei activa do grupo dela (custa law_change_cost pontos de produção).</summary>
+public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Laws.TryGetValue(LawId, out var law)) return "lei desconhecida";
+        if (w.ActiveLaw(c, law.Group)?.Id == LawId) return "já é a lei activa";
+        if (c.Money < w.Rule("law_change_cost", 30f)) return $"faltam pontos de produção ({w.Rule("law_change_cost", 30f):0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        var law = w.Laws[LawId];
+        c.Money -= w.Rule("law_change_cost", 30f);
+        c.Laws[law.Group] = LawId;
+        w.ApplyTechs(c);
+        w.Events.Publish(new LawChanged(CountryId, LawId));
+    }
+}

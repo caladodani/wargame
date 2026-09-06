@@ -31,6 +31,9 @@ public sealed class World
     /// <summary>Escolhas dos eventos (news_event_option, ordenadas por sort) e efeitos por opção.</summary>
     public Dictionary<string, List<NewsOption>> NewsOptions { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> NewsOptionEffects { get; } = new();
+    /// <summary>Leis nacionais (tabelas law + law_effect); ActiveLaw resolve o default por grupo.</summary>
+    public Dictionary<string, Law> Laws { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();
@@ -68,6 +71,9 @@ public sealed class World
         foreach (var f in c.FocusesDone)
             if (FocusEffects.TryGetValue(f, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+        foreach (var grp in Laws.Values.Select(l => l.Group).Distinct())
+            if (ActiveLaw(c, grp) is Law law && LawEffects.TryGetValue(law.Id, out var leffs))
+                foreach (var (key, mul) in leffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var e in NewsEvents.Values)   // eventos noticiosos já disparados (NewsSystem)
         {
             if (e.Day > Clock.Day || (e.CountryId is not null && e.CountryId != c.Id)) continue;
@@ -163,6 +169,12 @@ public sealed class World
                 if (AreAtWar(m, e)) return true;
         return false;
     }
+
+    /// <summary>Lei activa de um grupo: a escolhida em Country.Laws, senão a is_default do grupo.</summary>
+    public Law? ActiveLaw(Country c, string group) =>
+        c.Laws.TryGetValue(group, out var id) && Laws.TryGetValue(id, out var chosen) && chosen.Group == group
+            ? chosen
+            : Laws.Values.FirstOrDefault(l => l.Group == group && l.IsDefault);
 
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);

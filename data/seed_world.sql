@@ -113,3 +113,22 @@ INSERT INTO rule (key,value,note) VALUES
  ('capture_infra_hit',0.15,'infraestrutura perdida quando a região é capturada'),
  ('infra_min',0.3,'chão da infraestrutura'),
  ('ai_build_reserve',150,'a IA só inicia obras com dinheiro acima disto');
+
+-- Leis nacionais (law + law_effect; uma activa por grupo, mudança custa law_change_cost).
+INSERT INTO rule (key,value,note) VALUES
+ ('law_change_cost',30,'pontos de produção por mudança de lei'),
+ ('ai_law_escalate_money',120,'a IA em guerra sobe de lei com dinheiro acima disto');
+INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
+ ('consc_volunteer','conscription','Exército voluntário','Só voluntários: sem penalizações.',0,1),
+ ('consc_limited','conscription','Conscrição limitada','Serviço militar parcial.',1,0),
+ ('consc_extensive','conscription','Conscrição alargada','Grande parte da população em idade militar é chamada.',2,0),
+ ('consc_service','conscription','Serviço obrigatório total','Mobilização em massa: a economia ressente-se.',3,0),
+ ('econ_civilian','economy','Economia civil','Produção civil normal.',0,1),
+ ('econ_partial','economy','Mobilização parcial','Parte da indústria vira produção militar.',1,0),
+ ('econ_war','economy','Economia de guerra','Tudo para o esforço de guerra.',2,0);
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('consc_limited','conscription',1.25),('consc_limited','industry',0.98),
+ ('consc_extensive','conscription',1.6),('consc_extensive','industry',0.95),('consc_extensive','org_regain',0.97),
+ ('consc_service','conscription',2.5),('consc_service','industry',0.90),('consc_service','org_regain',0.94),
+ ('econ_partial','production_speed',1.10),('econ_partial','research_speed',0.97),
+ ('econ_war','production_speed',1.25),('econ_war','research_speed',0.93),('econ_war','org_regain',1.03);

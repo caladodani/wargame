@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -68,6 +68,26 @@ public partial class CountryPanel : PanelContainer
             Header("Espíritos nacionais");
             if (spirits.Count == 0) Line("Nenhum (país genérico)");
             foreach (var s in spirits) { Line("• " + s.Name, 19); if (s.Description.Length > 0) Wrap("   " + s.Description, 16); }
+
+            // leis nacionais (uma activa por grupo; mudar custa law_change_cost)
+            if (w.Laws.Count > 0)
+            {
+                Header("Leis");
+                foreach (var grp in w.Laws.Values.Select(l => l.Group).Distinct().OrderBy(g => g))
+                {
+                    var active = w.ActiveLaw(c, grp);
+                    Line($"{(grp == "conscription" ? "Conscrição" : grp == "economy" ? "Economia" : grp)}: {active?.Name ?? "—"}", 17);
+                    if (!mine) continue;
+                    foreach (var l in w.Laws.Values.Where(l => l.Group == grp && l.Id != active?.Id).OrderBy(l => l.Sort))
+                    {
+                        string lid = l.Id;
+                        var lrow = new HBoxContainer();
+                        lrow.AddChild(Ui.Grow(Ui.Lbl($"   {l.Name}" + (l.Description.Length > 0 ? $" — {l.Description}" : ""), 15)));
+                        lrow.AddChild(Ui.Btn($"Mudar ({w.Rule("law_change_cost", 30f):0})", () => Faction(new ChangeLawCommand(c.Id, lid)), 170));
+                        _body.AddChild(lrow);
+                    }
+                }
+            }
 
             // facções (alianças defensivas: declarar guerra a um membro chama os outros contra o agressor)
             Header("Facções");

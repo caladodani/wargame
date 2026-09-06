@@ -46,10 +46,27 @@ public sealed class AiSystem : ISystem
             if (divs is null && c.Money <= 0f) continue;
             Produce(w, c, divs?.Count ?? 0);
             Build(w, c, regionsByController.GetValueOrDefault(c.Id));
+            Laws(w, c);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
+        }
+    }
+
+    /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
+    /// (o próximo sort do grupo). Em paz não mexe — voltar atrás não compensa o custo.</summary>
+    private static void Laws(World w, Country c)
+    {
+        if (c.AtWarWith.Count == 0 || c.Money < w.Rule("ai_law_escalate_money", 120f)) return;
+        foreach (var grp in w.Laws.Values.Select(l => l.Group).Distinct())
+        {
+            var cur = w.ActiveLaw(c, grp);
+            var next = w.Laws.Values.Where(l => l.Group == grp && l.Sort == (cur?.Sort ?? 0) + 1)
+                        .OrderBy(l => l.Id).FirstOrDefault();
+            if (next is null) continue;
+            var cmd = new ChangeLawCommand(c.Id, next.Id);
+            if (cmd.Validate(w) is null) { cmd.Execute(w); return; }   // uma mudança por ronda
         }
     }
 
