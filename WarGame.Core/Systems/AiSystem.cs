@@ -52,6 +52,7 @@ public sealed class AiSystem : ISystem
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
+            Retreats(w, c);
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
     }
@@ -302,6 +303,35 @@ public sealed class AiSystem : ISystem
             if (friends < fewest) { fewest = friends; target = r; }
         }
         if (target is not null) Send(w, c, idle, target.Id);
+    }
+
+    /// <summary>Retira de batalhas muito desequilibradas: org própria &lt; org do outro lado
+    /// × ai_retreat_ratio → RetreatFromBattleCommand (salva as divisões à custa de organização).</summary>
+    private static void Retreats(World w, Country c)
+    {
+        float ratio = w.Rule("ai_retreat_ratio", 0.25f);
+        foreach (var b in w.ActiveBattles.ToList())
+        {
+            float mineAtt = 0f, mineDef = 0f, otherAtt = 0f, otherDef = 0f;
+            foreach (var id in b.Attackers)
+                if (w.Divisions.TryGetValue(id, out var d)) { if (d.CountryId == c.Id) mineAtt += d.Org; else otherAtt += d.Org; }
+            foreach (var id in b.Defenders)
+                if (w.Divisions.TryGetValue(id, out var d)) { if (d.CountryId == c.Id) mineDef += d.Org; else otherDef += d.Org; }
+            float mine = mineAtt + mineDef;
+            if (mine <= 0f) continue;
+            // se ataco, o inimigo é o lado defensor (e vice-versa); org inimiga inclui a de terceiros na batalha
+            float enemy = mineAtt > 0f ? SumOrg(w, b.Defenders) - mineDef : SumOrg(w, b.Attackers) - mineAtt;
+            if (mine >= enemy * ratio) continue;
+            var cmd = new Commands.RetreatFromBattleCommand(c.Id, b.RegionId);
+            if (cmd.Validate(w) is null) cmd.Execute(w);
+        }
+    }
+
+    private static float SumOrg(World w, List<int> ids)
+    {
+        float s = 0f;
+        foreach (var id in ids) if (w.Divisions.TryGetValue(id, out var d)) s += d.Org;
+        return s;
     }
 
     /// <summary>Divisões CanFight de países com quem `c` está em guerra, numa região.</summary>
