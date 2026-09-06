@@ -601,7 +601,7 @@ public partial class Hud : CanvasLayer
         GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos");
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         _production.Open();
-        _warPanel.Open(); _warPanel.Close();   // o painel Guerra também tem de encher sem rebentar
+        _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid

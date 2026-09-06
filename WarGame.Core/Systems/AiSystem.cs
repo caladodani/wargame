@@ -136,7 +136,9 @@ public sealed class AiSystem : ISystem
         var held = theirs.Where(r => r.ControllerId == c.Id).Select(r => r.Id).ToList();
         if (held.Count == 0) return false;
         if ((float)held.Count / theirs.Count < w.Rule("ai_peace_demand_min_share", 0.25f)) return false;
-        if (!PeaceTerms.Evaluate(w, c.Id, enemyId, held).Accepted) return false;
+        // Pedir tudo o que se ocupa costuma ser demais; a sugestão corta até ao que o outro assina.
+        if (!PeaceTerms.Evaluate(w, c.Id, enemyId, held).Accepted) held = PeaceTerms.Suggest(w, c.Id, enemyId);
+        if (held.Count == 0) return false;
         var cmd = new Commands.DemandPeaceCommand(c.Id, enemyId, held);
         if (cmd.Validate(w) is not null) return false;
         cmd.Execute(w);

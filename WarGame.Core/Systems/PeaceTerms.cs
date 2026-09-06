@@ -72,6 +72,34 @@ public static class PeaceTerms
         w.Events.Publish(new WarEnded(demanderId, targetId));
     }
 
+    /// <summary>A maior exigência que o alvo ainda assina, montada por ordem de valor para quem exige:
+    /// primeiro o objectivo de guerra (o que se veio buscar), depois as regiões dele que já ocupamos,
+    /// das mais povoadas para as menos, e por fim nada mais — regiões livres custam quase o dobro
+    /// (peace_price_free) e são o primeiro sítio onde a mesa cai.
+    ///
+    /// É a diferença entre o jogador ter de adivinhar termos aceitáveis à segunda dúzia de tentativas
+    /// e ter uma proposta pronta a assinar; a IA usa-a como recuo quando o objectivo sozinho não passa.</summary>
+    public static List<int> Suggest(World w, int demanderId, int targetId)
+    {
+        var picked = new List<int>();
+        if (!w.Countries.ContainsKey(demanderId) || !w.Countries.ContainsKey(targetId)) return picked;
+
+        var order = new List<int>();
+        if (w.Wars.TryGetValue(World.WarKey(demanderId, targetId), out var war))
+            order.AddRange(war.Side(demanderId).Goals
+                .Where(id => w.Regions.TryGetValue(id, out var r) && r.OwnerId == targetId && r.ControllerId == demanderId));
+        order.AddRange(OccupiedRegions(w, demanderId, targetId)
+            .Except(order)
+            .OrderByDescending(id => w.Regions[id].Population).ThenBy(id => id));
+
+        foreach (int id in order)
+        {
+            picked.Add(id);
+            if (!Evaluate(w, demanderId, targetId, picked).Accepted) picked.RemoveAt(picked.Count - 1);
+        }
+        return picked;
+    }
+
     /// <summary>As regiões do alvo que quem exige já ocupa — a exigência natural de quem está a ganhar.</summary>
     public static List<int> OccupiedRegions(World w, int demanderId, int targetId) =>
         w.Regions.Values.Where(r => r.OwnerId == targetId && r.ControllerId == demanderId).Select(r => r.Id).ToList();

@@ -1,4 +1,5 @@
 using Godot;
+using WarGame.Core.Commands;
 using WarGame.Core.Model;
 using WarGame.Core.Systems;
 
@@ -12,6 +13,9 @@ public partial class WarPanel : PanelContainer
     private Game _game = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    /// <summary>Guerra com a mesa de negociação aberta (id do inimigo), e o que lhe estamos a exigir.</summary>
+    private int? _deal;
+    private readonly HashSet<int> _demand = new();
 
     public void Setup(Game game)
     {
@@ -29,9 +33,23 @@ public partial class WarPanel : PanelContainer
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
 
-    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+    public void Open() { _lastKey = ""; _deal = null; _demand.Clear(); _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
+
+    /// <summary>Só para o --smoke: abre a mesa de negociação da primeira guerra do jogador, para o
+    /// caminho todo (candidatas, balança, botões) ser percorrido sem ninguém tocar no ecrã.</summary>
+    public void SmokeDeal()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var war = _game.World.Wars.Values.FirstOrDefault(x => x.Involves(pid));
+        if (war is null) return;
+        _deal = war.EnemyOf(pid);
+        foreach (int id in PeaceTerms.Suggest(_game.World, pid, _deal.Value)) _demand.Add(id);
+        _lastKey = "";
+        Fill();
+        _deal = null; _demand.Clear();
+    }
 
     private void Fill()
     {
@@ -43,6 +61,7 @@ public partial class WarPanel : PanelContainer
             var past = w.WarHistory.Where(r => r.Involves(pid)).ToList();
             var key = w.Clock.Day + "|" + mine.Count + "|" + past.Count + "|" +
                       string.Join(",", mine.Select(x => string.Join("-", x.Side(pid).Goals.OrderBy(g => g)) + "/" + x.Side(pid).Goals.Count(g => w.Regions.TryGetValue(g, out var gr) && gr.ControllerId == pid))) + "|" +
+                      $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -79,6 +98,7 @@ public partial class WarPanel : PanelContainer
 
                 int stale = w.Clock.Day - war.LastProgressDay;
                 if (stale > 0) card.AddChild(Ui.Lbl($"Frente parada há {stale} dias", 15));
+                Deal(w, card, pid, foe);
                 _body.AddChild(box);
             }
 
@@ -103,6 +123,105 @@ public partial class WarPanel : PanelContainer
         }
         catch (Exception ex) { GD.PushError("WarPanel.Fill: " + ex); }
     }
+
+    /// <summary>Mesa de negociação: escolhem-se as regiões a exigir e vê-se, antes de propor, se o outro
+    /// lado assina — a pressão que sofre (ocupação, exércitos, desgaste, capital) contra o preço do que se
+    /// lhe pede (PeaceTerms.Evaluate). Sem isto o jogador só podia adivinhar termos e levar recusa atrás
+    /// de recusa, enquanto a IA fechava as guerras dela sozinha.</summary>
+    private void Deal(World w, VBoxContainer card, int pid, int foe)
+    {
+        var head = new HBoxContainer();
+        head.AddChild(Ui.Grow(Ui.Lbl("Negociação", 15)));
+        head.AddChild(Ui.Btn(_deal == foe ? "Fechar mesa" : "Negociar paz", () => ToggleDeal(foe), 190));
+        card.AddChild(head);
+        if (_deal != foe) return;
+
+        // candidatas: o que já lhe ocupamos primeiro, depois o objectivo de guerra que ainda não é nosso
+        var candidates = PeaceTerms.OccupiedRegions(w, pid, foe)
+            .OrderByDescending(id => w.Regions[id].Population).ThenBy(id => id).ToList();
+        foreach (int id in w.Wars[World.WarKey(pid, foe)].Side(pid).Goals)
+            if (!candidates.Contains(id) && w.Regions.TryGetValue(id, out var gr) && gr.OwnerId == foe) candidates.Add(id);
+        _demand.IntersectWith(candidates);
+
+        if (candidates.Count == 0)
+        {
+            card.AddChild(Ui.Lbl("Nada para exigir: não ocupas nada dele. Resta a paz branca.", 15));
+        }
+        else
+        {
+            var chips = new HFlowContainer();
+            foreach (int id in candidates)
+            {
+                int rid = id;
+                var r = w.Regions[rid];
+                bool on = _demand.Contains(rid);
+                bool held = r.ControllerId == pid;
+                var b = Ui.Btn((on ? "✔ " : "") + r.Name + (held ? "" : " (livre)"), () => ToggleRegion(rid), 0,
+                               on ? Ui.Kind.Primary : Ui.Kind.Normal);
+                b.TooltipText = held ? "Já ocupada: sai barata na mesa" : "Não ocupada: custa quase o dobro";
+                chips.AddChild(b);
+            }
+            card.AddChild(chips);
+        }
+
+        var verdict = PeaceTerms.Evaluate(w, pid, foe, _demand.ToList());
+        float scale = MathF.Max(0.5f, MathF.Max(verdict.Pressure, verdict.Price));
+        var scales = new HBoxContainer(); scales.AddThemeConstantOverride("separation", 8);
+        scales.AddChild(Ui.Lbl($"Pressão {verdict.Pressure:0.00}", 15));
+        scales.AddChild(Ui.Bar(verdict.Pressure / scale, Ui.Good, 130f));
+        scales.AddChild(Ui.Lbl($"Preço {verdict.Price:0.00}", 15));
+        scales.AddChild(Ui.Bar(verdict.Price / scale, Ui.Danger, 130f));
+        card.AddChild(scales);
+
+        var state = Ui.Lbl(_demand.Count == 0 ? "Escolhe o que queres exigir"
+                          : verdict.Accepted ? "Nestes termos, assinam" : "Nestes termos, recusam", 16);
+        state.AddThemeColorOverride("font_color", _demand.Count == 0 ? Ui.TextDim : verdict.Accepted ? Ui.Good : Ui.Danger);
+        card.AddChild(state);
+
+        var actions = new HBoxContainer();
+        actions.AddChild(Ui.Btn("Termos sugeridos", () => Auto(pid, foe), 200));
+        actions.AddChild(Ui.Btn("Exigir paz", () => DemandPeace(pid, foe), 170, Ui.Kind.Primary));
+        actions.AddChild(Ui.Btn("Paz branca", () => WhitePeace(pid, foe), 170));
+        card.AddChild(actions);
+    }
+
+    private void ToggleDeal(int foe) => _game.RunWhenIdle(() =>
+    {
+        _deal = _deal == foe ? null : foe;
+        _demand.Clear();
+        Fill();
+    });
+
+    private void ToggleRegion(int regionId) => _game.RunWhenIdle(() =>
+    {
+        if (!_demand.Add(regionId)) _demand.Remove(regionId);
+        Fill();
+    });
+
+    /// <summary>Enche a mesa com a maior exigência que o outro lado ainda assina.</summary>
+    private void Auto(int pid, int foe) => _game.RunWhenIdle(() =>
+    {
+        _demand.Clear();
+        foreach (int id in PeaceTerms.Suggest(_game.World, pid, foe)) _demand.Add(id);
+        if (_demand.Count == 0) _game.Notify("Ainda não há termos que ele aceite — continua a guerra");
+        Fill();
+    });
+
+    private void DemandPeace(int pid, int foe) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new DemandPeaceCommand(pid, foe, _demand.ToList()));
+        if (err is not null) { _game.Notify(err); return; }
+        if (!_game.World.AreAtWar(pid, foe)) { _deal = null; _demand.Clear(); }
+        Fill();
+    });
+
+    private void WhitePeace(int pid, int foe) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new OfferPeaceCommand(pid, foe));
+        if (err is not null) { _game.Notify(err); return; }
+        if (!_game.World.AreAtWar(pid, foe)) { _deal = null; _demand.Clear(); }
+        Fill();
+    });
 
     /// <summary>Objectivo de guerra: o que viemos buscar, quanto já está nas nossas mãos e o que eles
     /// nos pedem a nós. Cada região é uma etiqueta — verde quando já é nossa, cinzenta enquanto não for.</summary>
