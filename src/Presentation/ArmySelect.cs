@@ -3,10 +3,10 @@ using WarGame.Core.Commands;
 
 namespace WarGame.Presentation;
 
-/// <summary>Selecção múltipla de regiões pelo "clique alternativo" (toque de 2 dedos / botão direito):
-/// alt-toque numa região com divisões do jogador alterna a marca (contorno amarelo); alt-toque
-/// noutra região qualquer, com selecção activa, move TODAS as divisões marcadas para lá (estilo RTS).
-/// Barra no topo mostra o total e deixa limpar. Lê o World só via RunWhenIdle e muta só por Dispatch.</summary>
+/// <summary>Selecção múltipla de regiões: toque longo (ou botão direito no PC) numa região com divisões
+/// do jogador alterna a marca (contorno amarelo); duplo toque noutra região, com marcas activas, move
+/// TODAS as divisões marcadas para lá (estilo RTS). Barra no topo mostra o total e deixa limpar.
+/// Lê o World só via RunWhenIdle e muta só por Dispatch.</summary>
 public partial class ArmySelect : PanelContainer
 {
     private Game _game = null!;
@@ -28,20 +28,23 @@ public partial class ArmySelect : PanelContainer
         h.AddChild(Ui.Btn("Limpar", () => _game.RunWhenIdle(Clear)));
     }
 
-    /// <summary>Região com divisões minhas → alterna selecção; senão, com selecção activa → destino.</summary>
-    public void AltTap(int regionId) => _game.RunWhenIdle(() =>
+    /// <summary>Toque longo: marca/desmarca uma região com divisões minhas.</summary>
+    public void LongPress(int regionId) => _game.RunWhenIdle(() =>
     {
         if (_game.PlayerId is not int pid) return;
         var w = _game.World;
         bool mine = w.Regions.TryGetValue(regionId, out var r)
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid);
-        if (mine)
-        {
-            if (!_sel.Add(regionId)) _sel.Remove(regionId);
-            Refresh();
-        }
-        else if (Active) MoveTo(regionId);
-        else _game.Notify("Sem divisões tuas aí — marca primeiro as regiões de origem (2 dedos)");
+        if (!mine) { _game.Notify("Sem divisões tuas aí — o toque longo marca regiões de origem"); return; }
+        if (!_sel.Add(regionId)) _sel.Remove(regionId);
+        Refresh();
+    });
+
+    /// <summary>Duplo toque: com regiões marcadas, é o destino; sem marcas não faz nada (o toque normal
+    /// já abriu o painel da região).</summary>
+    public void DoubleTap(int regionId) => _game.RunWhenIdle(() =>
+    {
+        if (Active && !_sel.Contains(regionId)) MoveTo(regionId);
     });
 
     /// <summary>Uma ordem de movimento por divisão do jogador em cada região marcada; limpa no fim.</summary>
@@ -73,7 +76,7 @@ public partial class ArmySelect : PanelContainer
         var w = _game.World; int pid = _game.PlayerId ?? -1;
         int divs = _sel.Sum(rid => w.Regions.TryGetValue(rid, out var r)
             ? r.DivisionIds.Count(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid) : 0);
-        _label.Text = $"⚔ {_sel.Count} regiões · {divs} divisões — 2 dedos no destino move";
+        _label.Text = $"⚔ {_sel.Count} regiões · {divs} divisões — duplo toque no destino move";
         Visible = true;
     }
 }

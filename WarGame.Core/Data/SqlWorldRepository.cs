@@ -76,6 +76,12 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]));
+        foreach (var r in _static.Query("SELECT id,name,sort FROM difficulty ORDER BY sort"))
+            w.DifficultyDefs[(string)r["id"]!] = new DifficultyDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToInt32(r["sort"]), new Dictionary<string, float>());
+        foreach (var r in _static.Query("SELECT difficulty_id,rule_key,value FROM difficulty_effect"))
+            if (w.DifficultyDefs.TryGetValue((string)r["difficulty_id"]!, out var dd))
+                dd.Effects[(string)r["rule_key"]!] = Convert.ToSingle(r["value"]);
         foreach (var r in _static.Query("SELECT id,name,stat_key,mult,cost FROM general"))
             w.GeneralDefs[(string)r["id"]!] = new GeneralDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["mult"]), Convert.ToSingle(r["cost"]));
@@ -228,7 +234,10 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void LoadSave(World w, IDatabase save)
     {
         foreach (var r in save.Query("SELECT key,value FROM save_meta"))
+        {
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
+            else if ((string)r["key"]! == "difficulty") w.ApplyDifficulty((string)r["value"]!);
+        }
         // Templates desenhados em jogo — antes das divisões, que podem referenciá-los.
         foreach (var r in save.Query("SELECT id,country_id,name FROM template ORDER BY id"))
         {
@@ -354,6 +363,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
+        if (w.Difficulty is string diff) save.Execute("INSERT INTO save_meta VALUES ('difficulty',?)", diff);
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
         foreach (var c in w.Countries.Values)

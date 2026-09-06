@@ -18,10 +18,10 @@ public partial class Hud : CanvasLayer
     private Button _pause = null!;
     private PanelContainer _toastBox = null!;
     private Timer _toastTimer = null!;
-    private ConfirmationDialog _confirmNew = null!;
     private AcceptDialog _slots = null!;
     private RegionPanel _region = null!;
     private ArmySelect _multiSel = null!;
+    private GameMenu _menu = null!;
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
@@ -39,17 +39,17 @@ public partial class Hud : CanvasLayer
             _map = GetNode<MapView>("../MapView");
             _smoke = OS.GetCmdlineUserArgs().Contains("--smoke");
             BuildTopBar(); BuildToast();
-            _confirmNew = Ui.Dialog(this, () => _game.NewGame());
-            _confirmNew.DialogText = "Começar um novo jogo? O jogo actual perde-se.";
             _production = new ProductionPanel(); AddChild(_production); _production.Setup(_game);
             _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
             _worldPanel = new WorldPanel(); AddChild(_worldPanel); _worldPanel.Setup(_game, _countryPanel);
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
+            _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots);
 
             _map.RegionTapped += OnRegionTapped;
-            _map.RegionAltTapped += rid => _multiSel.AltTap(rid);
+            _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
+            _map.RegionDoubleTapped += rid => _multiSel.DoubleTap(rid);
             _game.TickCompleted += OnTick;
             _game.StateChanged += RefreshAll;
             _game.CommandFailed += Toast;
@@ -75,6 +75,7 @@ public partial class Hud : CanvasLayer
     private void Back()
     {
         if (_game is null) return;
+        if (_menu.Visible) { _menu.Close(); return; }
         if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
         if (_production.Visible) { _production.Close(); return; }
@@ -111,9 +112,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
-        row.AddChild(Ui.Btn("Guardar", () => { _game.Save(); Toast("Jogo guardado"); }));
-        row.AddChild(Ui.Btn("Jogos", OpenSlots));
-        row.AddChild(Ui.Btn("Novo jogo", () => _confirmNew.PopupCentered()));
+        row.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
     }
 
     /// <summary>Plano de batalha simplificado: manda as divisões paradas guardar a fronteira com o inimigo.</summary>
@@ -498,8 +497,17 @@ public partial class Hud : CanvasLayer
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         _production.Open();
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
-        _multiSel.AltTap(cap.Id);
-        if (cap.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.AltTap(nb);
-        GD.Print($"smoke: multi-selecção {(_multiSel.Active ? "activa" : "limpa")}");
+        // uma região minha com divisões, para o toque longo ter o que marcar
+        var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
+            && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
+        if (withDivs is not null)
+        {
+            _multiSel.LongPress(withDivs.Id);
+            GD.Print($"smoke: toque longo em {withDivs.Name} → multi-selecção {(_multiSel.Active ? "activa" : "limpa")}");
+            if (withDivs.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.DoubleTap(nb);
+            GD.Print($"smoke: duplo toque → selecção {(_multiSel.Active ? "por usar" : "consumida")}");
+        }
+        _menu.Open(); _menu.Close();
+        GD.Print($"smoke: menu de jogo abre, dificuldade {(_game.World.Difficulty ?? "por escolher")}");
     }
 }

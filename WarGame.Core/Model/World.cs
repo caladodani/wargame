@@ -85,40 +85,31 @@ public sealed class World
     public float Rule(string key, float fallback = 0f) => Rules.TryGetValue(key, out var v) ? v : fallback;
 
     /// <summary>Current difficulty setting</summary>
-    public DifficultyLevel? Difficulty { get; set; } = null;
+    /// <summary>Dificuldade escolhida (tabela difficulty; null = por escolher, vale o normal).</summary>
+    public string? Difficulty { get; set; }
+    /// <summary>Dificuldades disponíveis e as regras que cada uma reescreve (tabelas difficulty/difficulty_effect).</summary>
+    public Dictionary<string, DifficultyDef> DifficultyDefs { get; } = new();
 
-    /// <summary>Apply difficulty settings to the world, adjusting production rules based on difficulty level</summary>
-    public void ApplyDifficulty(DifficultyLevel difficulty)
+    /// <summary>Aplica uma dificuldade: repõe as regras de origem e reescreve as que ela mexe. Chamar
+    /// depois de LoadStatic e sempre que o jogador troca de nível.</summary>
+    public void ApplyDifficulty(string? id)
     {
-        Difficulty = difficulty;
-        switch (difficulty)
+        foreach (var (key, value) in _baseRules)
         {
-            case DifficultyLevel.SuperEasy:
-                Rules["build_min_days"] = 3f;   // Very fast production
-                Rules["new_division_org"] = 70f; // Best organization
-                break;
-            case DifficultyLevel.Easy:
-                Rules["build_min_days"] = 5f;   // Half the time for production
-                Rules["new_division_org"] = 60f; // Better organization
-                break;
-            case DifficultyLevel.Hard:
-                Rules["build_min_days"] = 15f;  // Longer production time
-                Rules["new_division_org"] = 30f; // Worse organization
-                break;
-            case DifficultyLevel.Normal:
-                Rules["build_min_days"] = 10f;   // Default
-                Rules["new_division_org"] = 40f; // Default
-                break;
+            if (value is float v) Rules[key] = v; else Rules.Remove(key);
+        }
+        Difficulty = id;
+        if (id is null || !DifficultyDefs.TryGetValue(id, out var def)) return;
+        foreach (var (key, value) in def.Effects)
+        {
+            if (!_baseRules.ContainsKey(key)) _baseRules[key] = Rules.TryGetValue(key, out var had) ? had : null;
+            Rules[key] = value;
         }
     }
 
-    public enum DifficultyLevel
-    {
-        SuperEasy,
-        Easy,
-        Normal,
-        Hard
-    }
+    /// <summary>Valor de origem das regras que alguma dificuldade já reescreveu (null = a regra nem existia),
+    /// para se poder voltar atrás ao trocar de nível.</summary>
+    private readonly Dictionary<string, float?> _baseRules = new();
 
     /// <summary>Recalcula Country.GeneralMult a partir dos comandantes contratados (após contratar,
     /// dispensar ou carregar um jogo).</summary>

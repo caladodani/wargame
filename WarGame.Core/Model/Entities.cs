@@ -92,6 +92,9 @@ public sealed record BuildingDef(string Id, string Name, float Cost, float Days,
 /// depois Cooldown dias de espera.</summary>
 public sealed record DecisionDef(string Id, string Name, float Cost, int Days, int Cooldown, string StatKey, float Mult);
 
+/// <summary>Nível de dificuldade (tabelas difficulty/difficulty_effect): as regras que reescreve.</summary>
+public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<string, float> Effects);
+
 /// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
 public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
 

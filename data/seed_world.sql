@@ -321,3 +321,18 @@ INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',
 INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
 INSERT INTO rule VALUES ('auto_advance_min_org', 40, 'organização mínima para o avanço automático atacar');
+
+-- Níveis de dificuldade (World.ApplyDifficulty; menu de jogo)
+CREATE TABLE IF NOT EXISTS difficulty (id TEXT PRIMARY KEY, name TEXT NOT NULL, sort INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS difficulty_effect (difficulty_id TEXT NOT NULL, rule_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (difficulty_id, rule_key));
+INSERT INTO difficulty VALUES ('muito_facil','Muito fácil',0),('facil','Fácil',1),('normal','Normal',2),('dificil','Difícil',3);
+INSERT INTO difficulty_effect VALUES
+ ('muito_facil','build_min_days',3),('muito_facil','new_division_org',70),('muito_facil','points_per_million',0.15),
+ ('muito_facil','ai_general_reserve',600),('muito_facil','manpower_per_million_daily',90),
+ ('facil','build_min_days',5),('facil','new_division_org',60),('facil','points_per_million',0.12),
+ ('facil','ai_general_reserve',400),('facil','manpower_per_million_daily',75),
+ ('normal','build_min_days',10),('normal','new_division_org',40),('normal','points_per_million',0.1),
+ ('normal','ai_general_reserve',200),('normal','manpower_per_million_daily',60),
+ ('dificil','build_min_days',15),('dificil','new_division_org',30),('dificil','points_per_million',0.08),
+ ('dificil','ai_general_reserve',80),('dificil','manpower_per_million_daily',45);
