@@ -74,3 +74,21 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (267,'IND','Comando do Sul (Divisão Blindada)','Blindada','Maharashtra'),
  (268,'IND','Divisão de Infantaria de Massa de Uttar Pradesh','Infantaria de Massa','Uttar Pradesh'),
  (269,'IND','Guarnição do Nordeste','Divisão de Montanha','Arunachal Pradesh');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('ind_agnipath','IND','Reforma Agnipath','Novo modelo de recrutamento de curto prazo alarga a base de reservistas treinados.',35,NULL,1),
+ ('ind_make_in_india_defesa','IND','Make in India: Defesa','Política de substituição de importações abre linhas de produção nacionais de armamento.',42,NULL,2),
+ ('ind_corpo_montanha_ataque','IND','Corpo de Ataque de Montanha','Novo corpo ofensivo de montanha reforça a fronteira do Himalaia face à China.',49,'ind_agnipath',3),
+ ('ind_drdo_agni','IND','Programa Agni (DRDO)','A DRDO acelera o desenvolvimento dos mísseis balísticos Agni de longo alcance.',56,'ind_make_in_india_defesa',4),
+ ('ind_triade_nuclear','IND','Tríade Nuclear Completa','Submarinos da classe Arihant fecham a tríade nuclear com segundo ataque garantido.',63,'ind_drdo_agni',5),
+ ('ind_rafale_su30','IND','Esquadrilhas Rafale e Su-30MKI','Modernização da força aérea com caças multifunção franceses e russos.',49,'ind_make_in_india_defesa',6),
+ ('ind_indo_pacifico','IND','Doutrina do Indo-Pacífico','Marinha projecta poder do Estreito de Malaca ao Golfo de Adem, em coordenação com o Quad.',56,'ind_corpo_montanha_ataque',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('ind_agnipath','conscription',1.20),
+ ('ind_make_in_india_defesa','industry',1.10),
+ ('ind_corpo_montanha_ataque','org_regain',1.10),
+ ('ind_drdo_agni','research_speed',1.12),
+ ('ind_triade_nuclear','research_speed',1.08),
+ ('ind_rafale_su30','production_speed',1.15),
+ ('ind_indo_pacifico','org_regain',1.10);

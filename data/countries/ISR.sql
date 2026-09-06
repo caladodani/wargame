@@ -71,3 +71,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (909,'ISR','Brigada Kfir','Infantaria','Jerusalem'),
  (910,'ISR','Brigada Nahal','Infantaria','HaMerkaz'),
  (911,'ISR','Comando Sayeret Matkal','Brigada Pára-quedista','Tel Aviv');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('isr_doutrina_seguranca','ISR','Doutrina de Segurança Nacional','Revisão da doutrina de defesa: dissuasão, alerta antecipado e decisão rápida.',28,NULL,1),
+ ('isr_industria_defesa','ISR','Polo de Indústria de Defesa','IAI, Elbit e Rafael expandem linhas de produção com apoio do Estado.',42,NULL,2),
+ ('isr_reserva_nacional','ISR','Exército do Povo','Reforço do sistema de reservistas (Miluim), coluna vertebral da mobilização.',35,NULL,3),
+ ('isr_cupula_ferro','ISR','Rede de Defesa Aérea em Camadas','Integração de Cúpula de Ferro, Funda de David e Flecha num comando único.',49,'isr_doutrina_seguranca',4),
+ ('isr_iron_fist','ISR','Blindados de Nova Geração','Merkava Barak e módulos de proteção ativa Trophy equipam as brigadas blindadas.',56,'isr_industria_defesa',5),
+ ('isr_ciber_8200','ISR','Ciberdefesa da Unidade 8200','Investimento em guerra eletrónica e ciberdefesa a partir da experiência da Unidade 8200.',35,'isr_industria_defesa',6),
+ ('isr_fronteira_sul','ISR','Barreira do Negev e Sinai','Reforço da vigilância e fortificação da fronteira sul face ao contrabando e infiltrações.',28,'isr_reserva_nacional',7),
+ ('isr_forcas_especiais','ISR','Elite das Forças Especiais','Sayeret Matkal e unidades irmãs recebem equipamento e treino de vanguarda.',42,'isr_reserva_nacional',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('isr_doutrina_seguranca','org_regain',1.08),
+ ('isr_industria_defesa','industry',1.10),
+ ('isr_reserva_nacional','conscription',1.20),
+ ('isr_cupula_ferro','org_regain',1.10),
+ ('isr_iron_fist','production_speed',1.12),
+ ('isr_ciber_8200','research_speed',1.15),
+ ('isr_fronteira_sul','conscription',1.10),
+ ('isr_forcas_especiais','org_regain',1.05),
+ ('isr_forcas_especiais','research_speed',1.06);

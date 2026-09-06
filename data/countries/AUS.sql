@@ -77,3 +77,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='desert'
  WHERE owner_id=(SELECT id FROM country WHERE tag='AUS')
    AND name IN ('Northern Territory','Western Australia','South Australia');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('aus_forward_defence','AUS','Defesa Avançada do Norte','Doutrina de Defesa Avançada: radares e bases no Top End vigiam os acessos do arquipélago indonésio.',35,NULL,1),
+ ('aus_anzus','AUS','Pilar ANZUS','Aprofundar a aliança com os EUA: interoperabilidade, bases rotativas e partilha de informações.',42,'aus_forward_defence',2),
+ ('aus_aukus','AUS','Pacto AUKUS','Submarinos de propulsão nuclear e tecnologia avançada partilhada com Washington e Londres.',63,'aus_anzus',3),
+ ('aus_ran_expansion','AUS','Frota de Superfície Contínua','Programa naval contínuo: fragatas Hunter e destroyers Hobart saem dos estaleiros de Adelaide.',49,'aus_anzus',4),
+ ('aus_pacific_step_up','AUS','Ascensão no Pacífico','Diplomacia e ajuda às nações insulares do Pacífico Sul para conter influência rival na região.',35,NULL,5),
+ ('aus_outback_industry','AUS','Indústria do Outback','Minério e recursos do interior financiam a reindustrialização da base de defesa nacional.',49,NULL,6),
+ ('aus_sovereign_industry','AUS','Capacidade Soberana de Defesa','Investimento em Williamtown e Bendigo para produzir munições e blindados em solo australiano.',56,'aus_outback_industry',7),
+ ('aus_reserve_call','AUS','Chamada da Reserva','Recrutamento reforçado nas forças de reserva estaduais para engrossar as fileiras do ADF.',28,NULL,8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('aus_forward_defence','org_regain',1.06),
+ ('aus_anzus','research_speed',1.08),
+ ('aus_aukus','research_speed',1.10),
+ ('aus_ran_expansion','production_speed',1.12),
+ ('aus_pacific_step_up','industry',1.05),
+ ('aus_outback_industry','industry',1.10),
+ ('aus_sovereign_industry','production_speed',1.08),
+ ('aus_reserve_call','conscription',1.20);

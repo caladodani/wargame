@@ -80,3 +80,26 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='PRK')
    AND name IN ('Chagang-do','Ryanggang');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('prk_juche','PRK','Autossuficiência Juche','A ideologia oficial reforça a produção interna face ao isolamento económico.',35,NULL,1),
+ ('prk_mobilizacao','PRK','Mobilização de Massas','O maior exército per capita do mundo alarga o recenseamento e o treino paramilitar.',28,NULL,2),
+ ('prk_artilharia_fronteira','PRK','Artilharia da Zona Desmilitarizada','Milhares de peças entrincheiradas junto a Kaesong mantêm Seul sob ameaça permanente.',30,NULL,3),
+ ('prk_songun','PRK','Doutrina Songun','O exército em primeiro lugar: os recursos do Estado convergem para as Forças Armadas.',42,'prk_juche',4),
+ ('prk_forcas_especiais','PRK','Corpo de Forças Especiais','Infantaria ligeira treinada para infiltração e guerra irregular além da fronteira.',35,'prk_mobilizacao',5),
+ ('prk_fortificacao_montanha','PRK','Fortificação Subterrânea','Túneis e bunkers nas cadeias montanhosas protegem tropas e comando de ataques aéreos.',42,'prk_artilharia_fronteira',6),
+ ('prk_byungjin','PRK','Linha Byungjin','Desenvolvimento paralelo: a economia civil e o programa de mísseis avançam a par.',49,'prk_songun',7),
+ ('prk_industria_militar','PRK','Complexo Industrial-Militar','Fábricas estatais dedicadas a mísseis balísticos e blindados aceleram a produção de armamento.',56,'prk_byungjin',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('prk_juche','industry',1.12),
+ ('prk_mobilizacao','conscription',1.20),
+ ('prk_artilharia_fronteira','production_speed',1.12),
+ ('prk_songun','conscription',1.15),
+ ('prk_songun','org_regain',1.05),
+ ('prk_forcas_especiais','org_regain',1.10),
+ ('prk_fortificacao_montanha','org_regain',1.15),
+ ('prk_byungjin','research_speed',1.15),
+ ('prk_byungjin','industry',1.10),
+ ('prk_industria_militar','production_speed',1.15),
+ ('prk_industria_militar','industry',1.08);

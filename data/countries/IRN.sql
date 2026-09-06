@@ -81,3 +81,26 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='IRN')
    AND name IN ('Chahar Mahall and Bakhtiari','Kohgiluyeh and Buyer Ahmad');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('irn_economia_resistencia','IRN','Economia de Resistência','As sanções empurram Teerão para a substituição de importações e a autossuficiência industrial.',35,NULL,1),
+ ('irn_expansao_guarda_revolucionaria','IRN','Expansão da Guarda Revolucionária','O IRGC cresce como estrutura paralela às forças armadas regulares, reforçando doutrina e efectivos ideológicos.',42,NULL,2),
+ ('irn_programa_misseis_drones','IRN','Programa de Mísseis e Drones','Investimento acelerado em mísseis balísticos e enxames de drones para projectar força a longa distância.',35,NULL,3),
+ ('irn_industrializacao_defesa','IRN','Industrialização da Defesa','Fábricas estatais passam a produzir blindados, mísseis e componentes outrora importados.',49,'irn_economia_resistencia',4),
+ ('irn_enriquecimento_nuclear','IRN','Programa de Enriquecimento Nuclear','Centrifugadoras em Natanz e Fordow avançam o programa nuclear, oficialmente dedicado à investigação científica.',70,'irn_programa_misseis_drones',5),
+ ('irn_mobilizacao_basij','IRN','Mobilização do Basij','A milícia popular Basij é reorganizada como reserva de mobilização em massa em caso de guerra.',42,'irn_expansao_guarda_revolucionaria',6),
+ ('irn_guerra_assimetrica_zagros','IRN','Guerra Assimétrica nos Zagros','Doutrina de defesa em profundidade nas cordilheiras fronteiriças, explorando o terreno montanhoso contra um invasor superior.',35,'irn_mobilizacao_basij',7),
+ ('irn_industria_aeroespacial','IRN','Indústria Aeroespacial Nacional','Programas espaciais civis e militares, satélites e lançadores, impulsionam a investigação e a produção de tecnologia de mísseis.',56,'irn_industrializacao_defesa',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('irn_economia_resistencia','industry',1.08),
+ ('irn_expansao_guarda_revolucionaria','conscription',1.10),
+ ('irn_expansao_guarda_revolucionaria','org_regain',1.05),
+ ('irn_programa_misseis_drones','production_speed',1.10),
+ ('irn_industrializacao_defesa','industry',1.10),
+ ('irn_industrializacao_defesa','production_speed',1.05),
+ ('irn_enriquecimento_nuclear','research_speed',1.15),
+ ('irn_mobilizacao_basij','conscription',1.15),
+ ('irn_guerra_assimetrica_zagros','org_regain',1.10),
+ ('irn_industria_aeroespacial','research_speed',1.10),
+ ('irn_industria_aeroespacial','industry',1.05);

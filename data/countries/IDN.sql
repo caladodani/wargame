@@ -82,3 +82,25 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='forest'
  WHERE owner_id=(SELECT id FROM country WHERE tag='IDN')
    AND name IN ('Papua','Papua Barat','Kalimantan Tengah','Kalimantan Timur');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('idn_poros_maritim','IDN','Eixo Marítimo Mundial','A doutrina do Poros Maritim Dunia orienta a Indonésia para a soberania e conectividade dos seus mares.',35,NULL,1),
+ ('idn_mef','IDN','Força Mínima Essencial','O programa Minimum Essential Force define o nível de capacidade que as TNI devem atingir até 2029.',42,NULL,2),
+ ('idn_sishankamrata','IDN','Defesa Popular Total','A doutrina Sishankamrata mobiliza população e território num sistema de defesa semi-universal.',30,NULL,3),
+ ('idn_wawasan_nusantara','IDN','Doutrina do Arquipélago','Wawasan Nusantara consagra o arquipélago como unidade geopolítica indivisível, ligando defesa e desenvolvimento regional.',40,'idn_poros_maritim',4),
+ ('idn_industria_pindad','IDN','Indústria de Defesa Nacional','PT Pindad, PT PAL e PT Dirgantara Indonesia ganham investimento para reduzir a dependência de armamento estrangeiro.',49,'idn_mef',5),
+ ('idn_komcad','IDN','Componente de Reserva','O Komponen Cadangan treina civis e reservistas para reforçar rapidamente as fileiras das TNI em crise.',35,'idn_sishankamrata',6),
+ ('idn_natuna','IDN','Vigilância das Ilhas Natuna','Reforço da presença naval e aérea nas águas de Natuna face à pressão sobre a linha de nove traços.',42,'idn_industria_pindad',7),
+ ('idn_kopassus','IDN','Modernização das Forças Especiais','Kopassus e o Corpo de Fuzileiros Navais recebem equipamento e doutrina para operações no arquipélago.',35,'idn_wawasan_nusantara',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('idn_poros_maritim','research_speed',1.08),
+ ('idn_mef','production_speed',1.10),
+ ('idn_sishankamrata','conscription',1.15),
+ ('idn_wawasan_nusantara','industry',1.06),
+ ('idn_wawasan_nusantara','org_regain',1.05),
+ ('idn_industria_pindad','industry',1.10),
+ ('idn_komcad','conscription',1.12),
+ ('idn_natuna','org_regain',1.08),
+ ('idn_kopassus','org_regain',1.06),
+ ('idn_kopassus','production_speed',1.05);

@@ -68,3 +68,25 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='forest'
  WHERE owner_id=(SELECT id FROM country WHERE tag='MOZ')
    AND name IN ('Cabo Delgado');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('moz_cabo_delgado','MOZ','Ofensiva de Estabilização em Cabo Delgado','Reforço da ofensiva conjunta com a SADC e o Ruanda para retomar o controlo do norte de Cabo Delgado.',35,NULL,1),
+ ('moz_reequipamento','MOZ','Reequipamento das FADM','Programa de modernização do armamento ligeiro e dos meios de transporte das Forças Armadas de Defesa de Moçambique.',42,NULL,2),
+ ('moz_gas_natural','MOZ','Protecção das Infraestruturas de Gás de Rovuma','Blindagem militar dos projectos de gás natural liquefeito na bacia do Rovuma, alvo preferencial da insurgência.',35,NULL,3),
+ ('moz_fir','MOZ','Expansão da Força de Intervenção Rápida','Novos batalhões da FIR treinados para operações rápidas de contra-insurgência em terreno de mata.',35,'moz_cabo_delgado',4),
+ ('moz_academia_militar','MOZ','Academia Militar de Maputo','Investimento na formação de oficiais e na doutrina moderna do Estado-Maior General.',28,'moz_reequipamento',5),
+ ('moz_sadc_cooperacao','MOZ','Missão da SADC em Moçambique (SAMIM)','Aprofundamento da cooperação com as forças da SADC destacadas para proteger as instalações de gás.',35,'moz_gas_natural',6),
+ ('moz_veteranos_frelimo','MOZ','Legado dos Veteranos da FRELIMO','Reintegração da experiência dos veteranos da luta de libertação no recrutamento e na moral das novas gerações.',49,'moz_fir',7),
+ ('moz_industria_naval','MOZ','Estaleiros Navais da Beira e de Maputo','Recuperação dos estaleiros navais para apoiar a patrulha costeira e a logística militar do Índico.',42,'moz_academia_militar',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('moz_cabo_delgado','org_regain',1.05),
+ ('moz_reequipamento','production_speed',1.08),
+ ('moz_gas_natural','industry',1.10),
+ ('moz_fir','org_regain',1.08),
+ ('moz_fir','conscription',1.05),
+ ('moz_academia_militar','research_speed',1.06),
+ ('moz_sadc_cooperacao','industry',1.05),
+ ('moz_veteranos_frelimo','conscription',1.10),
+ ('moz_industria_naval','production_speed',1.07),
+ ('moz_industria_naval','industry',1.05);

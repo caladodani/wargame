@@ -72,3 +72,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (961,'SAU','Bateria Patriot da Capital','Bateria de Defesa Aérea Integrada','Ar Riyad'),
  (962,'SAU','Brigada de Fronteira Sul (Najran)','Infantaria','Najran'),
  (963,'SAU','Brigada de Fronteira Sul (Jizan)','Infantaria','Jizan');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('sau_visao_2030','SAU','Visão 2030','Diversificação económica além do petróleo puxa pela indústria nacional.',49,NULL,1),
+ ('sau_gign','SAU','Programa GAMI de Indústria Militar','A General Authority for Military Industries nacionaliza fatias da cadeia de defesa.',56,'sau_visao_2030',2),
+ ('sau_neom','SAU','Pólo Tecnológico de NEOM','Investimento massivo em tecnologia e automação com aplicação dual civil-militar.',42,'sau_visao_2030',3),
+ ('sau_guarda_nacional','SAU','Reforma da Guarda Nacional','Modernização da SANG como pilar de segurança interna e das províncias.',35,NULL,4),
+ ('sau_fronteira_sul','SAU','Muralha da Fronteira Sul','Reforço de Najran e Jizan face à instabilidade além-fronteira no Iémen.',35,'sau_guarda_nacional',5),
+ ('sau_defesa_aerea','SAU','Escudo Aéreo Integrado','Rede de baterias Patriot e radares protege as instalações petrolíferas críticas.',42,NULL,6),
+ ('sau_recrutamento','SAU','Serviço Militar Voluntário Alargado','Campanha de recrutamento e formação alarga a base de reservistas do Reino.',35,'sau_defesa_aerea',7),
+ ('sau_academia_rei_khalid','SAU','Academia Militar Rei Khalid','Expansão da formação de oficiais eleva a doutrina e a prontidão das forças.',49,'sau_gign',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('sau_visao_2030','industry',1.10),
+ ('sau_gign','industry',1.08),
+ ('sau_gign','production_speed',1.05),
+ ('sau_neom','research_speed',1.10),
+ ('sau_guarda_nacional','conscription',1.10),
+ ('sau_fronteira_sul','org_regain',1.08),
+ ('sau_defesa_aerea','org_regain',1.06),
+ ('sau_recrutamento','conscription',1.12),
+ ('sau_academia_rei_khalid','research_speed',1.08);

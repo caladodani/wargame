@@ -76,3 +76,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (1013,'EGY','Comando Militar do Mar Vermelho','Infantaria','Al Bahr al Ahmar'),
  (1014,'EGY','Guarda Republicana','Infantaria AT','Al Qahirah'),
  (1015,'EGY','2ª Divisão de Infantaria (Deserto Ocidental)','Infantaria','Al Wadi at Jadid');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('egy_soberania_canal','EGY','Soberania do Canal','O Canal do Suez continua a maior fonte de divisas do país: reforça-se a sua defesa e vigilância.',35,NULL,1),
+ ('egy_seguranca_sinai','EGY','Operação Sinai','Continuação das operações contra a insurgência na Península do Sinai, com maior mobilidade no deserto.',42,'egy_soberania_canal',2),
+ ('egy_comandos_saiqa','EGY','Escola de Comandos Saiqa','Expansão do centro de Inshas: mais coortes de forças especiais treinadas para o deserto e o litoral.',35,'egy_seguranca_sinai',3),
+ ('egy_modernizacao_forcas','EGY','Modernização das Forças Armadas','Programa plurianual de reequipamento do Terceiro Exército, herdeiro da doutrina pós-1973.',49,NULL,4),
+ ('egy_industria_defesa','EGY','Organização Árabe de Industrialização','Investimento na AOI: fábricas próprias de munições, blindados e sobressalentes reduzem a dependência externa.',56,'egy_modernizacao_forcas',5),
+ ('egy_producao_licenciada','EGY','Linha M1A1 no Egipto','Ampliação da co-produção de blindados Abrams em Helwan, com maior nacionalização de componentes.',63,'egy_industria_defesa',6),
+ ('egy_servico_nacional','EGY','Reforma do Serviço Militar','Actualização das quotas de conscrição para sustentar um dos maiores efectivos do mundo árabe.',28,NULL,7),
+ ('egy_reserva_estrategica','EGY','Reserva Estratégica do Delta','Depósitos de mobilização espalhados pelo Delta do Nilo aceleram a reconstituição de unidades desgastadas.',42,'egy_servico_nacional',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('egy_soberania_canal','org_regain',1.06),
+ ('egy_seguranca_sinai','org_regain',1.08),
+ ('egy_comandos_saiqa','org_regain',1.10),
+ ('egy_modernizacao_forcas','production_speed',1.08),
+ ('egy_industria_defesa','industry',1.10),
+ ('egy_industria_defesa','production_speed',1.06),
+ ('egy_producao_licenciada','production_speed',1.09),
+ ('egy_servico_nacional','conscription',1.20),
+ ('egy_reserva_estrategica','conscription',1.10);

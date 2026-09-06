@@ -68,3 +68,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (1210,'ARG','Agrupación Ejército Tierra del Fuego','Infantaria AT','Tierra del Fuego'),
  (1211,'ARG','Regimiento de Infantería 25 Sarmiento','Infantaria','Santa Fe'),
  (1212,'ARG','Grupo de Artillería de Montaña','Brigada de Montanha','Salta');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('arg_atlantico_sul','ARG','Soberania no Atlântico Sul','Reforço da presença naval e aérea junto às Malvinas e à Patagônia costeira.',42,NULL,1),
+ ('arg_cordilheira','ARG','Defesa da Cordilheira','Doutrina de montanha para os passos andinos: mobilidade e logística em altitude.',35,NULL,2),
+ ('arg_fabricaciones','ARG','Fabricaciones Militares','Retomar a produção nacional de blindados TAM e munições em Río Tercero.',49,NULL,3),
+ ('arg_fadea','ARG','FAdeA e Indústria Aeroespacial','Relançamento da fábrica de Córdoba: manutenção e peças para a frota aérea.',56,'arg_fabricaciones',4),
+ ('arg_servicio_ciudadano','ARG','Serviço Cívico Voluntário','Programa de instrução militar voluntária alarga a base de recrutas disponíveis.',35,'arg_cordilheira',5),
+ ('arg_gendarmeria_frontera','ARG','Gendarmería nas Fronteiras','Reforço do controlo fronteiriço no Norte Grande com apoio logístico do Exército.',28,'arg_servicio_ciudadano',6),
+ ('arg_malvinas_doutrina','ARG','Doutrina das Malvinas','Planeamento operacional dedicado à projeção de força sobre o Atlântico Sul.',42,'arg_atlantico_sul',7),
+ ('arg_industria_naval','ARG','Complexo Naval de Río Santiago','Modernização dos estaleiros para manutenção e construção de unidades da Armada.',49,'arg_fabricaciones',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('arg_atlantico_sul','org_regain',1.08),
+ ('arg_cordilheira','org_regain',1.06),
+ ('arg_fabricaciones','industry',1.10),
+ ('arg_fadea','production_speed',1.12),
+ ('arg_servicio_ciudadano','conscription',1.20),
+ ('arg_gendarmeria_frontera','conscription',1.10),
+ ('arg_malvinas_doutrina','research_speed',1.08),
+ ('arg_industria_naval','industry',1.08),
+ ('arg_industria_naval','production_speed',1.10);

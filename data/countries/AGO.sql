@@ -71,3 +71,22 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (1263,'AGO','Brigada de Infantaria do Zaire','Infantaria','Zaire'),
  (1264,'AGO','Brigada de Infantaria do Uíge','Infantaria','Uíge'),
  (1265,'AGO','Regimento Blindado de Cuanza Sul','Blindada','Cuanza Sul');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('ago_modernizacao_blindada','AGO','Modernização Blindada','Revisão da frota de T-72 e BMP herdada da guerra fria, com prioridade à manutenção industrial.',42,NULL,1),
+ ('ago_reequipamento_t72','AGO','Linha de Reequipamento','Acordos com fornecedores tradicionais para peças e novas remessas de blindados.',49,'ago_modernizacao_blindada',2),
+ ('ago_diamantes_petroleo','AGO','Diamantes e Petróleo ao Serviço da Defesa','Receitas extractivas financiam investigação e produção militar.',35,'ago_modernizacao_blindada',3),
+ ('ago_guarnicao_cabinda','AGO','Reforço da Guarnição de Cabinda','Consolidação da presença militar fixa no enclave, resposta permanente à FLEC.',35,NULL,4),
+ ('ago_doutrina_guerrilha','AGO','Doutrina Antiguerrilha','Institucionalização das lições da luta contra a FLEC em manuais e treino de tropa.',42,'ago_guarnicao_cabinda',5),
+ ('ago_recenseamento_massa','AGO','Recenseamento Militar Alargado','Reorganização do serviço militar obrigatório para sustentar um exército de massa.',28,NULL,6),
+ ('ago_veteranos_reserva','AGO','Reserva de Veteranos','Antigos combatentes da guerra civil são reintegrados como quadro de reserva mobilizável.',35,'ago_recenseamento_massa',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('ago_modernizacao_blindada','industry',1.10),
+ ('ago_reequipamento_t72','production_speed',1.12),
+ ('ago_diamantes_petroleo','industry',1.08),
+ ('ago_diamantes_petroleo','research_speed',1.05),
+ ('ago_guarnicao_cabinda','org_regain',1.10),
+ ('ago_doutrina_guerrilha','org_regain',1.10),
+ ('ago_recenseamento_massa','conscription',1.20),
+ ('ago_veteranos_reserva','conscription',1.10);

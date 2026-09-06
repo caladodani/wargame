@@ -80,3 +80,25 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='PAK')
    AND name IN ('Azad Kashmir','F.A.T.A.','Northern Areas');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('pak_ciec','PAK','Corredor Económico Pak-China','O CPEC injeta capital chinês em estradas, energia e portos ao longo do território.',35,NULL,1),
+ ('pak_defesa_indigena','PAK','Autossuficiência Industrial de Defesa','Substituição de importações: motores, blindagem e munições passam a ser produzidos em casa.',42,NULL,2),
+ ('pak_reserva_territorial','PAK','Milícia e Reserva Territorial','Recrutamento territorial e milícias tribais reforçam a mobilização em tempo de guerra.',28,NULL,3),
+ ('pak_gwadar','PAK','Porto de Gwadar e Zona Franca','O porto de Gwadar e a sua zona franca tornam-se o motor logístico do Corredor.',35,'pak_ciec',4),
+ ('pak_jf17','PAK','Linha de Produção do JF-17 Thunder','A parceria com a China acelera o fabrico e o desenvolvimento do caça JF-17 Thunder.',49,'pak_defesa_indigena',5),
+ ('pak_alkhalid','PAK','Cadeia de Montagem do Al-Khalid','A Heavy Industries Taxila põe a cadeia de montagem do carro de combate Al-Khalid a ritmo de guerra.',42,'pak_jf17',6),
+ ('pak_spd','PAK','Divisão de Planos Estratégicos','A Strategic Plans Division coordena investigação e doutrina nuclear e convencional.',35,'pak_defesa_indigena',7),
+ ('pak_forca_fronteira','PAK','Corpo de Guardas de Fronteira','O Corpo de Guardas de Fronteira absorve e recompõe unidades desgastadas ao longo da Linha Durand.',28,'pak_reserva_territorial',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('pak_ciec','industry',1.08),
+ ('pak_defesa_indigena','production_speed',1.08),
+ ('pak_reserva_territorial','conscription',1.20),
+ ('pak_gwadar','industry',1.10),
+ ('pak_jf17','production_speed',1.10),
+ ('pak_jf17','research_speed',1.05),
+ ('pak_alkhalid','production_speed',1.12),
+ ('pak_spd','research_speed',1.10),
+ ('pak_forca_fronteira','org_regain',1.06),
+ ('pak_forca_fronteira','conscription',1.08);

@@ -67,3 +67,25 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (1108,'CAN','Regimento de Infantaria de Newfoundland','Infantaria','Newfoundland and Labrador'),
  (1109,'CAN','Regimento de Reconhecimento Costeiro','Blindada','British Columbia'),
  (1110,'CAN','Regimento de Infantaria da Nova Escócia','Infantaria','Nova Scotia');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('can_norad','CAN','Parceiro do NORAD','Vigilância aeroespacial partilhada com os EUA sobre o continente norte-americano.',35,NULL,1),
+ ('can_artico','CAN','Soberania Ártica','Presença reforçada no Ártico: patrulhas, radares e infraestrutura no extremo norte.',42,NULL,2),
+ ('can_rangers','CAN','Expansão dos Rangers Canadianos','Mais patrulhas de Rangers nas comunidades nórdicas e costeiras isoladas.',28,'can_artico',3),
+ ('can_f35','CAN','Programa de Caças F-35','Substituição da frota de CF-18 por caças de quinta geração.',56,'can_norad',4),
+ ('can_estaleiros','CAN','Estratégia Nacional de Construção Naval','Modernização dos estaleiros de Halifax e Vancouver para fragatas e quebra-gelos.',49,NULL,5),
+ ('can_industria','CAN','Indústria de Defesa de Ontário e Québec','Contratos e investimento puxam pela cadeia industrial de defesa nacional.',42,'can_estaleiros',6),
+ ('can_francofonia','CAN','Ponte com a Francofonia','Cooperação militar e diplomática reforçada com o Québec e parceiros francófonos.',35,'can_norad',7),
+ ('can_reserva','CAN','Força de Reserva Nacional','Recrutamento alargado da Reserva das Forças Armadas Canadianas.',28,'can_rangers',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('can_norad','research_speed',1.08),
+ ('can_artico','org_regain',1.08),
+ ('can_rangers','conscription',1.10),
+ ('can_f35','production_speed',1.10),
+ ('can_f35','research_speed',1.06),
+ ('can_estaleiros','industry',1.08),
+ ('can_industria','industry',1.07),
+ ('can_industria','production_speed',1.07),
+ ('can_francofonia','research_speed',1.05),
+ ('can_reserva','conscription',1.15);
