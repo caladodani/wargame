@@ -71,6 +71,14 @@ public sealed class CombatSystem : ISystem
         var strA = SideStrength(w, att, ctxA, attacking: true);
         var strD = SideStrength(w, def, ctxD, attacking: false);
         if (fortMult != 1f) for (int i = 0; i < strD.Length; i++) strD[i] *= fortMult;
+        // intel (rede_info): quem tem intel sobre o país do outro lado bate mais forte
+        float intelMult = w.Rule("intel_combat_bonus", 1.05f);
+        if (att.Count > 0 && def.Count > 0)
+        {
+            int attC = att[0].CountryId, defC = def[0].CountryId;
+            if (w.HasIntel(attC, defC)) for (int i = 0; i < strA.Length; i++) strA[i] *= intelMult;
+            if (w.HasIntel(defC, attC)) for (int i = 0; i < strD.Length; i++) strD[i] *= intelMult;
+        }
         Exchange(w, att, strA, def, "defense");
         Exchange(w, def, strD, att, "breakthrough");
         float xpGain = w.Rule("xp_per_battle_day", 1f), xpMax = w.Rule("xp_max", 100f);

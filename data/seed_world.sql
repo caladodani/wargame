@@ -257,3 +257,8 @@ INSERT INTO law VALUES
 INSERT INTO law_effect VALUES
  ('doc_defensiva','defense',1.12),('doc_defensiva','attack',0.95),('doc_defensiva','org_regain',1.05),
  ('doc_ofensiva','attack',1.10),('doc_ofensiva','defense',0.95);
+
+-- Intel dá vantagem em combate; operação de fomentar deserção (cara, lenta).
+INSERT INTO rule (key,value,note) VALUES
+ ('intel_combat_bonus',1.05,'multiplicador de força de quem tem intel sobre o outro lado');
+INSERT INTO spy_op VALUES ('fomentar_desercao','Fomentar deserção','Uma fracção das divisões inimigas com pior moral dissolve-se.',90,40,'desertion',0.1);

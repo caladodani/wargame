@@ -49,6 +49,13 @@ public sealed class EspionageSystem : ISystem
             case "research_boost":
                 if (actor.ResearchTech is not null) actor.ResearchProgress += op.Magnitude;
                 break;
+            case "desertion":
+                // fomenta deserção: fracção das divisões do alvo (as de menor org) dissolve-se
+                int nDes = (int)MathF.Ceiling(w.Divisions.Values.Count(d => d.CountryId == target.Id) * op.Magnitude);
+                foreach (var d in w.Divisions.Values.Where(d => d.CountryId == target.Id)
+                             .OrderBy(d => d.Org).Take(nDes).ToList())
+                    w.RemoveDivision(d.Id);
+                break;
             case "purge_spies":
                 // contra-espionagem: expulsa todas as redes do alvo contra nós
                 w.ActiveSpyOps.RemoveAll(o => o.CountryId == target.Id && o.TargetCountryId == actor.Id);

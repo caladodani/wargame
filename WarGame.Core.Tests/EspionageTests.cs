@@ -187,4 +187,41 @@ public class EspionageTests
         Assert.Single(mine);
         Assert.NotEqual("contra_espionagem", mine[0].OpId);
     }
+
+    [Fact]
+    public void Desertion_DissolvesWorstOrgDivisions()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
+        for (int i = 0; i < 10; i++)
+            TestWorld.AddDivision(w, 10 + i, 2, TestWorld.Inf2, 5, org: i * 10);   // org 0..90
+        var op = w.SpyOps["fomentar_desercao"];   // magnitude 0.1 → 1 divisão
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 1, TargetCountryId = 2, OpId = op.Id, DaysLeft = 0.5f });
+        w.Register(new EspionageSystem());
+        TestWorld.Days(w, 1);
+        Assert.Equal(9, w.Divisions.Values.Count(d => d.CountryId == 2));
+        Assert.False(w.Divisions.ContainsKey(10));   // a de org 0 foi-se
+    }
+
+    [Fact]
+    public void Intel_GivesCombatEdge()
+    {
+        float DefOrgAfter(bool attackerHasIntel)
+        {
+            var (w, _) = TestWorld.Build();
+            TestWorld.LinearMap(w);
+            w.StartWar(1, 2);
+            if (attackerHasIntel) w.Intel[(1, 2)] = 9999;
+            w.Register(new CombatSystem());
+            var att = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 3);
+            var def = TestWorld.AddDivision(w, 2, 2, TestWorld.Inf2, 4);
+            var b = new Battle { RegionId = 4, AttackerCountryId = 1 };
+            b.Attackers.Add(att.Id); b.Defenders.Add(def.Id);
+            w.ActiveBattles.Add(b);
+            TestWorld.Days(w, 3);
+            return def.Org;
+        }
+        Assert.True(DefOrgAfter(true) < DefOrgAfter(false));
+    }
 }
