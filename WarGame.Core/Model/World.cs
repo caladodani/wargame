@@ -23,6 +23,8 @@ public sealed class World
     /// <summary>Árvore tecnológica (tabela tech) e efeitos de país por tecnologia (tech_effect).</summary>
     public Dictionary<string, Tech> Techs { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> TechEffects { get; } = new();
+    /// <summary>Alianças defensivas (tabelas faction + faction_member). Ver FactionsOf/SameFaction/Allies.</summary>
+    public Dictionary<string, Faction> Factions { get; } = new();
 
     private readonly List<ISystem> _systems = new();
     private int _nextDivisionId;
@@ -62,6 +64,20 @@ public sealed class World
     public bool AreAtWar(int a, int b) => a != b && Countries.TryGetValue(a, out var c) && c.AtWarWith.Contains(b);
     /// <summary>Região controlada por alguém com quem `countryId` está em guerra.</summary>
     public bool IsHostile(int countryId, Region r) => AreAtWar(countryId, r.ControllerId);
+
+    /// <summary>Facções de que `countryId` é membro (0, 1 ou várias).</summary>
+    public IEnumerable<Faction> FactionsOf(int countryId) => Factions.Values.Where(f => f.Members.Contains(countryId));
+    /// <summary>Há alguma facção com ambos como membros (HoI4: aliados na mesma aliança nunca se declaram guerra).</summary>
+    public bool SameFaction(int a, int b) => a != b && Factions.Values.Any(f => f.Members.Contains(a) && f.Members.Contains(b));
+    /// <summary>Todos os membros de todas as facções de `countryId`, sem ele próprio (dissuasão: força que conta contra atacá-lo).</summary>
+    public HashSet<int> Allies(int countryId)
+    {
+        var result = new HashSet<int>();
+        foreach (var f in FactionsOf(countryId))
+            foreach (var m in f.Members)
+                if (m != countryId) result.Add(m);
+        return result;
+    }
 
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);

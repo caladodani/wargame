@@ -15,6 +15,10 @@ public sealed record NationalSpirit(string Id, string CountryTag, string Name, s
 /// <summary>Texto do painel de país (tabela country_info).</summary>
 public sealed record CountryInfo(string CountryTag, string Government, string Leader, string Doctrine, string Alliance, string Description);
 
+/// <summary>Aliança defensiva (tabelas faction + faction_member, HoI4: facção). Um país pode pertencer a várias;
+/// declarar guerra a um membro chama os outros contra o agressor (DeclareWarCommand) — ver World.FactionsOf/Allies.</summary>
+public sealed record Faction(string Id, string Name, string Description, List<int> Members);
+
 public sealed class Region
 {
     public int Id { get; init; }

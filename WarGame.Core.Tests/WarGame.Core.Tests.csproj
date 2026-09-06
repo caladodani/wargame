@@ -14,5 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WarGame.Core\WarGame.Core.csproj" />
     <None Include="..\data\*.sql" CopyToOutputDirectory="PreserveNewest" LinkBase="data" />
+    <!-- static.db real (países/regiões da Natural Earth) — só para FactionTests, que precisa de tags reais. -->
+    <None Include="..\data\static.db" CopyToOutputDirectory="PreserveNewest" LinkBase="data" />
   </ItemGroup>
 </Project>

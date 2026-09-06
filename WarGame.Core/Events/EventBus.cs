@@ -4,6 +4,8 @@ public interface IGameEvent { }
 
 public sealed record DayPassed(int Day) : IGameEvent;
 public sealed record WarDeclared(int Aggressor, int Target) : IGameEvent;
+/// <summary>Um membro de uma facção do alvo é chamado à guerra contra o agressor (DeclareWarCommand: só a facção do defensor chama).</summary>
+public sealed record FactionJoinedWar(string FactionId, int MemberCountryId, int AgainstCountryId) : IGameEvent;
 public sealed record RegionCaptured(int RegionId, int OldController, int NewController) : IGameEvent;
 public sealed record BattleStarted(int RegionId) : IGameEvent;
 public sealed record BattleEnded(int RegionId, bool AttackerWon) : IGameEvent;
