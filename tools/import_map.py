@@ -8,7 +8,7 @@ Etapas:
  4. população: populated_places (10m se existir) dentro da região + resto do POP_EST 30 % ∝ área, 70 % ∝ cidades
  5. rio: intersecta rivers_lake_centerlines (50m)
  6. vizinhos: STRtree, polígonos que se tocam
- 7. escreve schema.sql + seed_units.sql + country/region/region_polygon/region_neighbour
+ 7. escreve schema.sql + seed_units.sql + seed_tech.sql + country/region/region_polygon/region_neighbour
  8. país: name = NAME_PT, industry automática por PIB per capita, depois data/countries/*.sql (características únicas)
  9. seed_armies.py: templates (genéricos + country_template), exército inicial (country_unit nomeadas + geradas), capitais
 """
@@ -205,6 +205,7 @@ def main():
     db = sqlite3.connect(out)
     db.executescript((HERE / 'data' / 'schema.sql').read_text(encoding='utf-8'))
     db.executescript((HERE / 'data' / 'seed_units.sql').read_text(encoding='utf-8'))
+    db.executescript((HERE / 'data' / 'seed_tech.sql').read_text(encoding='utf-8'))
 
     country_ids = {}
     for i, c in enumerate(sorted(by_country), start=1):

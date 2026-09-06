@@ -29,6 +29,18 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT country_tag,key,value FROM country_stat"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c)) c.Stats[(string)r["key"]!] = Convert.ToSingle(r["value"]);
 
+        foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description FROM tech"))
+            w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string);
+        foreach (var r in _static.Query("SELECT tech_id,stat_key,value FROM tech_effect"))
+        {
+            string id = (string)r["tech_id"]!;
+            if (!w.TechEffects.TryGetValue(id, out var list)) w.TechEffects[id] = list = new();
+            list.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
+        foreach (var r in _static.Query("SELECT country_tag,tech_id FROM country_tech"))
+            if (byTag.TryGetValue((string)r["country_tag"]!, out var c) && w.Techs.ContainsKey((string)r["tech_id"]!)) c.Techs.Add((string)r["tech_id"]!);
+        foreach (var c in w.Countries.Values) w.ApplyTechs(c);
+
         foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y FROM region"))
         {
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
@@ -101,13 +113,15 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         foreach (var r in save.Query("SELECT key,value FROM save_meta"))
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
-        foreach (var r in save.Query("SELECT id,is_player,money FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
+            c.ResearchTech = r["research_tech"] as string; c.ResearchProgress = Convert.ToSingle(r["research_progress"]);
         }
         foreach (var r in save.Query("SELECT country_id,tech_id FROM s_country_tech"))
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
+        foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure FROM s_region"))
         { var reg = w.Regions[Convert.ToInt32(r["id"])]; reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]); }
         foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name FROM s_division ORDER BY id"))
@@ -144,7 +158,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var c in w.Countries.Values)
         {
-            if (c.IsPlayer || c.Money != 0f) save.Execute("INSERT INTO s_country (id,is_player,money) VALUES (?,?,?)", c.Id, c.IsPlayer ? 1 : 0, c.Money);
+            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null)
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress) VALUES (?,?,?,?,?)", c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
             foreach (var e in c.AtWarWith) if (c.Id < e) save.Execute("INSERT INTO s_war VALUES (?,?,?)", c.Id, e, w.Clock.Day);

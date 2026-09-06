@@ -8,6 +8,7 @@ public sealed record RegionCaptured(int RegionId, int OldController, int NewCont
 public sealed record BattleStarted(int RegionId) : IGameEvent;
 public sealed record BattleEnded(int RegionId, bool AttackerWon) : IGameEvent;
 public sealed record DivisionDestroyed(int DivisionId) : IGameEvent;
+public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

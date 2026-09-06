@@ -7,6 +7,9 @@ public sealed record UnitType(int Id, string Name, string Category, float Cost, 
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 
 /// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>
+/// <summary>Tecnologia (tabela tech). Cost = dias com research_speed 1; Requires = id da anterior no ramo.</summary>
+public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description);
+
 public sealed record NationalSpirit(string Id, string CountryTag, string Name, string Description);
 
 /// <summary>Texto do painel de país (tabela country_info).</summary>
@@ -44,8 +47,13 @@ public sealed class Country
     public int CapitalRegionId { get; set; }
     /// <summary>Características do país (tabela country_stat): industry, production_speed, org_regain, start_army_mult…</summary>
     public StatBlock Stats { get; } = new();
-    /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro.</summary>
-    public float Stat(string key, float fallback = 1f) => Stats.Has(key) ? Stats[key] : fallback;
+    /// <summary>Multiplicadores acumulados das tecnologias concluídas (tech_effect); World.ApplyTechs recalcula.</summary>
+    public Dictionary<string, float> TechMult { get; } = new();
+    /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
+    public float Stat(string key, float fallback = 1f) =>
+        (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f);
+    public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
+    public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();

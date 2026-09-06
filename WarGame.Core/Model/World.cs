@@ -20,6 +20,9 @@ public sealed class World
     /// <summary>Constantes de jogo da tabela `rule` (+ `move_cost:&lt;terreno&gt;` da tabela terrain). Nada em código.</summary>
     public Dictionary<string, float> Rules { get; } = new();
     public IUnitRepository Units => Stats.Units;
+    /// <summary>Árvore tecnológica (tabela tech) e efeitos de país por tecnologia (tech_effect).</summary>
+    public Dictionary<string, Tech> Techs { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> TechEffects { get; } = new();
 
     private readonly List<ISystem> _systems = new();
     private int _nextDivisionId;
@@ -41,6 +44,19 @@ public sealed class World
     }
 
     public float Rule(string key, float fallback = 0f) => Rules.TryGetValue(key, out var v) ? v : fallback;
+
+    /// <summary>Recalcula Country.TechMult a partir das tecnologias concluídas (chamar após LoadSave e ao concluir uma).</summary>
+    public void ApplyTechs(Country c)
+    {
+        c.TechMult.Clear();
+        foreach (var t in c.Techs)
+            if (TechEffects.TryGetValue(t, out var effs))
+                foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+    }
+
+    /// <summary>Pode investigar: existe, não a tem, tem a anterior.</summary>
+    public bool CanResearch(Country c, string techId) =>
+        Techs.TryGetValue(techId, out var t) && !c.Techs.Contains(techId) && (t.Requires is null || c.Techs.Contains(t.Requires));
     public float MoveCost(string terrain) => Rule("move_cost:" + terrain, 1f);
 
     public bool AreAtWar(int a, int b) => a != b && Countries.TryGetValue(a, out var c) && c.AtWarWith.Contains(b);

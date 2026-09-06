@@ -39,12 +39,25 @@ public sealed class AiSystem : ISystem
         {
             if (c.IsPlayer) continue;   // o jogador nunca é mexido pela IA
             var divs = divsByCountry.GetValueOrDefault(c.Id);
+            Research(w, c);
             if (divs is null && c.Money <= 0f) continue;
             Produce(w, c, divs?.Count ?? 0);
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Sem investigação em curso → a tecnologia disponível mais barata (HoI4: a IA nunca deixa um slot vazio).</summary>
+    private static void Research(World w, Country c)
+    {
+        if (c.ResearchTech is not null || w.Techs.Count == 0) return;
+        Tech? best = null;
+        foreach (var t in w.Techs.Values)
+            if (w.CanResearch(c, t.Id) && (best is null || t.Cost < best.Cost || (t.Cost == best.Cost && string.CompareOrdinal(t.Id, best.Id) < 0))) best = t;
+        if (best is null) return;
+        var cmd = new ResearchTechCommand(c.Id, best.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Mantém ai_max_queue encomendas: normalmente o template mais barato; cada ai_heavy_every-ésima

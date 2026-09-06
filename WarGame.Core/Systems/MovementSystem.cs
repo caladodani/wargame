@@ -5,7 +5,7 @@ namespace WarGame.Core.Systems;
 
 /// <summary>Anda pelo Division.Path salto a salto; entra em região hostil defendida → abre/junta-se a Battle;
 /// hostil vazia → captura (RegionCaptured). Divisões em região capturada pelo inimigo recuam ou rendem-se.
-/// Regras: move_base_days, move_cost:&lt;terreno&gt;, move_infra_floor.</summary>
+/// Regras: move_base_days, move_cost:&lt;terreno&gt;, move_infra_floor. Dias ÷ country_stat move_speed.</summary>
 public sealed class MovementSystem : ISystem
 {
     public string Name => "Movement";
@@ -23,7 +23,7 @@ public sealed class MovementSystem : ISystem
             var target = w.Regions[d.Path[0]];
             // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
             float days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
-                         / MathF.Max(infraFloor, target.Infrastructure);
+                         / MathF.Max(infraFloor, target.Infrastructure) / w.Countries[d.CountryId].Stat("move_speed");
             d.MoveProgress += 1f / days;
             if (d.MoveProgress < 1f) continue;
 

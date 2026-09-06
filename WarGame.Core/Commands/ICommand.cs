@@ -24,6 +24,21 @@ public sealed class CommandDispatcher
     }
 }
 
+/// <summary>Escolhe a tecnologia a investigar (uma de cada vez; trocar perde o progresso, como em HoI4 sem slots).</summary>
+public sealed record ResearchTechCommand(int CountryId, string TechId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País inexistente";
+        if (!w.Techs.TryGetValue(TechId, out var t)) return "Tecnologia inexistente";
+        if (c.Techs.Contains(TechId)) return "Já investigada";
+        if (t.Requires is not null && !c.Techs.Contains(t.Requires)) return $"Precisa de {w.Techs[t.Requires].Name}";
+        if (c.ResearchTech == TechId) return "Já em investigação";
+        return null;
+    }
+    public void Execute(World w) { var c = w.Countries[CountryId]; c.ResearchTech = TechId; c.ResearchProgress = 0f; }
+}
+
 /// <summary>Manda uma divisão para uma região (qualquer distância): caminho por BFS através de regiões
 /// controladas pelo país ou por um inimigo em guerra. O MovementSystem anda salto a salto.</summary>
 public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int TargetRegionId) : ICommand
