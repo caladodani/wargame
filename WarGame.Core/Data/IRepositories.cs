@@ -9,6 +9,10 @@ public interface IUnitRepository
     DivisionTemplate GetTemplate(int id);
     IReadOnlyList<DivisionTemplate> GetTemplates(int countryId);
     IEnumerable<Modifier> GetModifiers();
+    /// <summary>Todos os unit_type da static.db (desenhador de templates).</summary>
+    IReadOnlyList<UnitType> AllUnitTypes();
+    /// <summary>Regista um template criado em jogo (id ≥ World.CustomTemplateBase); só em memória — persiste no save.</summary>
+    DivisionTemplate AddCustomTemplate(int id, int countryId, string name, IReadOnlyList<(int UnitTypeId, int Qty)> units);
 }
 
 public interface IWorldRepository

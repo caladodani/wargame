@@ -27,7 +27,9 @@ public partial class ProductionPanel : PanelContainer
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
         var body = Ui.Grow(new VBoxContainer()); scroll.AddChild(body);
-        body.AddChild(Ui.Lbl("Modelos", 20));
+        var mhead = new HBoxContainer(); body.AddChild(mhead);
+        mhead.AddChild(Ui.Grow(Ui.Lbl("Modelos", 20)));
+        mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
         _templates = new VBoxContainer(); body.AddChild(_templates);
         body.AddChild(Ui.Lbl("Fila", 20));
         _queue = new VBoxContainer(); body.AddChild(_queue);
@@ -89,6 +91,58 @@ public partial class ProductionPanel : PanelContainer
         var err = _game.Dispatch(new BuildDivisionCommand(pid, templateId));
         if (err is not null) _game.Notify(err);
     });
+
+    /// <summary>Desenhador de templates: um SpinBox por tipo de unidade, nome e custo ao vivo.</summary>
+    private void OpenDesigner()
+    {
+        if (_game.PlayerId is not int pid) return;
+        IReadOnlyList<UnitType> types;
+        try { types = _game.World.Units.AllUnitTypes(); } catch (Exception ex) { GD.PushError("designer: " + ex.Message); return; }
+
+        var dlg = new AcceptDialog { Title = "Desenhar template", OkButtonText = "Criar" };
+        var v = new VBoxContainer { CustomMinimumSize = new Vector2(420, 0) };
+        dlg.AddChild(v);
+        var name = new LineEdit { PlaceholderText = "Nome do template", MaxLength = 40 };
+        v.AddChild(name);
+        var costLbl = Ui.Lbl("Custo 0.0 · 0.0k homens", 18);
+        v.AddChild(costLbl);
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 380), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        v.AddChild(scroll);
+        var rows = Ui.Grow(new VBoxContainer()); scroll.AddChild(rows);
+
+        var spins = new Dictionary<int, SpinBox>();
+        void UpdateCost()
+        {
+            float cost = 0f;
+            foreach (var t in types) if (spins[t.Id].Value > 0) cost += t.Cost * (float)spins[t.Id].Value;
+            costLbl.Text = $"Custo {cost:0.0} · {cost * _game.World.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens";
+        }
+        foreach (var t in types)
+        {
+            var row = new HBoxContainer();
+            row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name} ({t.Cost:0.0})")));
+            var spin = new SpinBox { MinValue = 0, MaxValue = 30, Value = 0, CustomMinimumSize = new Vector2(110, 0) };
+            spin.ValueChanged += _ => UpdateCost();
+            spins[t.Id] = spin;
+            row.AddChild(spin);
+            rows.AddChild(row);
+        }
+
+        dlg.Confirmed += () =>
+        {
+            var units = spins.Where(kv => kv.Value.Value > 0)
+                             .Select(kv => (kv.Key, (int)kv.Value.Value)).ToList();
+            string text = name.Text;
+            _game.RunWhenIdle(() =>
+            {
+                var err = _game.Dispatch(new CreateTemplateCommand(pid, text, units));
+                if (err is not null) _game.Notify(err);
+                else { _game.Notify("Template criado"); _lastKey = ""; Refresh(); }
+            });
+        };
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
 
     // O índice vem da lista desenhada; se a fila mudou entretanto (encomenda concluída) não cancela outra.
     private void Cancel(int index, int templateId) => _game.RunWhenIdle(() =>

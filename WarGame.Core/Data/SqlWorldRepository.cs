@@ -174,6 +174,15 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         foreach (var r in save.Query("SELECT key,value FROM save_meta"))
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
+        // Templates desenhados em jogo — antes das divisões, que podem referenciá-los.
+        foreach (var r in save.Query("SELECT id,country_id,name FROM template ORDER BY id"))
+        {
+            int tid = Convert.ToInt32(r["id"]);
+            var units = save.Query("SELECT unit_type_id,qty FROM template_unit WHERE template_id=?", tid)
+                .Select(u => (Convert.ToInt32(u["unit_type_id"]), Convert.ToInt32(u["qty"]))).ToList();
+            w.Units.AddCustomTemplate(tid, Convert.ToInt32(r["country_id"]), (string)r["name"]!, units);
+            w.CustomTemplateIds.Add(tid);
+        }
         foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
@@ -231,10 +240,17 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
+        foreach (var id in w.CustomTemplateIds)
+        {
+            var t = w.Units.GetTemplate(id);
+            save.Execute("INSERT INTO template (id,country_id,name) VALUES (?,?,?)", t.Id, t.CountryId, t.Name);
+            foreach (var (unitId, qty) in t.Units)
+                save.Execute("INSERT INTO template_unit VALUES (?,?,?)", t.Id, unitId, qty);
+        }
         foreach (var c in w.Countries.Values)
         {
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null)

@@ -9,7 +9,8 @@ public sealed class SqlUnitRepository : IUnitRepository
     private readonly IDatabase _db;
     private readonly Dictionary<int, UnitType> _units = new();
     private readonly Dictionary<int, DivisionTemplate> _templates = new();
-    private readonly Dictionary<int, IReadOnlyList<DivisionTemplate>> _byCountry = new();
+    private readonly Dictionary<int, List<DivisionTemplate>> _byCountry = new();
+    private IReadOnlyList<UnitType>? _allUnits;
 
     public SqlUnitRepository(IDatabase db) => _db = db;
 
@@ -44,6 +45,19 @@ public sealed class SqlUnitRepository : IUnitRepository
         list = _db.Query("SELECT id FROM template WHERE country_id=? ORDER BY id", countryId)
                   .Select(r => GetTemplate(Convert.ToInt32(r["id"]))).ToList();
         _byCountry[countryId] = list; return list;
+    }
+
+    public IReadOnlyList<UnitType> AllUnitTypes() =>
+        _allUnits ??= _db.Query("SELECT id FROM unit_type ORDER BY id")
+                         .Select(r => GetUnitType(Convert.ToInt32(r["id"]))).ToList();
+
+    public DivisionTemplate AddCustomTemplate(int id, int countryId, string name, IReadOnlyList<(int UnitTypeId, int Qty)> units)
+    {
+        var t = new DivisionTemplate(id, countryId, name, units.ToList());
+        _templates[id] = t;
+        GetTemplates(countryId);           // garante a lista carregada antes de acrescentar
+        if (!_byCountry[countryId].Any(x => x.Id == id)) _byCountry[countryId].Add(t);
+        return t;
     }
 
     public IEnumerable<Modifier> GetModifiers() =>

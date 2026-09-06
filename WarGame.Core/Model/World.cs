@@ -80,6 +80,11 @@ public sealed class World
 
     public bool AreAtWar(int a, int b) => a != b && Countries.TryGetValue(a, out var c) && c.AtWarWith.Contains(b);
 
+    /// <summary>Templates desenhados em jogo (CreateTemplateCommand); ids a partir de CustomTemplateBase,
+    /// persistidos no save em template/template_unit (os da static.db têm ids pequenos e nunca se escrevem).</summary>
+    public List<int> CustomTemplateIds { get; } = new();
+    public const int CustomTemplateBase = 1_000_000;
+
     /// <summary>Estado por guerra (chave normalizada min,max): quando começou e o último dia com progresso
     /// (captura de região entre os dois). O TruceSystem fecha guerras estagnadas com paz branca.</summary>
     public Dictionary<(int A, int B), WarInfo> Wars { get; } = new();

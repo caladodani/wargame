@@ -214,6 +214,36 @@ public sealed record DefendBordersCommand(int CountryId) : ICommand
     }
 }
 
+/// <summary>Desenha um template novo (HoI4: division designer). Vai para o repositório em memória com
+/// id ≥ World.CustomTemplateBase e persiste no save (template/template_unit).</summary>
+public sealed record CreateTemplateCommand(int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "País inválido";
+        var name = Name?.Trim() ?? "";
+        if (name.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
+        if (Units is null || Units.Count is < 1 or > 10) return "1 a 10 tipos de unidade";
+        if (Units.Select(u => u.UnitTypeId).Distinct().Count() != Units.Count) return "Tipo de unidade repetido";
+        int total = 0;
+        foreach (var (unitId, qty) in Units)
+        {
+            if (qty is < 1 or > 30) return "Quantidade: 1 a 30 por tipo";
+            total += qty;
+            try { w.Units.GetUnitType(unitId); } catch (InvalidOperationException) { return "Tipo de unidade inexistente"; }
+        }
+        return total > 60 ? "Máximo 60 unidades por divisão" : null;
+    }
+
+    public void Execute(World w)
+    {
+        int id = w.CustomTemplateIds.Count == 0 ? World.CustomTemplateBase : w.CustomTemplateIds.Max() + 1;
+        w.Units.AddCustomTemplate(id, CountryId, Name.Trim(), Units);
+        w.CustomTemplateIds.Add(id);
+        w.Events.Publish(new Events.TemplateCreated(CountryId, id));
+    }
+}
+
 /// <summary>Encomenda uma divisão de um template do próprio país. ProductionSystem gasta Country.Money nela.</summary>
 public sealed record BuildDivisionCommand(int CountryId, int TemplateId) : ICommand
 {
