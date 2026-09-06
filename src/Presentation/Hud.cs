@@ -22,6 +22,7 @@ public partial class Hud : CanvasLayer
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
+    private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
     private bool _smoke, _smoked;
@@ -40,6 +41,7 @@ public partial class Hud : CanvasLayer
             _production = new ProductionPanel(); AddChild(_production); _production.Setup(_game);
             _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
             _worldPanel = new WorldPanel(); AddChild(_worldPanel); _worldPanel.Setup(_game, _countryPanel);
+            _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
 
             _map.RegionTapped += OnRegionTapped;
@@ -101,6 +103,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("Frente", DefendBorders));
         row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
+        row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
         row.AddChild(Ui.Btn("Guardar", () => { _game.Save(); Toast("Jogo guardado"); }));
         row.AddChild(Ui.Btn("Novo jogo", () => _confirmNew.PopupCentered()));
     }
@@ -156,6 +159,7 @@ public partial class Hud : CanvasLayer
         {
             if (!IsInstanceValid(this) || !IsInsideTree()) return;
             _toast.Text = msg; _toastBox.Visible = true; _toastTimer.Start();
+            _journal?.Add(msg);
             if (_smoke) GD.Print("toast: " + msg);
         }
         catch (Exception ex) { GD.PushError("Toast: " + ex); }
