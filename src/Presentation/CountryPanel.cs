@@ -63,6 +63,8 @@ public partial class CountryPanel : PanelContainer
             Line($"Indústria ×{c.Stat("industry"):0.00}   Produção ×{c.Stat("production_speed"):0.00}   Organização ×{c.Stat("org_regain"):0.00}   Investigação ×{c.Stat("research_speed"):0.00}");
             Line($"Divisões {w.Divisions.Values.Count(d => d.CountryId == c.Id)}   ·   Regiões {w.Regions.Values.Count(r => r.ControllerId == c.Id)}   ·   Rendimento {EconomySystem.Income(w, c.Id):0.0}/dia");
             Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
+            if (mine && c.AtWarWith.Count > 0)
+                _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
 
             // espíritos
             Header("Espíritos nacionais");
@@ -204,6 +206,34 @@ public partial class CountryPanel : PanelContainer
         }
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }
     }
+
+    /// <summary>Distribui as divisões paradas (org ≥ ai_min_org, fora de batalha) pelas regiões
+    /// próprias com fronteira hostil, das mais vazias para as mais cheias. Só despacha MoveDivisionCommand.</summary>
+    private void GarrisonFronts() => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid) return;
+        var w = _game.World;
+        var front = w.Regions.Values.Where(r => r.ControllerId == pid
+                        && (r.Neighbours.Any(n => w.IsHostile(pid, w.Regions[n]))
+                            || r.SeaNeighbours.Keys.Any(n => w.IsHostile(pid, w.Regions[n])))).ToList();
+        if (front.Count == 0) { _game.Notify("Sem frente — nenhuma região tua toca o inimigo"); return; }
+        float minOrg = w.Rule("ai_min_org", 50f);
+        var inBattle = new HashSet<int>(w.ActiveBattles.SelectMany(b => b.Attackers.Concat(b.Defenders)));
+        var idle = w.Divisions.Values.Where(d => d.CountryId == pid && d.Path.Count == 0
+                        && d.Org >= minOrg && d.CanFight && !inBattle.Contains(d.Id)
+                        && !front.Any(f => f.Id == d.RegionId)).ToList();
+        if (idle.Count == 0) { _game.Notify("Nenhuma divisão parada disponível (org baixa ou já na frente)"); return; }
+        var load = front.ToDictionary(f => f.Id, f => f.DivisionIds.Count(id => w.Divisions[id].CountryId == pid));
+        int sent = 0;
+        foreach (var d in idle)
+        {
+            int dest = load.OrderBy(kv => kv.Value).ThenBy(kv => kv.Key).First().Key;
+            if (_game.Dispatch(new MoveDivisionCommand(pid, d.Id, dest)) is not null) continue;
+            load[dest]++; sent++;
+        }
+        _game.Notify(sent > 0 ? $"{sent} divisões a caminho da frente" : "Nenhuma divisão conseguiu caminho");
+        Fill();
+    });
 
     private void Faction(WarGame.Core.Commands.ICommand cmd)
     {
