@@ -442,6 +442,19 @@ INSERT INTO rule (key,value,note) VALUES
  ('wound_chance',0.035,'probabilidade de o comandante de um exército cair por batalha travada'),
  ('wound_loss_mult',2.2,'quanto a derrota multiplica essa probabilidade');
 
+-- Prisioneiros de guerra (PrisonerSystem). Uma divisão desfeita em terreno inimigo entrega
+-- prisoner_share do seu efectivo a quem manda na região; enquanto lá estão trabalham (até
+-- prisoner_work_max de indústria, tecto alcançado com prisoner_work_men homens), todos os dias
+-- prisoner_escape foge de volta a casa, e a paz devolve prisoner_return do que resta.
+INSERT INTO rule (key,value,note) VALUES
+ ('prisoner_share',0.30,'fracção de uma divisão desfeita que se rende em vez de morrer'),
+ ('prisoner_work_men',400000,'prisioneiros necessários para o bónus máximo de indústria'),
+ ('prisoner_work_max',0.20,'bónus máximo de indústria dado pelo trabalho dos prisioneiros'),
+ ('prisoner_escape',0.001,'fracção de prisioneiros que foge por dia e volta ao pool de casa'),
+ ('prisoner_return',0.60,'fracção dos prisioneiros que volta a casa quando se assina a paz'),
+ ('prisoner_news_men',20000,'leva de prisioneiros a partir da qual a captura dá notícia');
+INSERT INTO chronicle_kind VALUES ('prisioneiros','Prisioneiros','⛓',2);
+
 -- Grupos de exércitos com frente atribuída (ArmyGroupSystem)
 INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
 INSERT INTO rule VALUES ('army_group_min_org', 35, 'organização mínima para uma divisão do grupo marchar');

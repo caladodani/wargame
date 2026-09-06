@@ -254,6 +254,12 @@ CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (Hir
   wound_until INTEGER NOT NULL DEFAULT 0,       -- dia em que volta do hospital (CommandCasualtySystem)
   PRIMARY KEY (country_id, general));
 
+CREATE TABLE IF NOT EXISTS s_prisoner (        -- prisioneiros de guerra (PrisonerSystem)
+  country_id INTEGER NOT NULL,                  -- quem os guarda
+  from_country_id INTEGER NOT NULL,             -- de quem são
+  men INTEGER NOT NULL,
+  PRIMARY KEY (country_id, from_country_id));
+
 CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGroupSystem)
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL,
   front_country_id INTEGER, advancing INTEGER NOT NULL DEFAULT 0,

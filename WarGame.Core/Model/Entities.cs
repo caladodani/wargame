@@ -234,6 +234,11 @@ public sealed class Country
     public Dictionary<string, float> BuildingMult { get; } = new();
     /// <summary>Multiplicadores das decisões nacionais activas (DecisionSystem recalcula todos os dias).</summary>
     public Dictionary<string, float> DecisionMult { get; } = new();
+    /// <summary>Prisioneiros de guerra que este país detém: país de origem → homens. Trabalham para quem
+    /// os guarda (PrisonerSystem) e voltam a casa quando se assina a paz.</summary>
+    public Dictionary<int, int> Prisoners { get; } = new();
+    /// <summary>Multiplicadores do trabalho dos prisioneiros (PrisonerSystem recalcula todos os dias).</summary>
+    public Dictionary<string, float> PrisonerMult { get; } = new();
     /// <summary>Comandantes contratados (tabela general; HireGeneralCommand) e o que somam aos stats.</summary>
     public List<string> Generals { get; } = new();
     public Dictionary<string, float> GeneralMult { get; } = new();
@@ -248,7 +253,7 @@ public sealed class Country
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
-        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f);
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f) * (PrisonerMult.TryGetValue(key, out var pm) ? pm : 1f);
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)

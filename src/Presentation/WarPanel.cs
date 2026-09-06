@@ -62,6 +62,7 @@ public partial class WarPanel : PanelContainer
             var key = w.Clock.Day + "|" + mine.Count + "|" + past.Count + "|" +
                       string.Join(",", mine.Select(x => string.Join("-", x.Side(pid).Goals.OrderBy(g => g)) + "/" + x.Side(pid).Goals.Count(g => w.Regions.TryGetValue(g, out var gr) && gr.ControllerId == pid))) + "|" +
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
+                      string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -93,6 +94,9 @@ public partial class WarPanel : PanelContainer
                 Compare(card, "Divisões perdidas", war.Side(pid).DivisionsLost, war.Enemy(pid).DivisionsLost, lowerIsBetter: true);
                 Compare(card, "Exército no terreno", front.GetValueOrDefault(pid), front.GetValueOrDefault(foe),
                         left: divs.GetValueOrDefault(pid) + " div", right: divs.GetValueOrDefault(foe) + " div");
+
+                // balança dos campos: uma guerra parada continua a render homens a quem aguenta melhor
+                if (PrisonerView.Balance(w, pid, foe) is VBoxContainer pris) card.AddChild(pris);
 
                 Goals(w, card, war, pid, foe);
 

@@ -482,6 +482,19 @@ public partial class Hud : CanvasLayer
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
             Later($"▮ {unit} passa a chamar-se «{e.Title}»");
         }));
+        // Prisioneiros: só as levas grandes (uma divisão desfeita por dia numa guerra grande enche o ecrã).
+        _subs.Add(w.Events.Subscribe<PrisonersTaken>(e =>
+        {
+            if (e.Men < (int)w.Rule("prisoner_news_men", 20000f)) return;
+            string foe = w.Countries.TryGetValue(e.FromCountryId, out var fc) ? fc.Name : "o inimigo";
+            if (Player(e.CaptorId)) Later($"⛓ {e.Men:N0} prisioneiros de {foe} nas nossas mãos");
+            else if (Player(e.FromCountryId)) Later($"⛓ {e.Men:N0} dos nossos caem prisioneiros");
+        }));
+        _subs.Add(w.Events.Subscribe<PrisonersReturned>(e =>
+        {
+            if (Player(e.HomeCountryId)) Later($"⛓ {e.Men:N0} prisioneiros nossos voltam a casa");
+            else if (Player(e.HolderId)) Later($"⛓ Abrimos os campos: {e.Men:N0} prisioneiros repatriados");
+        }));
         // Baixas no comando: perder um marechal é dos acontecimentos mais caros da campanha.
         _subs.Add(w.Events.Subscribe<GeneralKilled>(e =>
         {
@@ -678,6 +691,12 @@ public partial class Hud : CanvasLayer
         OnRegionTapped(cap.Id); _region.SelectAll(); _region.BeginMove();
         GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos");
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
+        // uma leva de prisioneiros, para os campos e a balança do painel Guerra terem o que desenhar
+        if (c.Prisoners.Count == 0 && w.Countries.Values.FirstOrDefault(x => x.Id != pid) is Country foe)
+        {
+            c.Prisoners[foe.Id] = (int)(w.Rule("prisoner_work_men", 400000f) * 0.5f);
+            new PrisonerSystem().Tick(w);                              // põe-nos a trabalhar já neste dia
+        }
         _production.Open();
         _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
         _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
@@ -704,7 +723,8 @@ public partial class Hud : CanvasLayer
         }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria");
+        int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

@@ -29,6 +29,10 @@ public sealed record DivisionHonoured(int DivisionId, int CountryId, string Hono
 /// <summary>Mudou a estação do ano (WeatherSystem): a marcha, a recomposição e o desgaste mudam com ela.</summary>
 public sealed record SeasonChanged(string SeasonId, string Name, int Day) : IGameEvent;
 
+/// <summary>Prisioneiros de guerra (PrisonerSystem): homens que mudaram de mãos sem morrer.</summary>
+public sealed record PrisonersTaken(int CaptorId, int FromCountryId, int Men, int RegionId) : IGameEvent;
+public sealed record PrisonersReturned(int HolderId, int HomeCountryId, int Men) : IGameEvent;
+
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;
 public sealed record GeneralKilled(int CountryId, string GeneralId, int RegionId) : IGameEvent;
