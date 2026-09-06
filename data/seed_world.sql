@@ -31,6 +31,18 @@ INSERT INTO faction_member (faction_id,country_tag) VALUES
  ('cn_prk','CHN'),('cn_prk','PRK'),
  ('ru_prk','RUS'),('ru_prk','PRK');
 
+-- ===== eventos noticiosos (NewsSystem) =====
+INSERT INTO news_event (id,day,country_tag,title,body) VALUES
+ ('cimeira_nato',14,NULL,'Cimeira de emergência da NATO','Os aliados reúnem-se em Bruxelas para rever os planos de defesa colectiva perante a escalada global.'),
+ ('crise_energia',40,NULL,'Crise energética mundial','O preço do gás dispara; governos desviam orçamento para as reservas estratégicas.'),
+ ('ciberataque',70,NULL,'Vaga de ciberataques','Infraestruturas críticas atacadas em três continentes; a atribuição aponta para actores estatais.'),
+ ('prt_expo_defesa',25,'PRT','Feira de defesa em Lisboa','A indústria nacional mostra o Pandur II e sistemas anti-drone; o Governo promete encomendas.'),
+ ('bra_carnaval_civico',30,'BRA','Mobilização cívica no Brasil','Campanha nacional de alistamento voluntário excede todas as expectativas.');
+INSERT INTO news_event_effect (event_id,stat_key,value) VALUES
+ ('crise_energia','industry',0.97),
+ ('prt_expo_defesa','production_speed',1.03),
+ ('bra_carnaval_civico','conscription',1.05);
+
 -- rules: manpower (ManpowerSystem — pool de homens estilo HoI4)
 INSERT INTO rule (key,value,note) VALUES
  ('manpower_per_million_daily',60,'homens novos por dia por milhão de população controlada (× country_stat conscription)'),

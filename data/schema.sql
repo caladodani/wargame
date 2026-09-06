@@ -93,6 +93,15 @@ CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir:
 CREATE TABLE IF NOT EXISTS country_tech (        -- tecnologias com que o país começa
   country_tag TEXT NOT NULL, tech_id TEXT NOT NULL REFERENCES tech(id), PRIMARY KEY (country_tag, tech_id)
 );
+CREATE TABLE IF NOT EXISTS news_event (          -- eventos noticiosos com data marcada (NewsSystem)
+  id TEXT PRIMARY KEY, day INTEGER NOT NULL,     -- dia do jogo em que dispara (0 = arranque)
+  country_tag TEXT,                              -- NULL = global; sem FK (os seeds correm antes dos países no TestWorld)
+  title TEXT NOT NULL, body TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS news_event_effect (   -- efeito opcional: Country.Stat(stat_key) × value (país do evento; global = todos)
+  event_id TEXT NOT NULL REFERENCES news_event(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (event_id, stat_key)
+);
 CREATE TABLE IF NOT EXISTS focus (               -- foco nacional (HoI4); árvore por país, requires = foco anterior
   id TEXT PRIMARY KEY, country_tag TEXT NOT NULL REFERENCES country(tag),
   name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',

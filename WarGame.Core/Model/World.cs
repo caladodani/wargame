@@ -25,6 +25,9 @@ public sealed class World
     public Dictionary<string, List<(string Key, float Mul)>> TechEffects { get; } = new();
     /// <summary>Focos nacionais (tabela focus) e efeitos (focus_effect), por id.</summary>
     public Dictionary<string, Focus> Focuses { get; } = new();
+    /// <summary>Eventos noticiosos (news_event) e efeitos (news_event_effect), por id.</summary>
+    public Dictionary<string, NewsEvent> NewsEvents { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> NewsEffects { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();
     /// <summary>Alianças defensivas (tabelas faction + faction_member). Ver FactionsOf/SameFaction/Allies.</summary>
     public Dictionary<string, Faction> Factions { get; } = new();
@@ -60,6 +63,9 @@ public sealed class World
         foreach (var f in c.FocusesDone)
             if (FocusEffects.TryGetValue(f, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+        foreach (var e in NewsEvents.Values)   // eventos noticiosos já disparados (NewsSystem)
+            if (e.Day <= Clock.Day && (e.CountryId is null || e.CountryId == c.Id) && NewsEffects.TryGetValue(e.Id, out var neffs))
+                foreach (var (key, mul) in neffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
     }
 
     /// <summary>Pode escolher o foco: é do país, não o tem, e tem o anterior.</summary>

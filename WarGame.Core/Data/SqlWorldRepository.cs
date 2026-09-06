@@ -37,6 +37,17 @@ public sealed class SqlWorldRepository : IWorldRepository
 
         foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description FROM tech"))
             w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string);
+        foreach (var r in _static.Query("SELECT id,day,country_tag,title,body FROM news_event"))
+        {
+            int? cid = r["country_tag"] is string tag && byTag.TryGetValue(tag, out var nc) ? nc.Id : null;
+            w.NewsEvents[(string)r["id"]!] = new NewsEvent((string)r["id"]!, Convert.ToInt32(r["day"]), cid, (string)r["title"]!, (string)r["body"]!);
+        }
+        foreach (var r in _static.Query("SELECT event_id,stat_key,value FROM news_event_effect"))
+        {
+            var eid = (string)r["event_id"]!;
+            if (!w.NewsEffects.TryGetValue(eid, out var elist)) w.NewsEffects[eid] = elist = new();
+            elist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
         foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
