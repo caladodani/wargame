@@ -291,6 +291,9 @@ def main():
         db.executescript(f.read_text(encoding='utf-8'))
     # recursos por região: depende da tabela region, por isso só no fim
     db.executescript((HERE / 'data' / 'seed_resources.sql').read_text(encoding='utf-8'))
+    # cores dos países = cor principal da bandeira (gerado por tools/flag_colors.py)
+    fc = HERE / 'data' / 'flag_colors.sql'
+    if fc.exists(): db.executescript(fc.read_text(encoding='utf-8'))
     db.commit()
 
     # ---- 9. exército inicial + capitais (tools/seed_armies.py; re-semeável à parte)
