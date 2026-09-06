@@ -1,5 +1,6 @@
 using WarGame.Core.Events;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Core.Commands;
 
@@ -644,3 +645,47 @@ public sealed record RetreatFromBattleCommand(int CountryId, int RegionId) : ICo
         return best;
     }
 }
+
+/// <summary>Cria um acordo de comércio: o comprador aluga Units dos depósitos do vendedor
+/// (paga por dia no TradeSystem). Vendedor precisa de unidades livres; nada entre inimigos.</summary>
+public sealed record CreateTradeDealCommand(int CountryId, int SellerId, string ResourceId, float Units) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var buyer) || buyer.Capitulated) return "comprador inválido";
+        if (!w.Countries.TryGetValue(SellerId, out var seller) || seller.Capitulated) return "vendedor inválido";
+        if (CountryId == SellerId) return "não podes comprar a ti próprio";
+        if (Units <= 0f) return "unidades inválidas";
+        if (!w.ResourceDefs.ContainsKey(ResourceId)) return "recurso desconhecido";
+        if (w.AreAtWar(CountryId, SellerId)) return "estão em guerra";
+        float free = ResourceSystem.Controlled(w, SellerId, ResourceId) - TradeSystem.Sold(w, SellerId, ResourceId);
+        if (free < Units - 1e-3f) return "o vendedor não tem unidades livres";
+        float price = Units * w.Rule("trade_price_per_unit", 2f);
+        if (buyer.Money < price) return "sem pontos para o primeiro dia";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.TradeDeals.Add(new TradeDeal { BuyerId = CountryId, SellerId = SellerId, ResourceId = ResourceId, Units = Units });
+        w.Events.Publish(new TradeDealCreated(CountryId, SellerId, ResourceId, Units));
+    }
+}
+
+/// <summary>Cancela um acordo de comércio em que o país participa (qualquer um dos lados).</summary>
+public sealed record CancelTradeDealCommand(int CountryId, int OtherId, string ResourceId) : ICommand
+{
+    public string? Validate(World w) =>
+        w.TradeDeals.Any(d => d.ResourceId == ResourceId
+            && ((d.BuyerId == CountryId && d.SellerId == OtherId) || (d.SellerId == CountryId && d.BuyerId == OtherId)))
+        ? null : "acordo não existe";
+
+    public void Execute(World w)
+    {
+        var d = w.TradeDeals.First(t => t.ResourceId == ResourceId
+            && ((t.BuyerId == CountryId && t.SellerId == OtherId) || (t.SellerId == CountryId && t.BuyerId == OtherId)));
+        w.TradeDeals.Remove(d);
+        w.Events.Publish(new TradeDealEnded(d.BuyerId, d.SellerId, d.ResourceId));
+    }
+}
+

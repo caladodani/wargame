@@ -17,6 +17,11 @@ public sealed class ResourceSystem : ISystem
         foreach (var r in w.Regions.Values)
             foreach (var (res, amount) in r.Resources)
                 totals[(r.ControllerId, res)] = totals.GetValueOrDefault((r.ControllerId, res)) + amount;
+        foreach (var d in w.TradeDeals)   // comércio: unidades passam do vendedor para o comprador
+        {
+            totals[(d.SellerId, d.ResourceId)] = totals.GetValueOrDefault((d.SellerId, d.ResourceId)) - d.Units;
+            totals[(d.BuyerId, d.ResourceId)] = totals.GetValueOrDefault((d.BuyerId, d.ResourceId)) + d.Units;
+        }
 
         foreach (var c in w.Countries.Values)
         {
@@ -24,7 +29,7 @@ public sealed class ResourceSystem : ISystem
             if (c.Capitulated) continue;
             foreach (var def in w.ResourceDefs.Values)
             {
-                float units = MathF.Min(totals.GetValueOrDefault((c.Id, def.Id)), def.Cap);
+                float units = MathF.Min(MathF.Max(totals.GetValueOrDefault((c.Id, def.Id)), 0f), def.Cap);
                 if (units <= 0f) continue;
                 c.ResourceMult[def.StatKey] = c.ResourceMult.GetValueOrDefault(def.StatKey, 1f) * (1f + def.PerUnit * units);
             }

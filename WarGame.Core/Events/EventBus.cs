@@ -44,6 +44,10 @@ public sealed record MoneyTransferred(int FromCountryId, int ToCountryId, float 
 public sealed record PeaceOfferRejected(int FromCountryId, int ToCountryId) : IGameEvent;
 /// <summary>Região ocupada revoltou-se e voltou ao dono (ResistanceSystem).</summary>
 public sealed record RegionRevolted(int RegionId, int OldController) : IGameEvent;
+/// <summary>Acordo de comércio criado (CreateTradeDealCommand).</summary>
+public sealed record TradeDealCreated(int BuyerId, int SellerId, string ResourceId, float Units) : IGameEvent;
+/// <summary>Acordo de comércio terminado (cancelado ou caiu: guerra, depósitos, dinheiro).</summary>
+public sealed record TradeDealEnded(int BuyerId, int SellerId, string ResourceId) : IGameEvent;
 public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record DivisionDisbanded(int DivisionId, int CountryId) : IGameEvent;

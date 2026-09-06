@@ -206,3 +206,6 @@ CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qt
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
   stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recursos em vigor (save)
+  buyer_id INTEGER NOT NULL, seller_id INTEGER NOT NULL, resource TEXT NOT NULL, units REAL NOT NULL,
+  PRIMARY KEY (buyer_id, seller_id, resource));

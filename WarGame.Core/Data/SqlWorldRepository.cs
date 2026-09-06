@@ -251,6 +251,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
+        foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
+            w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
+                ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
         foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
                 OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]) });
@@ -303,12 +306,14 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+        foreach (var d in w.TradeDeals)
+            save.Execute("INSERT INTO s_trade_deal VALUES (?,?,?,?)", d.BuyerId, d.SellerId, d.ResourceId, d.Units);
         foreach (var o in w.ActiveSpyOps)
             save.Execute("INSERT INTO s_spy_op VALUES (?,?,?,?)", o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft);
         foreach (var ((ia, ib), until) in w.Intel)

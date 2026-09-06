@@ -12,6 +12,7 @@ public partial class CountryPanel : PanelContainer
 {
     private Game _game = null!;
     private Label _title = null!;
+    private TextureRect _flag = null!;
     private VBoxContainer _body = null!;
     private int _countryId;
     private string _lastKey = "";
@@ -25,6 +26,7 @@ public partial class CountryPanel : PanelContainer
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
+        _flag = Flags.Rect(30); head.AddChild(_flag);
         _title = Ui.Grow(Ui.Lbl("", 22)); head.AddChild(_title);
         head.AddChild(Ui.Btn("Fechar", Close));
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
@@ -46,6 +48,8 @@ public partial class CountryPanel : PanelContainer
             var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}";
             if (key == _lastKey) return;
             _lastKey = key;
+            _flag.Texture = Flags.Of(c.Tag);
+            _flag.Visible = _flag.Texture is not null;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
             Ui.Clear(_body);
 
@@ -135,6 +139,26 @@ public partial class CountryPanel : PanelContainer
                 }
                 if (w.AreAtWar(inviter, c.Id))
                     _body.AddChild(Ui.Btn("Propor paz branca", () => Faction(new OfferPeaceCommand(inviter, c.Id)), 260));
+                if (!w.AreAtWar(inviter, c.Id) && w.ResourceDefs.Count > 0)
+                {
+                    float price = w.Rule("trade_price_per_unit", 2f);
+                    foreach (var rd in w.ResourceDefs.Values.OrderBy(d => d.Id))
+                    {
+                        var deal = w.TradeDeals.FirstOrDefault(t => t.BuyerId == inviter && t.SellerId == c.Id && t.ResourceId == rd.Id);
+                        if (deal is not null)
+                        {
+                            var row = new HBoxContainer(); _body.AddChild(row);
+                            row.AddChild(Ui.Grow(Ui.Lbl($"Compramos {rd.Name} {deal.Units:0} ({deal.Units * price:0}/dia)", 16)));
+                            row.AddChild(Ui.Btn("Cancelar", () => Faction(new CancelTradeDealCommand(inviter, c.Id, rd.Id)), 140));
+                            continue;
+                        }
+                        float free = ResourceSystem.Controlled(w, c.Id, rd.Id) - TradeSystem.Sold(w, c.Id, rd.Id);
+                        if (free < 1f) continue;
+                        float lot = MathF.Min(free, 3f);
+                        _body.AddChild(Ui.Btn($"Comprar {rd.Name} {lot:0} ({lot * price:0}/dia)",
+                            () => Faction(new CreateTradeDealCommand(inviter, c.Id, rd.Id, lot)), 300));
+                    }
+                }
                 else if (w.HasPact(inviter, c.Id))
                     Line($"🤝 Pacto de não-agressão até ao dia {w.Pacts[WarGame.Core.Model.World.WarKey(inviter, c.Id)]}");
                 else if (!w.SameFaction(inviter, c.Id))

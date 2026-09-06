@@ -39,6 +39,8 @@ public sealed class World
 
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
+    /// <summary>Acordos de comércio de recursos em vigor (TradeSystem).</summary>
+    public List<TradeDeal> TradeDeals { get; } = new();
     /// <summary>Rede de informação activa: (autor, alvo) → último dia com visibilidade (efeito intel).</summary>
     public Dictionary<(int A, int B), int> Intel { get; } = new();
     public bool HasIntel(int a, int b) => Intel.TryGetValue((a, b), out var until) && until >= Clock.Day;

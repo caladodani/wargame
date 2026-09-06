@@ -74,6 +74,17 @@ public sealed class Region
     public Dictionary<string, float> Resources { get; init; } = new();
 }
 
+/// <summary>Acordo de comércio (World.TradeDeals): o comprador conta Units dos depósitos do vendedor
+/// e paga Units × rule trade_price_per_unit por dia (TradeSystem). Cai com guerra, falta de depósitos
+/// ou falta de dinheiro.</summary>
+public sealed class TradeDeal
+{
+    public int BuyerId { get; init; }
+    public int SellerId { get; init; }
+    public string ResourceId { get; init; } = "";
+    public float Units { get; init; }
+}
+
 /// <summary>Tipo de recurso estratégico (tabela resource): cada unidade controlada multiplica
 /// StatKey por (1+PerUnit), até Cap unidades (ResourceSystem).</summary>
 public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap);

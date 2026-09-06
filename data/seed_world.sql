@@ -213,3 +213,6 @@ INSERT INTO rule (key,value,note) VALUES
 -- A IA retira de batalhas muito desequilibradas (org própria < org inimiga × ai_retreat_ratio).
 INSERT INTO rule (key,value,note) VALUES
  ('ai_retreat_ratio',0.25,'limiar de org relativa abaixo do qual a IA retira da batalha');
+
+-- Comércio de recursos (TradeSystem)
+INSERT INTO rule VALUES ('trade_price_per_unit', 2, 'pontos por dia por unidade de recurso alugada');

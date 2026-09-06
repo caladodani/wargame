@@ -14,6 +14,7 @@ public partial class Hud : CanvasLayer
     private Game _game = null!;
     private MapView _map = null!;
     private Label _date = null!, _country = null!, _army = null!, _toast = null!, _hint = null!;
+    private TextureRect _playerFlag = null!;
     private Button _pause = null!;
     private PanelContainer _toastBox = null!;
     private Timer _toastTimer = null!;
@@ -98,6 +99,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
         _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
         row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
+        _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
         _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
         _army = Ui.Lbl("", 20); row.AddChild(_army);
         row.AddChild(Ui.Btn("Frente", DefendBorders));
@@ -258,6 +260,19 @@ public partial class Hud : CanvasLayer
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
                 Later($"Fortificação nível {e.Level} em {r.Name}");
         }));
+        _subs.Add(w.Events.Subscribe<TradeDealCreated>(e =>
+        {
+            if (!Player(e.BuyerId) && !Player(e.SellerId)) return;
+            var name = _game.World.ResourceDefs.TryGetValue(e.ResourceId, out var rd) ? rd.Name : e.ResourceId;
+            Later(Player(e.BuyerId) ? $"Compramos {name} {e.Units:0} a {Country(e.SellerId)}"
+                                    : $"{Country(e.BuyerId)} compra-nos {name} {e.Units:0}");
+        }));
+        _subs.Add(w.Events.Subscribe<TradeDealEnded>(e =>
+        {
+            if (!Player(e.BuyerId) && !Player(e.SellerId)) return;
+            var name = _game.World.ResourceDefs.TryGetValue(e.ResourceId, out var rd) ? rd.Name : e.ResourceId;
+            Later($"Acordo de {name} com {Country(Player(e.BuyerId) ? e.SellerId : e.BuyerId)} terminou");
+        }));
         _subs.Add(w.Events.Subscribe<RegionRevolted>(e =>
         {
             if (_game.PlayerId is not int p || !w.Regions.TryGetValue(e.RegionId, out var r)) return;
@@ -404,11 +419,12 @@ public partial class Hud : CanvasLayer
         _pause.Text = c.Paused ? "Play" : "||";
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
+            if (_playerFlag.Texture is null) { _playerFlag.Texture = Flags.Of(p.Tag); _playerFlag.Visible = _playerFlag.Texture is not null; }
             _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
             _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}  ·  Homens {FmtMen(p.Manpower)}";
             _hint.Visible = false;
         }
-        else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; }
+        else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; }
     }
 
     private void OnRegionTapped(int regionId)
