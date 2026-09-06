@@ -296,3 +296,12 @@ CREATE TABLE IF NOT EXISTS decision (
 INSERT INTO decision VALUES ('mobilizacao_industrial','Mobilização industrial',30,30,60,'industry',1.15);
 INSERT INTO decision VALUES ('esforco_guerra','Esforço de guerra',35,30,60,'production_speed',1.2);
 INSERT INTO decision VALUES ('fundos_ciencia','Fundos para a ciência',40,45,90,'research_speed',1.25);
+
+-- Peso económico do terreno (EconomySystem.TerrainMult; 1 = neutro)
+INSERT INTO rule VALUES ('terrain_income_urban', 1.35, 'cidades rendem mais');
+INSERT INTO rule VALUES ('terrain_income_plain', 1.0, 'planície: linha de base');
+INSERT INTO rule VALUES ('terrain_income_forest', 0.9, 'floresta rende menos');
+INSERT INTO rule VALUES ('terrain_income_mountain', 0.8, 'montanha rende menos');
+INSERT INTO rule VALUES ('terrain_income_desert', 0.7, 'deserto rende pouco');
+INSERT INTO rule VALUES ('terrain_income_tundra', 0.65, 'tundra rende pouco');
+INSERT INTO rule VALUES ('coastal_income_bonus', 1.1, 'porto/costa: comércio marítimo');
