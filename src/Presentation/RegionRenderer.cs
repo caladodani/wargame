@@ -17,6 +17,8 @@ public partial class RegionRenderer : Node2D
     public const string CapitalMark = "★";
     /// <summary>Região que o jogador exigiu numa guerra (objectivo de guerra).</summary>
     public const string GoalMark = "🎯";
+    /// <summary>Região com porto: é por aqui que o abastecimento salta o mar.</summary>
+    public const string PortMark = "⚓";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
@@ -63,6 +65,16 @@ public partial class RegionRenderer : Node2D
         game.World.Events.Subscribe<WhitePeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
         game.World.Events.Subscribe<PeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
     }
+
+    /// <summary>Forma de cada região (um par por anel): o mini-mapa desenha as mesmas em ponto pequeno.</summary>
+    public IEnumerable<(int RegionId, Vector2[] Points)> Shapes()
+    {
+        foreach (var (id, polys) in _byRegion)
+            foreach (var p in polys) yield return (id, p.Polygon);
+    }
+
+    /// <summary>Cor actual de uma região (controlador, escurecida quando é ocupação).</summary>
+    public Color ColorOf(int regionId) => ColorFor(regionId);
 
     /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
     public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
@@ -112,6 +124,7 @@ public partial class RegionRenderer : Node2D
         {
             var w = _game.World;
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
+            var portIds = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).Select(d => d.Id).ToHashSet();
             var goals = PlayerGoals(w);
             DrawGoals(goals);
             var capitals = new HashSet<int>(w.Countries.Values.Where(c => !c.Capitulated).Select(c => c.CapitalRegionId));
@@ -121,7 +134,8 @@ public partial class RegionRenderer : Node2D
                 bool resisting = r.Resistance >= 0.5f;
                 bool capital = capitals.Contains(r.Id);
                 bool goal = goals.Contains(r.Id);
-                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital && !goal) continue;
+                bool port = r.Buildings.Any(b => b.Value > 0 && portIds.Contains(b.Key));
+                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var pill = m.GetNode<PanelContainer>("Center/Pill");
@@ -132,6 +146,7 @@ public partial class RegionRenderer : Node2D
                            + (fighting ? BattleMark : "")
                            + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
                            + (r.Fort > 0 ? FortMark : "")
+                           + (port ? PortMark : "")
                            + (resisting ? ResistMark : "");
                 label.LabelSettings = StyleFor(r.ControllerId);
                 pill.AddThemeStyleboxOverride("panel", PillFor(r.ControllerId));

@@ -294,7 +294,7 @@ public partial class RegionPanel : PanelContainer
             if (canFort) _fort.Text = $"Fortificar ({w.Rule("fort_build_cost", 30f):0})";
             bool canBld = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && r.Project is null;
             var bldKey = !canBld ? "" : r.Id + "|" + string.Join(",", w.BuildingDefs.Values
-                .Where(d => r.Buildings.GetValueOrDefault(d.Id) < d.MaxLevel).Select(d => d.Id + ":" + r.Buildings.GetValueOrDefault(d.Id)));
+                .Where(d => (!d.Coastal || r.Coastal) && r.Buildings.GetValueOrDefault(d.Id) < d.MaxLevel).Select(d => d.Id + ":" + r.Buildings.GetValueOrDefault(d.Id)));
             if (bldKey != _bldKey)
             {
                 _bldKey = bldKey;
@@ -302,6 +302,7 @@ public partial class RegionPanel : PanelContainer
                 if (canBld)
                     foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
                     {
+                        if (d.Coastal && !r.Coastal) continue;      // porto só na costa: nem se oferece o botão
                         if (r.Buildings.GetValueOrDefault(d.Id) >= d.MaxLevel) continue;
                         var bid = d.Id;
                         _bld.AddChild(Ui.Btn($"{d.Name} {r.Buildings.GetValueOrDefault(bid) + 1} ({d.Cost:0}, {d.Days:0} d)",

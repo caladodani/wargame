@@ -86,7 +86,10 @@ public sealed class Region
 }
 
 /// <summary>Edifício construível numa região (tabela building): cada nível multiplica StatKey do controlador por (1+PerLevel).</summary>
-public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel);
+/// <summary>Edifício regional (tabela building). Coastal = só se constrói em região de costa;
+/// SupplyRange = alcance em km a que o edifício projecta abastecimento por mar, por nível (0 = nenhum).</summary>
+public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
+    bool Coastal = false, float SupplyRange = 0f);
 
 /// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
 /// depois Cooldown dias de espera.</summary>

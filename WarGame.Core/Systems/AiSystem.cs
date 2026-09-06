@@ -84,6 +84,36 @@ public sealed class AiSystem : ISystem
         }
     }
 
+    /// <summary>Tropas nossas a definhar do outro lado do mar (supply abaixo de ai_port_supply_floor,
+    /// numa costa que controlamos): manda construir o porto mais próximo delas, na costa que é nossa.
+    /// Sem isto, a IA desembarcava e via a cabeça-de-praia apodrecer em bolsa.</summary>
+    private static bool Port(World w, Country c, List<Region> controlled)
+    {
+        var portIds = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).Select(d => d.Id).ToList();
+        if (portIds.Count == 0) return false;
+        float floor = w.Rule("ai_port_supply_floor", 0.9f);
+        var starving = w.Divisions.Values
+            .Where(d => d.CountryId == c.Id && d.Supply < floor && w.Regions.TryGetValue(d.RegionId, out var r) && r.Coastal)
+            .Select(d => d.RegionId).ToHashSet();
+        if (starving.Count == 0) return false;
+
+        Region? spot = null; float bestKm = float.MaxValue;
+        foreach (var r in controlled)
+        {
+            if (!r.Coastal || r.OwnerId != c.Id || r.Project is not null) continue;
+            if (portIds.Any(id => r.Buildings.GetValueOrDefault(id) > 0)) continue;
+            float km = r.SeaNeighbours.Where(sn => starving.Contains(sn.Key)).Select(sn => sn.Value).DefaultIfEmpty(float.MaxValue).Min();
+            if (km < bestKm) { bestKm = km; spot = r; }
+        }
+        if (spot is null) return false;
+        foreach (var id in portIds)
+        {
+            var cmd = new BuildBuildingCommand(c.Id, spot.Id, id);
+            if (cmd.Validate(w) is null) { cmd.Execute(w); return true; }
+        }
+        return false;
+    }
+
     /// <summary>A ganhar por terra (ocupa pelo menos ai_peace_demand_min_share do inimigo): propõe
     /// paz a exigir exactamente o que já ocupa. Se as contas do PeaceTerms não derem, não gasta a
     /// proposta — deixa a guerra seguir e volta a tentar quando ocupar mais.</summary>
@@ -267,6 +297,8 @@ public sealed class AiSystem : ISystem
                 if (fcmd.Validate(w) is null) { fcmd.Execute(w); return; }
             }
         }
+        if (Port(w, c, controlled)) return;
+
         Region? best = null;
         foreach (var r in controlled)
             if (r.OwnerId == c.Id && !r.Building && (best is null || r.Infrastructure < best.Infrastructure)) best = r;

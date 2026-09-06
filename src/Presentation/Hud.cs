@@ -28,6 +28,7 @@ public partial class Hud : CanvasLayer
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
     private WarPanel _warPanel = null!;
+    private MiniMap _mini = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
@@ -52,6 +53,7 @@ public partial class Hud : CanvasLayer
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots);
+            _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
@@ -528,6 +530,11 @@ public partial class Hud : CanvasLayer
             _countryPanel.Refresh();
             _worldPanel.Refresh();
             _warPanel.Refresh();
+            // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
+            _mini.SetCovered(_region.Visible || _production.Visible || _countryPanel.Visible
+                             || _worldPanel.Visible || _warPanel.Visible || _journal.Visible);
+            if (!_mini.Visible) return;
+            _mini.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
@@ -592,6 +599,7 @@ public partial class Hud : CanvasLayer
             if (withDivs.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.DoubleTap(nb);
             GD.Print($"smoke: duplo toque → selecção {(_multiSel.Active ? "por usar" : "consumida")}");
         }
+        _mini.Toggle(); _mini.Toggle(); _mini.Refresh();   // mini-mapa: encolher, abrir e pintar sem rebentar
         _menu.Open(); _menu.Close();
         GD.Print($"smoke: menu de jogo abre, dificuldade {(_game.World.Difficulty ?? "por escolher")}");
     }

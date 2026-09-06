@@ -228,6 +228,8 @@ INSERT INTO rule VALUES ('war_history_max', 40, 'guerras terminadas guardadas no
 INSERT INTO rule VALUES ('war_goal_max', 4, 'regiões exigidas por objectivo de guerra');
 INSERT INTO rule VALUES ('war_goal_capital_ratio', 2, 'vantagem em divisões para pôr a capital inimiga no objectivo');
 INSERT INTO rule VALUES ('war_goal_period_days', 3, 'de quantos em quantos dias se revêem os objectivos');
+INSERT INTO rule VALUES ('port_supply_factor', 0.85, 'abastecimento que chega por mar (1 = tão bom como por terra)');
+INSERT INTO rule VALUES ('ai_port_supply_floor', 0.9, 'abaixo deste supply a IA manda construir porto para as tropas de além-mar');
 
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
 INSERT INTO spy_op VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);
@@ -248,10 +250,13 @@ INSERT INTO rule (key,value,note) VALUES
 -- Edifícios regionais (tabela building; ConstructionSystem/BuildBuildingCommand)
 CREATE TABLE IF NOT EXISTS building (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,
-  stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL);
-INSERT INTO building VALUES ('fabrica','Fábrica',40,25,'industry',0.05,5);
-INSERT INTO building VALUES ('laboratorio','Laboratório',50,30,'research_speed',0.06,3);
-INSERT INTO building VALUES ('arsenal','Arsenal',45,25,'production_speed',0.05,4);
+  stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL,
+  coastal INTEGER NOT NULL DEFAULT 0,        -- 1 = só em região de costa
+  supply_range REAL NOT NULL DEFAULT 0);     -- km de abastecimento projectado por mar, por nível
+INSERT INTO building VALUES ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0);
+INSERT INTO building VALUES ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0);
+INSERT INTO building VALUES ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0);
+INSERT INTO building VALUES ('porto','Porto',35,20,'port_capacity',0,2,1,900);
 
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES

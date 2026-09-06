@@ -29,18 +29,63 @@ public sealed class SupplySystem : ISystem
         var countries = stacked.Keys.Select(k => k.country).ToHashSet();
         foreach (var d in w.Divisions.Values) countries.Add(w.Regions[d.RegionId].ControllerId);
         var linked = LinkedRegions(w, countries);
+        var bySea = PortReach(w, linked);       // cabeças-de-praia ligadas por porto: abastecidas, mas pior
+        float seaFactor = w.Rule("port_supply_factor", 0.85f);
 
         foreach (var d in w.Divisions.Values)
         {
             // ligada = controlada pelo país da divisão (ou aliado de facção) E com cadeia até território próprio
             var reg = w.Regions[d.RegionId];
             bool friendly = reg.ControllerId == d.CountryId || w.SameFaction(d.CountryId, reg.ControllerId);
-            float s = friendly && linked.Contains(d.RegionId) ? 1f : pocket;
+            float s = friendly && linked.Contains(d.RegionId)
+                ? (bySea.Contains(d.RegionId) ? seaFactor : 1f)
+                : pocket;
             int n = stacked[(d.CountryId, d.RegionId)];
             if (n > stack) s *= stack / n;
             d.Supply = s;
         }
     }
+
+    /// <summary>Abastecimento por mar: um porto numa região já ligada por terra alcança, até
+    /// supply_range × nível quilómetros de travessia, outras regiões costeiras do mesmo controlador —
+    /// e daí a cadeia segue por terra. É isto que torna um desembarque sustentável: sem porto, a
+    /// cabeça-de-praia fica em bolsa (supply_pocket) por muito que se ganhe a batalha.
+    /// Devolve as regiões que só estão abastecidas por esta via (levam port_supply_factor).</summary>
+    private static HashSet<int> PortReach(World w, HashSet<int> linked)
+    {
+        var bySea = new HashSet<int>();
+        var ports = w.Regions.Values.Where(r => r.Buildings.Count > 0 && linked.Contains(r.Id)
+                                             && r.Buildings.Any(b => Range(w, b) > 0f)).ToList();
+        if (ports.Count == 0) return bySea;
+
+        var queue = new Queue<Region>();
+        foreach (var port in ports)
+        {
+            float reach = port.Buildings.Sum(b => Range(w, b));
+            foreach (var (dst, km) in port.SeaNeighbours)
+            {
+                if (km > reach || !w.Regions.TryGetValue(dst, out var r)) continue;
+                if (r.ControllerId != port.ControllerId || !linked.Add(dst)) continue;
+                bySea.Add(dst); queue.Enqueue(r);
+            }
+        }
+        // a partir da cabeça-de-praia, a cadeia continua por terra dentro do que esse país controla
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            foreach (var n in cur.Neighbours)
+            {
+                var r = w.Regions[n];
+                if (r.ControllerId != cur.ControllerId || !linked.Add(n)) continue;
+                bySea.Add(n); queue.Enqueue(r);
+            }
+        }
+        return bySea;
+    }
+
+    /// <summary>Alcance por mar de um edifício construído: supply_range da definição × níveis.</summary>
+    private static float Range(World w, KeyValuePair<string, int> built) =>
+        w.BuildingDefs.TryGetValue(built.Key, out var def) ? def.SupplyRange * built.Value : 0f;
 
     /// <summary>Regiões ligadas ao território próprio do seu controlador: BFS multi-fonte por país (fontes =
     /// regiões que possui E controla), expandindo só por regiões que esse país controla. Cada região tem um só

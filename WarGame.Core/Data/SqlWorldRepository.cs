@@ -72,10 +72,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap FROM resource"))
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]));
-        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level FROM building"))
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
-                Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]));
+                Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
+                Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]));
         foreach (var r in _static.Query("SELECT id,name,sort FROM difficulty ORDER BY sort"))
             w.DifficultyDefs[(string)r["id"]!] = new DifficultyDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToInt32(r["sort"]), new Dictionary<string, float>());

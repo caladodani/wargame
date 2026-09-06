@@ -113,6 +113,16 @@ public partial class MapView : Node2D
     /// <summary>Centra a câmara em `worldPos` com o zoom dado (ex.: capital ao escolher país).</summary>
     public void Focus(Vector2 worldPos, float zoom) { _cam.Position = worldPos; SetZoom(zoom); }
 
+    /// <summary>Centra a câmara sem mexer no zoom (o mini-mapa salta assim para onde se tocou).</summary>
+    public void MoveTo(Vector2 worldPos) => _cam.Position = worldPos;
+
+    /// <summary>Pedaço do mundo que cabe no ecrã, em coordenadas de mundo (o mini-mapa desenha-o).</summary>
+    public Rect2 VisibleWorldRect()
+    {
+        var size = GetViewportRect().Size / _cam.Zoom;
+        return new Rect2(_cam.Position - size / 2f, size);
+    }
+
     private Vector2 ToWorld(Vector2 screen) => GetCanvasTransform().AffineInverse() * screen;
 
     private float Pinch() { var v = _touches.Values.ToArray(); return v[0].DistanceTo(v[1]); }

@@ -750,6 +750,7 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
         if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
         if (r.ControllerId != CountryId || r.OwnerId != CountryId) return "a região não é tua";
         if (!w.BuildingDefs.TryGetValue(BuildingId, out var def)) return "edifício desconhecido";
+        if (def.Coastal && !r.Coastal) return "só na costa";
         if (r.Project is not null) return "já há uma obra de edifício em curso";
         if (r.Buildings.GetValueOrDefault(BuildingId) >= def.MaxLevel) return "nível máximo atingido";
         if (c.Money < def.Cost) return "pontos de produção insuficientes";
