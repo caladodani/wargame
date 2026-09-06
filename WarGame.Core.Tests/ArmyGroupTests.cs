@@ -21,14 +21,14 @@ public class ArmyGroupTests
     }
 
     /// <summary>Grupo do país 1 com a frente no país 2 e uma divisão na região `at`.</summary>
-    private static (ArmyGroup g, Division d) Group(World w, int at, bool advancing = true)
+    private static (ArmyGroup g, Division d) Group(World w, int at, GroupStance stance = GroupStance.Advance)
     {
         new CreateArmyGroupCommand(1).Execute(w);
         var g = w.ArmyGroups.Values.Single();
         var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, at);
         new AssignDivisionCommand(1, d.Id, g.Id).Execute(w);
         new SetArmyGroupFrontCommand(1, g.Id, 2).Execute(w);
-        if (advancing) new SetArmyGroupStanceCommand(1, g.Id, true).Execute(w);
+        if (stance != GroupStance.Hold) new SetArmyGroupStanceCommand(1, g.Id, stance).Execute(w);
         return (g, d);
     }
 
@@ -76,12 +76,12 @@ public class ArmyGroupTests
         int id = w.ArmyGroups.Values.Single().Id;
 
         Assert.Equal("só se atribui uma frente contra quem estás em guerra", new SetArmyGroupFrontCommand(1, id, 2).Validate(w));
-        Assert.Equal("sem frente atribuída não há para onde avançar", new SetArmyGroupStanceCommand(1, id, true).Validate(w));
+        Assert.Equal("sem frente atribuída não há para onde avançar", new SetArmyGroupStanceCommand(1, id, GroupStance.Advance).Validate(w));
 
         w.StartWar(1, 2);
         Assert.Null(new SetArmyGroupFrontCommand(1, id, 2).Validate(w));
         new SetArmyGroupFrontCommand(1, id, 2).Execute(w);
-        Assert.Null(new SetArmyGroupStanceCommand(1, id, true).Validate(w));
+        Assert.Null(new SetArmyGroupStanceCommand(1, id, GroupStance.Advance).Validate(w));
 
         Assert.Equal("grupo não é teu", new SetArmyGroupFrontCommand(2, id, 1).Validate(w));
     }
@@ -102,13 +102,13 @@ public class ArmyGroupTests
     {
         var w = Build();
         w.StartWar(1, 2);
-        var (g, d) = Group(w, at: 1, advancing: false);
+        var (g, d) = Group(w, at: 1, stance: GroupStance.Hold);
         for (int i = 0; i < 40; i++) w.Tick();
 
         Assert.Equal(1, d.RegionId);
         Assert.Empty(d.Path);
 
-        new SetArmyGroupStanceCommand(1, g.Id, true).Execute(w);
+        new SetArmyGroupStanceCommand(1, g.Id, GroupStance.Advance).Execute(w);
         for (int i = 0; i < 40 && d.Path.Count == 0; i++) w.Tick();
         Assert.NotEmpty(d.Path);
     }
@@ -180,7 +180,7 @@ public class ArmyGroupTests
         var g = w.ArmyGroups.Values.Single();
         new AssignDivisionCommand(1, d.Id, g.Id).Execute(w);
         new SetArmyGroupFrontCommand(1, g.Id, 2).Execute(w);
-        new SetArmyGroupStanceCommand(1, g.Id, true).Execute(w);
+        new SetArmyGroupStanceCommand(1, g.Id, GroupStance.Advance).Execute(w);
 
         using var save = new MsSqliteDatabase();
         var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
@@ -196,6 +196,7 @@ public class ArmyGroupTests
         var g2 = w2.ArmyGroups.Values.Single();
         Assert.Equal("Grupo Sul", g2.Name);
         Assert.Equal(2, g2.FrontCountryId);
+        Assert.Equal(GroupStance.Advance, g2.Stance);
         Assert.True(g2.Advancing);
         Assert.Equal(new[] { 5 }, g2.Divisions);
         Assert.Equal(g2.Id, w2.GroupOf(5)!.Id);
@@ -213,5 +214,60 @@ public class ArmyGroupTests
         new AssignDivisionCommand(1, b.Id, g.Id).Execute(w);
 
         Assert.Equal(100f, ArmyGroupSystem.Strength(w, g), 2);
+    }
+
+    [Fact]
+    public void ADefendingGroup_MarchesToTheLastRegionOfOursAndStopsThere()
+    {
+        var w = Build();
+        w.StartWar(1, 2);
+        var (_, d) = Group(w, at: 1, stance: GroupStance.Defend);
+        for (int i = 0; i < 400 && d.RegionId != 3; i++) w.Tick();
+
+        Assert.Equal(3, d.RegionId);            // a linha: última nossa antes do inimigo
+        for (int i = 0; i < 40; i++) w.Tick();
+        Assert.Equal(3, d.RegionId);            // e fica lá, não entra na região 4
+        Assert.Empty(d.Path);
+    }
+
+    [Fact]
+    public void ADefendingGroup_PullsBackOutOfEnemyGround()
+    {
+        var w = Build();
+        w.StartWar(1, 2);
+        var (_, d) = Group(w, at: 4, stance: GroupStance.Defend);   // metida em casa do inimigo
+        for (int i = 0; i < 400 && d.RegionId != 3; i++) w.Tick();
+
+        Assert.Equal(3, d.RegionId);
+    }
+
+    [Fact]
+    public void ChangingToDefend_HoldsWhatWasTakenInsteadOfPushingOn()
+    {
+        var w = Build();
+        w.StartWar(1, 2);
+        var (g, d) = Group(w, at: 1);
+        for (int i = 0; i < 400 && d.RegionId != 4; i++) w.Tick();
+        Assert.Equal(4, d.RegionId);
+        Assert.Equal(1, w.Regions[4].ControllerId);   // tomada: a linha da frente passou a ser a 5
+
+        new SetArmyGroupStanceCommand(1, g.Id, GroupStance.Defend).Execute(w);
+        for (int i = 0; i < 80; i++) w.Tick();
+        Assert.Equal(4, d.RegionId);                  // segura o terreno ganho e não entra na 5
+    }
+
+    [Fact]
+    public void DroppingTheFront_StandsTheGroupDown()
+    {
+        var w = Build();
+        w.StartWar(1, 2);
+        var (g, _) = Group(w, at: 1, stance: GroupStance.Defend);
+        Assert.Equal(GroupStance.Defend, g.Stance);
+        Assert.True(g.NeedsFront);
+
+        new SetArmyGroupFrontCommand(1, g.Id, null).Execute(w);
+        Assert.Equal(GroupStance.Hold, g.Stance);
+        Assert.False(g.NeedsFront);
+        Assert.False(g.Advancing);
     }
 }

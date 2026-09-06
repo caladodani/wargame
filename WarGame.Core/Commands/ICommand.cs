@@ -915,21 +915,26 @@ public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? F
         return null;
     }
 
-    public void Execute(World w) => w.ArmyGroups[GroupId].FrontCountryId = FrontCountryId;
+    public void Execute(World w)
+    {
+        var g = w.ArmyGroups[GroupId];
+        g.FrontCountryId = FrontCountryId;
+        if (FrontCountryId is null) g.Stance = GroupStance.Hold;   // sem frente não há ordem que se cumpra
+    }
 }
 
-/// <summary>Postura do grupo: avançar sobre a frente ou manter posições.</summary>
-public sealed record SetArmyGroupStanceCommand(int CountryId, int GroupId, bool Advancing) : ICommand
+/// <summary>Postura do grupo: avançar sobre a frente, segurar a linha do lado de cá dela ou ficar parado.</summary>
+public sealed record SetArmyGroupStanceCommand(int CountryId, int GroupId, GroupStance Stance) : ICommand
 {
     public string? Validate(World w)
     {
         if (!w.ArmyGroups.TryGetValue(GroupId, out var g)) return "grupo inexistente";
         if (g.CountryId != CountryId) return "grupo não é teu";
-        if (Advancing && g.FrontCountryId is null) return "sem frente atribuída não há para onde avançar";
+        if (Stance != GroupStance.Hold && g.FrontCountryId is null) return "sem frente atribuída não há para onde avançar";
         return null;
     }
 
-    public void Execute(World w) => w.ArmyGroups[GroupId].Advancing = Advancing;
+    public void Execute(World w) => w.ArmyGroups[GroupId].Stance = Stance;
 }
 
 /// <summary>Põe uma divisão às ordens de um grupo (GroupId null = tira-a de qualquer grupo).

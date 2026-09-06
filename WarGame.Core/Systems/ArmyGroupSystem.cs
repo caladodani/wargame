@@ -32,7 +32,7 @@ public sealed class ArmyGroupSystem : ISystem
 
         foreach (var g in w.ArmyGroups.Values)
         {
-            if (!g.Advancing || g.Divisions.Count == 0) continue;
+            if (!g.NeedsFront || g.Divisions.Count == 0) continue;
             if (g.FrontCountryId is not int foe) continue;
             if (!w.Countries.TryGetValue(g.CountryId, out var c) || c.Capitulated) continue;
             if (!w.AreAtWar(g.CountryId, foe)) continue;
@@ -45,8 +45,8 @@ public sealed class ArmyGroupSystem : ISystem
             {
                 var d = w.Divisions[id];
                 if (d.Path.Count > 0 || d.Org < minOrg || !d.CanFight || w.InBattle(d.Id)) continue;
-                if (!dist.TryGetValue(d.RegionId, out int here) || here == 0) continue;   // já está na frente
-                if (Step(w, d.RegionId, here, dist, defenders) is int hop)
+                if (!dist.TryGetValue(d.RegionId, out int here)) continue;   // frente fora de alcance
+                if (Target(w, d, g.Stance, here, dist, defenders) is int hop)
                     new MoveDivisionCommand(d.CountryId, d.Id, hop).Execute(w);
             }
         }
@@ -77,6 +77,34 @@ public sealed class ArmyGroupSystem : ISystem
             }
         }
         return dist;
+    }
+
+    /// <summary>Para onde vai esta divisão, conforme a postura do grupo.
+    ///
+    /// A avançar, dá o salto que encurta a distância à frente até entrar em terreno inimigo. A defender,
+    /// vai só até à última região nossa antes da frente (distância 1) e fica lá a segurar a linha — e se
+    /// está metida em terreno inimigo (distância 0), recua para essa linha em vez de ficar a apanhar.
+    /// Segurar uma linha é meia guerra: sem isto, um grupo ou avançava ou não fazia nada.</summary>
+    private static int? Target(World w, Division d, GroupStance stance, int here, Dictionary<int, int> dist, Dictionary<int, int> defenders)
+    {
+        if (stance == GroupStance.Advance) return here == 0 ? null : Step(w, d.RegionId, here, dist, defenders);
+        if (here == 1) return null;                       // já está na linha
+        if (here > 1) return Step(w, d.RegionId, here, dist, defenders);
+        return Back(w, d.RegionId, dist, defenders);      // dentro do inimigo: recua para a linha
+    }
+
+    /// <summary>Região nossa à beira da frente (distância 1) vizinha desta, a menos defendida.</summary>
+    private static int? Back(World w, int from, Dictionary<int, int> dist, Dictionary<int, int> defenders)
+    {
+        var reg = w.Regions[from];
+        int? best = null; int bestDef = int.MaxValue;
+        foreach (int n in reg.SeaNeighbours.Count == 0 ? reg.Neighbours : reg.Neighbours.Concat(reg.SeaNeighbours.Keys))
+        {
+            if (!dist.TryGetValue(n, out int d) || d != 1) continue;
+            int def = defenders.GetValueOrDefault(n);
+            if (def < bestDef) { best = n; bestDef = def; }
+        }
+        return best;
     }
 
     /// <summary>Vizinho que encurta a distância à frente; entre iguais, o menos defendido.</summary>

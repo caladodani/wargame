@@ -246,6 +246,7 @@ CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (Hir
 
 CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGroupSystem)
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL,
-  front_country_id INTEGER, advancing INTEGER NOT NULL DEFAULT 0);
+  front_country_id INTEGER, advancing INTEGER NOT NULL DEFAULT 0,
+  stance INTEGER NOT NULL DEFAULT 0);              -- 0 parado, 1 avançar, 2 defender
 CREATE TABLE IF NOT EXISTS s_army_group_member (
   group_id INTEGER NOT NULL, division_id INTEGER NOT NULL, PRIMARY KEY (group_id, division_id));

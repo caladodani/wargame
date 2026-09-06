@@ -56,7 +56,7 @@ public partial class ArmyPanel : PanelContainer
         if (w.Wars.Values.FirstOrDefault(x => x.Involves(pid)) is WarInfo war)
         {
             _game.Dispatch(new SetArmyGroupFrontCommand(pid, g.Id, war.EnemyOf(pid)));
-            _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, true));
+            _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Advance));
         }
         _fronts = g.Id;
         _lastKey = ""; Fill();
@@ -75,7 +75,7 @@ public partial class ArmyPanel : PanelContainer
             var foes = w.Wars.Values.Where(x => x.Involves(pid)).Select(x => x.EnemyOf(pid)).Distinct().ToList();
 
             var key = $"{w.Clock.Day}|{_fronts}|{_select.RegionCount}|" + string.Join(",", foes) + "|" +
-                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(g.Advancing ? 1 : 0)}:{g.Divisions.Count}:{(int)ArmyGroupSystem.Strength(w, g)}"));
+                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{(int)ArmyGroupSystem.Strength(w, g)}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.Clear(_body);
@@ -106,14 +106,17 @@ public partial class ArmyPanel : PanelContainer
     private void Card(World w, ArmyGroup g, int pid, List<int> foes)
     {
         var card = new PanelContainer();
-        bool marching = g.Advancing && g.FrontCountryId is not null;
-        card.AddThemeStyleboxOverride("panel", Ui.Box(marching ? new Color(0.14f, 0.19f, 0.16f, 0.95f) : Ui.Surface with { A = 0.85f }, 10));
+        bool active = g.NeedsFront && g.FrontCountryId is not null;
+        var (icon, tint, _) = Face(g.Stance);
+        card.AddThemeStyleboxOverride("panel", Ui.Box(active ? tint.Darkened(0.72f) with { A = 0.95f } : Ui.Surface with { A = 0.85f }, 10));
         _body.AddChild(card);
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 6); card.AddChild(v);
 
         var divs = g.Divisions.Where(id => w.Divisions.ContainsKey(id)).Select(id => w.Divisions[id]).ToList();
         var head = new HBoxContainer();
-        head.AddChild(Ui.Grow(Ui.Lbl((marching ? "▶ " : "■ ") + g.Name, 20)));
+        var title = Ui.Lbl($"{icon} {g.Name}", 20);
+        if (active) title.AddThemeColorOverride("font_color", tint.Lightened(0.4f));
+        head.AddChild(Ui.Grow(title));
         head.AddChild(Ui.Btn("Ver", () => Look(g), 90));
         head.AddChild(Ui.Btn("Dissolver", () => Disband(pid, g.Id), 150, Ui.Kind.Danger));
         v.AddChild(head);
@@ -148,12 +151,43 @@ public partial class ArmyPanel : PanelContainer
             }
         }
 
+        // postura: três ordens exclusivas, a que está em vigor fica acesa e explicada por baixo
+        var stances = new HBoxContainer();
+        foreach (var st in new[] { GroupStance.Advance, GroupStance.Defend, GroupStance.Hold })
+        {
+            var (si, _, label) = Face(st);
+            stances.AddChild(Ui.Btn($"{si} {label}", () => Stance(pid, g.Id, st), 160,
+                g.Stance == st ? Ui.Kind.Primary : Ui.Kind.Normal));
+        }
+        v.AddChild(stances);
+
+        var note = Ui.Lbl(Explain(g), 15);
+        note.AddThemeColorOverride("font_color", g.NeedsFront && g.FrontCountryId is null ? Ui.Danger : Ui.TextDim);
+        v.AddChild(note);
+
         var orders = new HBoxContainer();
-        orders.AddChild(Ui.Btn("Avançar", () => Stance(pid, g.Id, true), 150, g.Advancing ? Ui.Kind.Primary : Ui.Kind.Normal));
-        orders.AddChild(Ui.Btn("Manter", () => Stance(pid, g.Id, false), 150, g.Advancing ? Ui.Kind.Normal : Ui.Kind.Primary));
         orders.AddChild(Ui.Btn($"Juntar selecção ({_select.DivisionCount(w, pid)})", () => Absorb(pid, g.Id), 230));
         if (divs.Count > 0) orders.AddChild(Ui.Btn("Largar todas", () => Release(pid, g.Id), 170));
         v.AddChild(orders);
+    }
+
+    /// <summary>Símbolo, cor e nome de cada postura — um só sítio para a UI toda concordar.</summary>
+    private static (string Icon, Color Tint, string Label) Face(GroupStance s) => s switch
+    {
+        GroupStance.Advance => ("▶", Ui.Good, "Avançar"),
+        GroupStance.Defend => ("⛨", Ui.Accent, "Defender"),
+        _ => ("■", Ui.TextDim, "Manter"),
+    };
+
+    /// <summary>O que este grupo vai fazer amanhã, em português — a postura sozinha não chega para se
+    /// perceber que sem frente atribuída não há ordem nenhuma a cumprir.</summary>
+    private static string Explain(ArmyGroup g)
+    {
+        if (g.Stance == GroupStance.Hold) return "Parado: as divisões ficam com as ordens que já tinham.";
+        if (g.FrontCountryId is null) return "Sem frente atribuída não há para onde marchar — escolhe um inimigo.";
+        return g.Stance == GroupStance.Advance
+            ? "Marcha até ao inimigo pelo caminho mais curto e entra-lhe em casa."
+            : "Ocupa a última linha em território nosso e segura-a; quem estiver metido lá dentro recua.";
     }
 
     /// <summary>Três barras lado a lado com legenda por cima — o estado do exército num relance.</summary>
@@ -193,9 +227,9 @@ public partial class ArmyPanel : PanelContainer
         _fronts = null; Fill();
     });
 
-    private void Stance(int pid, int groupId, bool advancing) => _game.RunWhenIdle(() =>
+    private void Stance(int pid, int groupId, GroupStance stance) => _game.RunWhenIdle(() =>
     {
-        var err = _game.Dispatch(new SetArmyGroupStanceCommand(pid, groupId, advancing));
+        var err = _game.Dispatch(new SetArmyGroupStanceCommand(pid, groupId, stance));
         if (err is not null) { _game.Notify(err); return; }
         Fill();
     });

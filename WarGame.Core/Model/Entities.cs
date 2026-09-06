@@ -234,6 +234,10 @@ public sealed class Country
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>
+/// <summary>Postura de um grupo de exércitos: parado, a marchar sobre a frente ou a segurar a linha
+/// do lado de cá dela.</summary>
+public enum GroupStance { Hold = 0, Advance = 1, Defend = 2 }
+
 /// <summary>Grupo de exércitos: divisões sob um comando só, com uma frente atribuída (o país inimigo
 /// contra quem marcham) e uma postura. Até aqui cada divisão era uma ordem à parte ou um avanço automático
 /// cego para o vizinho mais fraco; um grupo com frente marcha o mapa todo até ao inimigo que lhe deram,
@@ -245,8 +249,11 @@ public sealed class ArmyGroup
     public string Name { get; set; } = "";
     /// <summary>País inimigo atribuído como frente; null = grupo sem missão (fica onde está).</summary>
     public int? FrontCountryId { get; set; }
-    /// <summary>true = marcha e ataca a frente; false = mantém posições (o grupo não dá ordens nenhumas).</summary>
-    public bool Advancing { get; set; }
+    /// <summary>O que o grupo faz com a frente que lhe deram (ArmyGroupSystem).</summary>
+    public GroupStance Stance { get; set; } = GroupStance.Hold;
+    public bool Advancing => Stance == GroupStance.Advance;
+    /// <summary>Avançar ou defender exigem frente; parado não faz nada.</summary>
+    public bool NeedsFront => Stance != GroupStance.Hold;
     public HashSet<int> Divisions { get; } = new();
 }
 

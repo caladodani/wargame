@@ -57,8 +57,66 @@ public sealed class AiSystem : ISystem
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Retreats(w, c);
+            Groups(w, c, divs, divsByCountry);
             Peace(w, c, divsByCountry);
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
+        }
+    }
+
+    /// <summary>A IA também faz exércitos. Um país em guerra com divisões que cheguem
+    /// (ai_group_min_divisions) levanta um estado-maior, aponta-o ao inimigo que tem mais tropa e mete-lhe
+    /// dentro uma fatia do exército (ai_group_share) — o resto fica de guarnição às ordens do Fight, que
+    /// continua a ser o que olha para o vizinho do lado. A postura sai da comparação de forças: com
+    /// ai_group_advance_ratio vezes mais divisões do que o inimigo avança-se, abaixo disso segura-se a linha.
+    ///
+    /// Sem isto, os grupos de exércitos eram um brinquedo só do jogador: a IA nunca concentrava nada e as
+    /// divisões dela andavam à vez, cada uma para o seu lado.</summary>
+    private static void Groups(World w, Country c, List<Division> divs, Dictionary<int, List<Division>> divsByCountry)
+    {
+        int min = (int)w.Rule("ai_group_min_divisions", 6f);
+        if (divs.Count < min) return;
+
+        // a frente que interessa é a do inimigo com mais tropa em pé
+        int foe = -1, foeDivs = -1;
+        foreach (int e in c.AtWarWith)
+        {
+            if (!w.Countries.TryGetValue(e, out var t) || t.Capitulated) continue;
+            int n = divsByCountry.GetValueOrDefault(e)?.Count ?? 0;
+            if (n > foeDivs) { foe = e; foeDivs = n; }
+        }
+        if (foe < 0) return;
+
+        var g = w.ArmyGroups.Values.FirstOrDefault(x => x.CountryId == c.Id);
+        if (g is null)
+        {
+            var make = new CreateArmyGroupCommand(c.Id, "Exército de Campanha");
+            if (make.Validate(w) is not null) return;
+            make.Execute(w);
+            g = w.ArmyGroups.Values.First(x => x.CountryId == c.Id);
+        }
+
+        if (g.FrontCountryId != foe)
+        {
+            var front = new SetArmyGroupFrontCommand(c.Id, g.Id, foe);
+            if (front.Validate(w) is null) front.Execute(w);
+        }
+
+        // enche até à fatia combinada, sem tocar em quem já está a combater
+        int want = Math.Max(1, (int)(divs.Count * w.Rule("ai_group_share", 0.6f)));
+        foreach (var d in divs)
+        {
+            if (g.Divisions.Count >= want) break;
+            if (g.Divisions.Contains(d.Id) || w.GroupOf(d.Id) is not null || w.InBattle(d.Id)) continue;
+            var join = new AssignDivisionCommand(c.Id, d.Id, g.Id);
+            if (join.Validate(w) is null) join.Execute(w);
+        }
+
+        var stance = divs.Count >= Math.Max(1, foeDivs) * w.Rule("ai_group_advance_ratio", 1.2f)
+            ? GroupStance.Advance : GroupStance.Defend;
+        if (g.Stance != stance)
+        {
+            var order = new SetArmyGroupStanceCommand(c.Id, g.Id, stance);
+            if (order.Validate(w) is null) order.Execute(w);
         }
     }
 

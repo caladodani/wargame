@@ -349,6 +349,9 @@ INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
 INSERT INTO rule VALUES ('army_group_min_org', 35, 'organização mínima para uma divisão do grupo marchar');
 INSERT INTO rule VALUES ('army_group_march_range', 25, 'saltos máximos que um grupo procura a frente atribuída');
 INSERT INTO rule VALUES ('army_group_order_days', 2, 'dias entre ordens de marcha de um grupo');
+INSERT INTO rule VALUES ('ai_group_min_divisions', 6, 'divisões mínimas para a IA levantar um grupo de exércitos');
+INSERT INTO rule VALUES ('ai_group_share', 0.6, 'fatia do exército da IA que vai para o grupo; o resto fica de guarnição');
+INSERT INTO rule VALUES ('ai_group_advance_ratio', 1.2, 'vantagem em divisões a partir da qual o grupo da IA avança em vez de defender');
 
 -- Pontuação e título da campanha (CampaignReport, ecrã de fim de jogo)
 INSERT INTO rule VALUES ('score_per_region', 4, 'pontos por região controlada no fim');
