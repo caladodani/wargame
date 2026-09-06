@@ -4,7 +4,7 @@ namespace WarGame.Core.Systems;
 
 /// <summary>Gasta Country.Money nas encomendas (Country.Queue, pela ordem) e cria divisões na capital.
 /// HoI4: linhas de produção com output diário limitado; aqui cada encomenda avança no máximo custo/build_min_days
-/// por dia, e várias avançam no mesmo dia enquanto houver Money. Regras: build_min_days, new_division_org.</summary>
+/// por dia (× country_stat production_speed), e várias avançam no mesmo dia enquanto houver Money. Regras: build_min_days, new_division_org.</summary>
 public sealed class ProductionSystem : ISystem
 {
     public string Name => "Production";
@@ -28,7 +28,7 @@ public sealed class ProductionSystem : ISystem
         {
             if (c.Money <= 0f) break;
             float cost = w.TemplateCost(o.TemplateId);
-            float spend = MathF.Min(MathF.Min(cost / minDays, cost - o.Progress), c.Money);
+            float spend = MathF.Min(MathF.Min(cost / minDays * c.Stat("production_speed"), cost - o.Progress), c.Money);
             if (spend <= 0f) continue;
             o.Progress += spend; c.Money -= spend;
         }
