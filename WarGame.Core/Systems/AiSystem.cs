@@ -49,12 +49,37 @@ public sealed class AiSystem : ISystem
             Laws(w, c);
             Aid(w, c);
             Spy(w, c, divsByCountry);
+            Naps(w, c, regionsByController.GetValueOrDefault(c.Id), divsByCountry);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Retreats(w, c);
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Em guerra, segura as outras fronteiras: propõe não-agressão a um vizinho neutro
+    /// por tick (sem guerra, facção ou pacto connosco) enquanto houver dinheiro acima de
+    /// ai_nap_reserve. O alvo decide pela lógica do comando; o jogador nunca é alvo (sem UI de oferta).</summary>
+    private static void Naps(World w, Country c, List<Region>? myRegions, Dictionary<int, List<Division>> divsByCountry)
+    {
+        if (c.AtWarWith.Count == 0 || myRegions is null) return;
+        if (c.Money < w.Rule("nap_cost", 20f) + w.Rule("ai_nap_reserve", 100f)) return;
+        var seen = new HashSet<int>();
+        foreach (var r in myRegions)
+            foreach (var n in r.Neighbours)
+            {
+                int t = w.Regions[n].ControllerId;
+                if (t == c.Id || !seen.Add(t)) continue;
+                if (!w.Countries.TryGetValue(t, out var tc) || tc.Capitulated || tc.IsPlayer) continue;
+                if (w.AreAtWar(c.Id, t) || w.SameFaction(c.Id, t) || w.HasPact(c.Id, t)) continue;
+                // só vale a pena se o alvo tende a aceitar: mais fraco ou com inimigo comum
+                int mine = divsByCountry.GetValueOrDefault(c.Id)?.Count ?? 0;
+                int theirs = divsByCountry.GetValueOrDefault(t)?.Count ?? 0;
+                if (theirs >= mine && !tc.AtWarWith.Any(c.AtWarWith.Contains)) continue;
+                var cmd = new Commands.ProposeNonAggressionCommand(c.Id, t);
+                if (cmd.Validate(w) is null) { cmd.Execute(w); return; }
+            }
     }
 
     /// <summary>Espionagem: em guerra e com dinheiro acima de ai_spy_reserve, lança a operação
