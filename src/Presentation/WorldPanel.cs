@@ -69,11 +69,21 @@ public partial class WorldPanel : PanelContainer
 
             Header("Guerras activas");
             if (w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
+            var orgSum = new Dictionary<int, float>();
+            foreach (var d in w.Divisions.Values)
+                orgSum[d.CountryId] = orgSum.GetValueOrDefault(d.CountryId) + d.Org * d.Hp / 100f;
             foreach (var ((a, bId), info) in w.Wars.OrderBy(kv => kv.Value.StartDay))
             {
                 string na = w.Countries.TryGetValue(a, out var ca) ? ca.Name : "#" + a;
                 string nb = w.Countries.TryGetValue(bId, out var cb) ? cb.Name : "#" + bId;
                 Line($"⚔ {na} vs {nb}   ({w.Clock.Day - info.StartDay} dias)", 17);
+                // balança de força: org×HP de cada lado, barra de 10 posições
+                float fa = orgSum.GetValueOrDefault(a), fb = orgSum.GetValueOrDefault(bId);
+                if (fa + fb > 0f)
+                {
+                    int seg = (int)MathF.Round(10f * fa / (fa + fb));
+                    Line($"   {divs.GetValueOrDefault(a)} div  {new string('█', seg)}{new string('░', 10 - seg)}  {divs.GetValueOrDefault(bId)} div", 15);
+                }
             }
 
             if (_game.PlayerId is int pid)
