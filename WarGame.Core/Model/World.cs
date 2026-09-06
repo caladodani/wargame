@@ -136,6 +136,8 @@ public sealed class World
     public IEnumerable<Faction> FactionsOf(int countryId) => Factions.Values.Where(f => f.Members.Contains(countryId));
     /// <summary>Há alguma facção com ambos como membros (HoI4: aliados na mesma aliança nunca se declaram guerra).</summary>
     public bool SameFaction(int a, int b) => a != b && Factions.Values.Any(f => f.Members.Contains(a) && f.Members.Contains(b));
+    /// <summary>Acesso militar: região própria ou de um aliado de facção (HoI4: aliados partilham território).</summary>
+    public bool CanTraverse(int countryId, Region r) => r.ControllerId == countryId || SameFaction(countryId, r.ControllerId);
     /// <summary>Todos os membros de todas as facções de `countryId`, sem ele próprio (dissuasão: força que conta contra atacá-lo).</summary>
     public HashSet<int> Allies(int countryId)
     {

@@ -34,9 +34,9 @@ public sealed class MovementSystem : ISystem
             d.MoveProgress += 1f / days;
             if (d.MoveProgress < 1f) continue;
 
-            if (target.ControllerId == d.CountryId) Enter(w, d, target, inBattle);
+            if (w.CanTraverse(d.CountryId, target)) Enter(w, d, target, inBattle);
             else if (w.IsHostile(d.CountryId, target)) Attack(w, d, target, inBattle);
-            else d.ClearPath();   // terceiro (nem nosso nem inimigo): pára à fronteira
+            else d.ClearPath();   // terceiro (nem nosso, nem aliado, nem inimigo): pára à fronteira
         }
     }
 
@@ -55,8 +55,9 @@ public sealed class MovementSystem : ISystem
             foreach (var n in w.Regions[d.RegionId].Neighbours)
             {
                 var r = w.Regions[n];
-                if (r.ControllerId != d.CountryId) continue;
-                int own = r.DivisionIds.Count(id => w.Divisions[id].CountryId == d.CountryId);
+                if (!w.CanTraverse(d.CountryId, r)) continue;
+                int own = r.DivisionIds.Count(id => w.Divisions[id].CountryId == d.CountryId)
+                          + (r.ControllerId == d.CountryId ? 1000 : 0);   // território próprio antes do de aliado
                 if (own > bestOwn || (own == bestOwn && n < best)) { best = n; bestOwn = own; }
             }
             if (best < 0) { w.Events.Publish(new DivisionDestroyed(d.Id)); w.RemoveDivision(d.Id); }
