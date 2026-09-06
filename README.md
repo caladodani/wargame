@@ -1,5 +1,7 @@
 # WarGame — estratégia de guerra moderna (Android, Godot 4 + C#)
 
+Referência de design: Hearts of Iron 4 (divisões que demoram dias a atravessar províncias, batalhas de vários dias, produção lenta, abastecimento, investigação, espíritos nacionais, IA com objectivos de guerra).
+
 ## Estrutura
 ```
 wargame/
@@ -7,43 +9,59 @@ wargame/
 ├─ WarGame.csproj             # assembly Godot; referencia WarGame.Core
 ├─ WarGame.sln
 ├─ WarGame.Core/              # SIMULAÇÃO PURA — zero dependências Godot, testável
-│  ├─ Model/      World, Region, Country, Division, Clock
+│  ├─ Model/      World, Region, Country, Division, Clock, Tech
 │  ├─ Stats/      StatBlock, ModifierEngine, DivisionStatCache
-│  ├─ Systems/    ISystem + CombatSystem, SupplySystem, EconomySystem…
-│  ├─ Commands/   ICommand + comandos do jogador (validados antes de mutar)
+│  ├─ Systems/    ISystem: Supply, Economy, Production, Research, Movement, Combat, Recovery, AI
+│  ├─ Commands/   ICommand + comandos do jogador e da IA (validados antes de mutar)
 │  ├─ Events/     EventBus + eventos de domínio
 │  └─ Data/       IDatabase, repositórios (contratos + impl. SQL genérica)
-├─ WarGame.Core.Tests/        # xUnit — corre no PC sem Godot
+├─ WarGame.Core.Tests/        # xUnit — corre no PC sem Godot (TestWorld carrega schema + seeds reais)
 ├─ src/                       # C# que depende de Godot
 │  ├─ Data/       GdSqliteDatabase (godot-sqlite GDExtension)
-│  └─ Presentation/ Game (autoload), MapView, Hud
+│  └─ Presentation/ Game (autoload), MapView, Hud, RegionPanel, CountryPanel, ProductionPanel
 ├─ scenes/Main.tscn
+├─ tools/
+│  ├─ import_map.py           # Natural Earth → data/static.db (regiões, países, seeds, exércitos)
+│  ├─ seed_armies.py          # exército inicial por país (templates + divisões nomeadas/geradas)
+│  ├─ check_countries.py      # valida data/countries/*.sql (ids, gamas, referências, tags)
+│  └─ combat_sim.py           # calibração do combate (CombatSystem é port directo)
 └─ data/
-   ├─ schema.sql              # static.db + estrutura de save
-   └─ seed_units.sql          # números calibrados (combat_sim.py)
+   ├─ schema.sql              # static.db + estrutura de save (s_*)
+   ├─ seed_units.sql          # unidades base, terrenos, modificadores, regras (rule)
+   ├─ seed_tech.sql           # árvore de 22 tecnologias + efeitos + techs iniciais
+   ├─ seed_world.sql          # regras da IA/mundo, guerras iniciais, agressividade
+   ├─ countries/<TAG>.sql     # características únicas por país (28 países; README.md com as gamas de ids)
+   └─ static.db               # GERADO — nunca editar à mão
 ```
 
 ## Regras de arquitetura
 1. `WarGame.Core` nunca referencia `Godot`. Apresentação só lê estado e envia `ICommand`.
-2. Cada mecânica é um `ISystem` registado em `World.Systems`; ordem definida em `Game.cs`.
-3. Nenhum tipo de unidade/terreno/tech existe em código — só linhas em SQLite. `StatBlock` é `string → float`.
-4. Novas regras = linhas em `modifier`. Novo sistema = nova classe `ISystem`, sem tocar nas outras.
+2. Cada mecânica é um `ISystem` registado em `World.Systems`; ordem definida em `Game.cs`. Não fundir sistemas.
+3. Nenhum tipo de unidade/terreno/tech/regra existe em código — só linhas em SQLite. `StatBlock` é `string → float`; constantes vêm da tabela `rule` (`World.Rule("chave", fallback)`).
+4. Novas regras = linhas em `modifier` (condições: terrain, river, country, tech:<id>). Novo sistema = nova classe `ISystem`, sem tocar nas outras.
 5. Tick corre em `Task.Run`; UI lê snapshot imutável no fim do tick.
+6. Erros de compilação corrigem-se com a alteração mínima; teste de calibração do combate a falhar por pouco → ajustar o intervalo do teste, nunca os números.
 
-## Setup
-1. Godot 4.3+ **.NET** + .NET SDK 8.
-2. Addon `godot-sqlite` (AssetLib → "Godot SQLite") em `addons/godot-sqlite/`. Inclui binários Android.
-3. `dotnet build WarGame.sln` — ou abrir no editor Godot.
-4. Gerar `static.db`: `sqlite3 data/static.db < data/schema.sql && sqlite3 data/static.db < data/seed_units.sql`.
-5. Export Android: Project → Export → Android; em .NET marcar arm64-v8a. Requer Android SDK + JDK 17 e keystore de debug.
-6. Testes: `dotnet test WarGame.Core.Tests`.
+## Setup (tudo na home, sem root)
+Godot 4.3-stable .NET em `~/.local/bin/godot`, .NET 8 em `~/.dotnet`, JDK 17 em `~/jdk`, Android SDK em `~/android-sdk`.
+```
+export DOTNET_ROOT=$HOME/.dotnet JAVA_HOME=$HOME/jdk/jdk-17.0.20.1+1; export PATH=$HOME/.local/bin:$HOME/.dotnet:$JAVA_HOME/bin:$PATH
+dotnet build WarGame.sln -nologo -v q && dotnet test WarGame.Core.Tests -nologo -v q
+godot --headless --path ~/wargame --import
+godot --headless --path ~/wargame --export-debug Android build/wargame.apk
+~/android-sdk/build-tools/34.0.0/apksigner verify build/wargame.apk
+```
+Smoke headless (escolhe PRT, joga 6 dias, grava): `XDG_DATA_HOME=/tmp/x timeout 240 godot --headless --path ~/wargame -- --smoke`.
+
+## Dados
+- Regenerar `static.db` (≈15 s): `~/.venvs/wargame-tools/bin/python tools/import_map.py --ne ~/ne --out data/static.db` — corre schema + seed_units + seed_tech + seed_world + `data/countries/*.sql` (ordenados) + `seed_armies.seed()`.
+- Ficheiro de país (`data/countries/<TAG>.sql`): unit_type próprios, espíritos nacionais (`national_spirit` + `modifier` com `country_tag`/`spirit_id`), `country_stat` (industry, production_speed, org_regain, start_army_mult, research_speed, move_speed, aggression), `country_info` (painel), `country_template`/`country_unit` (brigadas reais nomeadas e colocadas por nome de região), `UPDATE region SET terrain` só do próprio país. Validar sempre: `python3 tools/check_countries.py data/countries/*.sql` (sai 1 com erros).
+- `country_stat.industry` é calculado do PIB per capita no import (clamp 0,4–2,5); os ficheiros de país podem sobrepor.
 
 ## Mapa
-`data/static.db` já inclui o mapa real: **2987 regiões, 247 países, ~65k vértices, 7028 adjacências**, projecção Robinson (8000 unidades de largura), gerado por `tools/import_map.py` a partir do Natural Earth (mirror GitHub `nvkelso/natural-earth-vector`).
-Para regenerar: `uv venv ~/.venvs/wargame-tools && uv pip install --python ~/.venvs/wargame-tools/bin/python shapely pyproj numpy scikit-learn matplotlib` → `~/.venvs/wargame-tools/bin/python tools/import_map.py --ne <pasta com os geojson> --target 3000 --min-per-country 3`. Orçamento por país ∝ √(área × população), tecto = admin-1 do Natural Earth (França 96, Alemanha 16).
-Limitações actuais (TODO, tudo em dados): população distribuída ∝ área dentro do país (usar raster GPW/WorldPop);
-floresta por heurística de latitude; sem regiões marítimas (naval).
+**2988 regiões, 247 países, ~65k vértices, 7026 adjacências**, projecção Robinson (8000 unidades de largura), gerado do Natural Earth 10m/50m (mirror `nvkelso/natural-earth-vector`, em `~/ne`). Orçamento por país ∝ √(área × população), tecto = admin-1; Portugal e Brasil com todos os distritos/estados (`FULL_DETAIL`). Terreno por cobertura de polígonos físicos (montanha/deserto/tundra), cintura de floresta por latitude, urbano por densidade; população por lugares povoados (10m) + resto por área/cidade.
+Limitações (tudo em dados): sem regiões marítimas (naval), floresta heurística.
 
-## Próximos passos
-- `EconomySystem`, `ProductionSystem`, `SupplySystem` reais.
-- IA (`AiSystem`) — máquina de estados por país.
+## Próximos passos (HoI4)
+- Facções/alianças como mecânica (NATO etc. só existe como texto), capitulação/paz, botão voltar Android.
+- Stock de equipamento, doutrinas, eventos históricos, naval/aéreo.
