@@ -746,6 +746,7 @@ public partial class Hud : CanvasLayer
         {
             RefreshTop();
             _map.Regions.Refresh();
+            _map.Plans.Refresh();               // setas dos planos de batalha, por cima do mapa
             _region.Refresh();
             _production.Refresh();
             _countryPanel.Refresh();
@@ -859,6 +860,27 @@ public partial class Hud : CanvasLayer
             _region.Open(regionId);
         }
         catch (Exception ex) { GD.PushError("Hud.OnRegionTapped: " + ex); }
+    }
+
+    /// <summary>--smoke: monta um exército com frente e plano a meio, só para as setas do mapa serem
+    /// desenhadas mesmo quando a campanha ainda não tem plano nenhum em curso. Desfaz o que criou.</summary>
+    private int SmokePlans()
+    {
+        var w = _game.World;
+        if (_game.PlayerId is not int pid) return 0;
+        if (w.Wars.Values.FirstOrDefault(x => x.Involves(pid)) is not WarInfo war) return 0;
+        if (_game.Dispatch(new CreateArmyGroupCommand(pid, "Grupo do plano")) is not null) return 0;
+        var g = w.ArmyGroups.Values.LastOrDefault(x => x.CountryId == pid);
+        if (g is null) return 0;
+        foreach (var d in w.Divisions.Values.Where(d => d.CountryId == pid).Take(3))
+            _game.Dispatch(new AssignDivisionCommand(pid, d.Id, g.Id));
+        _game.Dispatch(new SetArmyGroupFrontCommand(pid, g.Id, war.EnemyOf(pid)));
+        _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Defend));
+        g.Planning = 0.6f;                     // o plano leva 20 dias a fazer-se: o smoke adianta-o
+        int drawn = _map.Plans.Smoke();
+        _game.Dispatch(new DisbandArmyGroupCommand(pid, g.Id));
+        _map.Plans.Refresh();
+        return drawn;
     }
 
     // --smoke: abre os painéis e dá uma ordem de movimento para os caminhos de código correrem sem ecrã.
@@ -985,7 +1007,8 @@ public partial class Hud : CanvasLayer
         int modes = _modeBar.Smoke();                                    // modos de mapa: pinta o mundo por cada conta e volta ao político
         int fight = _battle.Smoke(cap.Id);                               // ecrã de batalha: os dois lados, linha e reserva
         int tree = _focusTree.Smoke();                                   // árvore de focos: grelha, traços e ramos rivais
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore");
+        int plans = SmokePlans();                                        // planos de batalha: setas desenhadas no mapa
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

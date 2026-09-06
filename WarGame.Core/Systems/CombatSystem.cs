@@ -146,7 +146,9 @@ public sealed class CombatSystem : ISystem
             // doutrina do país × o comandante que estiver destacado ao grupo desta divisão
             float doctrine = (w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(statKey) : 1f) * w.CommandMult(d, statKey);
             float amphibious = attacking ? AmphibiousMult(w, d, battleRegion) : 1f;
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * MathF.Max(0.3f, command));
+            // plano de batalha: o que o estado-maior preparou enquanto a frente esteve quieta (BattlePlanSystem)
+            float plan = BattlePlanSystem.Bonus(w, d);
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * plan * MathF.Max(0.3f, command));
         }
         return out_;
     }

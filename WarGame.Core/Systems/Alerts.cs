@@ -112,6 +112,17 @@ public static class Alerts
             break;
         }
 
+        // 9. Plano feito: um exército a defender com a preparação no máximo já não ganha nada em ficar
+        // quieto — é o momento de mandar avançar, antes que o plano comece a envelhecer sem servir.
+        float planMax = w.Rule("planning_max", 1f);
+        foreach (var g in w.ArmyGroups.Values.OrderBy(x => x.Id))
+        {
+            if (g.CountryId != countryId || g.Stance != GroupStance.Defend) continue;
+            if (g.Planning < planMax || g.Divisions.Count == 0) continue;
+            list.Add(new Alert("plan", "🗺", $"o plano do {g.Name} está pronto ({g.Planning:P0})", AlertLevel.Info));
+            break;
+        }
+
         int offers = w.Offers.Count(o => o.ToId == countryId);
         if (offers > 0)
             list.Add(new Alert("offers", "✉", offers == 1 ? "1 proposta à espera de resposta"

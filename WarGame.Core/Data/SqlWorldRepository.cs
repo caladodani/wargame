@@ -300,6 +300,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "honour", "TEXT"),
         ("s_division", "honour_name", "TEXT"),
         ("s_general", "wound_until", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_army_group", "planning", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -439,7 +440,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var r in save.Query("SELECT division_id,medal FROM s_division_medal"))
             if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var md)) md.Medals.Add((string)r["medal"]!);
-        foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,advancing,stance,general FROM s_army_group ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,advancing,stance,general,planning FROM s_army_group ORDER BY id"))
         {
             var g = new ArmyGroup
             {
@@ -450,6 +451,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                        : r["advancing"] is not null && Convert.ToInt32(r["advancing"]) != 0 ? GroupStance.Advance
                        : GroupStance.Hold,
                 GeneralId = r["general"] as string,
+                Planning = r["planning"] is null ? 0f : Convert.ToSingle(r["planning"]),
             };
             w.ArmyGroups[g.Id] = g;
         }
@@ -608,8 +610,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var g in w.ArmyGroups.Values)
         {
-            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,advancing,stance,general) VALUES (?,?,?,?,?,?,?)",
-                g.Id, g.CountryId, g.Name, g.FrontCountryId, g.Advancing ? 1 : 0, (int)g.Stance, g.GeneralId);
+            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,advancing,stance,general,planning) VALUES (?,?,?,?,?,?,?,?)",
+                g.Id, g.CountryId, g.Name, g.FrontCountryId, g.Advancing ? 1 : 0, (int)g.Stance, g.GeneralId, g.Planning);
             foreach (int id in g.Divisions)
                 save.Execute("INSERT INTO s_army_group_member (group_id,division_id) VALUES (?,?)", g.Id, id);
         }

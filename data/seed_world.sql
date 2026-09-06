@@ -154,6 +154,14 @@ INSERT INTO rule (key,value,note) VALUES
  ('front_width_river',1,'quanto o rio aperta a frente de quem o atravessa'),
  ('front_width_min',1,'nunca menos do que isto');
 
+-- Planos de batalha (BattlePlanSystem): um grupo de exércitos com frente atribuída e postura de linha
+-- prepara o terreno enquanto está quieto e gasta o preparado quando marcha ou se bate.
+INSERT INTO rule (key,value,note) VALUES
+ ('planning_per_day',0.05,'preparação ganha por dia de frente parada'),
+ ('planning_decay',0.18,'preparação perdida por dia, à conta das divisões em marcha ou combate'),
+ ('planning_max',1,'preparação máxima de um plano'),
+ ('planning_bonus',0.25,'força de combate que o plano completo acrescenta');
+
 -- Apoio financeiro entre aliados de facção (TransferMoneyCommand).
 INSERT INTO rule (key,value,note) VALUES
  ('ai_aid_reserve',300,'a IA só envia apoio com dinheiro acima disto'),

@@ -86,7 +86,7 @@ public partial class ArmyPanel : PanelContainer
             var foes = w.Wars.Values.Where(x => x.Involves(pid)).Select(x => x.EnemyOf(pid)).Distinct().ToList();
 
             var key = $"{w.Clock.Day}|{_fronts}|{_generals}|{_select.RegionCount}|{string.Join(",", w.Countries[pid].Generals)}|{string.Join(",", w.Countries[pid].GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|" + string.Join(",", foes) + "|" +
-                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}"));
+                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}:{(int)(g.Planning * 100f)}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.Clear(_body);
@@ -175,6 +175,34 @@ public partial class ArmyPanel : PanelContainer
         var note = Ui.Lbl(Explain(g), 15);
         note.AddThemeColorOverride("font_color", g.NeedsFront && g.FrontCountryId is null ? Ui.Danger : Ui.TextDim);
         v.AddChild(note);
+
+        // plano de batalha: o que o estado-maior preparou enquanto a frente esteve quieta. Uma seta igual
+        // a esta barra está desenhada no mapa (PlanOverlay) — aqui ficam os números e o que eles valem.
+        if (BattlePlanSystem.Plans(g) && divs.Count > 0)
+        {
+            float ready = Math.Clamp(g.Planning / MathF.Max(0.01f, w.Rule("planning_max", 1f)), 0f, 1f);
+            var plan = new HBoxContainer(); plan.AddThemeConstantOverride("separation", 8);
+            plan.AddChild(Ui.Lbl("🗺 Plano", 15));
+            plan.AddChild(Ui.Grow(Ui.Bar(ready, ready >= 1f ? Ui.Good : Ui.Accent, 0f)));
+            plan.AddChild(Ui.Lbl($"{ready:P0}", 15));
+            v.AddChild(plan);
+
+            int days = BattlePlanSystem.DaysToReady(w, g);
+            float bonus = (BattlePlanSystem.Bonus(w, divs[0]) - 1f) * 100f;
+            var planNote = Ui.Lbl(ready >= 1f
+                ? $"Terreno estudado e eixos marcados: +{bonus:0}% de força enquanto o plano durar"
+                : days > 0 ? $"Estado-maior a trabalhar: +{bonus:0}% agora, pronto em ~{days} dias de frente parada"
+                           : $"+{bonus:0}% de força", 15);
+            planNote.AddThemeColorOverride("font_color", ready >= 1f ? Ui.Good : Ui.TextDim);
+            v.AddChild(planNote);
+            int onTheMove = divs.Count(d => d.Path.Count > 0 || w.InBattle(d.Id));
+            if (onTheMove > 0)
+            {
+                var spend = Ui.Lbl($"{onTheMove} de {divs.Count} em movimento: o plano gasta-se a ser executado", 15);
+                spend.AddThemeColorOverride("font_color", Ui.Danger);
+                v.AddChild(spend);
+            }
+        }
 
         // prontidão: em reserva o que interessa é saber quando é que este exército volta a servir
         if (g.Resting && divs.Count > 0)

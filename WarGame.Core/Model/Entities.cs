@@ -359,6 +359,14 @@ public sealed class ArmyGroup
     /// <summary>Comandante destacado para este grupo (id da tabela general), ou null. Enquanto comanda
     /// aqui, o bónus dele sai do país e vale só para estas divisões — amplificado por general_command_bonus.</summary>
     public string? GeneralId { get; set; }
+    /// <summary>Preparação do plano de batalha (0..planning_max), à maneira do HoI4: um exército que fica
+    /// parado na frente que lhe deram estuda o terreno, marca as estradas e cava — e quando avança, avança
+    /// com isso feito. Sobe planning_per_day por dia em que ninguém do grupo marcha nem se bate, e gasta-se
+    /// (planning_decay) na proporção das divisões que estão em movimento ou em combate.
+    ///
+    /// Só há plano com frente atribuída e postura de avançar ou defender: um grupo parado ou em reserva não
+    /// tem plano nenhum. O que o plano vale em combate é o BattlePlanSystem.Bonus que diz. Vai ao save.</summary>
+    public float Planning { get; set; }
     /// <summary>Membros. Escrever só por World.JoinGroup/LeaveGroup, que mantêm Division.GroupId em sintonia.</summary>
     public HashSet<int> Divisions { get; } = new();
 }
