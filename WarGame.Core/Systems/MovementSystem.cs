@@ -31,7 +31,7 @@ public sealed class MovementSystem : ISystem
             else
                 // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
                 days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
-                       / MathF.Max(infraFloor, target.Infrastructure) / w.Countries[d.CountryId].Stat("move_speed");
+                       / MathF.Max(infraFloor, target.Infrastructure) / (w.Countries[d.CountryId].Stat("move_speed") * w.CommandMult(d, "move_speed"));
             d.MoveProgress += 1f / days;
             if (d.MoveProgress < 1f) continue;
 

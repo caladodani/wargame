@@ -239,6 +239,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "battles", "INTEGER NOT NULL DEFAULT 0"),
         ("s_division", "captures", "INTEGER NOT NULL DEFAULT 0"),
         ("s_army_group", "stance", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_army_group", "general", "TEXT"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -357,7 +358,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var r in save.Query("SELECT division_id,medal FROM s_division_medal"))
             if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var md)) md.Medals.Add((string)r["medal"]!);
-        foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,advancing,stance FROM s_army_group ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,advancing,stance,general FROM s_army_group ORDER BY id"))
         {
             var g = new ArmyGroup
             {
@@ -367,14 +368,18 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Stance = r["stance"] is not null ? (GroupStance)Convert.ToInt32(r["stance"])
                        : r["advancing"] is not null && Convert.ToInt32(r["advancing"]) != 0 ? GroupStance.Advance
                        : GroupStance.Hold,
+                GeneralId = r["general"] as string,
             };
             w.ArmyGroups[g.Id] = g;
         }
         foreach (var r in save.Query("SELECT group_id,division_id FROM s_army_group_member"))
         {
             int div = Convert.ToInt32(r["division_id"]);
-            if (w.ArmyGroups.TryGetValue(Convert.ToInt32(r["group_id"]), out var g) && w.Divisions.ContainsKey(div)) g.Divisions.Add(div);
+            if (w.ArmyGroups.TryGetValue(Convert.ToInt32(r["group_id"]), out var g) && w.Divisions.ContainsKey(div)) w.JoinGroup(g, div);
         }
+        // os grupos chegam depois dos generais: quem está destacado tem de sair outra vez do bónus do país
+        foreach (int cid in w.ArmyGroups.Values.Where(g => g.GeneralId is not null).Select(g => g.CountryId).Distinct())
+            if (w.Countries.TryGetValue(cid, out var gc)) World.ApplyGenerals(w, gc);
         foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war"))
         {
             int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]);
@@ -491,8 +496,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var g in w.ArmyGroups.Values)
         {
-            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,advancing,stance) VALUES (?,?,?,?,?,?)",
-                g.Id, g.CountryId, g.Name, g.FrontCountryId, g.Advancing ? 1 : 0, (int)g.Stance);
+            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,advancing,stance,general) VALUES (?,?,?,?,?,?,?)",
+                g.Id, g.CountryId, g.Name, g.FrontCountryId, g.Advancing ? 1 : 0, (int)g.Stance, g.GeneralId);
             foreach (int id in g.Divisions)
                 save.Execute("INSERT INTO s_army_group_member (group_id,division_id) VALUES (?,?)", g.Id, id);
         }

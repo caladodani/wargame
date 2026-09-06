@@ -21,7 +21,8 @@ public sealed class ArmyGroupSystem : ISystem
 
         // limpeza: divisões mortas ou de outro país não ficam agarradas a um grupo
         foreach (var g in w.ArmyGroups.Values)
-            g.Divisions.RemoveWhere(id => !w.Divisions.TryGetValue(id, out var d) || d.CountryId != g.CountryId);
+            foreach (int id in g.Divisions.Where(id => !w.Divisions.TryGetValue(id, out var d) || d.CountryId != g.CountryId).ToList())
+                w.LeaveGroup(id);
 
         int period = Math.Max(1, (int)w.Rule("army_group_order_days", 2f));
         if (w.Clock.Day % period != 0) return;

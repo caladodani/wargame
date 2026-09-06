@@ -118,6 +118,18 @@ public sealed class AiSystem : ISystem
             var order = new SetArmyGroupStanceCommand(c.Id, g.Id, stance);
             if (order.Validate(w) is null) order.Execute(w);
         }
+
+        // e um comandante à frente do exército: o que ataca se vamos avançar, o que defende se vamos segurar
+        string wanted = stance == GroupStance.Advance ? "attack" : "defense";
+        if (g.GeneralId is null || w.GeneralDefs.GetValueOrDefault(g.GeneralId)?.StatKey != wanted)
+        {
+            string? pick = c.Generals.FirstOrDefault(id => w.GeneralDefs.GetValueOrDefault(id)?.StatKey == wanted);
+            if (pick is not null)
+            {
+                var post = new AssignGeneralCommand(c.Id, g.Id, pick);
+                if (post.Validate(w) is null) post.Execute(w);
+            }
+        }
     }
 
     /// <summary>Guerra parada (sem progresso há peace_stale_days) em que estamos mais fracos:

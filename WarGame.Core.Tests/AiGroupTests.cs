@@ -101,6 +101,30 @@ public class AiGroupTests
     }
 
     [Fact]
+    public void TheAiPutsACommanderInFrontOfTheGroup_ChosenByTheStance()
+    {
+        var w = Setup();
+        var atk = w.GeneralDefs.Values.First(g => g.StatKey == "attack");
+        var def = w.GeneralDefs.Values.First(g => g.StatKey == "defense");
+        w.Countries[Ai].Generals.Add(atk.Id);
+        w.Countries[Ai].Generals.Add(def.Id);
+        World.ApplyGenerals(w, w.Countries[Ai]);
+
+        AiDivisions(w, 8);
+        PlayerDivisions(w, 20);          // em inferioridade: cava-se, e quer o comandante que defende
+        TestWorld.Days(w, Period(w));
+        var g = Assert.Single(w.ArmyGroups.Values);
+        Assert.Equal(GroupStance.Defend, g.Stance);
+        Assert.Equal(def.Id, g.GeneralId);
+
+        for (int i = 0; i < 20; i++) TestWorld.AddDivision(w, 300 + i, Ai, TestWorld.Inf2, 6);
+        TestWorld.Days(w, Period(w));    // com vantagem avança, e troca para o comandante que ataca
+        Assert.Equal(GroupStance.Advance, g.Stance);
+        Assert.Equal(atk.Id, g.GeneralId);
+        Assert.Equal(1f, w.Countries[Ai].Stat("attack"), 3);   // destacado: já não vale para o país todo
+    }
+
+    [Fact]
     public void PeaceLeavesTheGroupStanding_ButItGivesNoMoreOrders()
     {
         var w = Setup();

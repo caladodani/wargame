@@ -254,6 +254,10 @@ public sealed class ArmyGroup
     public bool Advancing => Stance == GroupStance.Advance;
     /// <summary>Avançar ou defender exigem frente; parado não faz nada.</summary>
     public bool NeedsFront => Stance != GroupStance.Hold;
+    /// <summary>Comandante destacado para este grupo (id da tabela general), ou null. Enquanto comanda
+    /// aqui, o bónus dele sai do país e vale só para estas divisões — amplificado por general_command_bonus.</summary>
+    public string? GeneralId { get; set; }
+    /// <summary>Membros. Escrever só por World.JoinGroup/LeaveGroup, que mantêm Division.GroupId em sintonia.</summary>
     public HashSet<int> Divisions { get; } = new();
 }
 
@@ -278,6 +282,10 @@ public sealed class Division
     /// <summary>Ordem permanente de avanço (AutoFrontSystem): parada e sem combate, a divisão ataca
     /// sozinha a região inimiga vizinha mais fraca. Desliga-se ao dar uma ordem manual.</summary>
     public bool AutoAdvance { get; set; }
+    /// <summary>Grupo de exércitos a que obedece, ou null. É o retrato inverso de ArmyGroup.Divisions e
+    /// quem o mantém é World.JoinGroup/LeaveGroup — serve para saber num salto quem comanda esta divisão,
+    /// sem varrer os grupos todos a cada golpe de combate.</summary>
+    public int? GroupId { get; set; }
     /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
     public List<int> Path { get; } = new();
     public int? TargetRegionId => Path.Count > 0 ? Path[0] : null;

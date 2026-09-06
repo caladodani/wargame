@@ -19,6 +19,7 @@ public partial class ArmyPanel : PanelContainer
     private ArmySelect _select = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    private int? _generals;      // grupo com a lista de comandantes aberta
     /// <summary>Grupo com a lista de frentes aberta (só uma de cada vez, para o painel caber no telemóvel).</summary>
     private int? _fronts;
 
@@ -40,7 +41,7 @@ public partial class ArmyPanel : PanelContainer
 
     public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); Ui.SlideIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
-    public void Close() { Visible = false; _fronts = null; }
+    public void Close() { Visible = false; _fronts = null; _generals = null; }
 
     /// <summary>Só para o --smoke: cria um grupo, mete-lhe as divisões da capital, abre a lista de frentes
     /// e enche o painel — o caminho todo percorrido sem ninguém tocar no ecrã. Desfaz o que criou.</summary>
@@ -58,9 +59,11 @@ public partial class ArmyPanel : PanelContainer
             _game.Dispatch(new SetArmyGroupFrontCommand(pid, g.Id, war.EnemyOf(pid)));
             _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Advance));
         }
-        _fronts = g.Id;
+        if (w.Countries[pid].Generals.FirstOrDefault() is string gen)
+            _game.Dispatch(new AssignGeneralCommand(pid, g.Id, gen));
+        _fronts = g.Id; _generals = g.Id;
         _lastKey = ""; Fill();
-        _fronts = null;
+        _fronts = null; _generals = null;
         _game.Dispatch(new DisbandArmyGroupCommand(pid, g.Id));
         _lastKey = "";
     }
@@ -74,8 +77,8 @@ public partial class ArmyPanel : PanelContainer
             var groups = w.ArmyGroups.Values.Where(g => g.CountryId == pid).OrderBy(g => g.Id).ToList();
             var foes = w.Wars.Values.Where(x => x.Involves(pid)).Select(x => x.EnemyOf(pid)).Distinct().ToList();
 
-            var key = $"{w.Clock.Day}|{_fronts}|{_select.RegionCount}|" + string.Join(",", foes) + "|" +
-                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{(int)ArmyGroupSystem.Strength(w, g)}"));
+            var key = $"{w.Clock.Day}|{_fronts}|{_generals}|{_select.RegionCount}|{string.Join(",", w.Countries[pid].Generals)}|" + string.Join(",", foes) + "|" +
+                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.Clear(_body);
@@ -165,11 +168,51 @@ public partial class ArmyPanel : PanelContainer
         note.AddThemeColorOverride("font_color", g.NeedsFront && g.FrontCountryId is null ? Ui.Danger : Ui.TextDim);
         v.AddChild(note);
 
+        // comandante destacado: o bónus dele sai do país e vem para aqui multiplicado
+        var genRow = new HBoxContainer();
+        var gdef = g.GeneralId is string gid && w.GeneralDefs.TryGetValue(gid, out var found) ? found : null;
+        var genLbl = Ui.Lbl(gdef is null ? "Comandante: nenhum (o estado-maior serve o país todo)"
+            : $"Comandante: {gdef.Name} — {StatName(gdef.StatKey)} ×{1f + (gdef.Mult - 1f) * w.Rule("general_command_bonus", 2f):0.00} neste exército", 16);
+        if (gdef is not null) genLbl.AddThemeColorOverride("font_color", new Color(1f, 0.82f, 0.25f));
+        genRow.AddChild(Ui.Grow(genLbl));
+        genRow.AddChild(Ui.Btn(_generals == g.Id ? "Fechar" : "Comando", () => ToggleGenerals(g.Id), 170));
+        v.AddChild(genRow);
+
+        if (_generals == g.Id)
+        {
+            var staff = w.Countries[pid].Generals;
+            if (staff.Count == 0) v.AddChild(Ui.Lbl("Sem comandantes contratados — contrata no painel do país", 15));
+            else
+            {
+                var flow = new HFlowContainer();
+                foreach (string id in staff)
+                {
+                    if (!w.GeneralDefs.TryGetValue(id, out var def)) continue;
+                    var busy = w.ArmyGroups.Values.FirstOrDefault(x => x.Id != g.Id && x.GeneralId == id);
+                    flow.AddChild(Ui.Btn(busy is null ? $"{def.Name} ({StatName(def.StatKey)})" : $"{def.Name} — {busy.Name}",
+                        () => SetGeneral(pid, g.Id, id), 0, g.GeneralId == id ? Ui.Kind.Primary : Ui.Kind.Normal));
+                }
+                if (g.GeneralId is not null) flow.AddChild(Ui.Btn("Chamar de volta", () => SetGeneral(pid, g.Id, null), 0));
+                v.AddChild(flow);
+            }
+        }
+
         var orders = new HBoxContainer();
         orders.AddChild(Ui.Btn($"Juntar selecção ({_select.DivisionCount(w, pid)})", () => Absorb(pid, g.Id), 230));
         if (divs.Count > 0) orders.AddChild(Ui.Btn("Largar todas", () => Release(pid, g.Id), 170));
         v.AddChild(orders);
     }
+
+    /// <summary>Nome em português da estatística que um comandante melhora.</summary>
+    private static string StatName(string key) => key switch
+    {
+        "attack" => "ataque",
+        "defense" => "defesa",
+        "org_regain" => "recuperação",
+        "move_speed" => "marcha",
+        "industry" => "indústria",
+        _ => key,
+    };
 
     /// <summary>Símbolo, cor e nome de cada postura — um só sítio para a UI toda concordar.</summary>
     private static (string Icon, Color Tint, string Label) Face(GroupStance s) => s switch
@@ -218,7 +261,16 @@ public partial class ArmyPanel : PanelContainer
         _lastKey = ""; Fill();
     });
 
-    private void ToggleFronts(int groupId) => _game.RunWhenIdle(() => { _fronts = _fronts == groupId ? null : groupId; Fill(); });
+    private void ToggleFronts(int groupId) => _game.RunWhenIdle(() => { _fronts = _fronts == groupId ? null : groupId; _lastKey = ""; Fill(); });
+
+    private void ToggleGenerals(int groupId) => _game.RunWhenIdle(() => { _generals = _generals == groupId ? null : groupId; _lastKey = ""; Fill(); });
+
+    private void SetGeneral(int pid, int groupId, string? generalId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new AssignGeneralCommand(pid, groupId, generalId));
+        if (err is not null) { _game.Notify(err); return; }
+        _generals = null; _lastKey = ""; Fill();
+    });
 
     private void SetFront(int pid, int groupId, int? foe) => _game.RunWhenIdle(() =>
     {

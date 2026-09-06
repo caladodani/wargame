@@ -899,7 +899,14 @@ public sealed record DisbandArmyGroupCommand(int CountryId, int GroupId) : IComm
         !w.ArmyGroups.TryGetValue(GroupId, out var g) ? "grupo inexistente"
         : g.CountryId != CountryId ? "grupo não é teu" : null;
 
-    public void Execute(World w) => w.ArmyGroups.Remove(GroupId);
+    public void Execute(World w)
+    {
+        if (!w.ArmyGroups.Remove(GroupId, out var g)) return;
+        foreach (int id in g.Divisions)
+            if (w.Divisions.TryGetValue(id, out var d) && d.GroupId == GroupId) d.GroupId = null;
+        if (g.GeneralId is not null && w.Countries.TryGetValue(g.CountryId, out var c))
+            World.ApplyGenerals(w, c);   // o comandante volta ao estado-maior do país
+    }
 }
 
 /// <summary>Atribui (ou tira) a frente do grupo: o país inimigo para onde ele marcha.</summary>
@@ -939,6 +946,32 @@ public sealed record SetArmyGroupStanceCommand(int CountryId, int GroupId, Group
 
 /// <summary>Põe uma divisão às ordens de um grupo (GroupId null = tira-a de qualquer grupo).
 /// Uma divisão só serve num grupo de cada vez.</summary>
+/// <summary>Destaca um comandante contratado para um grupo de exércitos (ou chama-o de volta com null).
+///
+/// Enquanto está destacado, o bónus dele deixa de valer para o país inteiro e passa a valer só para as
+/// divisões deste grupo, multiplicado por general_command_bonus. Concentrar ou espalhar o estado-maior
+/// passa a ser uma decisão: o Muralha à frente do exército que segura a linha vale mais do que espalhado
+/// por divisões que nem estão a combater.</summary>
+public sealed record AssignGeneralCommand(int CountryId, int GroupId, string? GeneralId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.ArmyGroups.TryGetValue(GroupId, out var g)) return "grupo inexistente";
+        if (g.CountryId != CountryId) return "grupo não é teu";
+        if (GeneralId is not string id) return null;
+        if (!w.Countries.TryGetValue(CountryId, out var c) || !c.Generals.Contains(id)) return "esse comandante não serve neste exército";
+        if (!w.GeneralDefs.ContainsKey(id)) return "comandante desconhecido";
+        var busy = w.ArmyGroups.Values.FirstOrDefault(x => x.Id != GroupId && x.GeneralId == id);
+        return busy is null ? null : $"já comanda o {busy.Name}";
+    }
+
+    public void Execute(World w)
+    {
+        w.ArmyGroups[GroupId].GeneralId = GeneralId;
+        if (w.Countries.TryGetValue(CountryId, out var c)) World.ApplyGenerals(w, c);
+    }
+}
+
 public sealed record AssignDivisionCommand(int CountryId, int DivisionId, int? GroupId) : ICommand
 {
     public string? Validate(World w)
@@ -953,8 +986,8 @@ public sealed record AssignDivisionCommand(int CountryId, int DivisionId, int? G
 
     public void Execute(World w)
     {
-        foreach (var g in w.ArmyGroups.Values) g.Divisions.Remove(DivisionId);
-        if (GroupId is int gid) w.ArmyGroups[gid].Divisions.Add(DivisionId);
+        if (GroupId is int gid) w.JoinGroup(w.ArmyGroups[gid], DivisionId);
+        else w.LeaveGroup(DivisionId);
     }
 }
 
@@ -993,6 +1026,8 @@ public sealed record DismissGeneralCommand(int CountryId, string GeneralId) : IC
     {
         var c = w.Countries[CountryId];
         c.Generals.Remove(GeneralId);
+        foreach (var g in w.ArmyGroups.Values)
+            if (g.CountryId == CountryId && g.GeneralId == GeneralId) g.GeneralId = null;   // dispensado não fica a comandar
         World.ApplyGenerals(w, c);
         w.Events.Publish(new GeneralDismissed(CountryId, GeneralId));
     }

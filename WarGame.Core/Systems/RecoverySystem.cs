@@ -16,7 +16,7 @@ public sealed class RecoverySystem : ISystem
         {
             if (inBattle.Contains(d.Id)) continue;
             var c = w.Countries[d.CountryId];
-            d.Org = MathF.Min(100f, d.Org + (d.Supply >= 1f ? 8f : 3f) * c.Stat("org_regain"));
+            d.Org = MathF.Min(100f, d.Org + (d.Supply >= 1f ? 8f : 3f) * c.Stat("org_regain") * w.CommandMult(d, "org_regain"));
             if (d.Hp >= 100f) continue;
             float hp = MathF.Min(2f, 100f - d.Hp);
             if (menPerHp > 0f) hp = MathF.Min(hp, MathF.Max(0f, c.Manpower) / menPerHp);

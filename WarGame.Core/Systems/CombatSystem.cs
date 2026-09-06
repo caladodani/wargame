@@ -138,7 +138,9 @@ public sealed class CombatSystem : ISystem
             float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f)
                               + MedalSystem.Bonus(w, d);   // condecorações: veteranos batem-se melhor
             // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
-            float doctrine = w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(attacking ? "attack" : "defense") : 1f;
+            string statKey = attacking ? "attack" : "defense";
+            // doutrina do país × o comandante que estiver destacado ao grupo desta divisão
+            float doctrine = (w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(statKey) : 1f) * w.CommandMult(d, statKey);
             float amphibious = attacking ? AmphibiousMult(w, d, battleRegion) : 1f;
             out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * MathF.Max(0.3f, command));
         }

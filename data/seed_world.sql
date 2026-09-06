@@ -342,6 +342,7 @@ INSERT INTO general VALUES ('gen_logistica','Logístico','org_regain',1.10,100);
 INSERT INTO general VALUES ('gen_manobra','Manobrador','move_speed',1.15,110);
 INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',1.08,140);
 INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
+INSERT INTO rule VALUES ('general_command_bonus', 2, 'quanto vale o bónus de um comandante quando é destacado para um grupo de exércitos em vez de servir o país todo');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
 
 -- Grupos de exércitos com frente atribuída (ArmyGroupSystem)

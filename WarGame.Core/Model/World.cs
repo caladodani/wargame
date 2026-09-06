@@ -119,8 +119,10 @@ public sealed class World
     public static void ApplyGenerals(World w, Country c)
     {
         c.GeneralMult.Clear();
+        var detached = w.ArmyGroups.Values.Where(x => x.CountryId == c.Id && x.GeneralId is not null)
+                                          .Select(x => x.GeneralId!).ToHashSet();
         foreach (var id in c.Generals)
-            if (w.GeneralDefs.TryGetValue(id, out var g))
+            if (!detached.Contains(id) && w.GeneralDefs.TryGetValue(id, out var g))   // destacado manda no grupo, não no país
                 c.GeneralMult[g.StatKey] = c.GeneralMult.GetValueOrDefault(g.StatKey, 1f) * g.Mult;
     }
 
@@ -260,8 +262,42 @@ public sealed class World
         return _nextGroupId++;
     }
 
-    /// <summary>Grupo a que a divisão pertence, ou null. Há poucos grupos: a varredura é barata.</summary>
-    public ArmyGroup? GroupOf(int divisionId) => ArmyGroups.Values.FirstOrDefault(g => g.Divisions.Contains(divisionId));
+    /// <summary>Grupo a que a divisão pertence, ou null — pelo ponteiro que a própria divisão guarda.</summary>
+    public ArmyGroup? GroupOf(int divisionId) =>
+        Divisions.TryGetValue(divisionId, out var d) && d.GroupId is int gid && ArmyGroups.TryGetValue(gid, out var g) ? g : null;
+
+    /// <summary>Mete a divisão neste grupo (tirando-a do anterior). Único sítio que escreve a filiação:
+    /// ArmyGroup.Divisions e Division.GroupId têm de andar sempre a par.</summary>
+    public void JoinGroup(ArmyGroup g, int divisionId)
+    {
+        LeaveGroup(divisionId);
+        g.Divisions.Add(divisionId);
+        if (Divisions.TryGetValue(divisionId, out var d)) d.GroupId = g.Id;
+    }
+
+    /// <summary>Tira a divisão do grupo onde estiver (se estiver).</summary>
+    public void LeaveGroup(int divisionId)
+    {
+        if (Divisions.TryGetValue(divisionId, out var d))
+        {
+            if (d.GroupId is int gid && ArmyGroups.TryGetValue(gid, out var old)) old.Divisions.Remove(divisionId);
+            d.GroupId = null;
+        }
+        foreach (var g in ArmyGroups.Values) g.Divisions.Remove(divisionId);   // divisão já morta: limpa os restos
+    }
+
+    /// <summary>Multiplicador do comandante destacado para o grupo desta divisão (1 = sem general).
+    ///
+    /// Um general destacado deixa de contar para o país inteiro (ApplyGenerals salta-o) e o que dava a
+    /// todos passa a valer só aqui, amplificado por general_command_bonus: é a troca que o jogador faz ao
+    /// pôr o Muralha à frente de um exército em vez de o deixar no estado-maior.</summary>
+    public float CommandMult(Division d, string key)
+    {
+        if (ArmyGroups.Count == 0 || d.GroupId is not int gid) return 1f;
+        if (!ArmyGroups.TryGetValue(gid, out var g) || g.GeneralId is not string gen) return 1f;
+        if (!GeneralDefs.TryGetValue(gen, out var def) || def.StatKey != key) return 1f;
+        return 1f + (def.Mult - 1f) * Rule("general_command_bonus", 2f);
+    }
 
     public int NewDivisionId()
     {
@@ -282,7 +318,7 @@ public sealed class World
         if (!Divisions.Remove(id, out var d)) return;
         Regions[d.RegionId].DivisionIds.Remove(id);
         foreach (var b in ActiveBattles) { b.Attackers.Remove(id); b.Defenders.Remove(id); }
-        foreach (var g in ArmyGroups.Values) g.Divisions.Remove(id);
+        LeaveGroup(id);
     }
 
     /// <summary>Muda a divisão de região (sem custo nem regras — MovementSystem decide quando).</summary>
