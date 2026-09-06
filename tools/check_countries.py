@@ -149,8 +149,8 @@ def main():
         db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
         try:
             for f in files: db.executescript(f.read_text(encoding='utf-8'))
-        except sqlite3.IntegrityError as e:
-            print(f'  ERRO: ids repetidos entre ficheiros — {e}'); bad += 1
+        except sqlite3.Error as e:
+            print(f'  ERRO: ao carregar todos os ficheiros juntos (ids repetidos?) — {e}'); bad += 1
     print('OK' if not bad else f'{bad} ficheiro(s) com erros')
     sys.exit(1 if bad else 0)
 

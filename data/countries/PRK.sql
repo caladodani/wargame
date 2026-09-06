@@ -1,0 +1,82 @@
+-- PRK (k=11) — Coreia do Norte (Korean People's Army), ordem de batalha aproximada 2024-2026.
+-- Fontes: Corpos mecanizados e de infantaria ao longo da DMZ, Comando de Forças Especiais (o maior
+-- do mundo em efectivo), artilharia massiva concentrada perto de Kaesong/Pyongyang, T-62/Chonma-ho
+-- (blindados obsoletos mas em massa). Carácter: exército enorme por conscrição total, doutrina de
+-- massa e artilharia, equipamento antigo e barato, indústria fraca e logística débil.
+
+-- ===== unit_type próprios (100+20*11 .. 119+20*11 = 320..339) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (320,'Chonma-ho (T-62 modificado)','ground',1.7,35,1.6,28),
+ (321,'Forças Especiais (KPA SOF)','ground',1.2,30,0.7,26),
+ (322,'Artilharia Massiva de Fronteira','support',1.3,30,1.3,18);
+
+INSERT INTO unit_stat VALUES
+ (320,'soft_atk',9), (320,'hard_atk',8), (320,'defense',9), (320,'breakthrough',18),(320,'armor',35),(320,'piercing',25),(320,'hardness',0.75),(320,'hp',16),
+ (321,'soft_atk',7), (321,'hard_atk',1), (321,'defense',16),(321,'breakthrough',10),(321,'armor',0), (321,'piercing',5), (321,'hardness',0.1), (321,'hp',18),
+ (322,'soft_atk',22),(322,'hard_atk',2), (322,'defense',5), (322,'breakthrough',5), (322,'armor',0), (322,'piercing',6), (322,'hardness',0.15),(322,'hp',5);
+
+INSERT INTO unit_tag VALUES
+ (320,'armored'),(320,'ground'),
+ (321,'infantry'),(321,'ground'),(321,'especial'),
+ (322,'support'),(322,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 320..339) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('PRK_mobilizacao_total','PRK','Mobilização Total',
+   'A conscrição obrigatória e as reservas paramilitares (Guarda Vermelha dos Trabalhadores e Camponeses) dão à Coreia do Norte um exército inicial descomunal para a sua economia.'),
+ ('PRK_equipamento_obsoleto','PRK','Equipamento Envelhecido',
+   'Grande parte do parque blindado é de origem soviética dos anos 60-70, mal manutenida: os blindados próprios atacam com menos convicção.'),
+ ('PRK_forcas_especiais','PRK','Maior Comando de Forças Especiais do Mundo',
+   'Dezenas de milhares de operacionais treinados para infiltração e sabotagem tornam as unidades especiais norte-coreanas particularmente perigosas a atacar.'),
+ ('PRK_isolamento_economico','PRK','Isolamento Económico',
+   'Sanções internacionais e uma economia centralizada e fechada atrasam a reposição de baixas: a organização recupera-se mais devagar do que na maioria dos exércitos.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (320,'spirit',NULL,NULL,'command',     NULL,      'mul',0.90,'PRK','PRK_mobilizacao_total'),
+ (321,'spirit',NULL,NULL,'str_attacker','armored', 'mul',0.85,'PRK','PRK_equipamento_obsoleto'),
+ (322,'spirit',NULL,NULL,'str_defender','armored', 'mul',0.85,'PRK','PRK_equipamento_obsoleto'),
+ (323,'spirit',NULL,NULL,'str_attacker','especial','mul',1.25,'PRK','PRK_forcas_especiais'),
+ (324,'spirit',NULL,NULL,'str_attacker','especial','add',0.15,'PRK','PRK_forcas_especiais'),
+ (325,'spirit',NULL,NULL,'command',     NULL,      'mul',0.90,'PRK','PRK_isolamento_economico');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('PRK','industry',0.5),
+ ('PRK','production_speed',0.70),
+ ('PRK','org_regain',0.65),
+ ('PRK','start_army_mult',2.0);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('PRK','República popular de partido único','Presidente da Comissão de Assuntos de Estado e Comandante Supremo',
+  'Doutrina de massa e artilharia: saturar a frente com efetivo e fogo de artilharia, forças especiais para infiltração profunda.',
+  'Não-alinhado (cooperação militar com a China e a Rússia)',
+  'A Coreia do Norte mantém, proporcionalmente à sua população, um dos maiores exércitos do mundo, sustentado por conscrição praticamente total e por uma vasta reserva paramilitar. A doutrina assenta em massa de infantaria, artilharia concentrada perto da fronteira e um dos maiores comandos de forças especiais do planeta. Em contrapartida, a indústria é fraca, o equipamento blindado é largamente obsoleto e o isolamento económico limita a reposição de perdas.');
+
+-- ===== templates próprios (ids 1+50*11..50+50*11 = 551..600) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (551,'PRK','Divisão Blindada Chonma-ho'),
+ (552,'PRK','Brigada de Forças Especiais'),
+ (553,'PRK','Divisão de Artilharia de Fronteira');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (551,320,4),(551,1,3),(551,322,1),
+ (552,321,5),(552,1,2),
+ (553,322,4),(553,1,4);
+
+-- ===== brigadas/regimentos reais nomeados (ids 551..600) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (554,'PRK','I Corpo (Fronteira Oriental)','Infantaria','Kangwŏn-do'),
+ (555,'PRK','II Corpo Mecanizado','Divisão Blindada Chonma-ho',"P'yŏngan-namdo"),
+ (556,'PRK','IV Corpo (Fronteira Ocidental)','Infantaria',"Hwanghae-namdo"),
+ (557,'PRK','V Corpo (Costa Leste)','Infantaria','Kangwŏn-do'),
+ (558,'PRK','Comando de Forças Especiais','Brigada de Forças Especiais',"P'yŏngyang"),
+ (559,'PRK','Corpo de Artilharia de Kaesong','Divisão de Artilharia de Fronteira',"Hwanghae-bukto"),
+ (560,'PRK','Guarda de Pyongyang','Infantaria',"P'yŏngyang"),
+ (561,'PRK','VII Corpo (Montanha)','Infantaria','Hamgyŏng-bukto'),
+ (562,'PRK','VIII Corpo Mecanizado','Divisão Blindada Chonma-ho',"P'yŏngan-bukto"),
+ (563,'PRK','IX Corpo (Costa)','Infantaria','Hamgyŏng-namdo');
+
+-- ===== correcção de terreno =====
+UPDATE region SET terrain='mountain'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='PRK')
+   AND name IN ('Chagang-do','Ryanggang');

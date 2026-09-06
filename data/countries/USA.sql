@@ -9,7 +9,7 @@ INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
  (142,'Abrams M1A2 (Blindados Pesados)','ground',5.5,70,2.4,42);
 
 INSERT INTO unit_stat VALUES
- (140,'soft_atk',7),(140,'hard_atk',1),(140,'defense',18),(140,'breakthrough',14),(140,'armor',0),(140,'piercing',6),(140,'hardness',0.1),(140,'hp',22),
+ (140,'soft_atk',7),(140,'hard_atk',1),(140,'defense',18),(140,'breakthrough',11),(140,'armor',0),(140,'piercing',6),(140,'hardness',0.1),(140,'hp',22),
  (141,'soft_atk',9),(141,'hard_atk',5),(141,'defense',20),(141,'breakthrough',20),(141,'armor',20),(141,'piercing',22),(141,'hardness',0.55),(141,'hp',26),
  (142,'soft_atk',14),(142,'hard_atk',18),(142,'defense',14),(142,'breakthrough',32),(142,'armor',78),(142,'piercing',70),(142,'hardness',0.92),(142,'hp',24);
 

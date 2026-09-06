@@ -11,7 +11,7 @@ INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
 
 INSERT INTO unit_stat VALUES
  (180,'soft_atk',12),(180,'hard_atk',15),(180,'defense',12),(180,'breakthrough',27),(180,'armor',55),(180,'piercing',50),(180,'hardness',0.85),(180,'hp',20),
- (181,'soft_atk',8),(181,'hard_atk',2),(181,'defense',20),(181,'breakthrough',16),(181,'armor',5),(181,'piercing',10),(181,'hardness',0.15),(181,'hp',24),
+ (181,'soft_atk',8),(181,'hard_atk',1.4),(181,'defense',20),(181,'breakthrough',11),(181,'armor',5),(181,'piercing',7),(181,'hardness',0.15),(181,'hp',24),
  (182,'soft_atk',26),(182,'hard_atk',3),(182,'defense',5),(182,'breakthrough',8),(182,'armor',0),(182,'piercing',9),(182,'hardness',0.2),(182,'hp',6),
  (183,'soft_atk',8),(183,'hard_atk',1),(183,'defense',12),(183,'breakthrough',10),(183,'armor',0),(183,'piercing',5),(183,'hardness',0.05),(183,'hp',16);
 

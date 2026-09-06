@@ -1,0 +1,73 @@
+-- AGO (k=25) — Forças Armadas Angolanas (FAA), ordem de batalha aproximada 2024-2026.
+-- Fontes: legado da guerra civil (1975-2002) e da guerra fronteiriça (intervenções na RDC),
+-- brigadas blindadas equipadas com T-72 e BMP de origem soviética/russa, guarnição permanente do
+-- enclave de Cabinda (separatismo FLEC), brigadas de infantaria por região militar.
+-- Carácter: exército grande herdado da guerra civil, numeroso mas com equipamento envelhecido,
+-- país lusófono. A ligação histórica a Portugal é apenas de contexto (colonial/linguístico),
+-- sem qualquer aliança militar actual.
+
+-- ===== unit_type próprios (100+20*25 .. 119+20*25 = 600..619) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (600,'T-72 Angolano','ground',2.6,50,1.8,30),
+ (601,'Infantaria Veterana de Guerrilha','ground',0.9,28,0.9,24);
+
+INSERT INTO unit_stat VALUES
+ (600,'soft_atk',10),(600,'hard_atk',11),(600,'defense',10),(600,'breakthrough',20),(600,'armor',48),(600,'piercing',38),(600,'hardness',0.8),(600,'hp',17),
+ (601,'soft_atk',7), (601,'hard_atk',1), (601,'defense',26),(601,'breakthrough',9), (601,'armor',0), (601,'piercing',5), (601,'hardness',0.1),(601,'hp',24);
+
+INSERT INTO unit_tag VALUES
+ (600,'armored'),(600,'ground'),
+ (601,'infantry'),(601,'ground'),(601,'veterano');
+
+-- ===== espíritos nacionais + modificadores (ids 600..619) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('AGO_veteranos_guerra_civil','AGO','Veteranos da Guerra Civil',
+   'Décadas de guerra interna (1975-2002) deixaram um corpo de infantaria extremamente experiente na defesa do território, mesmo com equipamento datado.'),
+ ('AGO_exercito_de_massa','AGO','Exército de Massa',
+   'As FAA privilegiam o número de efectivos sobre a coordenação sofisticada: mais força de ataque em números, mas comando menos ágil.'),
+ ('AGO_defesa_cabinda','AGO','Guarnição de Cabinda',
+   'A separação geográfica do enclave de Cabinda obrigou a uma doutrina de defesa fixa em floresta, muito treinada contra a guerrilha da FLEC.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (600,'spirit',NULL,NULL,'str_defender','veterano','mul',1.20,'AGO','AGO_veteranos_guerra_civil'),
+ (601,'spirit',NULL,NULL,'str_defender',NULL,      'add',0.05,'AGO','AGO_veteranos_guerra_civil'),
+ (602,'spirit',NULL,NULL,'str_attacker',NULL,      'mul',1.10,'AGO','AGO_exercito_de_massa'),
+ (603,'spirit',NULL,NULL,'command',     NULL,      'mul',0.92,'AGO','AGO_exercito_de_massa'),
+ (604,'spirit','terrain','forest','str_defender',NULL,'mul',1.20,'AGO','AGO_defesa_cabinda');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('AGO','production_speed',0.85),
+ ('AGO','org_regain',0.9),
+ ('AGO','start_army_mult',1.3);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('AGO','República presidencialista','Presidente da República',
+  'Defesa territorial de massa herdada da guerra civil, com prioridade à guarnição do enclave de Cabinda.',
+  'Não-alinhado',
+  'As Forças Armadas Angolanas são um exército numeroso, herdeiro directo de quase três décadas de guerra civil que só terminou em 2002. O equipamento, sobretudo blindados T-72 e BMP de origem soviética e russa, está envelhecido mas em grande quantidade, e a infantaria acumula uma experiência de combate real pouco comum em África. Angola é um país lusófono, com uma ligação histórica e linguística a Portugal que já não se traduz em qualquer aliança militar.');
+
+-- ===== templates próprios (ids 1+50*25 .. 50+50*25 = 1251..1300) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (1251,'AGO','Brigada Blindada'),
+ (1252,'AGO','Brigada de Infantaria Veterana');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (1251,600,4),(1251,2,2),(1251,4,2),
+ (1252,601,6),(1252,4,1),(1252,6,1);
+
+-- ===== brigadas nomeadas (ids 1251..1300) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (1253,'AGO','1ª Brigada Blindada','Brigada Blindada','Luanda'),
+ (1254,'AGO','8ª Brigada Blindada','Brigada Blindada','Huambo'),
+ (1255,'AGO','Brigada de Infantaria de Benguela','Brigada de Infantaria Veterana','Benguela'),
+ (1256,'AGO','Brigada de Infantaria do Moxico','Brigada de Infantaria Veterana','Moxico'),
+ (1257,'AGO','Brigada de Infantaria do Cuando Cubango','Brigada de Infantaria Veterana','Cuando Cubango'),
+ (1258,'AGO','Brigada de Infantaria da Lunda Norte','Infantaria','Lunda Norte'),
+ (1259,'AGO','Brigada de Infantaria de Malanje','Infantaria','Malanje'),
+ (1260,'AGO','Brigada de Infantaria da Huíla','Brigada de Infantaria Veterana','Huíla'),
+ (1261,'AGO','Brigada de Infantaria do Bié','Infantaria','Bié'),
+ (1262,'AGO','Brigada de Defesa de Cabinda','Brigada de Infantaria Veterana','Cabinda'),
+ (1263,'AGO','Brigada de Infantaria do Zaire','Infantaria','Zaire'),
+ (1264,'AGO','Brigada de Infantaria do Uíge','Infantaria','Uíge'),
+ (1265,'AGO','Regimento Blindado de Cuanza Sul','Blindada','Cuanza Sul');

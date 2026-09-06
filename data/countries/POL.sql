@@ -18,7 +18,7 @@ INSERT INTO unit_stat VALUES
  (360,'soft_atk',14),(360,'hard_atk',19),(360,'defense',15),(360,'breakthrough',32),(360,'armor',80),(360,'piercing',68),(360,'hardness',0.94),(360,'hp',24),
  (361,'soft_atk',13),(361,'hard_atk',18),(361,'defense',14),(361,'breakthrough',30),(361,'armor',78),(361,'piercing',62),(361,'hardness',0.93),(361,'hp',22),
  (362,'soft_atk',10),(362,'hard_atk',4), (362,'defense',26),(362,'breakthrough',17),(362,'armor',16),(362,'piercing',20),(362,'hardness',0.5), (362,'hp',30),
- (363,'soft_atk',26),(363,'hard_atk',4), (363,'defense',7), (363,'breakthrough',7), (363,'armor',5), (363,'piercing',12),(363,'hardness',0.25),(363,'hp',7);
+ (363,'soft_atk',26),(363,'hard_atk',3), (363,'defense',7), (363,'breakthrough',7), (363,'armor',5), (363,'piercing',12),(363,'hardness',0.25),(363,'hp',7);
 
 INSERT INTO unit_tag VALUES
  (360,'armored'),(360,'ground'),

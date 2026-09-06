@@ -1,0 +1,69 @@
+-- CAN (k=22) — Forças Armadas Canadianas, ordem de batalha aproximada 2024-2026.
+-- Fontes: 1ª, 2ª e 5ª Canadian Mechanized Brigade Group (Edmonton/Petawawa/Valcartier), Canadian
+-- Rangers (patrulhas de soberania no Árctico), frota de Leopard 2A4/2A6M CAN, LAV 6 (Coyote/Kodiak).
+-- Carácter: exército pequeno e inteiramente profissional (sem conscrição), pouco numeroso mas bem
+-- equipado, especializado em guerra em clima ártico e forte integração NATO/NORAD.
+
+-- ===== unit_type próprios (100+20*22 .. 119+20*22 = 540..559) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (540,'Rangers Canadianos','ground',0.8,25,0.6,45),
+ (541,'LAV 6 (Coyote)','ground',2.8,45,1.5,50),
+ (542,'Leopard 2A6M CAN','ground',5.5,70,2.0,42);
+
+INSERT INTO unit_stat VALUES
+ (540,'soft_atk',5), (540,'hard_atk',1),  (540,'defense',20),(540,'breakthrough',6), (540,'armor',0), (540,'piercing',5), (540,'hardness',0.1), (540,'hp',18),
+ (541,'soft_atk',11),(541,'hard_atk',5),  (541,'defense',28),(541,'breakthrough',18),(541,'armor',18),(541,'piercing',22),(541,'hardness',0.55),(541,'hp',32),
+ (542,'soft_atk',13),(542,'hard_atk',17), (542,'defense',14),(542,'breakthrough',31),(542,'armor',68),(542,'piercing',60),(542,'hardness',0.92),(542,'hp',23);
+
+INSERT INTO unit_tag VALUES
+ (540,'infantry'),(540,'ground'),(540,'artico'),
+ (541,'infantry'),(541,'armored'),(541,'ground'),
+ (542,'armored'),(542,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 540..559) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('CAN_guerreiros_articos','CAN','Guerreiros do Árctico',
+   'Os Canadian Rangers patrulham o território mais gelado do planeta há gerações: as tropas canadianas lutam e defendem-se muito melhor em tundra do que qualquer outro exército.'),
+ ('CAN_exercito_profissional','CAN','Forças Pequenas e Profissionais',
+   'Sem conscrição, o Exército assenta em voluntários altamente treinados: poucas divisões, mas cada uma aguenta melhor o combate.'),
+ ('CAN_norad_nato','CAN','Parceiro NORAD/NATO',
+   'Décadas de comando integrado com os EUA (NORAD) e a NATO tornam o comando canadiano particularmente eficiente em operações conjuntas.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (540,'spirit','terrain','tundra','str_attacker',NULL,'mul',1.25,'CAN','CAN_guerreiros_articos'),
+ (541,'spirit','terrain','tundra','str_defender',NULL,'mul',1.25,'CAN','CAN_guerreiros_articos'),
+ (542,'spirit',NULL,NULL,'str_attacker','artico','mul',1.20,'CAN','CAN_guerreiros_articos'),
+ (543,'spirit',NULL,NULL,'str_defender',NULL,      'mul',1.10,'CAN','CAN_exercito_profissional'),
+ (544,'spirit',NULL,NULL,'command',     NULL,      'mul',1.10,'CAN','CAN_norad_nato');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('CAN','production_speed',1.05),
+ ('CAN','org_regain',1.15),
+ ('CAN','start_army_mult',0.5);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('CAN','Monarquia constitucional parlamentar','Primeiro-Ministro',
+  'Defesa territorial ártica, forças mecanizadas ligeiras e interoperabilidade total com os EUA e a NATO.',
+  'NATO',
+  'O Canadá mantém um exército pequeno mas inteiramente profissional, assente em três grupos de combate mecanizados e nos Canadian Rangers, que garantem a soberania sobre o vasto e gelado território do Norte. A indústria de defesa é sólida mas a prioridade estratégica é a defesa continental, partilhada com os Estados Unidos através do NORAD e reforçada pela pertença à NATO.');
+
+-- ===== templates próprios (ids 1+50*22 .. 50+50*22 = 1101..1150) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (1101,'CAN','Grupo de Combate Mecanizado'),
+ (1102,'CAN','Patrulha Ártica de Rangers');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (1101,541,4),(1101,542,3),(1101,4,2),(1101,5,1),
+ (1102,540,6),(1102,1,1);
+
+-- ===== brigadas/regimentos reais nomeados (ids 1101..1150) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (1103,'CAN','1st Canadian Mechanized Brigade Group','Grupo de Combate Mecanizado','Alberta'),
+ (1104,'CAN','2nd Canadian Mechanized Brigade Group','Grupo de Combate Mecanizado','Ontario'),
+ (1105,'CAN','5e Groupe-brigade mécanisé du Canada','Grupo de Combate Mecanizado','Québec'),
+ (1106,'CAN','Patrulha Ártica de Rangers de Nunavut','Patrulha Ártica de Rangers','Nunavut'),
+ (1107,'CAN','Patrulha Ártica de Rangers do Yukon','Patrulha Ártica de Rangers','Yukon'),
+ (1108,'CAN','Regimento de Infantaria de Newfoundland','Infantaria','Newfoundland and Labrador'),
+ (1109,'CAN','Regimento de Reconhecimento Costeiro','Blindada','British Columbia'),
+ (1110,'CAN','Regimento de Infantaria da Nova Escócia','Infantaria','Nova Scotia');

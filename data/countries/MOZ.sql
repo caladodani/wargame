@@ -1,0 +1,70 @@
+-- MOZ (k=26) — Forças Armadas de Defesa de Moçambique (FADM), ordem de batalha aproximada 2024-2026.
+-- Fontes: insurgência jihadista em Cabo Delgado desde 2017 (apoio de Ruanda e SADC), Força de
+-- Intervenção Rápida (FIR), batalhões de infantaria por província, legado da guerrilha de
+-- independência da FRELIMO.
+-- Carácter: exército pequeno e subfinanciado, país lusófono, centrado na contra-insurgência
+-- territorial em Cabo Delgado mais do que em guerra convencional.
+
+-- ===== unit_type próprios (100+20*26 .. 119+20*26 = 620..639) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (620,'Comando de Contra-Insurgência','ground',0.6,20,0.6,40),
+ (621,'Força de Intervenção Rápida','ground',1.4,35,1.1,38);
+
+INSERT INTO unit_stat VALUES
+ (620,'soft_atk',5),(620,'hard_atk',1),(620,'defense',18),(620,'breakthrough',7), (620,'armor',0),(620,'piercing',5), (620,'hardness',0.1),(620,'hp',16),
+ (621,'soft_atk',8),(621,'hard_atk',2),(621,'defense',22),(621,'breakthrough',12),(621,'armor',5),(621,'piercing',12),(621,'hardness',0.3),(621,'hp',22);
+
+INSERT INTO unit_tag VALUES
+ (620,'infantry'),(620,'ground'),(620,'coin'),
+ (621,'infantry'),(621,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 620..639) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('MOZ_defesa_cabo_delgado','MOZ','Contra-Insurgência em Cabo Delgado',
+   'Anos a combater a insurgência jihadista nas matas do Norte ensinaram as tropas moçambicanas a lutar melhor em terreno de floresta.'),
+ ('MOZ_legado_frelimo','MOZ','Legado da Luta Armada',
+   'A memória da guerrilha de independência contra o colonialismo mantém viva uma doutrina de resistência territorial descentralizada, mais firme na defesa.'),
+ ('MOZ_apoio_regional','MOZ','Apoio Regional (SADC/Ruanda)',
+   'O treino e a coordenação com as forças ruandesas e da SADC destacadas em Cabo Delgado melhoraram a eficiência de comando das unidades moçambicanas.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (620,'spirit','terrain','forest','str_defender',NULL,'mul',1.20,'MOZ','MOZ_defesa_cabo_delgado'),
+ (621,'spirit',NULL,NULL,'str_attacker','coin','mul',1.20,'MOZ','MOZ_defesa_cabo_delgado'),
+ (622,'spirit',NULL,NULL,'str_defender',NULL,'add',0.08,'MOZ','MOZ_legado_frelimo'),
+ (623,'spirit',NULL,NULL,'command',NULL,'mul',1.08,'MOZ','MOZ_apoio_regional');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('MOZ','production_speed',0.8),
+ ('MOZ','org_regain',1.0),
+ ('MOZ','start_army_mult',0.6);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('MOZ','República presidencialista','Presidente da República',
+  'Contra-insurgência territorial descentralizada, com prioridade absoluta à estabilização de Cabo Delgado.',
+  'Não-alinhado',
+  'As Forças Armadas de Defesa de Moçambique são um exército pequeno e pouco financiado, cujo esforço principal desde 2017 é conter a insurgência jihadista na província de Cabo Delgado, com apoio de tropas do Ruanda e da SADC. A doutrina herda a experiência da guerrilha de independência da FRELIMO e privilegia unidades leves e móveis sobre uma força convencional pesada. Moçambique é um país lusófono, sem alianças militares formais fora da região austral de África.');
+
+-- ===== templates próprios (ids 1+50*26 .. 50+50*26 = 1301..1350) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (1301,'MOZ','Companhia de Contra-Insurgência'),
+ (1302,'MOZ','Força de Intervenção Rápida');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (1301,620,5),(1301,1,2),(1301,6,1),
+ (1302,621,4),(1302,1,2),(1302,4,1);
+
+-- ===== batalhões nomeados (ids 1301..1350) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (1303,'MOZ','Batalhão de Contra-Insurgência de Cabo Delgado','Companhia de Contra-Insurgência','Cabo Delgado'),
+ (1304,'MOZ','Força de Intervenção Rápida de Nampula','Força de Intervenção Rápida','Nampula'),
+ (1305,'MOZ','Batalhão de Infantaria de Maputo','Infantaria','Maputo'),
+ (1306,'MOZ','Batalhão de Infantaria da Zambézia','Infantaria','Zambezia'),
+ (1307,'MOZ','Batalhão de Infantaria de Sofala','Infantaria','Sofala'),
+ (1308,'MOZ','Batalhão de Infantaria de Manica','Infantaria','Manica'),
+ (1309,'MOZ','Batalhão de Infantaria de Tete','Infantaria','Tete');
+
+-- ===== correcção de terreno (floresta em Cabo Delgado, palco da insurgência) =====
+UPDATE region SET terrain='forest'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='MOZ')
+   AND name IN ('Cabo Delgado');

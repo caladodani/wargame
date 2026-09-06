@@ -1,0 +1,82 @@
+-- PAK (k=17) — Paquistão: sétimo maior exército do mundo em efectivo, ordem de batalha
+-- aproximada 2024-2026. Nove Corpos de Exército cobrem a fronteira com a Índia (Punjab, Sind) e
+-- a fronteira noroeste montanhosa com o Afeganistão. Doutrina de infantaria de massa e defesa de
+-- montanha, blindados nacionais Al-Khalid (co-produzidos com a China) e um Grupo de Serviços
+-- Especiais (SSG) de referência regional.
+
+-- ===== unit_type próprios (100+20*17 .. 119+20*17 = 440..459) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (440,'Al-Khalid (MBT)','ground',4.6,65,2.0,42),
+ (441,'Infantaria de Montanha (Fronteira NO)','ground',1.1,30,0.8,20),
+ (442,'Forças Especiais SSG','ground',1.4,35,0.8,28);
+
+INSERT INTO unit_stat VALUES
+ (440,'soft_atk',14),(440,'hard_atk',17),(440,'defense',14),(440,'breakthrough',30),(440,'armor',65),(440,'piercing',60),(440,'hardness',0.90),(440,'hp',22),
+ (441,'soft_atk',7), (441,'hard_atk',1), (441,'defense',30),(441,'breakthrough',9), (441,'armor',0), (441,'piercing',5), (441,'hardness',0.10),(441,'hp',27),
+ (442,'soft_atk',9), (442,'hard_atk',1.5),(442,'defense',18),(442,'breakthrough',12),(442,'armor',0), (442,'piercing',7.5),(442,'hardness',0.15),(442,'hp',20);
+
+INSERT INTO unit_tag VALUES
+ (440,'armored'),(440,'ground'),
+ (441,'infantry'),(441,'ground'),(441,'montanha'),
+ (442,'infantry'),(442,'ground'),(442,'especial');
+
+-- ===== espíritos nacionais + modificadores (ids 440..459) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('PAK_infantaria_montanha','PAK','Infantaria de Fronteira de Montanha',
+   'Décadas de operações na fronteira noroeste montanhosa deram à infantaria paquistanesa destacada aí uma vantagem clara, tanto a defender como a atacar em terreno de montanha.'),
+ ('PAK_al_khalid_nacional','PAK','Orgulho Blindado Nacional (Al-Khalid)',
+   'O Al-Khalid, co-desenvolvido com a China, é o símbolo da indústria de defesa paquistanesa: as tripulações que o operam recebem treino e manutenção prioritários.'),
+ ('PAK_forcas_especiais_ssg','PAK','Grupo de Serviços Especiais',
+   'O SSG ("Cegonhas Negras") é uma das forças especiais mais treinadas da região, especializada em operações de infiltração rápida.'),
+ ('PAK_exercito_de_massa','PAK','Exército de Conscrição em Massa',
+   'Um efectivo enorme para a economia do país torna a coordenação entre corpos de exército mais lenta e burocrática.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (440,'spirit','terrain','mountain','str_defender','montanha','mul',1.20,'PAK','PAK_infantaria_montanha'),
+ (441,'spirit','terrain','mountain','str_attacker','montanha','mul',1.10,'PAK','PAK_infantaria_montanha'),
+ (442,'spirit',NULL,     NULL,      'str_attacker','armored', 'mul',1.10,'PAK','PAK_al_khalid_nacional'),
+ (443,'spirit',NULL,     NULL,      'str_defender','armored', 'add',0.05,'PAK','PAK_al_khalid_nacional'),
+ (444,'spirit',NULL,     NULL,      'str_attacker','especial','mul',1.20,'PAK','PAK_forcas_especiais_ssg'),
+ (445,'spirit',NULL,     NULL,      'str_attacker','especial','add',0.10,'PAK','PAK_forcas_especiais_ssg'),
+ (446,'spirit',NULL,     NULL,      'command',     NULL,      'mul',0.92,'PAK','PAK_exercito_de_massa');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('PAK','production_speed',0.90),
+ ('PAK','org_regain',0.90),
+ ('PAK','start_army_mult',1.4);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('PAK','República Islâmica federal (com forte peso militar)','Chefe do Estado-Maior do Exército',
+  'Doutrina de infantaria de massa e defesa em profundidade nas fronteiras com a Índia e o Afeganistão, blindados nacionais para contra-ataques rápidos e forças especiais de elite para operações de infiltração.',
+  'Não-alinhado (cooperação estratégica de longa data com a China; laços históricos com os EUA)',
+  'O Paquistão mantém um dos maiores exércitos do mundo em efectivo, organizado em nove Corpos de Exército distribuídos entre a fronteira oriental com a Índia, densamente povoada, e a fronteira noroeste montanhosa com o Afeganistão. O blindado nacional Al-Khalid, co-produzido com a China, é a espinha dorsal das forças mecanizadas, enquanto o Grupo de Serviços Especiais (SSG) mantém uma reputação regional de elite.');
+
+-- ===== templates próprios (ids 1+50*17..50+50*17 = 851..900) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (851,'PAK','Divisão de Infantaria de Montanha'),
+ (852,'PAK','Regimento Blindado Al-Khalid'),
+ (853,'PAK','Grupo de Forças Especiais SSG');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (851,441,5),(851,1,2),(851,4,2),
+ (852,440,4),(852,2,2),(852,4,1),
+ (853,442,4),(853,1,2);
+
+-- ===== brigadas/corpos reais nomeados (ids 854..900) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (854,'PAK','I Corpo (Mangla)','Regimento Blindado Al-Khalid','Punjab'),
+ (855,'PAK','II Corpo (Multan)','Infantaria','Punjab'),
+ (856,'PAK','IV Corpo (Lahore)','Infantaria','Punjab'),
+ (857,'PAK','V Corpo (Karachi)','Infantaria','Sind'),
+ (858,'PAK','X Corpo (Rawalpindi, QG)','Infantaria','F.C.T.'),
+ (859,'PAK','XI Corpo (Peshawar)','Divisão de Infantaria de Montanha','K.P.'),
+ (860,'PAK','XII Corpo (Quetta)','Infantaria','Baluchistan'),
+ (861,'PAK','Força de Reacção Rápida SSG (Cherat)','Grupo de Forças Especiais SSG','K.P.'),
+ (862,'PAK','Comando do Norte (Gilgit-Baltistan)','Divisão de Infantaria de Montanha','Northern Areas'),
+ (863,'PAK','XXX Corpo (Gujranwala)','Regimento Blindado Al-Khalid','Punjab');
+
+-- ===== correcção de terreno =====
+UPDATE region SET terrain='mountain'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='PAK')
+   AND name IN ('Azad Kashmir','F.A.T.A.','Northern Areas');

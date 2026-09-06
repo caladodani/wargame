@@ -1,0 +1,85 @@
+-- UKR (k=14) — Zbroyni Syly Ukrayiny, ordem de batalha aproximada 2024-2026 (guerra em curso).
+-- Fontes: 3ª e 5ª Brigadas de Assalto Separadas, 10ª Brigada de Montanha "Edelweiss", 24ª Brigada
+-- Mecanizada "Rei Danylo", 28ª Brigada Mecanizada "Rainha Ana Yaroslavna", 92ª e 93ª Brigadas
+-- Mecanizadas, 1ª Brigada Blindada "Zaporizhzhya Sich", 4ª Brigada Blindada, 44ª e 26ª Brigadas de
+-- Artilharia, 95ª e 80ª Brigadas de Assalto Aéreo, Defesa Territorial de Kyiv.
+-- Carácter: exército de guerra experiente, muito forte em defesa e uso massivo de drones e
+-- artilharia de longo alcance; indústria danificada pela invasão russa.
+
+-- ===== unit_type próprios (100+20*14 .. 119+20*14 = 380..399) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (380,'Drone FPV/Reconhecimento','support',0.7,20,0.6,20),
+ (381,'Artilharia de Longo Alcance','support',2.6,50,1.6,22),
+ (382,'Brigada Blindada T-64/Leopard','ground',4.2,62,2.1,36),
+ (383,'Infantaria de Assalto','ground',1.2,32,1.0,24);
+
+INSERT INTO unit_stat VALUES
+ (380,'soft_atk',3), (380,'hard_atk',6), (380,'defense',4), (380,'breakthrough',2), (380,'armor',0), (380,'piercing',30),(380,'hardness',0.15),(380,'hp',5),
+ (381,'soft_atk',28),(381,'hard_atk',3),(381,'defense',6), (381,'breakthrough',6), (381,'armor',0), (381,'piercing',12),(381,'hardness',0.2), (381,'hp',6),
+ (382,'soft_atk',12),(382,'hard_atk',15),(382,'defense',13),(382,'breakthrough',29),(382,'armor',58),(382,'piercing',56),(382,'hardness',0.88),(382,'hp',21),
+ (383,'soft_atk',8), (383,'hard_atk',1.5), (383,'defense',26),(383,'breakthrough',10),(383,'armor',0), (383,'piercing',6), (383,'hardness',0.12),(383,'hp',28);
+
+INSERT INTO unit_tag VALUES
+ (380,'support'),(380,'ground'),
+ (381,'support'),(381,'ground'),
+ (382,'armored'),(382,'ground'),
+ (383,'infantry'),(383,'ground'),(383,'veterano');
+
+-- ===== espíritos nacionais + modificadores (ids 380..399) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('UKR_veteranos_de_guerra','UKR','Veteranos de Guerra',
+   'Anos de combate real endureceram a tropa: forte bónus defensivo e ligeiro bónus ofensivo em todas as unidades.'),
+ ('UKR_guerra_de_drones','UKR','Guerra de Drones',
+   'O uso massivo de drones de reconhecimento e ataque melhora a precisão e o apoio das unidades de suporte em qualquer ofensiva.'),
+ ('UKR_defesa_urbana','UKR','Defesa Urbana Tenaz',
+   'A experiência de Bakhmut, Mariupol e Avdiivka ensinou a defender cidade a cidade: bónus defensivo extra em terreno urbano.'),
+ ('UKR_mobilizacao_total','UKR','Mobilização Total',
+   'A economia de guerra e a mobilização em massa melhoram a coordenação de comando apesar da pressão constante da linha da frente.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (380,'spirit',NULL,NULL,        'str_defender',NULL,     'mul',1.25,'UKR','UKR_veteranos_de_guerra'),
+ (381,'spirit',NULL,NULL,        'str_attacker',NULL,     'mul',1.05,'UKR','UKR_veteranos_de_guerra'),
+ (382,'spirit',NULL,NULL,        'str_attacker','support','mul',1.15,'UKR','UKR_guerra_de_drones'),
+ (383,'spirit','terrain','urban','str_defender',NULL,     'mul',1.20,'UKR','UKR_defesa_urbana'),
+ (384,'spirit',NULL,NULL,        'command',     NULL,     'mul',1.08,'UKR','UKR_mobilizacao_total');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('UKR','industry',0.5),
+ ('UKR','production_speed',0.75),
+ ('UKR','org_regain',1.05),
+ ('UKR','start_army_mult',1.40);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('UKR','República semipresidencialista (lei marcial)','Comandante-em-Chefe das Forças Armadas',
+  'Defesa elástica em profundidade, guerra de drones e artilharia de longo alcance, mobilização total da população em idade militar.',
+  'Não-alinhado (candidato à NATO)',
+  'Depois de mais de dois anos de guerra total, a Ucrânia dispõe de um dos exércitos mais experientes da Europa, moldado por combate constante em terreno urbano e rural. A indústria de defesa, danificada por bombardeamentos sistemáticos, é parcialmente compensada por produção descentralizada de drones e por ajuda externa. A doutrina assenta em defesa tenaz, contra-ataques localizados e um uso intensivo de reconhecimento não tripulado para guiar a artilharia.');
+
+-- ===== templates próprios (ids 701..750) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (701,'UKR','Brigada Mecanizada de Choque'),
+ (702,'UKR','Batalhão de Assalto e Drones'),
+ (703,'UKR','Regimento de Artilharia Pesada');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (701,382,3),(701,2,3),(701,381,2),
+ (702,383,4),(702,380,3),(702,6,1),
+ (703,381,4),(703,1,3),(703,5,1);
+
+-- ===== brigadas reais nomeadas (ids 704..750) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (704,'UKR','3ª Brigada de Assalto Separada','Batalhão de Assalto e Drones','Kharkiv'),
+ (705,'UKR','5ª Brigada de Assalto Separada','Batalhão de Assalto e Drones',"Donets'k"),
+ (706,'UKR','10ª Brigada de Montanha "Edelweiss"','Infantaria',"Ivano-Frankivs'k"),
+ (707,'UKR','24ª Brigada Mecanizada "Rei Danylo"','Brigada Mecanizada de Choque',"Donets'k"),
+ (708,'UKR','28ª Brigada Mecanizada "Rainha Ana Yaroslavna"','Brigada Mecanizada de Choque','Zaporizhzhya'),
+ (709,'UKR','92ª Brigada Mecanizada Separada','Mecanizada','Kharkiv'),
+ (710,'UKR','93ª Brigada Mecanizada "Kholodnyi Yar"','Mecanizada',"Donets'k"),
+ (711,'UKR','1ª Brigada Blindada "Zaporizhzhya Sich"','Brigada Mecanizada de Choque','Zaporizhzhya'),
+ (712,'UKR','4ª Brigada Blindada','Brigada Mecanizada de Choque','Kharkiv'),
+ (713,'UKR','44ª Brigada de Artilharia','Regimento de Artilharia Pesada','Poltava'),
+ (714,'UKR','26ª Brigada de Artilharia','Regimento de Artilharia Pesada','Kirovohrad'),
+ (715,'UKR','95ª Brigada de Assalto Aéreo','Infantaria AT',"Dnipropetrovs'k"),
+ (716,'UKR','80ª Brigada de Assalto Aéreo','Infantaria AT',"L'viv"),
+ (717,'UKR','Brigada de Defesa Territorial de Kiev','Infantaria','Kiev City');
