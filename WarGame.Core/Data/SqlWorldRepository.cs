@@ -37,6 +37,16 @@ public sealed class SqlWorldRepository : IWorldRepository
 
         foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description FROM tech"))
             w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string);
+        foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
+            if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
+                w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
+                    Convert.ToInt32(r["days"]), r["requires"] as string, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT focus_id,stat_key,value FROM focus_effect"))
+        {
+            var fid = (string)r["focus_id"]!;
+            if (!w.FocusEffects.TryGetValue(fid, out var flist)) w.FocusEffects[fid] = flist = new();
+            flist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
         foreach (var r in _static.Query("SELECT tech_id,stat_key,value FROM tech_effect"))
         {
             string id = (string)r["tech_id"]!;
@@ -131,6 +141,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_country", "capitulated_day", "INTEGER"),
         ("s_region", "owner_id", "INTEGER"),
         ("s_country", "manpower", "REAL NOT NULL DEFAULT -1"),
+        ("s_country", "focus", "TEXT"),
+        ("s_country", "focus_progress", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -141,7 +153,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         foreach (var r in save.Query("SELECT key,value FROM save_meta"))
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
@@ -149,9 +161,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             c.Capitulated = r["capitulated"] is not null && Convert.ToInt32(r["capitulated"]) == 1;
             c.CapitulatedDay = r["capitulated_day"] is null ? null : Convert.ToInt32(r["capitulated_day"]);
             if (r["manpower"] is not null) c.Manpower = Convert.ToSingle(r["manpower"]);
+            c.CurrentFocus = r["focus"] as string;
+            if (r["focus_progress"] is not null) c.FocusProgress = Convert.ToSingle(r["focus_progress"]);
         }
         foreach (var r in save.Query("SELECT country_id,tech_id FROM s_country_tech"))
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
+        foreach (var r in save.Query("SELECT country_id,focus_id FROM s_focus"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cf)) cf.FocusesDone.Add((string)r["focus_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id FROM s_region"))
         {
@@ -187,16 +203,17 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_production_queue", "s_battle", "s_battle_division" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var c in w.Countries.Values)
         {
-            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower) VALUES (?,?,?,?,?,?,?,?)",
-                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower);
+            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null)
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
+            foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
             foreach (var e in c.AtWarWith) if (c.Id < e) save.Execute("INSERT INTO s_war VALUES (?,?,?)", c.Id, e, w.Clock.Day);
         }

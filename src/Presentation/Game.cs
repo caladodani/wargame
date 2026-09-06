@@ -74,6 +74,7 @@ public partial class Game : Node
         World.Register(new ManpowerSystem());
         World.Register(new ProductionSystem());
         World.Register(new ResearchSystem());
+        World.Register(new FocusSystem());
         World.Register(new MovementSystem());
         World.Register(new CombatSystem());
         World.Register(new PeaceSystem());

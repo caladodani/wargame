@@ -93,6 +93,15 @@ CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir:
 CREATE TABLE IF NOT EXISTS country_tech (        -- tecnologias com que o país começa
   country_tag TEXT NOT NULL, tech_id TEXT NOT NULL REFERENCES tech(id), PRIMARY KEY (country_tag, tech_id)
 );
+CREATE TABLE IF NOT EXISTS focus (               -- foco nacional (HoI4); árvore por país, requires = foco anterior
+  id TEXT PRIMARY KEY, country_tag TEXT NOT NULL REFERENCES country(tag),
+  name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+  days INTEGER NOT NULL DEFAULT 35, requires TEXT REFERENCES focus(id), sort INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS focus_effect (        -- ao concluir: Country.Stat(stat_key) × value (como tech_effect)
+  focus_id TEXT NOT NULL REFERENCES focus(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (focus_id, stat_key)
+);
 CREATE TABLE IF NOT EXISTS start_war (           -- guerras já a decorrer no dia 0 (tags)
   a_tag TEXT NOT NULL, b_tag TEXT NOT NULL, PRIMARY KEY (a_tag, b_tag)
 );
@@ -107,9 +116,11 @@ CREATE TABLE IF NOT EXISTS s_country (
   id INTEGER PRIMARY KEY, is_player INTEGER NOT NULL DEFAULT 0, money REAL NOT NULL DEFAULT 0,
   stability REAL NOT NULL DEFAULT 50, research_tech TEXT, research_progress REAL NOT NULL DEFAULT 0,
   capitulated INTEGER NOT NULL DEFAULT 0, capitulated_day INTEGER,
-  manpower REAL NOT NULL DEFAULT -1  -- -1 = por inicializar (ManpowerSystem)
+  manpower REAL NOT NULL DEFAULT -1,  -- -1 = por inicializar (ManpowerSystem)
+  focus TEXT, focus_progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
+CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
 CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, PRIMARY KEY (a, b));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,

@@ -176,6 +176,10 @@ public partial class Hud : CanvasLayer
             string name; try { name = w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "divisão"; }
             Later($"{name} destruída em {RegionName(d.RegionId)}");
         }));
+        _subs.Add(w.Events.Subscribe<FocusCompleted>(e =>
+        {
+            if (Player(e.CountryId)) Later($"Foco concluído: {(w.Focuses.TryGetValue(e.FocusId, out var f) ? f.Name : e.FocusId)}");
+        }));
         _subs.Add(w.Events.Subscribe<FactionJoinedWar>(e =>
         {
             if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))

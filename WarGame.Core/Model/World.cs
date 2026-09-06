@@ -23,6 +23,9 @@ public sealed class World
     /// <summary>Árvore tecnológica (tabela tech) e efeitos de país por tecnologia (tech_effect).</summary>
     public Dictionary<string, Tech> Techs { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> TechEffects { get; } = new();
+    /// <summary>Focos nacionais (tabela focus) e efeitos (focus_effect), por id.</summary>
+    public Dictionary<string, Focus> Focuses { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();
     /// <summary>Alianças defensivas (tabelas faction + faction_member). Ver FactionsOf/SameFaction/Allies.</summary>
     public Dictionary<string, Faction> Factions { get; } = new();
 
@@ -54,7 +57,15 @@ public sealed class World
         foreach (var t in c.Techs)
             if (TechEffects.TryGetValue(t, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+        foreach (var f in c.FocusesDone)
+            if (FocusEffects.TryGetValue(f, out var effs))
+                foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
     }
+
+    /// <summary>Pode escolher o foco: é do país, não o tem, e tem o anterior.</summary>
+    public bool CanFocus(Country c, string focusId) =>
+        Focuses.TryGetValue(focusId, out var f) && f.CountryId == c.Id && !c.FocusesDone.Contains(focusId)
+        && (f.Requires is null || c.FocusesDone.Contains(f.Requires));
 
     /// <summary>Pode investigar: existe, não a tem, tem a anterior.</summary>
     public bool CanResearch(Country c, string techId) =>

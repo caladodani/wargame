@@ -13,7 +13,7 @@ namespace WarGame.Core.Tests;
 public class FactionTests
 {
     /// <summary>Mundo carregado do static.db real (mesmo LoadStatic do jogo) — só para ler países/facções, sem mapa jogável.</summary>
-    private static World BuildReal()
+    internal static World BuildReal()
     {
         var db = new MsSqliteDatabase("Data Source=data/static.db;Mode=ReadOnly");
         var units = new SqlUnitRepository(db);

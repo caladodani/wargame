@@ -9,6 +9,8 @@ public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadO
 /// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>
 /// <summary>Tecnologia (tabela tech). Cost = dias com research_speed 1; Requires = id da anterior no ramo.</summary>
 public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description);
+/// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
+public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);
 
 public sealed record NationalSpirit(string Id, string CountryTag, string Name, string Description);
 
@@ -64,6 +66,9 @@ public sealed class Country
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
+    public string? CurrentFocus { get; set; }      // foco nacional em curso (FocusSystem)
+    public float FocusProgress { get; set; }
+    public HashSet<string> FocusesDone { get; } = new();
     public HashSet<int> AtWarWith { get; } = new();
     /// <summary>Capitulou (PeaceSystem): sem regiões nem exército; a IA ignora-o. Persistido em s_country.</summary>
     public bool Capitulated { get; set; }

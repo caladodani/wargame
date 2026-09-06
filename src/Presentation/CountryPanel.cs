@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -84,6 +84,26 @@ public partial class CountryPanel : PanelContainer
                 Line("Em guerra com: " + string.Join(", ", enemies));
             }
 
+            // focos nacionais (HoI4): um em curso, árvore por país
+            var myFocuses = w.Focuses.Values.Where(f => f.CountryId == c.Id).OrderBy(f => f.Sort).ThenBy(f => f.Id).ToList();
+            if (myFocuses.Count > 0)
+            {
+                Header("Focos nacionais");
+                if (c.CurrentFocus is not null && w.Focuses.TryGetValue(c.CurrentFocus, out var curF))
+                    Line($"Em curso: {curF.Name}   {(int)(100 * c.FocusProgress / MathF.Max(1, curF.Days))}%  ({(int)MathF.Ceiling(curF.Days - c.FocusProgress)} dias)");
+                else Line(mine ? "Nenhum em curso — escolhe um foco:" : "Nenhum em curso");
+                foreach (var f in myFocuses.Where(f => w.CanFocus(c, f.Id)))
+                {
+                    string fid = f.Id;
+                    var row = new HBoxContainer();
+                    row.AddChild(Ui.Grow(Ui.Lbl($"{f.Name}   {f.Days} dias" + (f.Description.Length > 0 ? "\n   " + f.Description : ""), 16)));
+                    if (mine && c.CurrentFocus != fid) row.AddChild(Ui.Btn("Escolher", () => PickFocus(fid), 150));
+                    _body.AddChild(row);
+                }
+                var doneF = c.FocusesDone.Where(w.Focuses.ContainsKey).Select(id => w.Focuses[id].Name).OrderBy(n => n).ToList();
+                Line($"Concluídos ({doneF.Count}): " + (doneF.Count == 0 ? "nenhum" : string.Join(", ", doneF)), 16);
+            }
+
             // investigação
             Header("Investigação");
             if (c.ResearchTech is not null && w.Techs.TryGetValue(c.ResearchTech, out var cur))
@@ -102,6 +122,13 @@ public partial class CountryPanel : PanelContainer
             Line($"Concluídas ({known.Count}): " + (known.Count == 0 ? "nenhuma" : string.Join(", ", known)), 16);
         }
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }
+    }
+
+    private void PickFocus(string focusId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new SelectFocusCommand(pid, focusId));
+        if (err is not null) GetParent<Hud>().Toast(err);
     }
 
     private void Research(string techId)

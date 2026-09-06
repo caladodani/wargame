@@ -95,3 +95,22 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='PRT')
    AND name IN ('Bragança','Vila Real','Guarda','Viseu','Castelo Branco','Viana do Castelo','Madeira','Azores');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('prt_atlantico','PRT','Vocação Atlântica','Portugal volta-se para o mar: cooperação naval e científica com os aliados.',35,NULL,1),
+ ('prt_nato','PRT','Pilar da NATO','Integração profunda nas estruturas da Aliança: comando, doutrina e exercícios.',42,'prt_atlantico',2),
+ ('prt_lusofonia','PRT','Comunidade Lusófona','A CPLP como rede económica e diplomática de Lisboa.',35,'prt_atlantico',3),
+ ('prt_reequipamento','PRT','Lei de Programação Militar','Reequipamento plurianual: Pandur, F-16 MLU, fragatas modernizadas.',42,NULL,4),
+ ('prt_industria_defesa','PRT','Indústria de Defesa Nacional','OGMA, Arsenal do Alfeite e novas tecnológicas puxam pela economia.',49,'prt_reequipamento',5),
+ ('prt_servico_militar','PRT','Reserva Mobilizável','Recenseamento renovado e incentivos à reserva: mais homens disponíveis.',35,NULL,6),
+ ('prt_comandos','PRT','Tradição dos Comandos','As forças especiais formam o núcleo duro de um exército pequeno mas afiado.',42,'prt_servico_militar',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('prt_atlantico','research_speed',1.05),
+ ('prt_nato','org_regain',1.10),
+ ('prt_lusofonia','industry',1.05),
+ ('prt_reequipamento','production_speed',1.10),
+ ('prt_industria_defesa','industry',1.08),
+ ('prt_servico_militar','conscription',1.25),
+ ('prt_comandos','org_regain',1.05),
+ ('prt_comandos','conscription',1.10);

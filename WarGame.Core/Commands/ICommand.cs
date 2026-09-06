@@ -39,6 +39,22 @@ public sealed record ResearchTechCommand(int CountryId, string TechId) : IComman
     public void Execute(World w) { var c = w.Countries[CountryId]; c.ResearchTech = TechId; c.ResearchProgress = 0f; }
 }
 
+/// <summary>Escolhe o foco nacional (um de cada vez; trocar perde o progresso, como em HoI4).</summary>
+public sealed record SelectFocusCommand(int CountryId, string FocusId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País inexistente";
+        if (!w.Focuses.TryGetValue(FocusId, out var f)) return "Foco inexistente";
+        if (f.CountryId != CountryId) return "Foco de outro país";
+        if (c.FocusesDone.Contains(FocusId)) return "Já concluído";
+        if (f.Requires is not null && !c.FocusesDone.Contains(f.Requires)) return $"Precisa de {w.Focuses[f.Requires].Name}";
+        if (c.CurrentFocus == FocusId) return "Já em curso";
+        return null;
+    }
+    public void Execute(World w) { var c = w.Countries[CountryId]; c.CurrentFocus = FocusId; c.FocusProgress = 0f; }
+}
+
 /// <summary>Manda uma divisão para uma região (qualquer distância): caminho por BFS através de regiões
 /// controladas pelo país ou por um inimigo em guerra. O MovementSystem anda salto a salto.</summary>
 public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int TargetRegionId) : ICommand

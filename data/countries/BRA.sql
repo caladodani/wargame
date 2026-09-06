@@ -100,3 +100,23 @@ UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='BRA') AND name IN ('Minas Gerais','Espírito Santo');
 UPDATE region SET terrain='urban'
  WHERE owner_id=(SELECT id FROM country WHERE tag='BRA') AND name IN ('São Paulo');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('bra_amazonia','BRA','Amazônia é Nossa','Presença permanente na fronteira norte: pelotões de selva e vigilância.',35,NULL,1),
+ ('bra_sivam','BRA','SIVAM Ampliado','Radares e sensores cobrem a floresta: ninguém entra sem ser visto.',42,'bra_amazonia',2),
+ ('bra_industria','BRA','Base Industrial de Defesa','Embraer, IMBEL e Taurus em ritmo de guerra: produção nacional.',49,NULL,3),
+ ('bra_pre_sal','BRA','Riqueza do Pré-Sal','A renda do petróleo financia o rearmamento.',42,'bra_industria',4),
+ ('bra_prosub','BRA','Programa de Submarinos','Tecnologia nuclear naval própria: dissuasão no Atlântico Sul.',56,'bra_industria',5),
+ ('bra_mobilizacao','BRA','Mobilização Nacional','O serviço militar obrigatório vira reserva treinada de verdade.',35,NULL,6),
+ ('bra_potencia','BRA','Potência Regional','Liderança sul-americana assumida: doutrina própria e projeção de força.',56,'bra_mobilizacao',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('bra_amazonia','org_regain',1.05),
+ ('bra_sivam','research_speed',1.08),
+ ('bra_industria','production_speed',1.12),
+ ('bra_pre_sal','industry',1.10),
+ ('bra_prosub','research_speed',1.05),
+ ('bra_prosub','industry',1.03),
+ ('bra_mobilizacao','conscription',1.30),
+ ('bra_potencia','org_regain',1.08),
+ ('bra_potencia','conscription',1.10);
