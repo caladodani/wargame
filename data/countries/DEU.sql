@@ -79,3 +79,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (361,'DEU','Gebirgsjägerbrigade 23','Brigada de Elite (Jäger)','Bayern'),
  (362,'DEU','Wachbataillon','Infantaria','Berlin'),
  (363,'DEU','Panzergrenadierbrigade 21 "Lipperland"','Brigada Panzergrenadier','Nordrhein-Westfalen');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('deu_industria_precisao','DEU','Base Industrial de Defesa','A indústria alemã de defesa (Rheinmetall, KMW, Diehl) recebe incentivos fiscais e contratos plurianuais para escalar a produção.',35,NULL,1),
+ ('deu_frente_nato','DEU','Frente Central da NATO','A Alemanha assume-se como charneira defensiva da NATO na Europa Central, reforçando comando e prontidão das divisões.',35,NULL,2),
+ ('deu_nova_conscricao','DEU','Debate sobre o Serviço Militar','Um novo modelo de serviço voluntário e obrigatório é discutido no Bundestag para colmatar o défice de efetivos da Bundeswehr.',28,NULL,3),
+ ('deu_rheinmetall_kmw','DEU','Expansão de Rheinmetall e KMW','Novas linhas de montagem em Unterlüß e Munique aceleram a produção de blindados e munições.',42,'deu_industria_precisao',4),
+ ('deu_leopard2a8','DEU','Programa Leopard 2A8','A encomenda do Leopard 2A8, com blindagem reativa e canhão de maior calibre, moderniza as divisões Panzer.',49,'deu_rheinmetall_kmw',5),
+ ('deu_zeitenwende','DEU','Zeitenwende: Fundo Especial','O fundo especial Sondervermögen de 100 mil milhões de euros financia investigação e prontidão operacional da Bundeswehr.',56,'deu_frente_nato',6),
+ ('deu_reserva_territorial','DEU','Reserva Territorial (Heimatschutz)','A Reserva Territorial organiza-se em unidades regionais para reforçar a defesa civil e a resiliência do país em caso de crise.',35,'deu_nova_conscricao',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('deu_industria_precisao','industry',1.08),
+ ('deu_frente_nato','org_regain',1.10),
+ ('deu_nova_conscricao','conscription',1.15),
+ ('deu_rheinmetall_kmw','industry',1.06),
+ ('deu_rheinmetall_kmw','production_speed',1.08),
+ ('deu_leopard2a8','production_speed',1.10),
+ ('deu_zeitenwende','research_speed',1.12),
+ ('deu_zeitenwende','org_regain',1.08),
+ ('deu_reserva_territorial','conscription',1.10);

@@ -82,3 +82,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (314,'GBR','102nd Logistic Brigade','Infantaria AT','Nottingham'),
  (315,'GBR','3 SCOTS (The Black Watch)','Infantaria','Highland'),
  (316,'GBR','1st Armoured Infantry Brigade','Blindada','Bristol');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('gbr_compromisso_nato','GBR','Compromisso com a Aliança Atlântica','O Reino Unido reforça o seu papel de pilar fundador da NATO, financiando os quartéis-generais multinacionais em solo britânico.',35,NULL,1),
+ ('gbr_projecao_expedicionaria','GBR','Força de Projeção Expedicionária','Doutrina de intervenção rápida além-fronteiras, apoiada pelos Royal Marines e pelos pára-quedistas do 16 Air Assault.',35,NULL,2),
+ ('gbr_comando_conjunto','GBR','Comando Conjunto Permanente','O Permanent Joint Headquarters de Northwood coordena operações multinacionais com maior eficiência de estado-maior.',42,'gbr_compromisso_nato',3),
+ ('gbr_industria_defesa','GBR','BAE Systems e Rolls-Royce','Investimento sustentado na base industrial de defesa nacional acelera a produção de equipamento militar.',49,'gbr_projecao_expedicionaria',4),
+ ('gbr_porta_avioes','GBR','Grupo de Ataque HMS Queen Elizabeth','A entrada em pleno serviço dos porta-aviões da classe Queen Elizabeth consolida a capacidade de projeção naval britânica.',56,'gbr_projecao_expedicionaria',5),
+ ('gbr_dissuasao_nuclear','GBR','Trident e a Dissuasão Contínua no Mar','A frota de submarinos Vanguard mantém a patrulha ininterrupta da dissuasão nuclear britânica, libertando recursos científicos para outros programas.',63,'gbr_comando_conjunto',6),
+ ('gbr_exercito_voluntario','GBR','Exército Voluntário e Reserva','Sem conscrição desde 1963, o recrutamento assenta em campanhas de voluntariado e no reforço do Army Reserve.',28,NULL,7),
+ ('gbr_forcas_especiais','GBR','SAS, SBS e o Directorate of Special Forces','O aperfeiçoamento contínuo das forças especiais britânicas eleva a resiliência e a rapidez de reorganização de toda a estrutura de comando.',42,'gbr_exercito_voluntario',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('gbr_compromisso_nato','org_regain',1.10),
+ ('gbr_projecao_expedicionaria','production_speed',1.08),
+ ('gbr_comando_conjunto','org_regain',1.08),
+ ('gbr_industria_defesa','industry',1.10),
+ ('gbr_porta_avioes','production_speed',1.10),
+ ('gbr_dissuasao_nuclear','research_speed',1.10),
+ ('gbr_exercito_voluntario','conscription',1.20),
+ ('gbr_forcas_especiais','org_regain',1.10);

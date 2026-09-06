@@ -74,3 +74,22 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (167,'CHN','Guarnição do Tibete','Divisão de Montanha','Xizang'),
  (168,'CHN','Guarnição de Pequim','Infantaria AT','Beijing'),
  (169,'CHN','Milícias Populares de Massa','Onda Humana','Hunan');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('chn_made_in_china_2025','CHN','Made in China 2025','Plano estatal para dominar semicondutores, robótica e manufatura avançada.',49,NULL,1),
+ ('chn_belt_and_road','CHN','Nova Rota da Seda','Investimento maciço em infraestrutura e influência económica ao longo da Eurásia.',56,NULL,2),
+ ('chn_pla_modernizacao','CHN','Modernização do EPL','Reforma estrutural do Exército de Libertação Popular em torno de exércitos de grupo integrados.',42,NULL,3),
+ ('chn_civil_militar','CHN','Fusão Civil-Militar','Empresas tecnológicas privadas passam a fornecer diretamente o esforço de defesa.',35,'chn_made_in_china_2025',4),
+ ('chn_string_of_pearls','CHN','Colar de Pérolas','Rede de portos e bases de apoio logístico do Índico ao Pacífico Ocidental.',49,'chn_belt_and_road',5),
+ ('chn_mar_do_sul','CHN','Ilhas Artificiais do Mar do Sul da China','Consolidação de posições avançadas em recifes e atóis disputados.',63,'chn_pla_modernizacao',6),
+ ('chn_conscricao_universal','CHN','Serviço Militar Universal Reforçado','Alargamento do recenseamento e treino de reservistas em todas as províncias.',35,'chn_pla_modernizacao',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('chn_made_in_china_2025','research_speed',1.10),
+ ('chn_made_in_china_2025','industry',1.05),
+ ('chn_belt_and_road','industry',1.08),
+ ('chn_pla_modernizacao','org_regain',1.08),
+ ('chn_civil_militar','production_speed',1.10),
+ ('chn_string_of_pearls','production_speed',1.06),
+ ('chn_mar_do_sul','org_regain',1.06),
+ ('chn_conscricao_universal','conscription',1.25);

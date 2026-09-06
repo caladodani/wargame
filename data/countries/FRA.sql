@@ -78,3 +78,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (1362,'FRA','11e Brigade parachutiste','Infantaria','Haute-Garonne'),
  (1363,'FRA','6e Brigade légère blindée','Blindada','Var'),
  (1364,'FRA','1er Régiment de Parachutistes d''Infanterie de Marine','Infantaria AT','Pyrénées-Atlantiques');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('fra_dissuasion','FRA','Dissuasion Nucléaire','A força de dissuasão nuclear francesa continua a ser o pilar da independência estratégica.',49,NULL,1),
+ ('fra_force_frappe','FRA','Modernização da Force de Frappe','Renovação dos SNLE e dos vetores aéreos: a dissuasão entra na próxima geração.',56,'fra_dissuasion',2),
+ ('fra_projection','FRA','Força de Projeção Expedicionária','Investimento em transporte estratégico e logística para operações longe de metrópole.',35,NULL,3),
+ ('fra_porte_avions','FRA','Porta-Aviões de Nova Geração','O programa do sucessor do Charles de Gaulle garante presença naval de longo alcance.',63,'fra_projection',4),
+ ('fra_legion','FRA','Reforço da Légion Étrangère','Recrutamento alargado e treino intensivo reforçam a ponta de lança expedicionária.',28,'fra_projection',5),
+ ('fra_industrie_defense','FRA','Base Industrial e Tecnológica de Defesa','Dassault, Naval Group e Nexter recebem encomendas que sustentam a autonomia industrial.',42,NULL,6),
+ ('fra_rafale_export','FRA','Diplomacia do Rafale','Contratos de exportação do Rafale financiam a próxima geração de caças franceses.',49,'fra_industrie_defense',7),
+ ('fra_service_national','FRA','Service National Universel','Um serviço cívico e militar renovado alarga a reserva mobilizável da Nação.',35,NULL,8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('fra_dissuasion','research_speed',1.08),
+ ('fra_force_frappe','research_speed',1.10),
+ ('fra_projection','org_regain',1.06),
+ ('fra_porte_avions','production_speed',1.10),
+ ('fra_legion','org_regain',1.08),
+ ('fra_industrie_defense','industry',1.10),
+ ('fra_rafale_export','industry',1.08),
+ ('fra_rafale_export','production_speed',1.08),
+ ('fra_service_national','conscription',1.20);

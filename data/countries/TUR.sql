@@ -86,3 +86,22 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='TUR')
    AND name IN ('Hakkari','Van','Bitlis','Mus','Agri','Erzurum','Tunceli','Bingöl','Sirnak','Bolu');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('tur_patria_azul','TUR','Pátria Azul (Mavi Vatan)','Doutrina naval de afirmação no Egeu e no Mediterrâneo Oriental.',42,NULL,1),
+ ('tur_industria_drones','TUR','Indústria Nacional de Drones','Baykar e TAI aceleram a produção de UAVs e munições de precisão.',35,NULL,2),
+ ('tur_altay','TUR','Programa de Carro de Combate Altay','Série nacional do Altay substitui progressivamente a frota de blindados importados.',49,'tur_industria_drones',3),
+ ('tur_bosforo','TUR','Guarda dos Estreitos','Reforço da vigilância e defesa costeira do Bósforo e dos Dardanelos.',28,'tur_patria_azul',4),
+ ('tur_reserva_anatolia','TUR','Mobilização da Anatólia','Reorganização do serviço militar obrigatório e das reservas territoriais.',35,NULL,5),
+ ('tur_forcas_especiais','TUR','Bordô: Elite das Forças Especiais','Expansão das brigadas de comandos e das forças de montanha no Sudeste.',42,'tur_reserva_anatolia',6),
+ ('tur_exportacao_defesa','TUR','Diplomacia da Indústria de Defesa','Exportação de sistemas turcos reforça alianças e financia a produção interna.',56,'tur_altay',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('tur_patria_azul','research_speed',1.05),
+ ('tur_industria_drones','production_speed',1.10),
+ ('tur_altay','industry',1.08),
+ ('tur_bosforo','org_regain',1.06),
+ ('tur_reserva_anatolia','conscription',1.20),
+ ('tur_forcas_especiais','org_regain',1.08),
+ ('tur_exportacao_defesa','industry',1.10),
+ ('tur_exportacao_defesa','production_speed',1.05);

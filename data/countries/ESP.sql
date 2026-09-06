@@ -89,3 +89,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='ESP')
    AND name IN ('Huesca','Lérida','Gerona','Navarra','Asturias','León','Granada');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('esp_otan_ue','ESP','Compromisso Euro-Atlântico','Espanha aproxima-se da meta de 2% do PIB em defesa e aprofunda a interoperabilidade com a OTAN.',35,NULL,1),
+ ('esp_eurocuerpo','ESP','Eurocuerpo e Reação Rápida da UE','Reforço do Eurocuerpo sediado em Bétera e das forças multinacionais de reação rápida europeias.',42,'esp_otan_ue',2),
+ ('esp_industria_defensa','ESP','Plano de Indústria de Defesa','Navantia, Indra e Airbus Espanha recebem investimento industrial e tecnológico plurianual.',42,NULL,3),
+ ('esp_navantia','ESP','Submarinos S-80 e Fragatas F-110','Os estaleiros de Cartagena e Ferrol entregam os novos submarinos S-80 Plus e as fragatas F-110.',49,'esp_industria_defensa',4),
+ ('esp_pizarro_leopardo','ESP','Modernização Blindada','Actualização dos Pizarro e novo lote de carros Leopardo 2E para as brigadas mecanizadas.',42,'esp_navantia',5),
+ ('esp_reserva_estrategica','ESP','Reserva Estratégica','Programa de reservistas voluntários para reforçar rapidamente as Forças Armadas em crise.',35,NULL,6),
+ ('esp_legion','ESP','Legião e UME','A Legião e a Unidad Militar de Emergencias mantêm-se como pontas de lança de intervenção rápida.',35,'esp_reserva_estrategica',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('esp_otan_ue','research_speed',1.08),
+ ('esp_eurocuerpo','org_regain',1.08),
+ ('esp_industria_defensa','industry',1.10),
+ ('esp_navantia','industry',1.10),
+ ('esp_navantia','production_speed',1.08),
+ ('esp_pizarro_leopardo','production_speed',1.12),
+ ('esp_reserva_estrategica','conscription',1.20),
+ ('esp_legion','conscription',1.10),
+ ('esp_legion','org_regain',1.10);

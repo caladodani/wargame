@@ -81,3 +81,27 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='KOR')
    AND name IN ('Gangwon','North Gyeongsang');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('kor_juche_defesa','KOR','Autonomia na Indústria de Defesa','Seul aposta na autossuficiência tecnológica militar, reduzindo a dependência de fornecedores estrangeiros.',28,NULL,1),
+ ('kor_alianca_eua','KOR','Aliança Coreia-EUA','Reforço da cooperação militar com Washington: exercícios conjuntos e partilha de inteligência.',28,NULL,2),
+ ('kor_servico_militar','KOR','Reforma do Serviço Militar Obrigatório','Revisão da conscrição face à pressão demográfica e à ameaça do Norte.',21,NULL,3),
+ ('kor_k_industria','KOR','Complexo K9/K2: Indústria Blindada','Investimento nas linhas de montagem dos obuses K9 Thunder e dos carros de combate K2 Black Panther.',35,'kor_juche_defesa',4),
+ ('kor_add_pesquisa','KOR','Agência de Desenvolvimento de Defesa','Financiamento reforçado à ADD para mísseis, radares e sistemas autónomos de nova geração.',42,'kor_juche_defesa',5),
+ ('kor_exportacao_armamento','KOR','Coreia do Sul, Potência Exportadora de Armamento','Contratos com a Polónia, a Austrália e outros clientes impulsionam a produção nacional de armamento.',49,'kor_k_industria',6),
+ ('kor_comando_combinado','KOR','Comando Combinado Reforçado','Aprofundamento do Combined Forces Command com os Estados Unidos para resposta rápida na península.',35,'kor_alianca_eua',7),
+ ('kor_reserva_mobilizavel','KOR','Reserva Mobilizável de Massa','Modernização do sistema de reservistas para garantir mobilização rápida em caso de guerra.',35,'kor_servico_militar',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('kor_juche_defesa','industry',1.05),
+ ('kor_k_industria','industry',1.08),
+ ('kor_k_industria','production_speed',1.05),
+ ('kor_add_pesquisa','research_speed',1.15),
+ ('kor_exportacao_armamento','production_speed',1.10),
+ ('kor_exportacao_armamento','industry',1.05),
+ ('kor_alianca_eua','org_regain',1.05),
+ ('kor_comando_combinado','org_regain',1.10),
+ ('kor_comando_combinado','research_speed',1.05),
+ ('kor_servico_militar','conscription',1.15),
+ ('kor_reserva_mobilizavel','conscription',1.20),
+ ('kor_reserva_mobilizavel','org_regain',1.05);

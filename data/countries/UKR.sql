@@ -83,3 +83,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (715,'UKR','95ª Brigada de Assalto Aéreo','Infantaria AT',"Dnipropetrovs'k"),
  (716,'UKR','80ª Brigada de Assalto Aéreo','Infantaria AT',"L'viv"),
  (717,'UKR','Brigada de Defesa Territorial de Kiev','Infantaria','Kiev City');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('ukr_resistencia_territorial','UKR','Defesa em Profundidade','Linhas de trincheiras e fortificações ao longo da frente oriental.',35,NULL,1),
+ ('ukr_drones_faixa_construcao','UKR','Exército de Drones','Produção em massa de drones FPV e de reconhecimento para compensar a escassez de artilharia.',28,'ukr_resistencia_territorial',2),
+ ('ukr_himars_precisao','UKR','Fogo de Precisão','Integração de sistemas de longo alcance ocidentais na doutrina de artilharia.',42,'ukr_drones_faixa_construcao',3),
+ ('ukr_industria_defesa','UKR','Indústria de Defesa Ucraniana','Ukroboronprom reorganizada e dispersa para resistir a ataques aéreos.',49,NULL,4),
+ ('ukr_ajuda_ocidental','UKR','Corredor de Ajuda Ocidental','Logística dedicada a receber e distribuir equipamento da NATO com rapidez.',35,'ukr_industria_defesa',5),
+ ('ukr_mobilizacao_geral','UKR','Lei de Mobilização Geral','Recenseamento alargado e reforço das fileiras para sustentar a guerra de desgaste.',35,NULL,6),
+ ('ukr_veteranos_assalto','UKR','Brigadas de Assalto Veteranas','Doutrina de assalto e reorganização das brigadas mais experientes em núcleos de choque.',42,'ukr_mobilizacao_geral',7),
+ ('ukr_reconstrucao_energia','UKR','Escudo Energético','Reforço da defesa antiaérea sobre infraestrutura crítica para manter a produção a funcionar.',49,'ukr_industria_defesa',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('ukr_resistencia_territorial','org_regain',1.10),
+ ('ukr_drones_faixa_construcao','production_speed',1.10),
+ ('ukr_himars_precisao','research_speed',1.10),
+ ('ukr_industria_defesa','industry',1.10),
+ ('ukr_ajuda_ocidental','production_speed',1.10),
+ ('ukr_mobilizacao_geral','conscription',1.25),
+ ('ukr_veteranos_assalto','org_regain',1.08),
+ ('ukr_reconstrucao_energia','industry',1.08);

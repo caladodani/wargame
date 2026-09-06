@@ -71,3 +71,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (116,'USA','1ª Divisão de Fuzileiros Navais','Infantaria','California'),
  (117,'USA','2ª Divisão de Fuzileiros Navais','Infantaria AT','North Carolina'),
  (118,'USA','29ª Divisão de Infantaria (Guarda Nacional)','Infantaria','Virginia');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('usa_reindustrializacao','USA','Reindustrialização Estratégica','Reshoring de semicondutores e minerais críticos: a Lei CHIPS reforçada reduz a dependência de cadeias estrangeiras.',42,NULL,1),
+ ('usa_estaleiros_navais','USA','Renascimento dos Estaleiros Navais','Investimento maciço em Newport News e Bath Iron Works para recuperar o ritmo de construção da Marinha.',49,'usa_reindustrializacao',2),
+ ('usa_defesa_avancada','USA','DARPA e Tecnologias de Ruptura','Financiamento acelerado a hipersónicos, inteligência artificial militar e sistemas autónomos.',56,'usa_estaleiros_navais',3),
+ ('usa_guarda_nacional','USA','Mobilização da Guarda Nacional','Reforço do recrutamento estadual e incentivos à Guarda Nacional para engrossar as fileiras sem alistamento obrigatório.',35,NULL,4),
+ ('usa_doutrina_expedicionaria','USA','Doutrina Expedicionária Conjunta','Exercícios conjuntos e projeção rápida de força inspirados no modelo de resposta global do Pentágono.',42,'usa_guarda_nacional',5),
+ ('usa_pivo_pacifico','USA','Pivô para o Indo-Pacífico','Redireccionamento estratégico de recursos e investigação para conter a expansão chinesa no Pacífico.',28,NULL,6),
+ ('usa_forcas_especiais','USA','Comando de Operações Especiais Reforçado','O SOCOM ganha mais unidades e autonomia operacional, replicando o sucesso da era pós-11 de Setembro.',35,'usa_doutrina_expedicionaria',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('usa_reindustrializacao','industry',1.08),
+ ('usa_estaleiros_navais','production_speed',1.10),
+ ('usa_defesa_avancada','research_speed',1.10),
+ ('usa_defesa_avancada','industry',1.05),
+ ('usa_guarda_nacional','conscription',1.15),
+ ('usa_doutrina_expedicionaria','org_regain',1.10),
+ ('usa_pivo_pacifico','research_speed',1.08),
+ ('usa_forcas_especiais','org_regain',1.08),
+ ('usa_forcas_especiais','conscription',1.05);

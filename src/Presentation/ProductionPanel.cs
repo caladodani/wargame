@@ -43,10 +43,10 @@ public partial class ProductionPanel : PanelContainer
         {
             var w = _game.World;
             if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c)) { Close(); return; }
-            _title.Text = $"Produção — {c.Name}   {c.Money:0.0} pontos";
+            _title.Text = $"Produção — {c.Name}   {c.Money:0.0} pts   ·   {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens";
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o)));
+            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o))) + "#" + (int)(c.Manpower / 1000f);
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -56,7 +56,7 @@ public partial class ProductionPanel : PanelContainer
                 float cost; try { cost = w.TemplateCost(t.Id); } catch { cost = 0f; }
                 int tid = t.Id;
                 var row = new HBoxContainer();
-                row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name}   custo {cost:0.0}")));
+                row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name}   custo {cost:0.0}   ·   {cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens")));
                 row.AddChild(Ui.Btn("+", () => Order(tid), 72));
                 _templates.AddChild(row);
             }
@@ -66,7 +66,9 @@ public partial class ProductionPanel : PanelContainer
                 var o = c.Queue[i]; int idx = i, tid = o.TemplateId;
                 string name; try { name = w.Units.GetTemplate(tid).Name; } catch { name = "T" + tid; }
                 var row = new HBoxContainer();
-                row.AddChild(Ui.Grow(Ui.Lbl($"{name}   {Pct(w, o)}%")));
+                float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
+                bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
+                row.AddChild(Ui.Grow(Ui.Lbl($"{name}   {Pct(w, o)}%" + (waitingMen ? "   (à espera de homens)" : ""))));
                 row.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
                 _queue.AddChild(row);
             }

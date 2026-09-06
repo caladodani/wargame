@@ -76,3 +76,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (217,'RUS','68º Corpo de Exército (Sacalina)','Infantaria','Sakhalin'),
  (218,'RUS','Corpo de Assalto Storm-Z do Donbass','Corpo de Assalto Storm-Z','Rostov'),
  (219,'RUS','18ª Divisão de Fuzileiros Motorizados da Guarda','Mecanizada','Chechnya');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('rus_rearmamento_estatal','RUS','Programa Estatal de Armamento','Plano plurianual do Kremlin para modernizar T-90M, artilharia e mísseis.',49,NULL,1),
+ ('rus_complexo_militar_industrial','RUS','Complexo Militar-Industrial','Uralvagonzavod e as fábricas dos Urais em três turnos: mais tanques, mais depressa.',56,'rus_rearmamento_estatal',2),
+ ('rus_mobilizacao_parcial','RUS','Mobilização Parcial','Decreto de recrutamento alarga a base de reservistas convocáveis.',35,NULL,3),
+ ('rus_academias_militares','RUS','Reforma das Academias Militares','Currículo de Suvorov e Frunze revisto: oficiais recuperam terreno mais depressa.',42,'rus_mobilizacao_parcial',4),
+ ('rus_vdv_elite','RUS','Elite Aerotransportada (VDV)','Doutrina Desantniki: unidades de para-quedistas com treino e prontidão reforçados.',42,NULL,5),
+ ('rus_academia_ciencias_militares','RUS','Academia de Ciências Militares','Institutos de investigação de defesa aceleram o desenvolvimento de novas tecnologias.',49,'rus_rearmamento_estatal',6),
+ ('rus_distritos_militares','RUS','Reorganização dos Distritos Militares','Comando por distrito (Sul, Centro, Leste, Oeste) ganha autonomia logística.',35,'rus_mobilizacao_parcial',7),
+ ('rus_defesa_territorial','RUS','Tropas de Defesa Territorial','Milícias regionais e depósitos dispersos reconstituem forças mais depressa após o desgaste.',35,'rus_distritos_militares',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('rus_rearmamento_estatal','production_speed',1.10),
+ ('rus_complexo_militar_industrial','industry',1.12),
+ ('rus_mobilizacao_parcial','conscription',1.20),
+ ('rus_academias_militares','org_regain',1.08),
+ ('rus_vdv_elite','conscription',1.10),
+ ('rus_vdv_elite','org_regain',1.06),
+ ('rus_academia_ciencias_militares','research_speed',1.10),
+ ('rus_distritos_militares','production_speed',1.06),
+ ('rus_defesa_territorial','org_regain',1.10);

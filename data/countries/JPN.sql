@@ -81,3 +81,25 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
 UPDATE region SET terrain='mountain'
  WHERE owner_id=(SELECT id FROM country WHERE tag='JPN')
    AND name IN ('Nagano','Gifu','Yamanashi','Tottori');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('jpn_shudanteki_jieiken','JPN','Direito de Autodefesa Coletiva','A reinterpretação constitucional de 2015 permite às Forças de Autodefesa apoiar aliados sob ataque, reforçando a doutrina de resposta conjunta.',35,NULL,1),
+ ('jpn_boei_sochi','JPN','Nova Estratégia de Segurança Nacional','O compromisso de elevar a despesa de defesa para 2% do PIB financia um reequipamento plurianual sem precedentes.',42,NULL,2),
+ ('jpn_jieitai_recrutamento','JPN','Campanha de Recrutamento das Forças de Autodefesa','Face à quebra demográfica, novos incentivos salariais e digitais tentam colmatar o défice crónico de recrutas.',28,NULL,3),
+ ('jpn_nanseishoto','JPN','Reforço das Ilhas do Sudoeste','Guarnições e radares espalham-se pela cadeia Nansei, de Kyushu a Yonaguni, para vigiar o Estreito de Miyako.',49,'jpn_shudanteki_jieiken',4),
+ ('jpn_mitsubishi_kawasaki','JPN','Eixo Mitsubishi-Kawasaki','A indústria pesada nacional expande linhas de blindados, mísseis e aviónica sob encomenda direta do Ministério da Defesa.',42,'jpn_boei_sochi',5),
+ ('jpn_reserva_ampliada','JPN','Reserva Ampliada','Reservistas e antigos militares são reintegrados em unidades territoriais para aliviar a pressão sobre o efetivo permanente.',30,'jpn_jieitai_recrutamento',6),
+ ('jpn_contra_ataque','JPN','Capacidade de Contra-Ataque','Mísseis de longo alcance e sistemas de deteção antecipada dão ao Japão uma resposta credível para além do território.',56,'jpn_nanseishoto',7),
+ ('jpn_f35_reequipamento','JPN','Reequipamento F-35 e Aegis','A frota de caças de quinta geração e o sistema antimíssil naval Aegis chegam em maior número às bases operacionais.',49,'jpn_mitsubishi_kawasaki',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('jpn_shudanteki_jieiken','org_regain',1.08),
+ ('jpn_boei_sochi','industry',1.08),
+ ('jpn_jieitai_recrutamento','conscription',1.15),
+ ('jpn_nanseishoto','org_regain',1.10),
+ ('jpn_mitsubishi_kawasaki','industry',1.09),
+ ('jpn_mitsubishi_kawasaki','production_speed',1.07),
+ ('jpn_reserva_ampliada','conscription',1.12),
+ ('jpn_contra_ataque','research_speed',1.12),
+ ('jpn_f35_reequipamento','production_speed',1.10),
+ ('jpn_f35_reequipamento','research_speed',1.06);

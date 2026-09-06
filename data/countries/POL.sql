@@ -81,3 +81,23 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (663,'POL','15. Brygada Zmechanizowana','Mecanizada','Warmian-Masurian'),
  (664,'POL','9. Brygada Kawalerii Pancernej','Dywizja Pancerna','Warmian-Masurian'),
  (665,'POL','1. Brygada Obrony Terytorialnej Mazowiecka','Infantaria AT','Masovian');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('pol_wschodnia_tarcza','POL','Escudo do Flanco Oriental','A Polónia reforça a defesa em profundidade da fronteira com a Rússia e a Bielorrússia, da Brecha de Suwałki ao rio Bug.',35,NULL,1),
+ ('pol_modernizacja_pancerna','POL','Modernização Blindada','Encomendas maciças de Abrams M1A2 e K2 Black Panther reconstroem o poder blindado polaco.',42,NULL,2),
+ ('pol_obrona_terytorialna','POL','Wojska Obrony Terytorialnej','A Defesa Territorial expande-se em cada voivodia, ligando o exército regular à sociedade civil.',28,NULL,3),
+ ('pol_nato_flanka','POL','Vanguarda da NATO','Varsóvia acolhe quartéis-generais multinacionais e exercícios permanentes da Aliança no flanco leste.',35,'pol_wschodnia_tarcza',4),
+ ('pol_przemysl_zbrojeniowy','POL','Polska Grupa Zbrojeniowa','O grupo estatal PGZ recebe investimento maciço para produzir sob licença os sistemas importados.',49,'pol_modernizacja_pancerna',5),
+ ('pol_licencja_k9','POL','Produção Nacional do Krab','A linha de montagem do obuseiro Krab, herdeiro do K9 sul-coreano, passa a produção em larga escala em solo polaco.',42,'pol_przemysl_zbrojeniowy',6),
+ ('pol_rezerwa_terytorialna','POL','Reserva Estratégica Nacional','Novos incentivos ao recrutamento voluntário reforçam a reserva mobilizável para um conflito prolongado.',35,'pol_obrona_terytorialna',7);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('pol_wschodnia_tarcza','org_regain',1.08),
+ ('pol_modernizacja_pancerna','production_speed',1.10),
+ ('pol_obrona_terytorialna','conscription',1.15),
+ ('pol_nato_flanka','org_regain',1.07),
+ ('pol_nato_flanka','research_speed',1.05),
+ ('pol_przemysl_zbrojeniowy','industry',1.10),
+ ('pol_licencja_k9','industry',1.08),
+ ('pol_licencja_k9','production_speed',1.08),
+ ('pol_rezerwa_terytorialna','conscription',1.10);

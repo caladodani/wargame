@@ -79,3 +79,24 @@ INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
  (412,'ITA','Brigata Cavalleria Pozzuolo del Friuli','Infantaria AT','Udine'),
  (413,'ITA','Brigata Granatieri di Sardegna','Infantaria','Roma'),
  (414,'ITA','Brigata Meccanizzata Friuli','Mecanizada','Bologna');
+
+-- ===== focos nacionais (FocusSystem) =====
+INSERT INTO focus (id,country_tag,name,description,days,requires,sort) VALUES
+ ('ita_pilastro_mediterraneo','ITA','Pilastro do Mediterrâneo','A Marinha Militare reforça o controlo das rotas do Mediterrâneo central.',35,NULL,1),
+ ('ita_nato_sud','ITA','Comando NATO Sul','Nápoles consolida-se como polo de comando da Aliança para o flanco sul.',42,'ita_pilastro_mediterraneo',2),
+ ('ita_industria_difesa','ITA','Consórcios de Defesa Nacional','Leonardo, Fincantieri e Iveco Defence articulam-se num polo industrial único.',49,NULL,3),
+ ('ita_caccia_multiruolo','ITA','Programa de Caça Multifunções','Investimento acelerado nos caças Eurofighter e no futuro programa GCAP.',56,'ita_industria_difesa',4),
+ ('ita_cantieri_navali','ITA','Estaleiros Navais Renovados','Fincantieri moderniza-se para fornecer fragatas FREMM e navios de apoio.',42,'ita_industria_difesa',5),
+ ('ita_servizio_volontario','ITA','Serviço Militar Voluntário','Campanha de recrutamento reforça os efetivos das Forze Armate profissionais.',28,NULL,6),
+ ('ita_alpini_addestramento','ITA','Doutrina Alpina Renovada','As tropas Alpini retomam a tradição de guerra em montanha nos Alpes.',35,'ita_servizio_volontario',7),
+ ('ita_riserva_nazionale','ITA','Reserva Estratégica Nacional','Reorganização da reserva militar para responder rapidamente a crises regionais.',42,'ita_servizio_volontario',8);
+INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
+ ('ita_pilastro_mediterraneo','org_regain',1.08),
+ ('ita_nato_sud','research_speed',1.10),
+ ('ita_industria_difesa','industry',1.10),
+ ('ita_caccia_multiruolo','production_speed',1.12),
+ ('ita_cantieri_navali','industry',1.08),
+ ('ita_cantieri_navali','production_speed',1.08),
+ ('ita_servizio_volontario','conscription',1.15),
+ ('ita_alpini_addestramento','org_regain',1.10),
+ ('ita_riserva_nazionale','conscription',1.12);
