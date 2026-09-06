@@ -51,7 +51,9 @@ public sealed class AiSystem : ISystem
 
     /// <summary>Objectivo de guerra (HoI4: justificação): um país em paz com aggression &gt; 0 tenta, com probabilidade
     /// ai_war_chance × aggression por ronda a partir de ai_war_min_day, declarar guerra ao vizinho mais fraco cujo exército
-    /// seja ≤ o seu / ai_war_ratio. O jogador só é alvo a partir de ai_war_player_min_day. Uma guerra de cada vez.</summary>
+    /// (+ o dos seus aliados de facção — dissuasão: atacar a Estónia é atacar a NATO inteira) seja ≤ o seu / ai_war_ratio.
+    /// O jogador só é alvo a partir de ai_war_player_min_day. Uma guerra de cada vez. DeclareWarCommand.Validate já
+    /// recusa aliados da própria facção, por isso nunca chegam a ser escolhidos como alvo.</summary>
     private static void WarGoal(World w, Country c, int myDivs, Dictionary<int, List<Division>> divsByCountry, List<Region>? owned)
     {
         float aggression = c.Stat("aggression", 0f);
@@ -66,6 +68,7 @@ public sealed class AiSystem : ISystem
                 if (other == c.Id || !w.Countries.TryGetValue(other, out var o)) continue;
                 if (o.IsPlayer && w.Clock.Day < w.Rule("ai_war_player_min_day", 90f)) continue;
                 int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
+                foreach (var ally in w.Allies(other)) theirs += divsByCountry.GetValueOrDefault(ally)?.Count ?? 0;
                 if (theirs * ratio > myDivs) continue;
                 if (theirs < targetDivs || (theirs == targetDivs && target is not null && other < target.Id)) { target = o; targetDivs = theirs; }
             }

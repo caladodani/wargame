@@ -68,6 +68,22 @@ public partial class CountryPanel : PanelContainer
             if (spirits.Count == 0) Line("Nenhum (país genérico)");
             foreach (var s in spirits) { Line("• " + s.Name, 19); if (s.Description.Length > 0) Wrap("   " + s.Description, 16); }
 
+            // facções (alianças defensivas: declarar guerra a um membro chama os outros contra o agressor)
+            Header("Facções");
+            var factions = w.FactionsOf(c.Id).ToList();
+            if (factions.Count == 0) Line("Nenhuma");
+            foreach (var f in factions)
+            {
+                var names = f.Members.Where(w.Countries.ContainsKey).Select(m => w.Countries[m].Tag).OrderBy(t => t).ToList();
+                string list = names.Count > 12 ? string.Join(", ", names.Take(12)) + ", …" : string.Join(", ", names);
+                Line($"{f.Name} — {names.Count} membros: {list}", 16);
+            }
+            if (c.AtWarWith.Count > 0)
+            {
+                var enemies = c.AtWarWith.Where(w.Countries.ContainsKey).Select(id => w.Countries[id].Tag).OrderBy(t => t);
+                Line("Em guerra com: " + string.Join(", ", enemies));
+            }
+
             // investigação
             Header("Investigação");
             if (c.ResearchTech is not null && w.Techs.TryGetValue(c.ResearchTech, out var cur))

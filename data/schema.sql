@@ -42,6 +42,13 @@ CREATE TABLE IF NOT EXISTS country_info (        -- texto para o painel do país
 CREATE TABLE IF NOT EXISTS national_spirit (     -- espíritos nacionais (HoI4); efeitos = linhas modifier com spirit_id
   id TEXT PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL, description TEXT
 );
+CREATE TABLE IF NOT EXISTS faction (             -- aliança defensiva (HoI4: facção); World.Factions
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT
+);
+CREATE TABLE IF NOT EXISTS faction_member (      -- um país pode estar em várias facções
+  faction_id TEXT NOT NULL REFERENCES faction(id), country_tag TEXT NOT NULL,
+  PRIMARY KEY (faction_id, country_tag)
+);
 CREATE TABLE IF NOT EXISTS country_template (    -- templates próprios do país (seed_armies cria template/template_unit)
   id INTEGER PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL
 );

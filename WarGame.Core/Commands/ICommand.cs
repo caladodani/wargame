@@ -97,12 +97,16 @@ public sealed record StopDivisionCommand(int CountryId, int DivisionId) : IComma
     public void Execute(World w) => w.Divisions[DivisionId].ClearPath();
 }
 
+/// <summary>Guerra entre dois países. HoI4: aliados na mesma facção nunca se atacam; declarar guerra a um membro
+/// de uma facção chama automaticamente os outros membros contra o agressor (só a facção do DEFENSOR — os aliados
+/// do agressor não entram) — ver World.SameFaction/FactionsOf e Events.FactionJoinedWar.</summary>
 public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICommand
 {
     public string? Validate(World w)
     {
         if (CountryId == TargetCountryId) return "Não podes declarar guerra a ti próprio";
         if (!w.Countries.ContainsKey(TargetCountryId)) return "País inexistente";
+        if (w.SameFaction(CountryId, TargetCountryId)) return "Aliados na mesma facção";
         return w.Countries[CountryId].AtWarWith.Contains(TargetCountryId) ? "Já em guerra" : null;
     }
     public void Execute(World w)
@@ -110,6 +114,19 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
         w.Countries[CountryId].AtWarWith.Add(TargetCountryId);
         w.Countries[TargetCountryId].AtWarWith.Add(CountryId);
         w.Events.Publish(new Events.WarDeclared(CountryId, TargetCountryId));
+
+        // Facções do alvo (defensor): cada membro que não é da facção do agressor e ainda não está em guerra
+        // com ele entra em guerra. Um HashSet evita chamar duas vezes quem está em mais que uma facção do alvo.
+        var called = new HashSet<int>();
+        foreach (var f in w.FactionsOf(TargetCountryId))
+            foreach (var m in f.Members)
+            {
+                if (m == CountryId || m == TargetCountryId || !w.Countries.ContainsKey(m) || !called.Add(m)) continue;
+                if (w.SameFaction(CountryId, m) || w.AreAtWar(CountryId, m)) continue;
+                w.Countries[m].AtWarWith.Add(CountryId);
+                w.Countries[CountryId].AtWarWith.Add(m);
+                w.Events.Publish(new Events.FactionJoinedWar(f.Id, m, CountryId));
+            }
     }
 }
 

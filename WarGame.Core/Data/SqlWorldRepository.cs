@@ -29,6 +29,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT country_tag,key,value FROM country_stat"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c)) c.Stats[(string)r["key"]!] = Convert.ToSingle(r["value"]);
 
+        foreach (var r in _static.Query("SELECT id,name,description FROM faction"))
+            w.Factions[(string)r["id"]!] = new Faction((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "", new List<int>());
+        foreach (var r in _static.Query("SELECT faction_id,country_tag FROM faction_member"))
+            if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f) && byTag.TryGetValue((string)r["country_tag"]!, out var c))
+                f.Members.Add(c.Id);
+
         foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description FROM tech"))
             w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string);
         foreach (var r in _static.Query("SELECT tech_id,stat_key,value FROM tech_effect"))
