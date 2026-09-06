@@ -26,23 +26,29 @@ public sealed class TruceSystem : ISystem
         foreach (var (a, b) in stale)
         {
             if (!w.AreAtWar(a, b)) { w.Wars.Remove((a, b)); continue; }
-
-            // Uti possidetis: o que cada um controla do outro passa a ser dele.
-            foreach (var r in w.Regions.Values)
-            {
-                if (r.OwnerId == a && r.ControllerId == b) r.OwnerId = b;
-                else if (r.OwnerId == b && r.ControllerId == a) r.OwnerId = a;
-            }
-
-            // Batalhas entre os dois morrem (lados por país do atacante vs. controlador da região).
-            w.ActiveBattles.RemoveAll(bt =>
-                (bt.AttackerCountryId == a || bt.AttackerCountryId == b)
-                && !bt.Attackers.Concat(bt.Defenders).Any(id =>
-                    w.Divisions.TryGetValue(id, out var d) && d.CountryId != a && d.CountryId != b));
-
-            w.EndWar(a, b);
-            w.Events.Publish(new WhitePeaceSigned(a, b));
-            w.Events.Publish(new WarEnded(a, b));
+            MakeWhitePeace(w, a, b);
         }
+    }
+
+    /// <summary>Fecha a guerra em uti possidetis: cada um anexa o que controla do outro, batalhas
+    /// entre os dois morrem, WhitePeaceSigned + WarEnded. Usado pela estagnação e pelo OfferPeaceCommand.</summary>
+    public static void MakeWhitePeace(World w, int a, int b)
+    {
+        // Uti possidetis: o que cada um controla do outro passa a ser dele.
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.OwnerId == a && r.ControllerId == b) r.OwnerId = b;
+            else if (r.OwnerId == b && r.ControllerId == a) r.OwnerId = a;
+        }
+
+        // Batalhas entre os dois morrem (lados por país do atacante vs. controlador da região).
+        w.ActiveBattles.RemoveAll(bt =>
+            (bt.AttackerCountryId == a || bt.AttackerCountryId == b)
+            && !bt.Attackers.Concat(bt.Defenders).Any(id =>
+                w.Divisions.TryGetValue(id, out var d) && d.CountryId != a && d.CountryId != b));
+
+        w.EndWar(a, b);
+        w.Events.Publish(new WhitePeaceSigned(a, b));
+        w.Events.Publish(new WarEnded(a, b));
     }
 }

@@ -164,7 +164,8 @@ CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram 
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)
-  building INTEGER NOT NULL DEFAULT 0, build_progress REAL NOT NULL DEFAULT 0
+  building INTEGER NOT NULL DEFAULT 0, build_progress REAL NOT NULL DEFAULT 0,
+  fort INTEGER NOT NULL DEFAULT 0, fort_building INTEGER NOT NULL DEFAULT 0, fort_progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS template (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL

@@ -187,6 +187,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_war", "last_progress_day", "INTEGER"),
         ("s_region", "building", "INTEGER NOT NULL DEFAULT 0"),
         ("s_region", "build_progress", "REAL NOT NULL DEFAULT 0"),
+        ("s_region", "fort", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_region", "fort_building", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_region", "fort_progress", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -239,13 +242,16 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
-        foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress FROM s_region"))
+        foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress FROM s_region"))
         {
             var reg = w.Regions[Convert.ToInt32(r["id"])];
             reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]);
             if (r["owner_id"] is not null && Convert.ToInt32(r["owner_id"]) > 0) reg.OwnerId = Convert.ToInt32(r["owner_id"]);   // NULL = dono da static
             if (r["building"] is not null) reg.Building = Convert.ToInt32(r["building"]) == 1;
             if (r["build_progress"] is not null) reg.BuildProgress = Convert.ToSingle(r["build_progress"]);
+            if (r["fort"] is not null) reg.Fort = Convert.ToInt32(r["fort"]);
+            if (r["fort_building"] is not null) reg.FortBuilding = Convert.ToInt32(r["fort_building"]) == 1;
+            if (r["fort_progress"] is not null) reg.FortProgress = Convert.ToSingle(r["fort_progress"]);
         }
         foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name FROM s_division ORDER BY id"))
         {
@@ -318,9 +324,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                 }
         }
         foreach (var r in w.Regions.Values)
-            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building)
-                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress) VALUES (?,?,?,?,?,?)",
-                    r.Id, r.ControllerId, r.Infrastructure, r.OwnerId == r.InitialOwnerId ? null : r.OwnerId, r.Building ? 1 : 0, r.BuildProgress);
+            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building || r.Fort > 0 || r.FortBuilding)
+                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress) VALUES (?,?,?,?,?,?,?,?,?)",
+                    r.Id, r.ControllerId, r.Infrastructure, r.OwnerId == r.InitialOwnerId ? null : r.OwnerId, r.Building ? 1 : 0, r.BuildProgress,
+                    r.Fort, r.FortBuilding ? 1 : 0, r.FortProgress);
         foreach (var d in w.Divisions.Values)
             save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name);

@@ -122,6 +122,19 @@ public partial class CountryPanel : PanelContainer
                     string fid = f.Id;
                     _body.AddChild(Ui.Btn($"Convidar para {f.Name}", () => Faction(new InviteToFactionCommand(inviter, fid, c.Id)), 320));
                 }
+                if (w.AreAtWar(inviter, c.Id))
+                    _body.AddChild(Ui.Btn("Propor paz branca", () => Faction(new OfferPeaceCommand(inviter, c.Id)), 260));
+                if (w.SameFaction(inviter, c.Id))
+                {
+                    var aid = new HBoxContainer();
+                    aid.AddChild(Ui.Grow(Ui.Lbl("Apoio financeiro (aliado):", 16)));
+                    foreach (float amt in new[] { 25f, 100f })
+                    {
+                        float a = amt;
+                        aid.AddChild(Ui.Btn($"{a:0} pts", () => Faction(new TransferMoneyCommand(inviter, c.Id, a)), 110));
+                    }
+                    _body.AddChild(aid);
+                }
             }
             if (c.JustifyTarget is int jt && w.Countries.TryGetValue(jt, out var jtc))
                 Line($"A justificar guerra contra {jtc.Name}: {(int)MathF.Ceiling(w.Rule("war_justify_days", 30f) - c.JustifyProgress)} dias");

@@ -435,3 +435,71 @@ public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
         w.Events.Publish(new LawChanged(CountryId, LawId));
     }
 }
+
+/// <summary>Fortificar uma região própria (+1 nível; paga fort_build_cost, demora fort_build_days).</summary>
+public sealed record BuildFortCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
+        if (r.OwnerId != CountryId || r.ControllerId != CountryId) return "a região não é tua";
+        if (r.FortBuilding) return "já há uma fortificação em curso";
+        if (r.Fort >= (int)w.Rule("fort_max", 5f)) return "fortificação no máximo";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (c.Money < w.Rule("fort_build_cost", 30f)) return $"faltam pontos de produção ({w.Rule("fort_build_cost", 30f):0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Countries[CountryId].Money -= w.Rule("fort_build_cost", 30f);
+        var r = w.Regions[RegionId];
+        r.FortBuilding = true; r.FortProgress = 0f;
+    }
+}
+
+/// <summary>Enviar pontos de produção a um aliado de facção (lend-lease simplificado).</summary>
+public sealed record TransferMoneyCommand(int CountryId, int TargetCountryId, float Amount) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "destinatário inválido";
+        if (CountryId == TargetCountryId) return "não podes enviar a ti próprio";
+        if (!w.SameFaction(CountryId, TargetCountryId)) return "só entre aliados de facção";
+        if (Amount <= 0f) return "quantia inválida";
+        if (c.Money < Amount) return "não tens pontos suficientes";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Countries[CountryId].Money -= Amount;
+        w.Countries[TargetCountryId].Money += Amount;
+        w.Events.Publish(new MoneyTransferred(CountryId, TargetCountryId, Amount));
+    }
+}
+
+/// <summary>Propor paz branca a um inimigo. A IA aceita se a guerra está parada há peace_stale_days
+/// (sem capturas de nenhum lado) ou se já não tem divisões; senão recusa (PeaceOfferRejected).
+/// Aceite = uti possidetis imediato (TruceSystem.MakeWhitePeace).</summary>
+public sealed record OfferPeaceCommand(int CountryId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t)) return "país inválido";
+        if (!w.AreAtWar(CountryId, TargetCountryId)) return "não estás em guerra com ele";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var info = w.Wars.GetValueOrDefault(World.WarKey(CountryId, TargetCountryId));
+        bool stale = info is not null
+            && w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) >= w.Rule("peace_stale_days", 60f);
+        bool disarmed = !w.Divisions.Values.Any(d => d.CountryId == TargetCountryId);
+        if (stale || disarmed) Systems.TruceSystem.MakeWhitePeace(w, CountryId, TargetCountryId);
+        else w.Events.Publish(new PeaceOfferRejected(CountryId, TargetCountryId));
+    }
+}

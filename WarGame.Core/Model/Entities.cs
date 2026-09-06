@@ -42,6 +42,11 @@ public sealed class Region
     /// <summary>Obra de infraestrutura em curso (ConstructionSystem); cancela se a região for capturada.</summary>
     public bool Building { get; set; }
     public float BuildProgress { get; set; }
+    /// <summary>Nível de fortificação (0..fort_max): multiplica a força dos defensores (fort_defense_per_level).
+    /// Captura tira um nível. Obra própria (FortBuilding/FortProgress) ao lado da de infraestrutura.</summary>
+    public int Fort { get; set; }
+    public bool FortBuilding { get; set; }
+    public float FortProgress { get; set; }
     public int Population { get; init; }
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }

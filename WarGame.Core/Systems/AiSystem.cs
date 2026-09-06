@@ -47,11 +47,28 @@ public sealed class AiSystem : ISystem
             Produce(w, c, divs?.Count ?? 0);
             Build(w, c, regionsByController.GetValueOrDefault(c.Id));
             Laws(w, c);
+            Aid(w, c);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Apoio financeiro: acima de ai_aid_reserve envia ai_aid_share do excedente ao aliado
+    /// de facção em guerra mais pobre (se estiver mais pobre que o próprio).</summary>
+    private static void Aid(World w, Country c)
+    {
+        float reserve = w.Rule("ai_aid_reserve", 300f);
+        if (c.Money <= reserve) return;
+        Country? poorest = null;
+        foreach (var a in w.Allies(c.Id))
+            if (w.Countries.TryGetValue(a, out var ac) && !ac.Capitulated && ac.AtWarWith.Count > 0
+                && ac.Money < c.Money && (poorest is null || ac.Money < poorest.Money)) poorest = ac;
+        if (poorest is null) return;
+        float amount = (c.Money - reserve) * w.Rule("ai_aid_share", 0.25f);
+        var cmd = new TransferMoneyCommand(c.Id, poorest.Id, amount);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
@@ -75,6 +92,19 @@ public sealed class AiSystem : ISystem
     private static void Build(World w, Country c, List<Region>? controlled)
     {
         if (controlled is null || c.Money < w.Rule("ai_build_reserve", 150f)) return;
+        // Em guerra: fortifica a região da frente com menos forte; em paz: infraestrutura na mais fraca.
+        if (c.AtWarWith.Count > 0)
+        {
+            Region? front = null;
+            foreach (var r in controlled)
+                if (r.OwnerId == c.Id && !r.FortBuilding && r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))
+                    && (front is null || r.Fort < front.Fort)) front = r;
+            if (front is not null)
+            {
+                var fcmd = new BuildFortCommand(c.Id, front.Id);
+                if (fcmd.Validate(w) is null) { fcmd.Execute(w); return; }
+            }
+        }
         Region? best = null;
         foreach (var r in controlled)
             if (r.OwnerId == c.Id && !r.Building && (best is null || r.Infrastructure < best.Infrastructure)) best = r;

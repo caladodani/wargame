@@ -216,6 +216,20 @@ public partial class Hud : CanvasLayer
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
                 Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})");
         }));
+        _subs.Add(w.Events.Subscribe<PeaceOfferRejected>(e =>
+        {
+            if (Player(e.FromCountryId)) Later($"{Country(e.ToCountryId)} recusou a paz — ainda acha que ganha");
+        }));
+        _subs.Add(w.Events.Subscribe<MoneyTransferred>(e =>
+        {
+            if (Player(e.ToCountryId)) Later($"{Country(e.FromCountryId)} enviou-te {e.Amount:0} pontos de produção");
+            else if (Player(e.FromCountryId)) Later($"Apoio de {e.Amount:0} pts enviado a {Country(e.ToCountryId)}");
+        }));
+        _subs.Add(w.Events.Subscribe<FortBuilt>(e =>
+        {
+            if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
+                Later($"Fortificação nível {e.Level} em {r.Name}");
+        }));
         _subs.Add(w.Events.Subscribe<LawChanged>(e =>
         {
             if (Player(e.CountryId) && w.Laws.TryGetValue(e.LawId, out var l)) Later($"Nova lei: {l.Name}");

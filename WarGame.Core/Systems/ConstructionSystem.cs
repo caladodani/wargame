@@ -13,15 +13,29 @@ public sealed class ConstructionSystem : ISystem
     public void Tick(World w)
     {
         float days = w.Rule("infra_build_days", 30f), step = w.Rule("infra_step", 0.25f), max = w.Rule("infra_max", 2f);
+        float fortDays = w.Rule("fort_build_days", 20f); int fortMax = (int)w.Rule("fort_max", 5f);
         foreach (var r in w.Regions.Values)
         {
-            if (!r.Building) continue;
-            if (r.ControllerId != r.OwnerId) { r.Building = false; r.BuildProgress = 0f; continue; }
-            r.BuildProgress += 1f;
-            if (r.BuildProgress < days) continue;
-            r.Building = false; r.BuildProgress = 0f;
-            r.Infrastructure = MathF.Min(max, r.Infrastructure + step);
-            w.Events.Publish(new InfrastructureBuilt(r.Id));
+            if (r.Building)
+            {
+                if (r.ControllerId != r.OwnerId) { r.Building = false; r.BuildProgress = 0f; }
+                else if ((r.BuildProgress += 1f) >= days)
+                {
+                    r.Building = false; r.BuildProgress = 0f;
+                    r.Infrastructure = MathF.Min(max, r.Infrastructure + step);
+                    w.Events.Publish(new InfrastructureBuilt(r.Id));
+                }
+            }
+            if (r.FortBuilding)
+            {
+                if (r.ControllerId != r.OwnerId) { r.FortBuilding = false; r.FortProgress = 0f; }
+                else if ((r.FortProgress += 1f) >= fortDays)
+                {
+                    r.FortBuilding = false; r.FortProgress = 0f;
+                    r.Fort = Math.Min(fortMax, r.Fort + 1);
+                    w.Events.Publish(new FortBuilt(r.Id, r.Fort));
+                }
+            }
         }
     }
 }

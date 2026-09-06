@@ -36,6 +36,12 @@ public sealed record FactionLeft(string FactionId, int CountryId) : IGameEvent;
 public sealed record InfrastructureBuilt(int RegionId) : IGameEvent;
 /// <summary>Lei nacional mudada (ChangeLawCommand).</summary>
 public sealed record LawChanged(int CountryId, string LawId) : IGameEvent;
+/// <summary>Nível de fortificação concluído (ConstructionSystem).</summary>
+public sealed record FortBuilt(int RegionId, int Level) : IGameEvent;
+/// <summary>Pontos de produção enviados a um aliado (TransferMoneyCommand).</summary>
+public sealed record MoneyTransferred(int FromCountryId, int ToCountryId, float Amount) : IGameEvent;
+/// <summary>Proposta de paz branca recusada (OfferPeaceCommand: a IA ainda acha que ganha).</summary>
+public sealed record PeaceOfferRejected(int FromCountryId, int ToCountryId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;

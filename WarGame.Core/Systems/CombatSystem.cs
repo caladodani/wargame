@@ -24,7 +24,7 @@ public sealed class CombatSystem : ISystem
             var ctxA = BuildContext(w, region, b.AttackerCountryId);
             var ctxD = BuildContext(w, region, region.ControllerId);
 
-            ResolveTick(w, att, def, ctxA, ctxD);
+            ResolveTick(w, att, def, ctxA, ctxD, 1f + region.Fort * w.Rule("fort_defense_per_level", 0.15f));
             b.Days++;
             foreach (var d in att.Concat(def)) if (d.Hp <= 0f) dead.Add(d.Id);
 
@@ -53,6 +53,8 @@ public sealed class CombatSystem : ISystem
     {
         r.Infrastructure = MathF.Max(w.Rule("infra_min", 0.3f), r.Infrastructure - w.Rule("capture_infra_hit", 0.15f));
         r.Building = false; r.BuildProgress = 0f;
+        r.Fort = Math.Max(0, r.Fort - 1);
+        r.FortBuilding = false; r.FortProgress = 0f;
     }
 
     private static ModContext BuildContext(World w, Region r, int countryId)
@@ -64,10 +66,11 @@ public sealed class CombatSystem : ISystem
         return ctx;
     }
 
-    public void ResolveTick(World w, List<Division> att, List<Division> def, ModContext ctxA, ModContext ctxD)
+    public void ResolveTick(World w, List<Division> att, List<Division> def, ModContext ctxA, ModContext ctxD, float fortMult = 1f)
     {
         var strA = SideStrength(w, att, ctxA, attacking: true);
         var strD = SideStrength(w, def, ctxD, attacking: false);
+        if (fortMult != 1f) for (int i = 0; i < strD.Length; i++) strD[i] *= fortMult;
         Exchange(w, att, strA, def, "defense");
         Exchange(w, def, strD, att, "breakthrough");
         foreach (var d in att.Concat(def))

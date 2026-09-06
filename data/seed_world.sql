@@ -132,3 +132,20 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('consc_service','conscription',2.5),('consc_service','industry',0.90),('consc_service','org_regain',0.94),
  ('econ_partial','production_speed',1.10),('econ_partial','research_speed',0.97),
  ('econ_war','production_speed',1.25),('econ_war','research_speed',0.93),('econ_war','org_regain',1.03);
+
+-- Fortificações (BuildFortCommand + ConstructionSystem; defensores × (1 + nível × fort_defense_per_level)).
+INSERT INTO rule (key,value,note) VALUES
+ ('fort_max',5,'nível máximo de fortificação por região'),
+ ('fort_build_cost',30,'pontos de produção por nível'),
+ ('fort_build_days',20,'dias de obra por nível'),
+ ('fort_defense_per_level',0.15,'bónus de força dos defensores por nível');
+
+-- Apoio financeiro entre aliados de facção (TransferMoneyCommand).
+INSERT INTO rule (key,value,note) VALUES
+ ('ai_aid_reserve',300,'a IA só envia apoio com dinheiro acima disto'),
+ ('ai_aid_share',0.25,'fracção do excedente enviada por ronda ao aliado em guerra mais pobre');
+
+-- Propor paz branca (OfferPeaceCommand): a IA aceita com a guerra parada há peace_stale_days
+-- ou sem exército para continuar.
+INSERT INTO rule (key,value,note) VALUES
+ ('peace_stale_days',60,'dias sem progresso a partir dos quais a IA aceita paz branca');
