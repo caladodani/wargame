@@ -259,6 +259,8 @@ public sealed class Country
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
+    public float PortCapacity { get; set; }        // divisões que os nossos cais aguentam (SupplySystem, derivado)
+    public int SeaSupplied { get; set; }           // divisões que hoje só bebem por mar (SupplySystem, derivado)
     public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
     public int Nukes { get; set; }                 // ogivas prontas (BuildNukeCommand); NuclearStrikeCommand gasta uma

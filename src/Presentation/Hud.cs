@@ -721,10 +721,18 @@ public partial class Hud : CanvasLayer
             World.ApplyGenerals(w, c);
             hurt = c.GeneralWound.Count;
         }
+        // um cais no litoral, para o cartão dos portos e a linha da região terem números
+        if (PortView.Ports(w, pid).Count == 0
+            && w.BuildingDefs.Values.FirstOrDefault(b => b.SupplyRange > 0f) is BuildingDef quay
+            && w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid && r.Coastal) is Region coast)
+        {
+            coast.Buildings[quay.Id] = 1;
+            new SupplySystem().Tick(w);                                // recalcula capacidade e carga do cais
+        }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

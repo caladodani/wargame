@@ -6,7 +6,13 @@ namespace WarGame.Core.Systems;
 /// HoI4 simplificado: território próprio ou de aliado de facção abastece (portos incluídos — ilhas não sofrem); região ocupada
 /// só está abastecida se houver cadeia de regiões controladas até território próprio; o resto (bolsa cercada,
 /// divisão em região hostil) leva supply_pocket. Empilhar mais de supply_stack divisões do mesmo país numa
-/// região divide o supply por n/supply_stack. Regras em World.Rules: supply_pocket, supply_stack.</summary>
+/// região divide o supply por n/supply_stack.
+///
+/// Quem vive do outro lado do mar vive do porto, e um porto tem cais a mais não tem: cada nível carrega
+/// port_capacity_per_level divisões. Passar disso não corta o abastecimento de vez, estrangula-o —
+/// capacidade/divisões, com chão em port_overflow_min. É isto que impede desembarcar meio exército numa
+/// ilha com um cais de pesca. Regras: supply_pocket, supply_stack, port_supply_factor,
+/// port_capacity_per_level, port_overflow_min.</summary>
 public sealed class SupplySystem : ISystem
 {
     public string Name => "Supply";
@@ -29,8 +35,9 @@ public sealed class SupplySystem : ISystem
         var countries = stacked.Keys.Select(k => k.country).ToHashSet();
         foreach (var d in w.Divisions.Values) countries.Add(w.Regions[d.RegionId].ControllerId);
         var linked = LinkedRegions(w, countries);
-        var bySea = PortReach(w, linked);       // cabeças-de-praia ligadas por porto: abastecidas, mas pior
+        var bySea = PortReach(w, linked, out var capacity);   // cabeças-de-praia por porto + cais de cada país
         float seaFactor = w.Rule("port_supply_factor", 0.85f);
+        var strain = Strain(w, bySea, capacity);              // quanto o porto de cada país está a aguentar
 
         foreach (var d in w.Divisions.Values)
         {
@@ -38,7 +45,7 @@ public sealed class SupplySystem : ISystem
             var reg = w.Regions[d.RegionId];
             bool friendly = reg.ControllerId == d.CountryId || w.SameFaction(d.CountryId, reg.ControllerId);
             float s = friendly && linked.Contains(d.RegionId)
-                ? (bySea.Contains(d.RegionId) ? seaFactor : 1f)
+                ? (bySea.Contains(d.RegionId) ? seaFactor * strain.GetValueOrDefault(reg.ControllerId, 1f) : 1f)
                 : pocket;
             int n = stacked[(d.CountryId, d.RegionId)];
             if (n > stack) s *= stack / n;
@@ -50,12 +57,18 @@ public sealed class SupplySystem : ISystem
     /// supply_range × nível quilómetros de travessia, outras regiões costeiras do mesmo controlador —
     /// e daí a cadeia segue por terra. É isto que torna um desembarque sustentável: sem porto, a
     /// cabeça-de-praia fica em bolsa (supply_pocket) por muito que se ganhe a batalha.
-    /// Devolve as regiões que só estão abastecidas por esta via (levam port_supply_factor).</summary>
-    private static HashSet<int> PortReach(World w, HashSet<int> linked)
+    /// Devolve as regiões que só estão abastecidas por esta via (levam port_supply_factor) e, em capacity,
+    /// as divisões que os cais de cada país conseguem carregar.</summary>
+    private static HashSet<int> PortReach(World w, HashSet<int> linked, out Dictionary<int, float> capacity)
     {
         var bySea = new HashSet<int>();
+        capacity = new Dictionary<int, float>();
         var ports = w.Regions.Values.Where(r => r.Buildings.Count > 0 && linked.Contains(r.Id)
                                              && r.Buildings.Any(b => Range(w, b) > 0f)).ToList();
+        float perLevel = w.Rule("port_capacity_per_level", 6f);
+        foreach (var port in ports)
+            capacity[port.ControllerId] = capacity.GetValueOrDefault(port.ControllerId)
+                                        + Levels(w, port) * perLevel;
         if (ports.Count == 0) return bySea;
 
         var queue = new Queue<Region>();
@@ -82,6 +95,37 @@ public sealed class SupplySystem : ISystem
         }
         return bySea;
     }
+
+    /// <summary>Estrangulamento de cais: as divisões que só bebem por mar contam-se ao controlador da
+    /// cabeça-de-praia — é a rede dele que as carrega — e, se forem mais do que o porto aguenta, todas
+    /// perdem na mesma proporção. Um país sem excesso não aparece aqui e não perde nada.</summary>
+    private static Dictionary<int, float> Strain(World w, HashSet<int> bySea, Dictionary<int, float> capacity)
+    {
+        var strain = new Dictionary<int, float>();
+        foreach (var c in w.Countries.Values) { c.PortCapacity = capacity.GetValueOrDefault(c.Id); c.SeaSupplied = 0; }
+        if (bySea.Count == 0) return strain;
+
+        var load = new Dictionary<int, int>();
+        foreach (var d in w.Divisions.Values)
+        {
+            if (!bySea.Contains(d.RegionId)) continue;
+            int cid = w.Regions[d.RegionId].ControllerId;
+            load[cid] = load.GetValueOrDefault(cid) + 1;
+        }
+
+        float floor = w.Rule("port_overflow_min", 0.35f);
+        foreach (var (cid, n) in load)
+        {
+            if (w.Countries.TryGetValue(cid, out var c)) c.SeaSupplied = n;
+            float cap = capacity.GetValueOrDefault(cid);
+            if (n > cap) strain[cid] = Math.Clamp(cap / n, floor, 1f);
+        }
+        return strain;
+    }
+
+    /// <summary>Níveis de cais de uma região: só os edifícios que alcançam mar contam.</summary>
+    private static int Levels(World w, Region r) =>
+        r.Buildings.Where(b => Range(w, b) > 0f).Sum(b => b.Value);
 
     /// <summary>Alcance por mar de um edifício construído: supply_range da definição × níveis.</summary>
     private static float Range(World w, KeyValuePair<string, int> built) =>

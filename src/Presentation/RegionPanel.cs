@@ -235,6 +235,7 @@ public partial class RegionPanel : PanelContainer
                 if (lvl > 0 && w.BuildingDefs.TryGetValue(bid, out var bd)) info += $"  ·  {bd.Name} {lvl}";
             if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var pd))
                 info += $"  🏗 {pd.Name}: {(int)MathF.Ceiling(pd.Days - r.ProjectProgress)} dias";
+            if (PortView.RegionLine(w, r) is string quay && quay.Length > 0) info += "  ·  " + quay;
             if (SeasonView.RegionLine(w, r) is string season && season.Length > 0) info += "  ·  " + season;
             if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
             if (r.Integration > 0.5f) info += $"  ·  🤝 integração {r.Integration / MathF.Max(1f, w.Rule("integration_days", 150f)):P0}";
