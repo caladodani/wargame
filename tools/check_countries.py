@@ -38,16 +38,19 @@ def check(path, static):
         db.execute('ATTACH DATABASE ? AS st', (str(static),))
         if not db.execute('SELECT 1 FROM st.country WHERE tag=?', (tag,)).fetchone():
             errs.append(f'tag {tag} não existe na tabela country')
+    TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier')
+    base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
     except sqlite3.Error as e:
         return [f'SQL inválido: {e}'], warns
 
-    # só fala do próprio país
-    for table, col in (('country_stat', 'country_tag'), ('country_info', 'country_tag'), ('national_spirit', 'country_tag'),
-                       ('country_template', 'country_tag'), ('country_unit', 'country_tag'), ('modifier', 'country_tag')):
-        for (t,) in db.execute(f'SELECT DISTINCT {col} FROM {table} WHERE {col} IS NOT NULL'):
-            if t != tag: errs.append(f'{table}: country_tag {t} num ficheiro de {tag}')
+    # só fala do próprio país (as linhas que já vinham dos seeds não contam)
+    for table in TAG_TABLES:
+        cur = db.execute(f'SELECT * FROM {table}')
+        ci = [d[0] for d in cur.description].index('country_tag')
+        for row in set(cur.fetchall()) - base_rows[table]:
+            if row[ci] is not None and row[ci] != tag: errs.append(f'{table}: country_tag {row[ci]} num ficheiro de {tag}')
     src = path.read_text(encoding='utf-8')
     for m in re.finditer(r"UPDATE\s+country\s+SET[^;]*WHERE\s+tag\s*=\s*'(\w+)'", src, re.I):
         if m.group(1) != tag: errs.append(f'UPDATE country de {m.group(1)} num ficheiro de {tag}')
@@ -144,7 +147,6 @@ def main():
         db.executescript((HERE / 'data' / 'seed_units.sql').read_text(encoding='utf-8'))
         db.executescript((HERE / 'data' / 'seed_tech.sql').read_text(encoding='utf-8'))
         db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
-    db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
         try:
             for f in files: db.executescript(f.read_text(encoding='utf-8'))
         except sqlite3.IntegrityError as e:
