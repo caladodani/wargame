@@ -56,6 +56,9 @@ public sealed class ProductionSystem : ISystem
                 Org = newOrg, Hp = 100f, Supply = 1f,
             });
             c.Queue.RemoveAt(i);
+            // produção em série: a encomenda entregue volta ao fim da fila, do zero
+            if (o.Repeat && c.Queue.Count < w.Rule("production_queue_max", 30f))
+                c.Queue.Add(new ProductionOrder { TemplateId = o.TemplateId, Repeat = true });
         }
     }
 

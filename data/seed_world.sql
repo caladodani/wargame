@@ -358,3 +358,6 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_invasion_min_org',45,'organização mínima para assaltar uma costa inimiga'),
  ('naval_invasion_penalty',0.45,'força do atacante que vem do mar'),
  ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo');
+
+-- Produção em série: a encomenda marcada volta ao fim da fila quando é entregue, até ao tecto da fila.
+INSERT INTO rule (key,value,note) VALUES ('production_queue_max',30,'encomendas em fila por país');

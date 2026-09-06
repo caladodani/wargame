@@ -292,10 +292,19 @@ public sealed record BuildDivisionCommand(int CountryId, int TemplateId) : IComm
         DivisionTemplate t;
         try { t = w.Units.GetTemplate(TemplateId); } catch (InvalidOperationException) { return "Template inexistente"; }
         if (t.CountryId != CountryId) return "Template não é teu";
-        if (w.Countries[CountryId].Queue.Count >= 30) return "Fila cheia";
+        if (w.Countries[CountryId].Queue.Count >= w.Rule("production_queue_max", 30f)) return "Fila cheia";
         return null;
     }
     public void Execute(World w) => w.Countries[CountryId].Queue.Add(new ProductionOrder { TemplateId = TemplateId });
+}
+
+/// <summary>Liga/desliga a produção em série de uma encomenda: entregue, volta ao fim da fila.</summary>
+public sealed record SetProductionRepeatCommand(int CountryId, int Index, bool On) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Countries.TryGetValue(CountryId, out var c) ? "país inválido"
+        : Index < 0 || Index >= c.Queue.Count ? "Encomenda inexistente" : null;
+    public void Execute(World w) => w.Countries[CountryId].Queue[Index].Repeat = On;
 }
 
 /// <summary>Cancela a encomenda na posição `Index`; devolve os pontos já gastos.</summary>

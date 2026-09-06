@@ -48,7 +48,7 @@ public partial class ProductionPanel : PanelContainer
             _title.Text = $"Produção — {c.Name}   {c.Money:0.0} pts   ·   {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens";
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o))) + "#" + (int)(c.Manpower / 1000f);
+            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : ""))) + "#" + (int)(c.Manpower / 1000f);
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -70,7 +70,9 @@ public partial class ProductionPanel : PanelContainer
                 var row = new HBoxContainer();
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
-                row.AddChild(Ui.Grow(Ui.Lbl($"{name}   {Pct(w, o)}%" + (waitingMen ? "   (à espera de homens)" : ""))));
+                bool rep = o.Repeat;
+                row.AddChild(Ui.Grow(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "") + (waitingMen ? "   (à espera de homens)" : ""))));
+                row.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
                 row.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
                 _queue.AddChild(row);
             }
@@ -143,6 +145,16 @@ public partial class ProductionPanel : PanelContainer
         AddChild(dlg);
         dlg.PopupCentered();
     }
+
+    /// <summary>Marca/desmarca a encomenda como produção em série (volta à fila quando é entregue).</summary>
+    private void Repeat(int index, int templateId, bool on) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid || !_game.World.Countries.TryGetValue(pid, out var c)) return;
+        if (index >= c.Queue.Count || c.Queue[index].TemplateId != templateId) { _game.Notify("A fila mudou, tenta outra vez"); Refresh(); return; }
+        var err = _game.Dispatch(new SetProductionRepeatCommand(pid, index, on));
+        if (err is not null) _game.Notify(err);
+        else { _lastKey = ""; Refresh(); }
+    });
 
     // O índice vem da lista desenhada; se a fila mudou entretanto (encomenda concluída) não cancela outra.
     private void Cancel(int index, int templateId) => _game.RunWhenIdle(() =>

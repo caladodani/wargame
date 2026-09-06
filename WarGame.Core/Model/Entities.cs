@@ -137,6 +137,8 @@ public sealed class ProductionOrder
 {
     public int TemplateId { get; init; }
     public float Progress { get; set; }
+    /// <summary>Produção em série: ao ser entregue, a encomenda volta ao fim da fila (ProductionSystem).</summary>
+    public bool Repeat { get; set; }
 }
 
 public sealed class Country

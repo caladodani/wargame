@@ -225,6 +225,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "auto_advance", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "nukes", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_production_queue", "repeat_order", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -345,8 +346,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.StartWar(a, b, Convert.ToInt32(r["since_day"]));
             w.Wars[World.WarKey(a, b)].LastProgressDay = r["last_progress_day"] is null ? Convert.ToInt32(r["since_day"]) : Convert.ToInt32(r["last_progress_day"]);
         }
-        foreach (var r in save.Query("SELECT country_id,template_id,progress FROM s_production_queue ORDER BY id"))
-            w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]) });
+        foreach (var r in save.Query("SELECT country_id,template_id,progress,repeat_order FROM s_production_queue ORDER BY id"))
+            w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]), Repeat = Convert.ToInt32(r["repeat_order"]) != 0 });
         foreach (var r in save.Query("SELECT region_id,attacker_country_id,days FROM s_battle"))
         {
             var b = new Battle { RegionId = Convert.ToInt32(r["region_id"]), AttackerCountryId = Convert.ToInt32(r["attacker_country_id"]), Days = Convert.ToInt32(r["days"]) };
@@ -406,7 +407,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
-            foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
+            foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress,repeat_order) VALUES (?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0);
             foreach (var e in c.AtWarWith)
                 if (c.Id < e)
                 {
