@@ -72,6 +72,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap FROM resource"))
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]));
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level FROM building"))
+            w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
+                Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]));
         foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude FROM spy_op"))
             w.SpyOps[(string)r["id"]!] = new SpyOp((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "",
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]));

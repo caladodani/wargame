@@ -57,6 +57,8 @@ public sealed record BattleRetreat(int RegionId, int CountryId, int Divisions) :
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;
+/// <summary>Edifício concluído numa região (ConstructionSystem): nível novo.</summary>
+public sealed record BuildingBuilt(int RegionId, string BuildingId, int Level) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

@@ -20,6 +20,8 @@ public partial class RegionPanel : PanelContainer
     private TextureRect _flag = null!;
     private VBoxContainer _rows = null!;
     private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!;
+    private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
+    private string _bldKey = "";
     private ConfirmationDialog _warDialog = null!;
     private readonly Dictionary<string, string> _terrainNames = new();
     private readonly HashSet<int> _selected = new();
@@ -48,6 +50,7 @@ public partial class RegionPanel : PanelContainer
         _rows = Ui.Grow(new VBoxContainer()); scroll.AddChild(_rows);
 
         var actions = new HFlowContainer(); v.AddChild(actions);
+        _bld = new HFlowContainer(); v.AddChild(_bld);
         _play = Ui.Btn("", () => _game.RunWhenIdle(OnPlay)); actions.AddChild(_play);
         _all = Ui.Btn("Todas", SelectAll); actions.AddChild(_all);
         _move = Ui.Btn("Mover", BeginMove); actions.AddChild(_move);
@@ -130,6 +133,14 @@ public partial class RegionPanel : PanelContainer
         Refresh();
     }
 
+    private void OnBuilding(string buildingId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new BuildBuildingCommand(pid, _regionId, buildingId));
+        if (err is not null) _game.Notify(err);
+        Refresh();
+    }
+
     private void OnBuild()
     {
         if (_game.PlayerId is not int pid) return;
@@ -191,6 +202,10 @@ public partial class RegionPanel : PanelContainer
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
             foreach (var (res, amount) in r.Resources.OrderBy(kv => kv.Key))
                 if (w.ResourceDefs.TryGetValue(res, out var rd)) info += $"  ·  {rd.Name} {amount:0}";
+            foreach (var (bid, lvl) in r.Buildings.OrderBy(kv => kv.Key))
+                if (lvl > 0 && w.BuildingDefs.TryGetValue(bid, out var bd)) info += $"  ·  {bd.Name} {lvl}";
+            if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var pd))
+                info += $"  🏗 {pd.Name}: {(int)MathF.Ceiling(pd.Days - r.ProjectProgress)} dias";
             if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
             if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
@@ -239,6 +254,22 @@ public partial class RegionPanel : PanelContainer
                            && r.Fort < (int)w.Rule("fort_max", 5f);
             _fort.Visible = canFort;
             if (canFort) _fort.Text = $"Fortificar ({w.Rule("fort_build_cost", 30f):0})";
+            bool canBld = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && r.Project is null;
+            var bldKey = !canBld ? "" : r.Id + "|" + string.Join(",", w.BuildingDefs.Values
+                .Where(d => r.Buildings.GetValueOrDefault(d.Id) < d.MaxLevel).Select(d => d.Id + ":" + r.Buildings.GetValueOrDefault(d.Id)));
+            if (bldKey != _bldKey)
+            {
+                _bldKey = bldKey;
+                Ui.Clear(_bld);
+                if (canBld)
+                    foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
+                    {
+                        if (r.Buildings.GetValueOrDefault(d.Id) >= d.MaxLevel) continue;
+                        var bid = d.Id;
+                        _bld.AddChild(Ui.Btn($"{d.Name} {r.Buildings.GetValueOrDefault(bid) + 1} ({d.Cost:0}, {d.Days:0} d)",
+                            () => _game.RunWhenIdle(() => OnBuilding(bid))));
+                    }
+            }
             UpdateButtons();
         }
         catch (Exception ex) { GD.PushError("RegionPanel.Fill: " + ex); }

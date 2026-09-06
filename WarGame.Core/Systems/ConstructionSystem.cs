@@ -26,6 +26,17 @@ public sealed class ConstructionSystem : ISystem
                     w.Events.Publish(new InfrastructureBuilt(r.Id));
                 }
             }
+            if (r.Project is string proj)
+            {
+                if (r.ControllerId != r.OwnerId || !w.BuildingDefs.TryGetValue(proj, out var def)) { r.Project = null; r.ProjectProgress = 0f; }
+                else if ((r.ProjectProgress += 1f) >= def.Days)
+                {
+                    r.Project = null; r.ProjectProgress = 0f;
+                    int lvl = Math.Min(def.MaxLevel, r.Buildings.GetValueOrDefault(proj) + 1);
+                    r.Buildings[proj] = lvl;
+                    w.Events.Publish(new BuildingBuilt(r.Id, proj, lvl));
+                }
+            }
             if (r.FortBuilding)
             {
                 if (r.ControllerId != r.OwnerId) { r.FortBuilding = false; r.FortProgress = 0f; }
@@ -36,6 +47,16 @@ public sealed class ConstructionSystem : ISystem
                     w.Events.Publish(new FortBuilt(r.Id, r.Fort));
                 }
             }
+        }
+
+        // efeito dos edifícios: multiplicador por país recalculado todos os dias (como os recursos)
+        foreach (var c in w.Countries.Values) c.BuildingMult.Clear();
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.Buildings.Count == 0 || !w.Countries.TryGetValue(r.ControllerId, out var c)) continue;
+            foreach (var (bid, lvl) in r.Buildings)
+                if (w.BuildingDefs.TryGetValue(bid, out var def))
+                    c.BuildingMult[def.StatKey] = c.BuildingMult.GetValueOrDefault(def.StatKey, 1f) * (1f + def.PerLevel * lvl);
         }
     }
 }

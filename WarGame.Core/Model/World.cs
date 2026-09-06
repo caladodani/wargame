@@ -34,6 +34,8 @@ public sealed class World
     /// <summary>Leis nacionais (tabelas law + law_effect); ActiveLaw resolve o default por grupo.</summary>
     /// <summary>Tipos de recurso (tabela resource); depósitos vivem em Region.Resources.</summary>
     public Dictionary<string, ResourceDef> ResourceDefs { get; } = new();
+    /// <summary>Edifícios construíveis (tabela building).</summary>
+    public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
 

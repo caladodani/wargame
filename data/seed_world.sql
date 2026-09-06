@@ -240,3 +240,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('xp_per_battle_day',1,'XP ganho por divisão por dia de batalha'),
  ('xp_max',100,'tecto de XP'),
  ('veterancy_bonus',0.25,'bónus de força a XP máximo');
+
+-- Edifícios regionais (tabela building; ConstructionSystem/BuildBuildingCommand)
+CREATE TABLE IF NOT EXISTS building (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,
+  stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL);
+INSERT INTO building VALUES ('fabrica','Fábrica',40,25,'industry',0.05,5);
+INSERT INTO building VALUES ('laboratorio','Laboratório',50,30,'research_speed',0.06,3);
+INSERT INTO building VALUES ('arsenal','Arsenal',45,25,'production_speed',0.05,4);

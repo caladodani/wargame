@@ -689,3 +689,26 @@ public sealed record CancelTradeDealCommand(int CountryId, int OtherId, string R
     }
 }
 
+
+/// <summary>Começa a obra de um edifício da tabela building numa região própria e controlada.</summary>
+public sealed record BuildBuildingCommand(int CountryId, int RegionId, string BuildingId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
+        if (r.ControllerId != CountryId || r.OwnerId != CountryId) return "a região não é tua";
+        if (!w.BuildingDefs.TryGetValue(BuildingId, out var def)) return "edifício desconhecido";
+        if (r.Project is not null) return "já há uma obra de edifício em curso";
+        if (r.Buildings.GetValueOrDefault(BuildingId) >= def.MaxLevel) return "nível máximo atingido";
+        if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId]; var r = w.Regions[RegionId];
+        c.Money -= w.BuildingDefs[BuildingId].Cost;
+        r.Project = BuildingId; r.ProjectProgress = 0f;
+    }
+}
