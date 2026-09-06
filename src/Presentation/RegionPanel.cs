@@ -324,6 +324,7 @@ public partial class RegionPanel : PanelContainer
         if (d.TargetRegionId is int hop && w.IsSeaHop(d.RegionId, hop)) s += "   🌊";
         if (d.Xp >= 1f) s += $"   XP {d.Xp:0}";
         if (d.Medals.Count > 0) s += "   🎖" + (d.Medals.Count > 1 ? "×" + d.Medals.Count : "");
+        if (w.GroupOf(d.Id) is ArmyGroup g) s += (g.Advancing ? "   ▶ " : "   ■ ") + g.Name;   // às ordens de um grupo de exércitos
         if (d.AutoAdvance) s += "   ⚑";
         if (w.InBattle(d.Id)) s += "   " + RegionRenderer.BattleMark.Trim();
         return s;

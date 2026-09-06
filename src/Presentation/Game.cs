@@ -94,6 +94,7 @@ public partial class Game : Node
         World.Register(new IntegrationSystem());
         World.Register(new InfrastructureRepairSystem());
         World.Register(new AutoFrontSystem());
+        World.Register(new ArmyGroupSystem());   // depois do avanço automático: o grupo manda em cima da divisão solta
         World.Register(new EspionageSystem());
         World.Register(new VictorySystem());
         World.Register(new DiplomacySystem());

@@ -28,6 +28,7 @@ public partial class Hud : CanvasLayer
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
     private WarPanel _warPanel = null!;
+    private ArmyPanel _armyPanel = null!;
     private MiniMap _mini = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
@@ -52,6 +53,7 @@ public partial class Hud : CanvasLayer
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
+            _armyPanel = new ArmyPanel(); AddChild(_armyPanel); _armyPanel.Setup(_game, _map, _multiSel);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots);
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
 
@@ -89,6 +91,7 @@ public partial class Hud : CanvasLayer
         if (_production.Visible) { _production.Close(); return; }
         if (_countryPanel.Visible) { _countryPanel.Close(); return; }
         if (_warPanel.Visible) { _warPanel.Close(); return; }
+        if (_armyPanel.Visible) { _armyPanel.Close(); return; }
         var now = Time.GetTicksMsec();
         if (now - _backAt < 2000) { _game.Save(); GetTree().Quit(); return; }
         _backAt = now;
@@ -126,6 +129,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         row.AddChild(Ui.Btn("Guerra", OpenWar));
+        row.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
         row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
         row.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
     }
@@ -538,9 +542,10 @@ public partial class Hud : CanvasLayer
             _countryPanel.Refresh();
             _worldPanel.Refresh();
             _warPanel.Refresh();
+            _armyPanel.Refresh();
             // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
             _mini.SetCovered(_region.Visible || _production.Visible || _countryPanel.Visible
-                             || _worldPanel.Visible || _warPanel.Visible || _journal.Visible);
+                             || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible);
             if (!_mini.Visible) return;
             _mini.Refresh();
         }
@@ -602,6 +607,7 @@ public partial class Hud : CanvasLayer
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         _production.Open();
         _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
+        _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid

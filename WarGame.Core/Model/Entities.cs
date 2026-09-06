@@ -234,6 +234,22 @@ public sealed class Country
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>
+/// <summary>Grupo de exércitos: divisões sob um comando só, com uma frente atribuída (o país inimigo
+/// contra quem marcham) e uma postura. Até aqui cada divisão era uma ordem à parte ou um avanço automático
+/// cego para o vizinho mais fraco; um grupo com frente marcha o mapa todo até ao inimigo que lhe deram,
+/// pelo caminho mais curto, e só lá chegando é que escolhe onde bater. Quem executa é o ArmyGroupSystem.</summary>
+public sealed class ArmyGroup
+{
+    public int Id { get; init; }
+    public int CountryId { get; init; }
+    public string Name { get; set; } = "";
+    /// <summary>País inimigo atribuído como frente; null = grupo sem missão (fica onde está).</summary>
+    public int? FrontCountryId { get; set; }
+    /// <summary>true = marcha e ataca a frente; false = mantém posições (o grupo não dá ordens nenhumas).</summary>
+    public bool Advancing { get; set; }
+    public HashSet<int> Divisions { get; } = new();
+}
+
 public sealed class Division
 {
     public int Id { get; init; }

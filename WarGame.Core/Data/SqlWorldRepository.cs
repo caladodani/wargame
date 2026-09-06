@@ -356,6 +356,21 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var r in save.Query("SELECT division_id,medal FROM s_division_medal"))
             if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var md)) md.Medals.Add((string)r["medal"]!);
+        foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,advancing FROM s_army_group ORDER BY id"))
+        {
+            var g = new ArmyGroup
+            {
+                Id = Convert.ToInt32(r["id"]), CountryId = Convert.ToInt32(r["country_id"]), Name = (string)r["name"]!,
+                FrontCountryId = r["front_country_id"] is null ? null : Convert.ToInt32(r["front_country_id"]),
+                Advancing = r["advancing"] is not null && Convert.ToInt32(r["advancing"]) != 0,
+            };
+            w.ArmyGroups[g.Id] = g;
+        }
+        foreach (var r in save.Query("SELECT group_id,division_id FROM s_army_group_member"))
+        {
+            int div = Convert.ToInt32(r["division_id"]);
+            if (w.ArmyGroups.TryGetValue(Convert.ToInt32(r["group_id"]), out var g) && w.Divisions.ContainsKey(div)) g.Divisions.Add(div);
+        }
         foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war"))
         {
             int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]);
@@ -387,7 +402,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -469,6 +484,13 @@ public sealed class SqlWorldRepository : IWorldRepository
                 d.Battles, d.Captures);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
+        }
+        foreach (var g in w.ArmyGroups.Values)
+        {
+            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,advancing) VALUES (?,?,?,?,?)",
+                g.Id, g.CountryId, g.Name, g.FrontCountryId, g.Advancing ? 1 : 0);
+            foreach (int id in g.Divisions)
+                save.Execute("INSERT INTO s_army_group_member (group_id,division_id) VALUES (?,?)", g.Id, id);
         }
         foreach (var b in w.ActiveBattles)
         {

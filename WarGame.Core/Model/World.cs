@@ -13,6 +13,8 @@ public sealed class World
     public Dictionary<int, Country> Countries { get; } = new();
     public Dictionary<int, Division> Divisions { get; } = new();
     public List<Battle> ActiveBattles { get; } = new();
+    /// <summary>Grupos de exércitos por id (ArmyGroupSystem). Poucos por país — rule army_group_max.</summary>
+    public Dictionary<int, ArmyGroup> ArmyGroups { get; } = new();
     public EventBus Events { get; } = new();
     public DivisionStatCache Stats { get; }
     public ModifierEngine Modifiers { get; }
@@ -250,6 +252,17 @@ public sealed class World
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);
 
+    private int _nextGroupId;
+
+    public int NewArmyGroupId()
+    {
+        if (_nextGroupId == 0) _nextGroupId = ArmyGroups.Count == 0 ? 1 : ArmyGroups.Keys.Max() + 1;
+        return _nextGroupId++;
+    }
+
+    /// <summary>Grupo a que a divisão pertence, ou null. Há poucos grupos: a varredura é barata.</summary>
+    public ArmyGroup? GroupOf(int divisionId) => ArmyGroups.Values.FirstOrDefault(g => g.Divisions.Contains(divisionId));
+
     public int NewDivisionId()
     {
         if (_nextDivisionId == 0) _nextDivisionId = Divisions.Count == 0 ? 1 : Divisions.Keys.Max() + 1;
@@ -269,6 +282,7 @@ public sealed class World
         if (!Divisions.Remove(id, out var d)) return;
         Regions[d.RegionId].DivisionIds.Remove(id);
         foreach (var b in ActiveBattles) { b.Attackers.Remove(id); b.Defenders.Remove(id); }
+        foreach (var g in ArmyGroups.Values) g.Divisions.Remove(id);
     }
 
     /// <summary>Muda a divisão de região (sem custo nem regras — MovementSystem decide quando).</summary>

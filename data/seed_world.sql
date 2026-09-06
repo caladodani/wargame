@@ -343,6 +343,12 @@ INSERT INTO general VALUES ('gen_manobra','Manobrador','move_speed',1.15,110);
 INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',1.08,140);
 INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
+
+-- Grupos de exércitos com frente atribuída (ArmyGroupSystem)
+INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
+INSERT INTO rule VALUES ('army_group_min_org', 35, 'organização mínima para uma divisão do grupo marchar');
+INSERT INTO rule VALUES ('army_group_march_range', 25, 'saltos máximos que um grupo procura a frente atribuída');
+INSERT INTO rule VALUES ('army_group_order_days', 2, 'dias entre ordens de marcha de um grupo');
 INSERT INTO rule VALUES ('auto_advance_min_org', 40, 'organização mínima para o avanço automático atacar');
 
 -- Níveis de dificuldade (World.ApplyDifficulty; menu de jogo)

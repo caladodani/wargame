@@ -871,6 +871,88 @@ public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) :
     }
 }
 
+/// <summary>Cria um grupo de exércitos vazio. Limitado a army_group_max por país; sem nome, dá-lhe
+/// a ordinal seguinte ("3.º Exército").</summary>
+public sealed record CreateArmyGroupCommand(int CountryId, string? Name = null) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (Count(w, CountryId) >= (int)w.Rule("army_group_max", 6f)) return "não há mais estados-maiores";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        int id = w.NewArmyGroupId();
+        string name = string.IsNullOrWhiteSpace(Name) ? $"{Count(w, CountryId) + 1}.º Exército" : Name.Trim();
+        w.ArmyGroups[id] = new ArmyGroup { Id = id, CountryId = CountryId, Name = name };
+    }
+
+    private static int Count(World w, int countryId) => w.ArmyGroups.Values.Count(g => g.CountryId == countryId);
+}
+
+/// <summary>Dissolve o grupo. As divisões ficam onde estão, com as ordens que tinham — só perdem o comando.</summary>
+public sealed record DisbandArmyGroupCommand(int CountryId, int GroupId) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.ArmyGroups.TryGetValue(GroupId, out var g) ? "grupo inexistente"
+        : g.CountryId != CountryId ? "grupo não é teu" : null;
+
+    public void Execute(World w) => w.ArmyGroups.Remove(GroupId);
+}
+
+/// <summary>Atribui (ou tira) a frente do grupo: o país inimigo para onde ele marcha.</summary>
+public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? FrontCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.ArmyGroups.TryGetValue(GroupId, out var g)) return "grupo inexistente";
+        if (g.CountryId != CountryId) return "grupo não é teu";
+        if (FrontCountryId is not int foe) return null;
+        if (!w.Countries.ContainsKey(foe)) return "país inexistente";
+        if (!w.AreAtWar(CountryId, foe)) return "só se atribui uma frente contra quem estás em guerra";
+        return null;
+    }
+
+    public void Execute(World w) => w.ArmyGroups[GroupId].FrontCountryId = FrontCountryId;
+}
+
+/// <summary>Postura do grupo: avançar sobre a frente ou manter posições.</summary>
+public sealed record SetArmyGroupStanceCommand(int CountryId, int GroupId, bool Advancing) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.ArmyGroups.TryGetValue(GroupId, out var g)) return "grupo inexistente";
+        if (g.CountryId != CountryId) return "grupo não é teu";
+        if (Advancing && g.FrontCountryId is null) return "sem frente atribuída não há para onde avançar";
+        return null;
+    }
+
+    public void Execute(World w) => w.ArmyGroups[GroupId].Advancing = Advancing;
+}
+
+/// <summary>Põe uma divisão às ordens de um grupo (GroupId null = tira-a de qualquer grupo).
+/// Uma divisão só serve num grupo de cada vez.</summary>
+public sealed record AssignDivisionCommand(int CountryId, int DivisionId, int? GroupId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Divisions.TryGetValue(DivisionId, out var d)) return "Divisão inexistente";
+        if (d.CountryId != CountryId) return "Divisão não é tua";
+        if (GroupId is not int gid) return null;
+        if (!w.ArmyGroups.TryGetValue(gid, out var g)) return "grupo inexistente";
+        if (g.CountryId != CountryId) return "grupo não é teu";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        foreach (var g in w.ArmyGroups.Values) g.Divisions.Remove(DivisionId);
+        if (GroupId is int gid) w.ArmyGroups[gid].Divisions.Add(DivisionId);
+    }
+}
+
 /// <summary>Contrata um comandante (tabela general): paga o custo único e ganha o multiplicador dele
 /// enquanto servir. Limitado a general_slots comandantes por país, sem repetir arquétipos.</summary>
 public sealed record HireGeneralCommand(int CountryId, string GeneralId) : ICommand

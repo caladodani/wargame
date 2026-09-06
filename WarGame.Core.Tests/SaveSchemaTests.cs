@@ -26,6 +26,22 @@ public class SaveSchemaTests
             Assert.Single(save.Query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", t));
     }
 
+    /// <summary>No telemóvel o schema do save é o sqlite_master do data/static.db — os *.sql não entram no
+    /// APK. Um static.db construído antes de uma tabela de save nova deixa o jogo sem essa tabela e o save
+    /// rebenta no DELETE FROM dela. Este teste é o alarme: static.db tem de trazer o schema.sql inteiro.</summary>
+    [Fact]
+    public void TheShippedStaticDb_CarriesEverySaveTableOfTheSchema()
+    {
+        var wanted = System.Text.RegularExpressions.Regex
+            .Matches(File.ReadAllText("data/schema.sql"), @"CREATE TABLE IF NOT EXISTS\s+(\w+)")
+            .Select(m => m.Groups[1].Value).ToList();
+        Assert.NotEmpty(wanted);
+
+        using var db = new MsSqliteDatabase("Data Source=data/static.db;Mode=ReadOnly");
+        var have = db.Query("SELECT name FROM sqlite_master WHERE type='table'").Select(r => (string)r["name"]!).ToHashSet();
+        Assert.All(wanted, t => Assert.Contains(t, have));
+    }
+
     [Fact]
     public void SaveRoundTrip_OnFallbackSchema_RestoresPlayerDayAndDivisions()
     {

@@ -15,6 +15,14 @@ public partial class ArmySelect : PanelContainer
     private readonly HashSet<int> _sel = new();
 
     public bool Active => _sel.Count > 0;
+    /// <summary>Regiões marcadas — o painel Exércitos usa a mesma marcação para recrutar divisões para um grupo.</summary>
+    public IReadOnlyCollection<int> RegionIds => _sel;
+    public int RegionCount => _sel.Count;
+
+    /// <summary>Divisões do país `countryId` que estão nas regiões marcadas.</summary>
+    public int DivisionCount(WarGame.Core.Model.World w, int countryId) =>
+        _sel.Sum(rid => w.Regions.TryGetValue(rid, out var r)
+            ? r.DivisionIds.Count(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == countryId) : 0);
 
     public void Setup(Game game, MapView map)
     {
