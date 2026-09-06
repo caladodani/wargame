@@ -16,6 +16,8 @@ public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEven
 public sealed record WarEnded(int A, int B) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
+/// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>
+public sealed record PeaceSigned(int Winner, int Loser, int Regions) : IGameEvent;
 /// <summary>Um país controla ≥ victory_pop_share da população mundial (VictorySystem, uma vez por jogo).</summary>
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>

@@ -245,7 +245,19 @@ public partial class CountryPanel : PanelContainer
                     _body.AddChild(Ui.Btn($"Convidar para {f.Name}", () => Faction(new InviteToFactionCommand(inviter, fid, c.Id)), 320));
                 }
                 if (w.AreAtWar(inviter, c.Id))
+                {
                     _body.AddChild(Ui.Btn("Propor paz branca", () => Faction(new OfferPeaceCommand(inviter, c.Id)), 260));
+                    // Paz negociada: exigimos o que já ocupamos. Mostra de antemão se ele assina.
+                    var held = PeaceTerms.OccupiedRegions(w, inviter, c.Id);
+                    if (held.Count > 0)
+                    {
+                        var v = PeaceTerms.Evaluate(w, inviter, c.Id, held);
+                        Line($"Exigência: {held.Count} regiões ocupadas — pressão {v.Pressure:0.00} contra preço {v.Price:0.00}");
+                        Line(v.Accepted ? "✔ Nas condições de hoje, ele assina." : "✘ Ainda não cede — ocupa mais ou desgasta-o.");
+                        _body.AddChild(Ui.Btn($"Exigir {held.Count} regiões e fazer paz",
+                            () => Faction(new DemandPeaceCommand(inviter, c.Id, held)), 320));
+                    }
+                }
                 if (!w.AreAtWar(inviter, c.Id) && w.ResourceDefs.Count > 0)
                 {
                     float price = w.Rule("trade_price_per_unit", 2f);

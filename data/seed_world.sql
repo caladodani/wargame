@@ -336,3 +336,16 @@ INSERT INTO difficulty_effect VALUES
  ('normal','ai_general_reserve',200),('normal','manpower_per_million_daily',60),
  ('dificil','build_min_days',15),('dificil','new_division_org',30),('dificil','points_per_million',0.08),
  ('dificil','ai_general_reserve',80),('dificil','manpower_per_million_daily',45);
+
+-- Paz negociada (PeaceTerms): a pressão sobre o derrotado (fatia do país ocupada, diferença de
+-- exércitos, desgaste de guerra, capital perdida) tem de pagar o preço do que se lhe exige. Uma
+-- região já ocupada custa menos do que uma que ainda está nas mãos dele.
+INSERT INTO rule (key,value,note) VALUES
+ ('peace_weight_occupied',1.0,'peso da fatia do país que está ocupada'),
+ ('peace_weight_strength',0.3,'peso da superioridade em divisões'),
+ ('peace_weight_exhaustion',0.3,'peso do desgaste de guerra do derrotado'),
+ ('peace_weight_capital',0.3,'peso de ter a capital dele ocupada'),
+ ('peace_price_held',0.6,'preço de exigir uma região que já ocupas'),
+ ('peace_price_free',1.4,'preço de exigir uma região que ainda é dele de facto'),
+ ('peace_demand_greed',1.0,'multiplicador global do preço das exigências'),
+ ('ai_peace_demand_min_share',0.25,'fatia do inimigo que a IA tem de ocupar para exigir território');

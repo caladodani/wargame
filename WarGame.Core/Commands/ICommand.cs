@@ -522,6 +522,33 @@ public sealed record OfferPeaceCommand(int CountryId, int TargetCountryId) : ICo
     }
 }
 
+/// <summary>Propor paz com exigências territoriais. O derrotado só assina se a pressão a que está
+/// sujeito (ocupação, diferença de exércitos, desgaste, capital perdida) pagar o preço do que se lhe
+/// pede — ver PeaceTerms. Aceite = as regiões exigidas mudam de dono e a guerra acaba; recusa publica
+/// PeaceOfferRejected e nada muda.</summary>
+public sealed record DemandPeaceCommand(int CountryId, int TargetCountryId, IReadOnlyList<int> RegionIds) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.ContainsKey(TargetCountryId)) return "país inválido";
+        if (!w.AreAtWar(CountryId, TargetCountryId)) return "não estás em guerra com ele";
+        if (RegionIds.Count == 0) return "não exigiste nada (usa a paz branca)";
+        foreach (var id in RegionIds)
+            if (!w.Regions.TryGetValue(id, out var r) || r.OwnerId != TargetCountryId)
+                return "só podes exigir regiões dele";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        if (Systems.PeaceTerms.Evaluate(w, CountryId, TargetCountryId, RegionIds).Accepted)
+            Systems.PeaceTerms.Sign(w, CountryId, TargetCountryId, RegionIds);
+        else
+            w.Events.Publish(new PeaceOfferRejected(CountryId, TargetCountryId));
+    }
+}
+
 /// <summary>Lançar uma operação de espionagem contra outro país (tabela spy_op).
 /// Paga à partida; conclui passado op.Days e o EspionageSystem aplica o efeito.
 /// Uma operação de cada vez por par (autor, alvo).</summary>

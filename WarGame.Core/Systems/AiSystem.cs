@@ -70,6 +70,7 @@ public sealed class AiSystem : ISystem
         foreach (int e in c.AtWarWith.ToList())
         {
             if (!w.Countries.TryGetValue(e, out var t) || t.Capitulated || t.IsPlayer) continue;
+            if (Demand(w, c, e)) continue;      // a ganhar: exige o que ocupa em vez de paz branca
             var info = w.Wars.GetValueOrDefault(World.WarKey(c.Id, e));
             if (info is null || w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) < w.Rule("peace_stale_days", 60f)) continue;
             int mine = divsByCountry.GetValueOrDefault(c.Id)?.Count ?? 0;
@@ -81,6 +82,23 @@ public sealed class AiSystem : ISystem
             var cmd = new Commands.OfferPeaceCommand(c.Id, e);
             if (cmd.Validate(w) is null) cmd.Execute(w);
         }
+    }
+
+    /// <summary>A ganhar por terra (ocupa pelo menos ai_peace_demand_min_share do inimigo): propõe
+    /// paz a exigir exactamente o que já ocupa. Se as contas do PeaceTerms não derem, não gasta a
+    /// proposta — deixa a guerra seguir e volta a tentar quando ocupar mais.</summary>
+    private static bool Demand(World w, Country c, int enemyId)
+    {
+        var theirs = w.Regions.Values.Where(r => r.OwnerId == enemyId).ToList();
+        if (theirs.Count == 0) return false;
+        var held = theirs.Where(r => r.ControllerId == c.Id).Select(r => r.Id).ToList();
+        if (held.Count == 0) return false;
+        if ((float)held.Count / theirs.Count < w.Rule("ai_peace_demand_min_share", 0.25f)) return false;
+        if (!PeaceTerms.Evaluate(w, c.Id, enemyId, held).Accepted) return false;
+        var cmd = new Commands.DemandPeaceCommand(c.Id, enemyId, held);
+        if (cmd.Validate(w) is not null) return false;
+        cmd.Execute(w);
+        return true;
     }
 
     /// <summary>Aviação: em guerra e com dinheiro acima de ai_air_reserve, compra um esquadrão

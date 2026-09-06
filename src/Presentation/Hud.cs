@@ -28,6 +28,7 @@ public partial class Hud : CanvasLayer
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
+    private readonly HashSet<(int, int)> _negotiated = new();   // idem para a paz negociada: a notícia sai no PeaceSigned
     private bool _smoke, _smoked;
     private ulong _backAt;   // Time.GetTicksMsec do último "voltar" sem painel aberto
 
@@ -353,9 +354,16 @@ public partial class Hud : CanvasLayer
             else if (_game.PlayerId is int p && f is not null && f.Members.Contains(p)) Later($"{Country(e.CountryId)} saiu da {fname}");
         }));
         _subs.Add(w.Events.Subscribe<WhitePeaceSigned>(e => _whitePeace.Add((e.A, e.B))));
+        _subs.Add(w.Events.Subscribe<PeaceSigned>(e =>
+        {
+            _negotiated.Add((e.Winner, e.Loser));
+            if (Player(e.Winner)) Later($"🕊 Paz com {Country(e.Loser)} — ficas com {e.Regions} regiões");
+            else if (Player(e.Loser)) Later($"🕊 Paz com {Country(e.Winner)} — cedes-lhe {e.Regions} regiões");
+        }));
         _subs.Add(w.Events.Subscribe<WarEnded>(e =>
         {
             bool white = _whitePeace.Remove((e.A, e.B));
+            if (_negotiated.Remove((e.A, e.B)) | _negotiated.Remove((e.B, e.A))) return;   // já noticiada acima
             if (Player(e.A) || Player(e.B))
                 Later(white ? $"🕊 Paz branca entre {Country(e.A)} e {Country(e.B)} — cada um fica com o que controla"
                             : $"Paz entre {Country(e.A)} e {Country(e.B)}");
