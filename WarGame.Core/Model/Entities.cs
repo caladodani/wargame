@@ -70,6 +70,9 @@ public sealed class Region
     /// <summary>Dias de integração acumulados (IntegrationSystem): com a resistência dominada, a região
     /// ocupada passa a ser do controlador ao fim de integration_days.</summary>
     public float Integration { get; set; }
+    /// <summary>Infraestrutura de origem (tabela region): tecto da reparação natural, nunca muda no jogo.
+    /// Obras pagas passam deste valor; a guerra danifica abaixo dele e o tempo repõe-no.</summary>
+    public float BaseInfrastructure { get; init; }
     public int Population { get; init; }
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }

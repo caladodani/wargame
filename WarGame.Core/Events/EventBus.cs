@@ -58,6 +58,8 @@ public sealed record BattleRetreat(int RegionId, int CountryId, int Divisions) :
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;
+/// <summary>Infraestrutura danificada voltou ao valor de origem (InfrastructureRepairSystem).</summary>
+public sealed record InfrastructureRepaired(int RegionId) : IGameEvent;
 /// <summary>Região ocupada integrada no país do controlador (IntegrationSystem): OwnerId mudou.</summary>
 public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
 /// <summary>Decisão nacional activada (ActivateDecisionCommand).</summary>

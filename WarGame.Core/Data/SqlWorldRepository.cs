@@ -110,7 +110,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             {
                 Id = id, Name = (string)r["name"]!, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner,
                 Terrain = (string)r["terrain"]!, River = Convert.ToInt32(r["river"]) == 1,
-                Population = Convert.ToInt32(r["population"]), Infrastructure = Convert.ToSingle(r["infrastructure"]),
+                Population = Convert.ToInt32(r["population"]), Infrastructure = Convert.ToSingle(r["infrastructure"]), BaseInfrastructure = Convert.ToSingle(r["infrastructure"]),
                 CenterX = r["centroid_x"] is null ? 0f : Convert.ToSingle(r["centroid_x"]),
                 CenterY = r["centroid_y"] is null ? 0f : Convert.ToSingle(r["centroid_y"]),
                 Coastal = Convert.ToInt32(r["coastal"]) == 1,

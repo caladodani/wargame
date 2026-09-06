@@ -305,3 +305,7 @@ INSERT INTO rule VALUES ('terrain_income_mountain', 0.8, 'montanha rende menos')
 INSERT INTO rule VALUES ('terrain_income_desert', 0.7, 'deserto rende pouco');
 INSERT INTO rule VALUES ('terrain_income_tundra', 0.65, 'tundra rende pouco');
 INSERT INTO rule VALUES ('coastal_income_bonus', 1.1, 'porto/costa: comércio marítimo');
+
+-- Reparação natural da infraestrutura (InfrastructureRepairSystem)
+INSERT INTO rule VALUES ('infra_repair_per_day', 0.002, 'infraestrutura reposta por dia numa região calma');
+INSERT INTO rule VALUES ('infra_repair_max_resist', 0.3, 'resistência acima da qual a ocupação não repara');
