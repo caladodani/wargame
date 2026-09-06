@@ -28,6 +28,11 @@ public sealed class World
     /// <summary>Eventos noticiosos (news_event) e efeitos (news_event_effect), por id.</summary>
     public Dictionary<string, NewsEvent> NewsEvents { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> NewsEffects { get; } = new();
+    /// <summary>Escolhas dos eventos (news_event_option, ordenadas por sort) e efeitos por opção.</summary>
+    public Dictionary<string, List<NewsOption>> NewsOptions { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> NewsOptionEffects { get; } = new();
+    /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
+    public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();
     /// <summary>Alianças defensivas (tabelas faction + faction_member). Ver FactionsOf/SameFaction/Allies.</summary>
     public Dictionary<string, Faction> Factions { get; } = new();
@@ -64,8 +69,14 @@ public sealed class World
             if (FocusEffects.TryGetValue(f, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var e in NewsEvents.Values)   // eventos noticiosos já disparados (NewsSystem)
-            if (e.Day <= Clock.Day && (e.CountryId is null || e.CountryId == c.Id) && NewsEffects.TryGetValue(e.Id, out var neffs))
+        {
+            if (e.Day > Clock.Day || (e.CountryId is not null && e.CountryId != c.Id)) continue;
+            if (NewsEffects.TryGetValue(e.Id, out var neffs))
                 foreach (var (key, mul) in neffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+            // Efeitos da opção escolhida (eventos com escolhas); sem escolha ainda → sem efeito.
+            if (NewsChoices.TryGetValue(e.Id, out var opt) && NewsOptionEffects.TryGetValue(opt, out var oeffs))
+                foreach (var (key, mul) in oeffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+        }
     }
 
     /// <summary>Pode escolher o foco: é do país, não o tem, e tem o anterior.</summary>

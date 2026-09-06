@@ -48,6 +48,18 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.NewsEffects.TryGetValue(eid, out var elist)) w.NewsEffects[eid] = elist = new();
             elist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
+        foreach (var r in _static.Query("SELECT id,event_id,title,sort FROM news_event_option ORDER BY event_id,sort,id"))
+        {
+            var eid = (string)r["event_id"]!;
+            if (!w.NewsOptions.TryGetValue(eid, out var olist)) w.NewsOptions[eid] = olist = new();
+            olist.Add(new NewsOption((string)r["id"]!, eid, (string)r["title"]!, Convert.ToInt32(r["sort"])));
+        }
+        foreach (var r in _static.Query("SELECT option_id,stat_key,value FROM news_event_option_effect"))
+        {
+            var oid = (string)r["option_id"]!;
+            if (!w.NewsOptionEffects.TryGetValue(oid, out var olist)) w.NewsOptionEffects[oid] = olist = new();
+            olist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
         foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
@@ -201,6 +213,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
         foreach (var r in save.Query("SELECT country_id,focus_id FROM s_focus"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cf)) cf.FocusesDone.Add((string)r["focus_id"]!);
+        foreach (var r in save.Query("SELECT event_id,option_id FROM s_news_choice"))
+            w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id FROM s_region"))
         {
@@ -240,10 +254,12 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
+        foreach (var (eventId, optionId) in w.NewsChoices)
+            save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
         foreach (var id in w.CustomTemplateIds)
         {
             var t = w.Units.GetTemplate(id);

@@ -20,6 +20,10 @@ public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>
 public sealed record TemplateCreated(int CountryId, int TemplateId) : IGameEvent;
+/// <summary>Evento noticioso do jogador com escolhas por fazer (a UI abre o diálogo).</summary>
+public sealed record NewsChoiceRequired(string EventId) : IGameEvent;
+/// <summary>Escolha feita num evento com opções (ChooseNewsOptionCommand ou IA).</summary>
+public sealed record NewsChoiceMade(int CountryId, string EventId, string OptionId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;

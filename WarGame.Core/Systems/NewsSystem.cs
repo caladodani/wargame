@@ -24,6 +24,20 @@ public sealed class NewsSystem : ISystem
                 if (e.CountryId is int id) { if (w.Countries.TryGetValue(id, out var c)) w.ApplyTechs(c); }
                 else foreach (var c in w.Countries.Values) w.ApplyTechs(c);
             }
+            // Eventos com escolhas: o jogador escolhe (NewsChoiceRequired → UI); a IA e os
+            // eventos globais ficam com a primeira opção (sort) na hora.
+            if (w.NewsOptions.TryGetValue(e.Id, out var opts) && opts.Count > 0 && !w.NewsChoices.ContainsKey(e.Id))
+            {
+                bool playerChooses = e.CountryId is int cid2 && w.Countries.TryGetValue(cid2, out var target)
+                                     && target.IsPlayer && !target.Capitulated;
+                if (playerChooses) w.Events.Publish(new NewsChoiceRequired(e.Id));
+                else
+                {
+                    w.NewsChoices[e.Id] = opts[0].Id;
+                    if (e.CountryId is int cid) { if (w.Countries.TryGetValue(cid, out var c)) w.ApplyTechs(c); }
+                    else foreach (var c in w.Countries.Values) w.ApplyTechs(c);
+                }
+            }
             w.Events.Publish(new NewsFired(e.Id));
         }
     }

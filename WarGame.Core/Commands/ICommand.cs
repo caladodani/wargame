@@ -214,6 +214,27 @@ public sealed record DefendBordersCommand(int CountryId) : ICommand
     }
 }
 
+/// <summary>Escolhe uma opção de um evento noticioso com escolhas (news_event_option).</summary>
+public sealed record ChooseNewsOptionCommand(int CountryId, string EventId, string OptionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.NewsEvents.TryGetValue(EventId, out var e)) return "Evento inexistente";
+        if (e.CountryId != CountryId) return "Evento não é teu";
+        if (e.Day > w.Clock.Day) return "Evento ainda não aconteceu";
+        if (w.NewsChoices.ContainsKey(EventId)) return "Já escolhido";
+        if (!w.NewsOptions.TryGetValue(EventId, out var opts) || !opts.Any(o => o.Id == OptionId)) return "Opção inexistente";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.NewsChoices[EventId] = OptionId;
+        if (w.Countries.TryGetValue(CountryId, out var c)) w.ApplyTechs(c);
+        w.Events.Publish(new Events.NewsChoiceMade(CountryId, EventId, OptionId));
+    }
+}
+
 /// <summary>Desenha um template novo (HoI4: division designer). Vai para o repositório em memória com
 /// id ≥ World.CustomTemplateBase e persiste no save (template/template_unit).</summary>
 public sealed record CreateTemplateCommand(int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units) : ICommand

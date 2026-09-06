@@ -107,6 +107,17 @@ CREATE TABLE IF NOT EXISTS news_event_effect (   -- efeito opcional: Country.Sta
   event_id TEXT NOT NULL REFERENCES news_event(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (event_id, stat_key)
 );
+CREATE TABLE IF NOT EXISTS news_event_option (   -- escolhas de um evento (HoI4): o jogador escolhe, a IA fica com a primeira (sort)
+  id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES news_event(id),
+  sort INTEGER NOT NULL DEFAULT 0, title TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS news_event_option_effect (
+  option_id TEXT NOT NULL REFERENCES news_event_option(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (option_id, stat_key)
+);
+CREATE TABLE IF NOT EXISTS s_news_choice (       -- escolha feita por evento (save)
+  event_id TEXT PRIMARY KEY, option_id TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS focus (               -- foco nacional (HoI4); árvore por país, requires = foco anterior
   id TEXT PRIMARY KEY, country_tag TEXT NOT NULL REFERENCES country(tag),
   name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',

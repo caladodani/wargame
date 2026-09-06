@@ -11,6 +11,8 @@ public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadO
 public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description);
 /// <summary>Evento noticioso com data marcada (tabela news_event); CountryId null = global.</summary>
 public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title, string Body);
+/// <summary>Escolha de um evento noticioso (news_event_option). A IA fica com a primeira (sort).</summary>
+public sealed record NewsOption(string Id, string EventId, string Title, int Sort);
 /// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
 public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);
 

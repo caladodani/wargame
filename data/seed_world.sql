@@ -88,3 +88,18 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('victory_pop_share',0.6,'fracção da população mundial controlada que dá o domínio do mundo'),
  ('victory_check_days',7,'de quantos em quantos dias se verifica o domínio');
+
+-- Eventos com escolhas (news_event_option; jogador escolhe, IA fica com a primeira).
+INSERT INTO news_event (id,day,country_tag,title,body) VALUES
+ ('prt_orcamento_defesa',60,'PRT','Orçamento da Defesa','O parlamento debate para onde vai o reforço orçamental das Forças Armadas.'),
+ ('bra_reforma_forcas',80,'BRA','Reforma das Forças Armadas','Brasília decide a prioridade da reestruturação militar.');
+INSERT INTO news_event_option (id,event_id,sort,title) VALUES
+ ('prt_orc_industria','prt_orcamento_defesa',0,'Investir na indústria de defesa'),
+ ('prt_orc_pessoal','prt_orcamento_defesa',1,'Reforçar o recrutamento'),
+ ('bra_ref_producao','bra_reforma_forcas',0,'Modernizar as linhas de produção'),
+ ('bra_ref_treino','bra_reforma_forcas',1,'Apostar no treino e prontidão');
+INSERT INTO news_event_option_effect (option_id,stat_key,value) VALUES
+ ('prt_orc_industria','industry',1.05),
+ ('prt_orc_pessoal','conscription',1.08),
+ ('bra_ref_producao','production_speed',1.06),
+ ('bra_ref_treino','org_regain',1.06);

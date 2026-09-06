@@ -192,6 +192,8 @@ public partial class Hud : CanvasLayer
             if (w.NewsEvents.TryGetValue(e.EventId, out var n) && (n.CountryId is null || Player(n.CountryId.Value)))
                 Later($"📰 {n.Title} — {n.Body}");
         }));
+        _subs.Add(w.Events.Subscribe<NewsChoiceRequired>(e =>
+            Callable.From(() => ShowNewsChoice(e.EventId)).CallDeferred()));
         _subs.Add(w.Events.Subscribe<WarJustifyStarted>(e =>
         {
             if (Player(e.TargetCountryId)) Later($"{Country(e.CountryId)} está a justificar guerra contra ti!");
@@ -222,6 +224,28 @@ public partial class Hud : CanvasLayer
         }));
         _subs.Add(w.Events.Subscribe<WorldDominated>(e =>
             Callable.From(() => ShowDomination(e.CountryId)).CallDeferred()));
+    }
+
+    /// <summary>Evento noticioso do jogador com escolhas: diálogo modal, um botão por opção.
+    /// Fechar sem escolher fica com a primeira (a IA faria o mesmo).</summary>
+    private void ShowNewsChoice(string eventId)
+    {
+        var w = _game.World;
+        if (!w.NewsEvents.TryGetValue(eventId, out var n) || !w.NewsOptions.TryGetValue(eventId, out var opts) || opts.Count == 0) return;
+
+        var dlg = new AcceptDialog { Title = n.Title, DialogText = n.Body, OkButtonText = opts[0].Title };
+        for (int i = 1; i < opts.Count; i++) dlg.AddButton(opts[i].Title, false, opts[i].Id);
+        void Choose(string optionId) => _game.RunWhenIdle(() =>
+        {
+            if (_game.PlayerId is not int pid) return;
+            var err = _game.Dispatch(new ChooseNewsOptionCommand(pid, eventId, optionId));
+            if (err is not null) _game.Notify(err);
+        });
+        dlg.Confirmed += () => Choose(opts[0].Id);
+        dlg.CustomAction += action => { Choose((string)action); dlg.Hide(); };
+        dlg.Canceled += () => Choose(opts[0].Id);   // fechar = primeira opção, nunca fica por escolher
+        AddChild(dlg);
+        dlg.PopupCentered();
     }
 
     /// <summary>Fim de jogo por domínio mundial: vitória do jogador ou de uma IA.</summary>
