@@ -13,6 +13,7 @@ public sealed class CombatSystem : ISystem
 
     public void Tick(World w)
     {
+        var dead = new HashSet<int>();
         for (int i = w.ActiveBattles.Count - 1; i >= 0; i--)
         {
             var b = w.ActiveBattles[i];
@@ -20,11 +21,12 @@ public sealed class CombatSystem : ISystem
             var att = b.Attackers.Select(id => w.Divisions[id]).Where(d => d.CanFight).ToList();
             var def = b.Defenders.Select(id => w.Divisions[id]).Where(d => d.CanFight).ToList();
 
-            var ctxA = BuildContext(w, region, w.Divisions[b.Attackers[0]].CountryId);
+            var ctxA = BuildContext(w, region, b.AttackerCountryId);
             var ctxD = BuildContext(w, region, region.ControllerId);
 
             ResolveTick(w, att, def, ctxA, ctxD);
             b.Days++;
+            foreach (var d in att.Concat(def)) if (d.Hp <= 0f) dead.Add(d.Id);
 
             bool defOut = !def.Any(d => d.CanFight);
             bool attOut = !att.Any(d => d.CanFight);
@@ -40,6 +42,8 @@ public sealed class CombatSystem : ISystem
                 }
             }
         }
+        // Divisões destruídas saem do mundo aqui (o evento já foi publicado em ResolveTick).
+        foreach (var id in dead) w.RemoveDivision(id);
     }
 
     private static ModContext BuildContext(World w, Region r, int countryId)

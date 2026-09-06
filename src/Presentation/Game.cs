@@ -34,6 +34,7 @@ public partial class Game : Node
         World = new World(new DateOnly(2030, 1, 1), new DivisionStatCache(units), new ModifierEngine(units.GetModifiers()));
         WorldRepo = new SqlWorldRepository(_static);
         WorldRepo.LoadStatic(World);
+        WorldRepo.LoadStartArmies(World);   // TODO(workflow UI): só quando não há save em user://
 
         // Ordem do tick — única fonte de verdade.
         World.Register(new SupplySystem());

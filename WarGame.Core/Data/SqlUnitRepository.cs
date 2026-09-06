@@ -9,20 +9,22 @@ public sealed class SqlUnitRepository : IUnitRepository
     private readonly IDatabase _db;
     private readonly Dictionary<int, UnitType> _units = new();
     private readonly Dictionary<int, DivisionTemplate> _templates = new();
+    private readonly Dictionary<int, IReadOnlyList<DivisionTemplate>> _byCountry = new();
 
     public SqlUnitRepository(IDatabase db) => _db = db;
 
     public UnitType GetUnitType(int id)
     {
         if (_units.TryGetValue(id, out var u)) return u;
-        var row = _db.Query("SELECT id,name,category,cost,build_days FROM unit_type WHERE id=?", id).Single();
+        var row = _db.Query("SELECT id,name,category,cost,build_days,supply,mobility FROM unit_type WHERE id=?", id).Single();
         var stats = new StatBlock();
         foreach (var r in _db.Query("SELECT stat_key,value FROM unit_stat WHERE unit_type_id=?", id))
             stats[(string)r["stat_key"]!] = Convert.ToSingle(r["value"]);
         foreach (var r in _db.Query("SELECT tag FROM unit_tag WHERE unit_type_id=?", id))
             stats.Tags.Add((string)r["tag"]!);
         u = new UnitType(id, (string)row["name"]!, (string)row["category"]!,
-            Convert.ToSingle(row["cost"]), Convert.ToInt32(row["build_days"]), stats);
+            Convert.ToSingle(row["cost"]), Convert.ToInt32(row["build_days"]),
+            Convert.ToSingle(row["mobility"]), Convert.ToSingle(row["supply"]), stats);
         _units[id] = u; return u;
     }
 
@@ -34,6 +36,14 @@ public sealed class SqlUnitRepository : IUnitRepository
             .Select(r => (Convert.ToInt32(r["unit_type_id"]), Convert.ToInt32(r["qty"]))).ToList();
         t = new DivisionTemplate(id, Convert.ToInt32(row["country_id"]), (string)row["name"]!, units);
         _templates[id] = t; return t;
+    }
+
+    public IReadOnlyList<DivisionTemplate> GetTemplates(int countryId)
+    {
+        if (_byCountry.TryGetValue(countryId, out var list)) return list;
+        list = _db.Query("SELECT id FROM template WHERE country_id=? ORDER BY id", countryId)
+                  .Select(r => GetTemplate(Convert.ToInt32(r["id"]))).ToList();
+        _byCountry[countryId] = list; return list;
     }
 
     public IEnumerable<Modifier> GetModifiers() =>

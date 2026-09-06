@@ -20,10 +20,14 @@ CREATE TABLE IF NOT EXISTS modifier (
   op TEXT NOT NULL CHECK (op IN ('add','mul')), value REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS terrain (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT,
+  move_cost REAL NOT NULL DEFAULT 1          -- multiplicador de dias para entrar na região
 );
+-- Constantes de jogo (economia, movimento, IA…). Nenhuma em código: World.Rules lê daqui.
+CREATE TABLE IF NOT EXISTS rule (key TEXT PRIMARY KEY, value REAL NOT NULL, note TEXT);
 CREATE TABLE IF NOT EXISTS country (
-  id INTEGER PRIMARY KEY, tag TEXT UNIQUE NOT NULL, name TEXT NOT NULL, color TEXT
+  id INTEGER PRIMARY KEY, tag TEXT UNIQUE NOT NULL, name TEXT NOT NULL, color TEXT,
+  capital_region_id INTEGER                  -- onde nascem as divisões produzidas (seed_armies.py)
 );
 CREATE TABLE IF NOT EXISTS region (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner_id INTEGER REFERENCES country(id),
@@ -42,6 +46,11 @@ CREATE TABLE IF NOT EXISTS region_neighbour (
 CREATE TABLE IF NOT EXISTS region_resource (
   region_id INTEGER NOT NULL REFERENCES region(id), resource TEXT NOT NULL, amount REAL NOT NULL,
   PRIMARY KEY (region_id, resource)
+);
+-- Exército inicial (tools/seed_armies.py): uma linha por divisão no dia 0. Só se lê quando não há save.
+CREATE TABLE IF NOT EXISTS start_division (
+  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL REFERENCES country(id),
+  template_id INTEGER NOT NULL, region_id INTEGER NOT NULL REFERENCES region(id)
 );
 CREATE TABLE IF NOT EXISTS tech (
   id TEXT PRIMARY KEY, branch TEXT NOT NULL, name TEXT NOT NULL, cost REAL NOT NULL, requires TEXT
@@ -72,12 +81,13 @@ CREATE TABLE IF NOT EXISTS template_unit (
 CREATE TABLE IF NOT EXISTS s_division (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, template_id INTEGER NOT NULL,
   region_id INTEGER NOT NULL, target_region_id INTEGER,
-  hp REAL NOT NULL, org REAL NOT NULL, supply REAL NOT NULL
+  hp REAL NOT NULL, org REAL NOT NULL, supply REAL NOT NULL,
+  move_progress REAL NOT NULL DEFAULT 0, path TEXT      -- path: ids separados por vírgula, do próximo salto ao destino
 );
 CREATE INDEX IF NOT EXISTS ix_div_region ON s_division(region_id);
 CREATE TABLE IF NOT EXISTS s_battle (region_id INTEGER PRIMARY KEY, attacker_country_id INTEGER NOT NULL, days INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS s_battle_division (region_id INTEGER, division_id INTEGER, side TEXT CHECK (side IN ('att','def')), PRIMARY KEY (region_id, division_id));
 CREATE TABLE IF NOT EXISTS s_production_queue (
-  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, unit_type_id INTEGER NOT NULL, qty INTEGER NOT NULL, progress REAL NOT NULL
+  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, template_id INTEGER NOT NULL, progress REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qty INTEGER NOT NULL, PRIMARY KEY (country_id, unit_type_id));

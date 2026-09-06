@@ -1,5 +1,23 @@
 -- Números calibrados em combat_sim.py
-INSERT INTO terrain VALUES ('plain','Planície','#c8d8a0'),('forest','Floresta','#4f7942'),('urban','Urbano','#888888'),('mountain','Montanha','#a08060'),('desert','Deserto','#e0c080'),('tundra','Tundra','#dfe8ee');
+INSERT INTO terrain (id,name,color,move_cost) VALUES
+ ('plain','Planície','#c8d8a0',1.0),('forest','Floresta','#4f7942',1.5),('urban','Urbano','#888888',1.2),
+ ('mountain','Montanha','#a08060',2.0),('desert','Deserto','#e0c080',1.3),('tundra','Tundra','#dfe8ee',1.8);
+
+-- Constantes de jogo. Referência HoI4: divisões cruzam uma província em dias, não horas; produção lenta.
+INSERT INTO rule (key,value,note) VALUES
+ ('move_base_days',80,'dias para entrar numa região = base / mobilidade × move_cost do terreno / infraestrutura'),
+ ('points_per_million',0.1,'pontos de produção por dia por milhão de habitantes numa região controlada'),
+ ('occupied_yield',0.5,'fração dos pontos que uma região ocupada (controlador ≠ dono) rende'),
+ ('build_min_days',10,'uma encomenda nunca fica pronta em menos dias que isto (gasto diário máximo = custo/este valor)'),
+ ('new_division_org',40,'organização com que uma divisão sai da fábrica'),
+ ('supply_pocket',0.5,'supply de uma divisão sem ligação por terra a território próprio (bolsa)'),
+ ('supply_stack',6,'divisões por região sem penalização de supply; acima, supply × (este valor / n)'),
+ ('ai_period_days',3,'a IA decide de X em X dias'),
+ ('ai_attack_ratio',1.5,'a IA só ataca com este rácio de divisões vs defensores'),
+ ('ai_max_queue',3,'encomendas em fila que a IA mantém'),
+ ('start_div_per_million',0.25,'divisões iniciais por milhão de habitantes (seed_armies.py)'),
+ ('start_div_min',2,'mínimo de divisões iniciais para países com população'),
+ ('start_div_max',120,'tecto de divisões iniciais por país');
 
 INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
  (1,'Infantaria','ground',1.0,30,1.0,25),

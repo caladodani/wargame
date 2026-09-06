@@ -10,6 +10,7 @@ public sealed class DivisionStatCache
     private readonly Dictionary<int, StatBlock> _cache = new();
 
     public DivisionStatCache(IUnitRepository units) => _units = units;
+    public IUnitRepository Units => _units;
 
     public void Invalidate(int templateId) => _cache.Remove(templateId);
     public void InvalidateAll() => _cache.Clear();
@@ -26,7 +27,7 @@ public sealed class DivisionStatCache
     {
         var s = new StatBlock();
         var max = new Dictionary<string, float>();
-        int n = 0;
+        int n = 0; float mobility = float.MaxValue, supplyUse = 0f;
         foreach (var (unitTypeId, qty) in t.Units)
         {
             var u = _units.GetUnitType(unitTypeId);
@@ -37,11 +38,15 @@ public sealed class DivisionStatCache
             }
             foreach (var tag in u.Stats.Tags) s.Tags.Add(tag);
             n += qty;
+            mobility = MathF.Min(mobility, u.Mobility);   // HoI4: a divisão anda à velocidade do batalhão mais lento
+            supplyUse += u.SupplyUse * qty;
         }
         if (n == 0) return s;
         s["hardness"] /= n;
         s["armor"]    = 0.3f * max.GetValueOrDefault("armor")    + 0.7f * s["armor"] / n;
         s["piercing"] = 0.5f * max.GetValueOrDefault("piercing") + 0.5f * s["piercing"] / n;
+        s["mobility"] = mobility;
+        s["supply_use"] = supplyUse;
         return s;
     }
 }

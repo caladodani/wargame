@@ -9,6 +9,7 @@ Etapas:
  5. rio: intersecta rivers_lake_centerlines (50m)
  6. vizinhos: STRtree, polígonos que se tocam
  7. escreve schema.sql + seed_units.sql + country/region/region_polygon/region_neighbour
+ 8. seed_armies.py: templates, exército inicial, capitais
 """
 import argparse, json, math, sqlite3, struct, sys, time
 from collections import defaultdict
@@ -207,6 +208,11 @@ def main():
         for j in ns:
             db.execute('INSERT OR IGNORE INTO region_neighbour VALUES (?,?)', (regions[i]['id'], regions[j]['id']))
     db.commit()
+
+    # exército inicial + capitais (tools/seed_armies.py; re-semeável à parte)
+    sys.path.insert(0, str(HERE / 'tools')); import seed_armies
+    ntpl, ndiv = seed_armies.seed(db)
+    print(f'{ntpl} templates, {ndiv} divisões iniciais')
 
     npts = db.execute('SELECT SUM(LENGTH(points))/8 FROM region_polygon').fetchone()[0]
     terr = db.execute('SELECT terrain,COUNT(*) FROM region GROUP BY terrain').fetchall()

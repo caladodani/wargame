@@ -2,7 +2,7 @@ using WarGame.Core.Stats;
 
 namespace WarGame.Core.Model;
 
-public sealed record UnitType(int Id, string Name, string Category, float Cost, int BuildDays, StatBlock Stats);
+public sealed record UnitType(int Id, string Name, string Category, float Cost, int BuildDays, float Mobility, float SupplyUse, StatBlock Stats);
 
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 
@@ -16,8 +16,17 @@ public sealed class Region
     public bool River { get; init; }
     public float Infrastructure { get; set; } = 1f;
     public int Population { get; init; }
+    public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
+    public float CenterY { get; init; }
     public List<int> Neighbours { get; init; } = new();
     public List<int> DivisionIds { get; } = new();
+}
+
+/// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
+public sealed class ProductionOrder
+{
+    public int TemplateId { get; init; }
+    public float Progress { get; set; }
 }
 
 public sealed class Country
@@ -26,6 +35,9 @@ public sealed class Country
     public string Tag { get; init; } = "";
     public string Name { get; init; } = "";
     public bool IsPlayer { get; set; }
+    public int CapitalRegionId { get; set; }
+    public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
+    public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
     public HashSet<int> AtWarWith { get; } = new();
 }
@@ -40,6 +52,14 @@ public sealed class Division
     public float Hp { get; set; } = 100f;
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;
-    public int? TargetRegionId { get; set; }
+    public float MoveProgress { get; set; }        // 0..1 dentro do salto actual (MovementSystem)
+    /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
+    public List<int> Path { get; } = new();
+    public int? TargetRegionId => Path.Count > 0 ? Path[0] : null;
+    public int? DestinationRegionId => Path.Count > 0 ? Path[^1] : null;
     public bool CanFight => Org >= 10f && Hp > 0f;
+
+    public void SetPath(IEnumerable<int> hops) { Path.Clear(); Path.AddRange(hops); MoveProgress = 0f; }
+    public void ClearPath() { Path.Clear(); MoveProgress = 0f; }
+    public void AdvanceHop() { if (Path.Count > 0) Path.RemoveAt(0); MoveProgress = 0f; }
 }
