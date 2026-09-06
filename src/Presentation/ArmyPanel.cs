@@ -57,6 +57,8 @@ public partial class ArmyPanel : PanelContainer
         if (w.Wars.Values.FirstOrDefault(x => x.Involves(pid)) is WarInfo war)
         {
             _game.Dispatch(new SetArmyGroupFrontCommand(pid, g.Id, war.EnemyOf(pid)));
+            _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Reserve));
+            _lastKey = ""; Fill();                                     // cartão da reserva com a barra de prontidão
             _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Advance));
         }
         // sem comandante ao serviço o cartão de comando nunca era desenhado: contrata-se um só para o teste
@@ -160,9 +162,9 @@ public partial class ArmyPanel : PanelContainer
             }
         }
 
-        // postura: três ordens exclusivas, a que está em vigor fica acesa e explicada por baixo
-        var stances = new HBoxContainer();
-        foreach (var st in new[] { GroupStance.Advance, GroupStance.Defend, GroupStance.Hold })
+        // postura: quatro ordens exclusivas, a que está em vigor fica acesa e explicada por baixo
+        var stances = new HFlowContainer();
+        foreach (var st in new[] { GroupStance.Advance, GroupStance.Defend, GroupStance.Reserve, GroupStance.Hold })
         {
             var (si, _, label) = Face(st);
             stances.AddChild(Ui.Btn($"{si} {label}", () => Stance(pid, g.Id, st), 160,
@@ -173,6 +175,23 @@ public partial class ArmyPanel : PanelContainer
         var note = Ui.Lbl(Explain(g), 15);
         note.AddThemeColorOverride("font_color", g.NeedsFront && g.FrontCountryId is null ? Ui.Danger : Ui.TextDim);
         v.AddChild(note);
+
+        // prontidão: em reserva o que interessa é saber quando é que este exército volta a servir
+        if (g.Resting && divs.Count > 0)
+        {
+            float ready = divs.Average(d => d.Org) / 100f;
+            float target = w.Rule("ai_group_ready_org", 75f) / 100f;
+            var bar = Ui.Bar(Math.Clamp(ready / MathF.Max(0.01f, target), 0f, 1f), ready >= target ? Ui.Good : Ui.Accent, 0f);
+            v.AddChild(bar);
+            int away = divs.Count(d => d.Path.Count > 0);
+            float gain = MathF.Max(0.5f, 8f * w.Countries[pid].Stat("org_regain") * w.Rule("reserve_org_bonus", 1.6f));
+            int days = ready >= target ? 0 : (int)MathF.Ceiling((target - ready) * 100f / gain);
+            var lbl = Ui.Lbl(ready >= target
+                ? $"Recomposto e pronto a voltar à linha ({away} ainda a recolher)"
+                : $"A recompor-se: {ready * 100f:0}% de organização, pronto em ~{days} dias", 15);
+            lbl.AddThemeColorOverride("font_color", ready >= target ? Ui.Good : Ui.TextDim);
+            v.AddChild(lbl);
+        }
 
         // comandante destacado: o bónus dele sai do país e vem para aqui multiplicado, e cresce com o posto
         var genRow = new HBoxContainer();
@@ -234,6 +253,7 @@ public partial class ArmyPanel : PanelContainer
     {
         GroupStance.Advance => ("▶", Ui.Good, "Avançar"),
         GroupStance.Defend => ("⛨", Ui.Accent, "Defender"),
+        GroupStance.Reserve => ("⏸", new Color(0.85f, 0.72f, 0.35f), "Reserva"),
         _ => ("■", Ui.TextDim, "Manter"),
     };
 
@@ -243,9 +263,12 @@ public partial class ArmyPanel : PanelContainer
     {
         if (g.Stance == GroupStance.Hold) return "Parado: as divisões ficam com as ordens que já tinham.";
         if (g.FrontCountryId is null) return "Sem frente atribuída não há para onde marchar — escolhe um inimigo.";
-        return g.Stance == GroupStance.Advance
-            ? "Marcha até ao inimigo pelo caminho mais curto e entra-lhe em casa."
-            : "Ocupa a última linha em território nosso e segura-a; quem estiver metido lá dentro recua.";
+        return g.Stance switch
+        {
+            GroupStance.Advance => "Marcha até ao inimigo pelo caminho mais curto e entra-lhe em casa.",
+            GroupStance.Reserve => "Recolhe à retaguarda em terreno nosso e recompõe-se mais depressa fora da linha.",
+            _ => "Ocupa a última linha em território nosso e segura-a; quem estiver metido lá dentro recua.",
+        };
     }
 
     /// <summary>Três barras lado a lado com legenda por cima — o estado do exército num relance.</summary>

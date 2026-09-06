@@ -88,10 +88,30 @@ public sealed class ArmyGroupSystem : ISystem
     /// Segurar uma linha é meia guerra: sem isto, um grupo ou avançava ou não fazia nada.</summary>
     private static int? Target(World w, Division d, GroupStance stance, int here, Dictionary<int, int> dist, Dictionary<int, int> defenders)
     {
+        if (stance == GroupStance.Reserve) return Rear(w, d, here, dist);
         if (stance == GroupStance.Advance) return here == 0 ? null : Step(w, d.RegionId, here, dist, defenders);
         if (here == 1) return null;                       // já está na linha
         if (here > 1) return Step(w, d.RegionId, here, dist, defenders);
         return Back(w, d.RegionId, dist, defenders);      // dentro do inimigo: recua para a linha
+    }
+
+    /// <summary>Reserva: afasta-se da frente até estar a army_group_reserve_depth saltos dela, e só anda
+    /// por terreno que já controlamos — recolher tropas gastas não é abrir uma segunda ofensiva. Chegada à
+    /// profundidade combinada, fica parada a recompor-se (o RecoverySystem trata do resto).</summary>
+    private static int? Rear(World w, Division d, int here, Dictionary<int, int> dist)
+    {
+        int depth = Math.Max(1, (int)w.Rule("army_group_reserve_depth", 3f));
+        if (here >= depth) return null;
+
+        var reg = w.Regions[d.RegionId];
+        int? best = null; int bestDist = here;
+        foreach (int n in reg.Neighbours)
+        {
+            if (!w.Regions.TryGetValue(n, out var r) || r.ControllerId != d.CountryId) continue;
+            int there = dist.TryGetValue(n, out int v) ? v : depth;      // fora do alcance da travessia = bem atrás
+            if (there > bestDist) { best = n; bestDist = there; }
+        }
+        return best;
     }
 
     /// <summary>Região nossa à beira da frente (distância 1) vizinha desta, a menos defendida.</summary>

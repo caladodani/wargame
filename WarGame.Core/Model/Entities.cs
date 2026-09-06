@@ -252,9 +252,9 @@ public sealed class Country
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>
-/// <summary>Postura de um grupo de exércitos: parado, a marchar sobre a frente ou a segurar a linha
-/// do lado de cá dela.</summary>
-public enum GroupStance { Hold = 0, Advance = 1, Defend = 2 }
+/// <summary>Postura de um grupo de exércitos: parado, a marchar sobre a frente, a segurar a linha do
+/// lado de cá dela, ou recolhido à retaguarda a recompor-se.</summary>
+public enum GroupStance { Hold = 0, Advance = 1, Defend = 2, Reserve = 3 }
 
 /// <summary>Grupo de exércitos: divisões sob um comando só, com uma frente atribuída (o país inimigo
 /// contra quem marcham) e uma postura. Até aqui cada divisão era uma ordem à parte ou um avanço automático
@@ -270,8 +270,11 @@ public sealed class ArmyGroup
     /// <summary>O que o grupo faz com a frente que lhe deram (ArmyGroupSystem).</summary>
     public GroupStance Stance { get; set; } = GroupStance.Hold;
     public bool Advancing => Stance == GroupStance.Advance;
-    /// <summary>Avançar ou defender exigem frente; parado não faz nada.</summary>
+    /// <summary>Avançar, defender e recolher à reserva exigem frente (a reserva precisa dela para saber
+    /// para que lado é a retaguarda); parado não faz nada.</summary>
     public bool NeedsFront => Stance != GroupStance.Hold;
+    /// <summary>Em reserva: as divisões saem da linha e recompõem-se mais depressa (RecoverySystem).</summary>
+    public bool Resting => Stance == GroupStance.Reserve;
     /// <summary>Comandante destacado para este grupo (id da tabela general), ou null. Enquanto comanda
     /// aqui, o bónus dele sai do país e vale só para estas divisões — amplificado por general_command_bonus.</summary>
     public string? GeneralId { get; set; }

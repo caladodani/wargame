@@ -344,6 +344,12 @@ INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',
 INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
 INSERT INTO rule VALUES ('general_command_bonus', 2, 'quanto vale o bónus de um comandante quando é destacado para um grupo de exércitos em vez de servir o país todo');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
+INSERT INTO rule (key,value,note) VALUES
+ ('army_group_reserve_depth',3,'saltos de distância à frente a que um grupo em reserva se recolhe'),
+ ('reserve_org_bonus',1.6,'multiplicador da recuperação de organização de um grupo em reserva'),
+ ('reserve_hp_bonus',1.5,'multiplicador dos reforços de um grupo em reserva'),
+ ('ai_group_rest_org',40,'organização média abaixo da qual a IA recolhe o grupo à reserva'),
+ ('ai_group_ready_org',75,'organização média a partir da qual a IA devolve o grupo à frente');
 
 -- Postos de comandante (tabela general_rank; GeneralXpSystem). O comandante destacado num grupo de
 -- exércitos ganha experiência com as batalhas do grupo e sobe de posto; bonus soma-se ao

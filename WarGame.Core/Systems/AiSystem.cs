@@ -111,7 +111,13 @@ public sealed class AiSystem : ISystem
             if (join.Validate(w) is null) join.Execute(w);
         }
 
-        var stance = divs.Count >= Math.Max(1, foeDivs) * w.Rule("ai_group_advance_ratio", 1.2f)
+        // exército gasto recolhe-se: abaixo de ai_group_rest_org vai para a reserva e só volta à linha
+        // depois de recomposto (ai_group_ready_org), senão andava a entrar e a sair da frente todos os dias
+        float org = g.Divisions.Count == 0 ? 100f
+            : g.Divisions.Average(id => w.Divisions.TryGetValue(id, out var gd) ? gd.Org : 100f);
+        float back = g.Resting ? w.Rule("ai_group_ready_org", 75f) : w.Rule("ai_group_rest_org", 40f);
+        var stance = org < back ? GroupStance.Reserve
+            : divs.Count >= Math.Max(1, foeDivs) * w.Rule("ai_group_advance_ratio", 1.2f)
             ? GroupStance.Advance : GroupStance.Defend;
         if (g.Stance != stance)
         {
@@ -120,7 +126,12 @@ public sealed class AiSystem : ISystem
         }
 
         // e um comandante à frente do exército: o que ataca se vamos avançar, o que defende se vamos segurar
-        string wanted = stance == GroupStance.Advance ? "attack" : "defense";
+        string wanted = stance switch
+        {
+            GroupStance.Advance => "attack",
+            GroupStance.Reserve => "org_regain",   // a descansar quem serve é o logístico
+            _ => "defense",
+        };
         if (g.GeneralId is null || w.GeneralDefs.GetValueOrDefault(g.GeneralId)?.StatKey != wanted)
         {
             string? pick = c.Generals.FirstOrDefault(id => w.GeneralDefs.GetValueOrDefault(id)?.StatKey == wanted);

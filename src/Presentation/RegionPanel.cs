@@ -325,7 +325,13 @@ public partial class RegionPanel : PanelContainer
         if (d.Xp >= 1f) s += $"   XP {d.Xp:0}";
         if (d.Medals.Count > 0) s += "   🎖" + (d.Medals.Count > 1 ? "×" + d.Medals.Count : "");
         if (w.GroupOf(d.Id) is ArmyGroup g)   // às ordens de um grupo de exércitos: o símbolo diz a postura
-            s += (g.Stance == GroupStance.Advance ? "   ▶ " : g.Stance == GroupStance.Defend ? "   ⛨ " : "   ■ ") + g.Name;
+            s += (g.Stance switch
+            {
+                GroupStance.Advance => "   ▶ ",
+                GroupStance.Defend => "   ⛨ ",
+                GroupStance.Reserve => "   ⏸ ",
+                _ => "   ■ ",
+            }) + g.Name;
         if (d.AutoAdvance) s += "   ⚑";
         if (w.InBattle(d.Id)) s += "   " + RegionRenderer.BattleMark.Trim();
         return s;
