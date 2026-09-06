@@ -22,6 +22,7 @@ public partial class Hud : CanvasLayer
     private CountryPanel _countryPanel = null!;
     private readonly List<IDisposable> _subs = new();
     private bool _smoke, _smoked;
+    private ulong _backAt;   // Time.GetTicksMsec do último "voltar" sem painel aberto
 
     public override void _Ready()
     {
@@ -48,6 +49,30 @@ public partial class Hud : CanvasLayer
     }
 
     // O Game é autoload e sobrevive ao ReloadCurrentScene: sem isto o Hud antigo continuava a receber sinais.
+    /// <summary>Botão voltar do Android (quit_on_go_back=false no project.godot) e Escape:
+    /// fecha o painel aberto; sem painel, segundo toque em 2 s grava e sai.</summary>
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMGoBackRequest) Back();
+    }
+
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) { Back(); GetViewport().SetInputAsHandled(); }
+    }
+
+    private void Back()
+    {
+        if (_game is null) return;
+        if (_region.Visible) { _region.Close(); return; }
+        if (_production.Visible) { _production.Close(); return; }
+        if (_countryPanel.Visible) { _countryPanel.Close(); return; }
+        var now = Time.GetTicksMsec();
+        if (now - _backAt < 2000) { _game.Save(); GetTree().Quit(); return; }
+        _backAt = now;
+        Toast("Prime outra vez para gravar e sair");
+    }
+
     public override void _ExitTree()
     {
         if (_game is null) return;

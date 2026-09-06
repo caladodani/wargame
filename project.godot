@@ -6,6 +6,7 @@ config/name="WarGame"
 config/icon="res://icon.png"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.3", "C#", "Mobile")
+config/quit_on_go_back=false
 
 [autoload]
 Game="*res://src/Presentation/Game.cs"
