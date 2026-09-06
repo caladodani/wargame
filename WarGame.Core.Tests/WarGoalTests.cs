@@ -53,6 +53,18 @@ public class WarGoalTests
     }
 
     [Fact]
+    public void Dissuasao_nuclear_trava_quem_nao_tem_ogivas()
+    {
+        var w = Setup(1f);
+        w.Countries[1].Nukes = 1;   // alvo é potência nuclear, agressor não
+        Rounds(w, 5);
+        Assert.False(w.AreAtWar(2, 1));
+        w.Countries[2].Nukes = 1;   // paridade nuclear: dissuasão deixa de travar
+        Rounds(w, 3);
+        Assert.True(w.AreAtWar(2, 1));
+    }
+
+    [Fact]
     public void Jogador_so_depois_de_ai_war_player_min_day()
     {
         var w = Setup(1f); w.Countries[1].IsPlayer = true; w.Rules["ai_war_player_min_day"] = 30;

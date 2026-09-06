@@ -273,6 +273,8 @@ public sealed class AiSystem : ISystem
                 int other = w.Regions[n].ControllerId;
                 if (other == c.Id || !w.Countries.TryGetValue(other, out var o) || o.Capitulated) continue;
                 if (o.IsPlayer && w.Clock.Day < w.Rule("ai_war_player_min_day", 90f)) continue;
+                // dissuasão: sem ogivas próprias, a IA não ataca uma potência nuclear
+                if (o.Nukes > 0 && c.Nukes == 0) continue;
                 int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
                 foreach (var ally in w.Allies(other)) theirs += divsByCountry.GetValueOrDefault(ally)?.Count ?? 0;
                 if (theirs * ratio > myDivs) continue;
