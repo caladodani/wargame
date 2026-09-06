@@ -83,3 +83,8 @@ INSERT INTO rule (key,value,note) VALUES
 -- Paz branca: guerra sem captura entre os dois durante isto fecha em uti possidetis (TruceSystem).
 INSERT INTO rule (key,value,note) VALUES
  ('war_white_peace_days',240,'dias de estagnação até paz branca automática');
+
+-- Vitória: domínio mundial por população controlada (VictorySystem).
+INSERT INTO rule (key,value,note) VALUES
+ ('victory_pop_share',0.6,'fracção da população mundial controlada que dá o domínio do mundo'),
+ ('victory_check_days',7,'de quantos em quantos dias se verifica o domínio');

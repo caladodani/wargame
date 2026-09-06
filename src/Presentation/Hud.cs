@@ -220,6 +220,26 @@ public partial class Hud : CanvasLayer
             else if (Player(e.WinnerId)) Later($"Vitória! {Country(e.CountryId)} capitulou — as regiões dele são tuas");
             else Later($"{Country(e.CountryId)} capitulou! Regiões passam para {Country(e.WinnerId)}");
         }));
+        _subs.Add(w.Events.Subscribe<WorldDominated>(e =>
+            Callable.From(() => ShowDomination(e.CountryId)).CallDeferred()));
+    }
+
+    /// <summary>Fim de jogo por domínio mundial: vitória do jogador ou de uma IA.</summary>
+    private void ShowDomination(int countryId)
+    {
+        bool me = _game.PlayerId == countryId;
+        var dlg = new AcceptDialog
+        {
+            Title = me ? "Vitória mundial!" : "O mundo caiu",
+            DialogText = me
+                ? "Controlas a maior parte da população do planeta. O mundo é teu."
+                : $"{Country(countryId)} controla a maior parte da população do planeta.",
+            OkButtonText = "Novo jogo",
+        };
+        dlg.AddButton("Continuar", true, "watch");
+        dlg.Confirmed += () => _game.NewGame();
+        AddChild(dlg);
+        dlg.PopupCentered();
     }
 
     /// <summary>Fim de jogo do jogador: capitulou. Diálogo com novo jogo ou continuar a ver o mundo.</summary>

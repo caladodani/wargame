@@ -16,6 +16,8 @@ public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEven
 public sealed record WarEnded(int A, int B) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
+/// <summary>Um país controla ≥ victory_pop_share da população mundial (VictorySystem, uma vez por jogo).</summary>
+public sealed record WorldDominated(int CountryId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;
