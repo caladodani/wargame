@@ -46,6 +46,7 @@ public partial class Hud : CanvasLayer
     private MiniMap _mini = null!;
     private MapModeBar _modeBar = null!;
     private BattlePanel _battle = null!;
+    private FocusPanel _focusTree = null!;
     private AlertStrip _alerts = null!;
     private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
@@ -80,6 +81,8 @@ public partial class Hud : CanvasLayer
             _compare = new ComparePanel(); AddChild(_compare); _compare.Setup(_game);
             _battle = new BattlePanel(); AddChild(_battle); _battle.Setup(_game);
             _region.OnBattle = id => _battle.Open(id);
+            _focusTree = new FocusPanel(); AddChild(_focusTree); _focusTree.Setup(_game);
+            _countryPanel.OnFocusTree = id => _focusTree.Open(id);
             _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
             _alerts.OnGoTo = ShowRegion;
             _alerts.OnOpen = id =>
@@ -752,9 +755,10 @@ public partial class Hud : CanvasLayer
             // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
             _alerts.Refresh();
             _battle.Refresh();
+            _focusTree.Refresh();
             bool covered = _compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
                            || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible
-                           || _battle.Visible;
+                           || _battle.Visible || _focusTree.Visible;
             _mini.SetCovered(covered);
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
@@ -980,7 +984,8 @@ public partial class Hud : CanvasLayer
         _production.Open(); _production.Close();
         int modes = _modeBar.Smoke();                                    // modos de mapa: pinta o mundo por cada conta e volta ao político
         int fight = _battle.Smoke(cap.Id);                               // ecrã de batalha: os dois lados, linha e reserva
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas");
+        int tree = _focusTree.Smoke();                                   // árvore de focos: grelha, traços e ramos rivais
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

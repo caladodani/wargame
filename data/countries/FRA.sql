@@ -99,3 +99,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('fra_rafale_export','industry',1.08),
  ('fra_rafale_export','production_speed',1.08),
  ('fra_service_national','conscription',1.20);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('fra_porte_avions','fra_legion');

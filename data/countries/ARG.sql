@@ -89,3 +89,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('arg_malvinas_doutrina','research_speed',1.08),
  ('arg_industria_naval','industry',1.08),
  ('arg_industria_naval','production_speed',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('arg_fadea','arg_industria_naval');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('arg_industria_naval','arg_atlantico_sul');

@@ -97,3 +97,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('egy_producao_licenciada','production_speed',1.09),
  ('egy_servico_nacional','conscription',1.20),
  ('egy_reserva_estrategica','conscription',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('egy_reserva_estrategica','egy_soberania_canal');

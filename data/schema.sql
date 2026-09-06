@@ -129,6 +129,14 @@ CREATE TABLE IF NOT EXISTS focus_effect (        -- ao concluir: Country.Stat(st
   focus_id TEXT NOT NULL REFERENCES focus(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (focus_id, stat_key)
 );
+CREATE TABLE IF NOT EXISTS focus_link (         -- pré-requisitos além do focus.requires (todos obrigatórios)
+  focus_id TEXT NOT NULL REFERENCES focus(id), requires_id TEXT NOT NULL REFERENCES focus(id),
+  PRIMARY KEY (focus_id, requires_id)
+);
+CREATE TABLE IF NOT EXISTS focus_rival (        -- ramos que se excluem: escolher um fecha o outro (vale nos dois sentidos)
+  focus_id TEXT NOT NULL REFERENCES focus(id), rival_id TEXT NOT NULL REFERENCES focus(id),
+  PRIMARY KEY (focus_id, rival_id)
+);
 CREATE TABLE IF NOT EXISTS start_war (           -- guerras já a decorrer no dia 0 (tags)
   a_tag TEXT NOT NULL, b_tag TEXT NOT NULL, PRIMARY KEY (a_tag, b_tag)
 );

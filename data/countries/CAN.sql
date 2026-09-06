@@ -89,3 +89,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('can_industria','production_speed',1.07),
  ('can_francofonia','research_speed',1.05),
  ('can_reserva','conscription',1.15);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('can_f35','can_francofonia');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('can_reserva','can_norad');

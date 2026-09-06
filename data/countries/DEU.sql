@@ -99,3 +99,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('deu_zeitenwende','research_speed',1.12),
  ('deu_zeitenwende','org_regain',1.08),
  ('deu_reserva_territorial','conscription',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('deu_reserva_territorial','deu_industria_precisao');

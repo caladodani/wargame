@@ -103,3 +103,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('ukr_mobilizacao_geral','conscription',1.25),
  ('ukr_veteranos_assalto','org_regain',1.08),
  ('ukr_reconstrucao_energia','industry',1.08);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('ukr_ajuda_ocidental','ukr_reconstrucao_energia');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('ukr_reconstrucao_energia','ukr_resistencia_territorial');

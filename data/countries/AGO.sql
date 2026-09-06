@@ -90,3 +90,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('ago_doutrina_guerrilha','org_regain',1.10),
  ('ago_recenseamento_massa','conscription',1.20),
  ('ago_veteranos_reserva','conscription',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('ago_reequipamento_t72','ago_diamantes_petroleo');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('ago_veteranos_reserva','ago_modernizacao_blindada');

@@ -105,3 +105,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('tur_forcas_especiais','org_regain',1.08),
  ('tur_exportacao_defesa','industry',1.10),
  ('tur_exportacao_defesa','production_speed',1.05);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('tur_exportacao_defesa','tur_patria_azul');

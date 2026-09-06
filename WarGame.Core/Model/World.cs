@@ -27,6 +27,11 @@ public sealed class World
     public Dictionary<string, List<(string Key, float Mul)>> TechEffects { get; } = new();
     /// <summary>Focos nacionais (tabela focus) e efeitos (focus_effect), por id.</summary>
     public Dictionary<string, Focus> Focuses { get; } = new();
+    /// <summary>Pré-requisitos além do `requires` do próprio foco (tabela focus_link): a árvore converge.</summary>
+    public Dictionary<string, List<string>> FocusLinks { get; } = new();
+    /// <summary>Focos que se excluem uns aos outros (tabela focus_rival, sempre nos dois sentidos): escolher
+    /// um ramo fecha o outro para sempre.</summary>
+    public Dictionary<string, List<string>> FocusRivals { get; } = new();
     /// <summary>Eventos noticiosos (news_event) e efeitos (news_event_effect), por id.</summary>
     public Dictionary<string, NewsEvent> NewsEvents { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> NewsEffects { get; } = new();
@@ -176,10 +181,23 @@ public sealed class World
         }
     }
 
-    /// <summary>Pode escolher o foco: é do país, não o tem, e tem o anterior.</summary>
-    public bool CanFocus(Country c, string focusId) =>
-        Focuses.TryGetValue(focusId, out var f) && f.CountryId == c.Id && !c.FocusesDone.Contains(focusId)
-        && (f.Requires is null || c.FocusesDone.Contains(f.Requires));
+    /// <summary>Pode escolher o foco: é do país, não o tem, tem os anteriores todos (o `requires` e os de
+    /// focus_link) e não fechou a porta ao escolher um ramo rival.</summary>
+    public bool CanFocus(Country c, string focusId) => FocusBlock(c, focusId) is null;
+
+    /// <summary>Porque é que o foco não está disponível — id do que falta, "!" + id do rival que o fechou,
+    /// ou null quando se pode escolher. A UI traduz isto para nomes.</summary>
+    public string? FocusBlock(Country c, string focusId)
+    {
+        if (!Focuses.TryGetValue(focusId, out var f) || f.CountryId != c.Id || c.FocusesDone.Contains(focusId))
+            return focusId;
+        if (f.Requires is string req && !c.FocusesDone.Contains(req)) return req;
+        if (FocusLinks.TryGetValue(focusId, out var extra))
+            foreach (var need in extra) if (!c.FocusesDone.Contains(need)) return need;
+        if (FocusRivals.TryGetValue(focusId, out var rivals))
+            foreach (var other in rivals) if (c.FocusesDone.Contains(other)) return "!" + other;
+        return null;
+    }
 
     /// <summary>Pode investigar: existe, não a tem, tem a anterior.</summary>
     public bool CanResearch(Country c, string techId) =>

@@ -10,6 +10,9 @@ namespace WarGame.Presentation;
 /// botões; para os outros é só leitura. Lê o World só em Fill (mundo parado); muta só por Game.Dispatch.</summary>
 public partial class CountryPanel : PanelContainer
 {
+    /// <summary>O Hud liga isto à árvore de focos (o painel não conhece os outros painéis).</summary>
+    public Action<int>? OnFocusTree;
+
     /// <summary>Último gráfico desenhado, só para o --smoke lhe poder mexer na métrica e na mira.</summary>
     private HistoryChart? _chart;
 
@@ -404,6 +407,11 @@ public partial class CountryPanel : PanelContainer
             if (myFocuses.Count > 0)
             {
                 Header("Focos nacionais");
+                // a árvore desenhada é o sítio de ver o que abre o quê; aqui fica só o resumo
+                var treeRow = new HBoxContainer();
+                int who = c.Id;
+                treeRow.AddChild(Ui.Btn("⚑ Ver árvore de focos", () => { Close(); OnFocusTree?.Invoke(who); }, 260, Ui.Kind.Primary));
+                _body.AddChild(treeRow);
                 if (c.CurrentFocus is not null && w.Focuses.TryGetValue(c.CurrentFocus, out var curF))
                     Line($"Em curso: {curF.Name}   {(int)(100 * c.FocusProgress / MathF.Max(1, curF.Days))}%  ({(int)MathF.Ceiling(curF.Days - c.FocusProgress)} dias)");
                 else Line(mine ? "Nenhum em curso — escolhe um foco:" : "Nenhum em curso");

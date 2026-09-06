@@ -132,6 +132,25 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
                     Convert.ToInt32(r["days"]), r["requires"] as string, Convert.ToInt32(r["sort"]));
+        // Ligações da árvore: pré-requisitos extra (AND) e ramos que se excluem (sempre nos dois sentidos).
+        foreach (var r in _static.Query("SELECT focus_id,requires_id FROM focus_link"))
+        {
+            string fid = (string)r["focus_id"]!, need = (string)r["requires_id"]!;
+            if (!w.Focuses.ContainsKey(fid) || !w.Focuses.ContainsKey(need)) continue;
+            if (!w.FocusLinks.TryGetValue(fid, out var list)) w.FocusLinks[fid] = list = new();
+            if (!list.Contains(need)) list.Add(need);
+        }
+        foreach (var r in _static.Query("SELECT focus_id,rival_id FROM focus_rival"))
+        {
+            string a = (string)r["focus_id"]!, b = (string)r["rival_id"]!;
+            if (!w.Focuses.ContainsKey(a) || !w.Focuses.ContainsKey(b) || a == b) continue;
+            Add(a, b); Add(b, a);
+            void Add(string x, string y)
+            {
+                if (!w.FocusRivals.TryGetValue(x, out var list)) w.FocusRivals[x] = list = new();
+                if (!list.Contains(y)) list.Add(y);
+            }
+        }
         foreach (var r in _static.Query("SELECT focus_id,stat_key,value FROM focus_effect"))
         {
             var fid = (string)r["focus_id"]!;

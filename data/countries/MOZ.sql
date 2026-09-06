@@ -90,3 +90,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('moz_veteranos_frelimo','conscription',1.10),
  ('moz_industria_naval','production_speed',1.07),
  ('moz_industria_naval','industry',1.05);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('moz_industria_naval','moz_cabo_delgado');

@@ -103,3 +103,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('prk_byungjin','industry',1.10),
  ('prk_industria_militar','production_speed',1.15),
  ('prk_industria_militar','industry',1.08);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('prk_industria_militar','prk_mobilizacao');

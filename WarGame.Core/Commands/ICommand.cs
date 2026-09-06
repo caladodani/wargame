@@ -65,8 +65,12 @@ public sealed record SelectFocusCommand(int CountryId, string FocusId) : IComman
         if (!w.Focuses.TryGetValue(FocusId, out var f)) return "Foco inexistente";
         if (f.CountryId != CountryId) return "Foco de outro país";
         if (c.FocusesDone.Contains(FocusId)) return "Já concluído";
-        if (f.Requires is not null && !c.FocusesDone.Contains(f.Requires)) return $"Precisa de {w.Focuses[f.Requires].Name}";
         if (c.CurrentFocus == FocusId) return "Já em curso";
+        // pré-requisitos (o do próprio foco e os de focus_link) e ramos rivais já fechados
+        if (w.FocusBlock(c, FocusId) is string block)
+            return block.StartsWith('!')
+                ? $"Fechado por {w.Focuses[block[1..]].Name}"
+                : $"Precisa de {(w.Focuses.TryGetValue(block, out var need) ? need.Name : block)}";
         return null;
     }
     public void Execute(World w) { var c = w.Countries[CountryId]; c.CurrentFocus = FocusId; c.FocusProgress = 0f; }

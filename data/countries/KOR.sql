@@ -105,3 +105,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('kor_servico_militar','conscription',1.15),
  ('kor_reserva_mobilizavel','conscription',1.20),
  ('kor_reserva_mobilizavel','org_regain',1.05);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('kor_k_industria','kor_add_pesquisa');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('kor_reserva_mobilizavel','kor_juche_defesa');

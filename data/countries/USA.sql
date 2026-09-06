@@ -91,3 +91,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('usa_pivo_pacifico','research_speed',1.08),
  ('usa_forcas_especiais','org_regain',1.08),
  ('usa_forcas_especiais','conscription',1.05);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('usa_forcas_especiais','usa_reindustrializacao');

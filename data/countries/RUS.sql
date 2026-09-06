@@ -97,3 +97,10 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('rus_academia_ciencias_militares','research_speed',1.10),
  ('rus_distritos_militares','production_speed',1.06),
  ('rus_defesa_territorial','org_regain',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('rus_academias_militares','rus_distritos_militares'),
+ ('rus_complexo_militar_industrial','rus_academia_ciencias_militares');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('rus_defesa_territorial','rus_rearmamento_estatal');

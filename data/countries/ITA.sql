@@ -100,3 +100,10 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('ita_servizio_volontario','conscription',1.15),
  ('ita_alpini_addestramento','org_regain',1.10),
  ('ita_riserva_nazionale','conscription',1.12);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('ita_caccia_multiruolo','ita_cantieri_navali'),
+ ('ita_alpini_addestramento','ita_riserva_nazionale');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('ita_riserva_nazionale','ita_pilastro_mediterraneo');

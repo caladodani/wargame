@@ -97,3 +97,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('aus_outback_industry','industry',1.10),
  ('aus_sovereign_industry','production_speed',1.08),
  ('aus_reserve_call','conscription',1.20);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('aus_aukus','aus_ran_expansion');

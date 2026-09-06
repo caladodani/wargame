@@ -102,3 +102,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('gbr_dissuasao_nuclear','research_speed',1.10),
  ('gbr_exercito_voluntario','conscription',1.20),
  ('gbr_forcas_especiais','org_regain',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('gbr_industria_defesa','gbr_porta_avioes');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('gbr_forcas_especiais','gbr_compromisso_nato');

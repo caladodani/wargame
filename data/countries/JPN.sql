@@ -103,3 +103,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('jpn_contra_ataque','research_speed',1.12),
  ('jpn_f35_reequipamento','production_speed',1.10),
  ('jpn_f35_reequipamento','research_speed',1.06);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('jpn_f35_reequipamento','jpn_shudanteki_jieiken');

@@ -93,3 +93,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('chn_string_of_pearls','production_speed',1.06),
  ('chn_mar_do_sul','org_regain',1.06),
  ('chn_conscricao_universal','conscription',1.25);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('chn_mar_do_sul','chn_conscricao_universal');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('chn_conscricao_universal','chn_made_in_china_2025');

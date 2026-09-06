@@ -109,3 +109,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('esp_reserva_estrategica','conscription',1.20),
  ('esp_legion','conscription',1.10),
  ('esp_legion','org_regain',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('esp_legion','esp_otan_ue');

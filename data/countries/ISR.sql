@@ -92,3 +92,10 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('isr_fronteira_sul','conscription',1.10),
  ('isr_forcas_especiais','org_regain',1.05),
  ('isr_forcas_especiais','research_speed',1.06);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('isr_iron_fist','isr_ciber_8200'),
+ ('isr_fronteira_sul','isr_forcas_especiais');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('isr_forcas_especiais','isr_doutrina_seguranca');

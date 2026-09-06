@@ -104,3 +104,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('irn_guerra_assimetrica_zagros','org_regain',1.10),
  ('irn_industria_aeroespacial','research_speed',1.10),
  ('irn_industria_aeroespacial','industry',1.05);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('irn_industria_aeroespacial','irn_expansao_guarda_revolucionaria');

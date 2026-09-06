@@ -92,3 +92,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('ind_triade_nuclear','research_speed',1.08),
  ('ind_rafale_su30','production_speed',1.15),
  ('ind_indo_pacifico','org_regain',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('ind_drdo_agni','ind_rafale_su30');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('ind_indo_pacifico','ind_make_in_india_defesa');

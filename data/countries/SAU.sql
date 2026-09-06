@@ -93,3 +93,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('sau_defesa_aerea','org_regain',1.06),
  ('sau_recrutamento','conscription',1.12),
  ('sau_academia_rei_khalid','research_speed',1.08);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('sau_gign','sau_neom');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('sau_academia_rei_khalid','sau_guarda_nacional');

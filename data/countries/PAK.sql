@@ -102,3 +102,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('pak_spd','research_speed',1.10),
  ('pak_forca_fronteira','org_regain',1.06),
  ('pak_forca_fronteira','conscription',1.08);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('pak_jf17','pak_spd');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('pak_forca_fronteira','pak_ciec');

@@ -114,3 +114,9 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('prt_servico_militar','conscription',1.25),
  ('prt_comandos','org_regain',1.05),
  ('prt_comandos','conscription',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_rival (focus_id,rival_id) VALUES
+ ('prt_nato','prt_lusofonia');
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('prt_comandos','prt_atlantico');

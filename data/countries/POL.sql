@@ -101,3 +101,7 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
  ('pol_licencja_k9','industry',1.08),
  ('pol_licencja_k9','production_speed',1.08),
  ('pol_rezerwa_terytorialna','conscription',1.10);
+
+-- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
+INSERT INTO focus_link (focus_id,requires_id) VALUES
+ ('pol_rezerwa_terytorialna','pol_wschodnia_tarcza');

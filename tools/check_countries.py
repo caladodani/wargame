@@ -92,6 +92,14 @@ def check(path, static):
         if op == 'add' and not (-0.5 <= val <= 0.5): warns.append(f'modifier {mid}: add {val} fora de -0.5..0.5')
         if sid is not None and sid not in spirits: errs.append(f'modifier {mid}: spirit_id {sid} não existe')
 
+    # árvore de focos: as ligações só podem falar de focos deste país
+    own = {r[0] for r in db.execute('SELECT id FROM focus WHERE country_tag=?', (tag,))}
+    for table, cols in (('focus_link', ('focus_id', 'requires_id')), ('focus_rival', ('focus_id', 'rival_id'))):
+        for a, b in db.execute(f'SELECT {cols[0]},{cols[1]} FROM {table}'):
+            if a not in own and b not in own: continue        # linha de outro país (não veio deste ficheiro)
+            if a not in own or b not in own: errs.append(f'{table}: {a} → {b} mistura focos de outro país')
+            if a == b: errs.append(f'{table}: {a} aponta para si próprio')
+
     # stats de país
     for k, v in db.execute('SELECT key,value FROM country_stat WHERE country_tag=?', (tag,)):
         if k not in STAT_KEYS: errs.append(f'country_stat {k}: chave desconhecida (usa {sorted(STAT_KEYS)})')
