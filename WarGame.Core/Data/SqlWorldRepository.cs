@@ -107,7 +107,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         var byTag = w.Countries.Values.ToDictionary(c => c.Tag);
         foreach (var r in _static.Query("SELECT a_tag,b_tag FROM start_war"))
             if (byTag.TryGetValue((string)r["a_tag"]!, out var a) && byTag.TryGetValue((string)r["b_tag"]!, out var b) && a.Id != b.Id)
-            { a.AtWarWith.Add(b.Id); b.AtWarWith.Add(a.Id); }
+                w.StartWar(a.Id, b.Id);
     }
 
     public IReadOnlyList<NationalSpirit> GetSpirits(string countryTag) =>
@@ -163,6 +163,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_country", "focus_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "justify_target", "INTEGER"),
         ("s_country", "justify_progress", "REAL NOT NULL DEFAULT 0"),
+        ("s_war", "last_progress_day", "INTEGER"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -210,8 +211,12 @@ public sealed class SqlWorldRepository : IWorldRepository
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
         }
-        foreach (var r in save.Query("SELECT a,b FROM s_war"))
-        { int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]); w.Countries[a].AtWarWith.Add(b); w.Countries[b].AtWarWith.Add(a); }
+        foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day FROM s_war"))
+        {
+            int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]);
+            w.StartWar(a, b, Convert.ToInt32(r["since_day"]));
+            w.Wars[World.WarKey(a, b)].LastProgressDay = r["last_progress_day"] is null ? Convert.ToInt32(r["since_day"]) : Convert.ToInt32(r["last_progress_day"]);
+        }
         foreach (var r in save.Query("SELECT country_id,template_id,progress FROM s_production_queue ORDER BY id"))
             w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]) });
         foreach (var r in save.Query("SELECT region_id,attacker_country_id,days FROM s_battle"))
@@ -238,7 +243,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
-            foreach (var e in c.AtWarWith) if (c.Id < e) save.Execute("INSERT INTO s_war VALUES (?,?,?)", c.Id, e, w.Clock.Day);
+            foreach (var e in c.AtWarWith)
+                if (c.Id < e)
+                {
+                    var info = w.Wars.GetValueOrDefault(World.WarKey(c.Id, e));
+                    save.Execute("INSERT INTO s_war (a,b,since_day,last_progress_day) VALUES (?,?,?,?)",
+                        c.Id, e, info?.StartDay ?? w.Clock.Day, info?.LastProgressDay ?? w.Clock.Day);
+                }
         }
         foreach (var r in w.Regions.Values)
             if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId)

@@ -79,6 +79,31 @@ public sealed class World
     public float MoveCost(string terrain) => Rule("move_cost:" + terrain, 1f);
 
     public bool AreAtWar(int a, int b) => a != b && Countries.TryGetValue(a, out var c) && c.AtWarWith.Contains(b);
+
+    /// <summary>Estado por guerra (chave normalizada min,max): quando começou e o último dia com progresso
+    /// (captura de região entre os dois). O TruceSystem fecha guerras estagnadas com paz branca.</summary>
+    public Dictionary<(int A, int B), WarInfo> Wars { get; } = new();
+    public static (int A, int B) WarKey(int a, int b) => (Math.Min(a, b), Math.Max(a, b));
+
+    /// <summary>Começa (ou regista) uma guerra: AtWarWith dos dois + entrada em Wars.</summary>
+    public void StartWar(int a, int b, int? sinceDay = null)
+    {
+        Countries[a].AtWarWith.Add(b); Countries[b].AtWarWith.Add(a);
+        var key = WarKey(a, b);
+        if (!Wars.ContainsKey(key)) Wars[key] = new WarInfo { StartDay = sinceDay ?? Clock.Day, LastProgressDay = sinceDay ?? Clock.Day };
+    }
+
+    /// <summary>Fim de guerra entre dois: AtWarWith + Wars. Não publica eventos (o chamador decide).</summary>
+    public void EndWar(int a, int b)
+    {
+        if (Countries.TryGetValue(a, out var ca)) ca.AtWarWith.Remove(b);
+        if (Countries.TryGetValue(b, out var cb)) cb.AtWarWith.Remove(a);
+        Wars.Remove(WarKey(a, b));
+    }
+
+    /// <summary>Captura de região entre beligerantes: renova o relógio da paz branca dessa guerra.</summary>
+    public void NoteWarProgress(int a, int b)
+    { if (Wars.TryGetValue(WarKey(a, b), out var info)) info.LastProgressDay = Clock.Day; }
     /// <summary>Região controlada por alguém com quem `countryId` está em guerra.</summary>
     public bool IsHostile(int countryId, Region r) => AreAtWar(countryId, r.ControllerId);
 

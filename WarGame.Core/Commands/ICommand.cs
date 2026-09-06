@@ -128,8 +128,7 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
     }
     public void Execute(World w)
     {
-        w.Countries[CountryId].AtWarWith.Add(TargetCountryId);
-        w.Countries[TargetCountryId].AtWarWith.Add(CountryId);
+        w.StartWar(CountryId, TargetCountryId);
         w.Events.Publish(new Events.WarDeclared(CountryId, TargetCountryId));
 
         // Facções do alvo (defensor): cada membro que não é da facção do agressor e ainda não está em guerra
@@ -140,8 +139,7 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
             {
                 if (m == CountryId || m == TargetCountryId || !w.Countries.ContainsKey(m) || !called.Add(m)) continue;
                 if (w.SameFaction(CountryId, m) || w.AreAtWar(CountryId, m)) continue;
-                w.Countries[m].AtWarWith.Add(CountryId);
-                w.Countries[CountryId].AtWarWith.Add(m);
+                w.StartWar(m, CountryId);
                 w.Events.Publish(new Events.FactionJoinedWar(f.Id, m, CountryId));
             }
     }

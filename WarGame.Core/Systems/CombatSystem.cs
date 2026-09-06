@@ -38,6 +38,7 @@ public sealed class CombatSystem : ISystem
                 {
                     int old = region.ControllerId;
                     region.ControllerId = b.AttackerCountryId;
+                    w.NoteWarProgress(old, region.ControllerId);
                     w.Events.Publish(new RegionCaptured(region.Id, old, region.ControllerId));
                 }
             }

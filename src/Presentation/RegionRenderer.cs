@@ -41,6 +41,7 @@ public partial class RegionRenderer : Node2D
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
         // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
         game.World.Events.Subscribe<CountryCapitulated>(_ => Callable.From(RecolorAll).CallDeferred());
+        game.World.Events.Subscribe<WhitePeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
     }
 
     private Color ColorFor(int regionId)

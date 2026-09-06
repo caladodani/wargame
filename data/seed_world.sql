@@ -79,3 +79,7 @@ INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('sea_speed_kmd',400,'km por dia de uma divisão embarcada (Atlântico ≈ 8 dias)'),
  ('sea_min_days',2,'dias mínimos de qualquer travessia marítima (embarque + desembarque)');
+
+-- Paz branca: guerra sem captura entre os dois durante isto fecha em uti possidetis (TruceSystem).
+INSERT INTO rule (key,value,note) VALUES
+ ('war_white_peace_days',240,'dias de estagnação até paz branca automática');

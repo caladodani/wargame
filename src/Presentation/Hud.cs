@@ -22,6 +22,7 @@ public partial class Hud : CanvasLayer
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private readonly List<IDisposable> _subs = new();
+    private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
     private bool _smoke, _smoked;
     private ulong _backAt;   // Time.GetTicksMsec do último "voltar" sem painel aberto
 
@@ -205,9 +206,13 @@ public partial class Hud : CanvasLayer
             if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))
                 Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)");
         }));
+        _subs.Add(w.Events.Subscribe<WhitePeaceSigned>(e => _whitePeace.Add((e.A, e.B))));
         _subs.Add(w.Events.Subscribe<WarEnded>(e =>
         {
-            if (Player(e.A) || Player(e.B)) Later($"Paz entre {Country(e.A)} e {Country(e.B)}");
+            bool white = _whitePeace.Remove((e.A, e.B));
+            if (Player(e.A) || Player(e.B))
+                Later(white ? $"🕊 Paz branca entre {Country(e.A)} e {Country(e.B)} — cada um fica com o que controla"
+                            : $"Paz entre {Country(e.A)} e {Country(e.B)}");
         }));
         _subs.Add(w.Events.Subscribe<CountryCapitulated>(e =>
         {

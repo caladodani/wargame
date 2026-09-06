@@ -44,6 +44,14 @@ public sealed class Region
     public List<int> DivisionIds { get; } = new();
 }
 
+/// <summary>Estado de uma guerra em curso (World.Wars, chave min,max).</summary>
+public sealed class WarInfo
+{
+    public int StartDay { get; set; }
+    /// <summary>Último dia em que um dos dois capturou região ao outro; estagnado → paz branca.</summary>
+    public int LastProgressDay { get; set; }
+}
+
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
 public sealed class ProductionOrder
 {

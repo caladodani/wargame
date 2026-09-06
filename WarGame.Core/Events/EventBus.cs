@@ -14,6 +14,8 @@ public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
+/// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
+public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;

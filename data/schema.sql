@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS s_country (
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
-CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, last_progress_day INTEGER, PRIMARY KEY (a, b));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER          -- NULL = dono da static.db (só muda com capitulações)

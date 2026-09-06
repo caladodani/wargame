@@ -75,7 +75,7 @@ public sealed class PeaceSystem : ISystem
         // Guerras acabam todas.
         foreach (var enemy in c.AtWarWith.ToList())
         {
-            if (w.Countries.TryGetValue(enemy, out var e)) e.AtWarWith.Remove(c.Id);
+            w.EndWar(c.Id, enemy);
             w.Events.Publish(new WarEnded(Math.Min(c.Id, enemy), Math.Max(c.Id, enemy)));
         }
         c.AtWarWith.Clear();
