@@ -117,7 +117,8 @@ CREATE TABLE IF NOT EXISTS s_country (
   stability REAL NOT NULL DEFAULT 50, research_tech TEXT, research_progress REAL NOT NULL DEFAULT 0,
   capitulated INTEGER NOT NULL DEFAULT 0, capitulated_day INTEGER,
   manpower REAL NOT NULL DEFAULT -1,  -- -1 = por inicializar (ManpowerSystem)
-  focus TEXT, focus_progress REAL NOT NULL DEFAULT 0
+  focus TEXT, focus_progress REAL NOT NULL DEFAULT 0,
+  justify_target INTEGER, justify_progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));

@@ -146,6 +146,28 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
     }
 }
 
+/// <summary>Começa a justificar um objectivo de guerra (HoI4): war_justify_days depois o
+/// DiplomacySystem declara a guerra sozinho. Um alvo de cada vez; trocar recomeça do zero.</summary>
+public sealed record JustifyWarCommand(int CountryId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (CountryId == TargetCountryId) return "Não podes justificar contra ti próprio";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t)) return "País inexistente";
+        if (t.Capitulated) return "Já capitulou";
+        if (w.SameFaction(CountryId, TargetCountryId)) return "Aliados na mesma facção";
+        if (w.Countries[CountryId].AtWarWith.Contains(TargetCountryId)) return "Já em guerra";
+        if (w.Countries[CountryId].JustifyTarget == TargetCountryId) return "Já a justificar";
+        return null;
+    }
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.JustifyTarget = TargetCountryId; c.JustifyProgress = 0f;
+        w.Events.Publish(new Events.WarJustifyStarted(CountryId, TargetCountryId));
+    }
+}
+
 /// <summary>Encomenda uma divisão de um template do próprio país. ProductionSystem gasta Country.Money nela.</summary>
 public sealed record BuildDivisionCommand(int CountryId, int TemplateId) : ICommand
 {

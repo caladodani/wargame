@@ -176,6 +176,11 @@ public partial class Hud : CanvasLayer
             string name; try { name = w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "divisão"; }
             Later($"{name} destruída em {RegionName(d.RegionId)}");
         }));
+        _subs.Add(w.Events.Subscribe<WarJustifyStarted>(e =>
+        {
+            if (Player(e.TargetCountryId)) Later($"{Country(e.CountryId)} está a justificar guerra contra ti!");
+            else if (Player(e.CountryId)) Later($"A justificar guerra contra {Country(e.TargetCountryId)}");
+        }));
         _subs.Add(w.Events.Subscribe<FocusCompleted>(e =>
         {
             if (Player(e.CountryId)) Later($"Foco concluído: {(w.Focuses.TryGetValue(e.FocusId, out var f) ? f.Name : e.FocusId)}");

@@ -116,7 +116,7 @@ public partial class RegionPanel : PanelContainer
     private void OnWar()
     {
         if (_game.PlayerId is not int pid) return;
-        var err = _game.Dispatch(new DeclareWarCommand(pid, _warTarget));
+        var err = _game.Dispatch(new JustifyWarCommand(pid, _warTarget));
         if (err is not null) _game.Notify(err);
         Refresh();
     }
@@ -172,7 +172,7 @@ public partial class RegionPanel : PanelContainer
             _all.Visible = _move.Visible = _stop.Visible = hasPlayer && anyMine;
             bool canWar = hasPlayer && ctrl is not null && ctrl.Id != pid && !w.AreAtWar(pid!.Value, ctrl.Id);
             _war.Visible = canWar;
-            if (canWar) { _war.Text = $"Declarar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Declarar guerra a {ctrl.Name}?"; }
+            if (canWar) { _war.Text = $"Justificar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Justificar objectivo de guerra contra {ctrl.Name}? A guerra declara-se sozinha ao fim da justificação."; }
             _produce.Visible = hasPlayer;
             UpdateButtons();
         }

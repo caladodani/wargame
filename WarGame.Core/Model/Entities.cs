@@ -65,6 +65,8 @@ public sealed class Country
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
+    public int? JustifyTarget { get; set; }        // a justificar guerra contra (DiplomacySystem)
+    public float JustifyProgress { get; set; }
     /// <summary>Efeito da estabilidade no rendimento e no recrutamento: 0.5 (colapso) a 1.5 (união nacional).</summary>
     public float StabilityFactor => 0.5f + Stability / 100f;
     public List<ProductionOrder> Queue { get; } = new();

@@ -46,6 +46,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('stability_war_penalty',10,'alvo desce isto por guerra activa (conta no máximo 2 guerras)'),
  ('stability_occupied_penalty',40,'alvo desce isto × fracção da população própria ocupada por inimigos');
 
+-- rules: diplomacy (DiplomacySystem — justificar objectivo de guerra antes de declarar)
+INSERT INTO rule (key,value,note) VALUES
+ ('war_justify_days',30,'dias a justificar um objectivo de guerra antes de poder declarar (HoI4)');
+
 -- rules: peace (PeaceSystem — capitulação estilo HoI4)
 INSERT INTO rule (key,value,note) VALUES
  ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção da população das suas regiões'),

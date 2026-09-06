@@ -15,6 +15,7 @@ public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
+public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

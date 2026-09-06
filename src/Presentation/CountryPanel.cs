@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -79,6 +79,8 @@ public partial class CountryPanel : PanelContainer
                 string list = names.Count > 12 ? string.Join(", ", names.Take(12)) + ", …" : string.Join(", ", names);
                 Line($"{f.Name} — {names.Count} membros: {list}", 16);
             }
+            if (c.JustifyTarget is int jt && w.Countries.TryGetValue(jt, out var jtc))
+                Line($"A justificar guerra contra {jtc.Name}: {(int)MathF.Ceiling(w.Rule("war_justify_days", 30f) - c.JustifyProgress)} dias");
             if (c.AtWarWith.Count > 0)
             {
                 var enemies = c.AtWarWith.Where(w.Countries.ContainsKey).Select(id => w.Countries[id].Tag).OrderBy(t => t);

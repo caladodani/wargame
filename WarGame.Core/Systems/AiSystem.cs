@@ -74,7 +74,8 @@ public sealed class AiSystem : ISystem
                 if (theirs < targetDivs || (theirs == targetDivs && target is not null && other < target.Id)) { target = o; targetDivs = theirs; }
             }
         if (target is null) return;
-        var cmd = new DeclareWarCommand(c.Id, target.Id);
+        if (c.JustifyTarget is not null) return;   // já a justificar um objectivo
+        var cmd = new JustifyWarCommand(c.Id, target.Id);
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 

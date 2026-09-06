@@ -5,7 +5,9 @@ using Xunit;
 
 namespace WarGame.Core.Tests;
 
-/// <summary>Objectivos de guerra da IA: país 2 (aggression) contra o vizinho 1; regras da tabela sobrepostas nos testes.</summary>
+/// <summary>Objectivos de guerra da IA: país 2 (aggression) contra o vizinho 1; regras da tabela sobrepostas
+/// nos testes. Desde a justificação (DiplomacySystem) a IA primeiro justifica (war_justify_days, aqui 2) e a
+/// guerra declara-se sozinha ao fim.</summary>
 public class WarGoalTests
 {
     private static World Setup(float aggression, float chance = 1f, int minDay = 0)
@@ -13,10 +15,11 @@ public class WarGoalTests
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
         w.Rules["ai_war_chance"] = chance; w.Rules["ai_war_min_day"] = minDay; w.Rules["ai_war_ratio"] = 1f;
+        w.Rules["war_justify_days"] = 2f;
         w.Countries[2].Stats["aggression"] = aggression;
         for (int i = 0; i < 4; i++) TestWorld.AddDivision(w, 10 + i, 2, TestWorld.Inf2, 4);
         TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 3);
-        w.Register(new AiSystem());
+        w.Register(new DiplomacySystem()); w.Register(new AiSystem());
         return w;
     }
 
@@ -55,6 +58,7 @@ public class WarGoalTests
         var w = Setup(1f); w.Countries[1].IsPlayer = true; w.Rules["ai_war_player_min_day"] = 30;
         Rounds(w, 3);
         Assert.False(w.AreAtWar(2, 1));
+        Assert.Null(w.Countries[2].JustifyTarget);   // nem sequer justifica antes do dia mínimo
         while (w.Clock.Day < 30) w.Tick();
         Rounds(w, 2);
         Assert.True(w.AreAtWar(2, 1));
