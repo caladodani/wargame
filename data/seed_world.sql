@@ -184,3 +184,7 @@ INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
 INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('occ_gentle','resistance_growth',0.5),('occ_gentle','occupied_yield',0.85),
  ('occ_harsh','resistance_growth',1.5),('occ_harsh','occupied_yield',1.2);
+
+-- Dissolver divisões (DisbandDivisionCommand): refund parcial de homens, proporcional ao HP.
+INSERT INTO rule (key,value,note) VALUES
+ ('disband_manpower_refund',0.5,'fracção dos homens recuperada ao dissolver uma divisão');
