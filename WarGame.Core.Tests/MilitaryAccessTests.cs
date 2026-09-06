@@ -59,6 +59,26 @@ public class MilitaryAccessTests
     }
 
     [Fact]
+    public void Ai_SendsExpedition_ToAllyFront()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.CreateFaction("fx_1", "Pacto de Teste", "");
+        w.Factions["fx_1"].Members.Add(1);
+        w.Factions["fx_1"].Members.Add(2);
+        // País 3 inimigo dos dois, controla a região 6: frente do aliado 2 é a 5. O país 1 não tem frente.
+        var c3 = new Country { Id = 3, Tag = "EN3", Name = "Inimigo" };
+        w.Countries[3] = c3;
+        w.Countries[1].AtWarWith.Add(3); w.Countries[2].AtWarWith.Add(3);
+        c3.AtWarWith.Add(1); c3.AtWarWith.Add(2);
+        w.Regions[6].ControllerId = 3;
+        var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);
+        w.Register(new AiSystem());
+        TestWorld.Days(w, 1);   // a IA corre no dia 0
+        Assert.Equal(5, d.DestinationRegionId);
+    }
+
+    [Fact]
     public void Retreat_FallsBackToAllyRegion()
     {
         var w = Build(allied: true);

@@ -236,7 +236,7 @@ public sealed class AiSystem : ISystem
         // sem isto os desembarques inimigos só eram contra-atacados depois de aterrar).
         var front = owned.Where(r => r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))
                                   || r.SeaNeighbours.Keys.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
-        if (front.Count == 0) return;
+        if (front.Count == 0) { Expedition(w, c, divs, inBattle); return; }
 
         float minOrg = w.Rule("ai_min_org", 50), ratio = w.Rule("ai_attack_ratio", 1.5f);
         var groups = new Dictionary<int, List<Division>>();   // região → divisões disponíveis
@@ -279,6 +279,29 @@ public sealed class AiSystem : ISystem
         }
         foreach (var (regionId, g) in groups)
             if (!frontIds.Contains(regionId) && nearest.TryGetValue(regionId, out var dest)) Send(w, c, g, dest);
+    }
+
+    /// <summary>Corpo expedicionário: sem frente própria mas em guerra, as divisões paradas vão
+    /// defender a frente de um aliado de facção que partilhe inimigo (acesso militar). O destino é a
+    /// região da frente aliada com menos divisões amigas — o buraco mais aberto.</summary>
+    private static void Expedition(World w, Country c, List<Division> divs, HashSet<int> inBattle)
+    {
+        float minOrg = w.Rule("ai_min_org", 50);
+        var idle = divs.Where(d => d.Path.Count == 0 && d.Org >= minOrg && d.CanFight && !inBattle.Contains(d.Id)).ToList();
+        if (idle.Count == 0) return;
+        var allies = w.Allies(c.Id).Where(a => w.Countries.TryGetValue(a, out var ac) && !ac.Capitulated
+                                            && ac.AtWarWith.Any(c.AtWarWith.Contains)).ToHashSet();
+        if (allies.Count == 0) return;
+
+        Region? target = null; int fewest = int.MaxValue;
+        foreach (var r in w.Regions.Values)
+        {
+            if (!allies.Contains(r.ControllerId)) continue;
+            if (!r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))) continue;
+            int friends = r.DivisionIds.Count;
+            if (friends < fewest) { fewest = friends; target = r; }
+        }
+        if (target is not null) Send(w, c, idle, target.Id);
     }
 
     /// <summary>Divisões CanFight de países com quem `c` está em guerra, numa região.</summary>
