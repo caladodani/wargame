@@ -501,6 +501,12 @@ public partial class Hud : CanvasLayer
             if (Player(e.CountryId)) Later($"💥 Sabotagem nossa: {e.Damage}");
             else if (Player(e.TargetCountryId)) Later($"💥 Sabotagem inimiga na retaguarda: {e.Damage}");
         }));
+        _subs.Add(w.Events.Subscribe<SabotageFoiled>(e =>
+        {
+            string place = w.Regions.TryGetValue(e.RegionId, out var sr) ? sr.Name : "na retaguarda";
+            if (Player(e.TargetCountryId)) Later($"🛡 Equipa inimiga apanhada em {place}");
+            else if (Player(e.CountryId)) Later($"🛡 A nossa equipa foi apanhada em {place}");
+        }));
         // Baixas no comando: perder um marechal é dos acontecimentos mais caros da campanha.
         _subs.Add(w.Events.Subscribe<GeneralKilled>(e =>
         {
@@ -756,9 +762,10 @@ public partial class Hud : CanvasLayer
                 _game.Dispatch(new StartSpyOpCommand(pid, rear.ControllerId, raid.Id, rear.Id));
             }
             OnRegionTapped(rear.Id);                                    // painel da região inimiga, com o cartão novo
+            OnRegionTapped(cap.Id);                                     // e de volta à capital: cartão da nossa retaguarda
         }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

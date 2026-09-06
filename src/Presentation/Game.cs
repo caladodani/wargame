@@ -99,6 +99,7 @@ public partial class Game : Node
         World.Register(new InfrastructureRepairSystem());
         World.Register(new AutoFrontSystem());
         World.Register(new ArmyGroupSystem());   // depois do avanço automático: o grupo manda em cima da divisão solta
+        World.Register(new CounterIntelSystem());   // antes da espionagem: a guarnição ainda pode apanhar a equipa deste dia
         World.Register(new EspionageSystem());
         World.Register(new PowerRankingSystem());   // tabela mundial de potências (só lê o estado do dia)
         World.Register(new VictorySystem());

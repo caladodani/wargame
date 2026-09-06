@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -25,6 +26,36 @@ public static class SabotageView
         "sabotage_infra" => r.Infrastructure > 0.15f,
         _ => false,
     };
+
+    /// <summary>Hipótese diária de a guarnição desta região apanhar uma equipa nossa, em fracção.</summary>
+    public static float Risk(World w, Region r) => CounterIntelSystem.Chance(w, r.ControllerId, r);
+
+    /// <summary>Cartão da nossa própria retaguarda: quem guarda esta região e a hipótese que temos de
+    /// apanhar ali uma equipa inimiga. Null quando a região não é nossa — a retaguarda dos outros vê-se
+    /// pelo cartão de sabotagem, não por este.</summary>
+    public static VBoxContainer? Rear(World w, int playerId, Region r)
+    {
+        if (r.ControllerId != playerId) return null;
+        int guards = CounterIntelSystem.Guards(w, playerId, r);
+        float chance = CounterIntelSystem.Chance(w, playerId, r);
+        float ceiling = w.Rule("catch_max", 0.35f);
+
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 2);
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); v.AddChild(row);
+        var head = Ui.Lbl($"🛡 Retaguarda · {guards} de guarnição", 16);
+        head.AddThemeColorOverride("font_color", guards > 0 ? Ui.Good : Ui.TextDim);
+        row.AddChild(Ui.Grow(head));
+        row.AddChild(Ui.Bar(Math.Clamp(chance / MathF.Max(0.01f, ceiling), 0f, 1f), guards > 0 ? Ui.Good : Fuse, 110f));
+        var pct = Ui.Lbl($"{chance:P0}/dia", 15);
+        pct.AddThemeColorOverride("font_color", Ui.TextDim);
+        row.AddChild(pct);
+        var note = Ui.Lbl(guards > 0
+            ? "hipótese de apanharmos aqui uma equipa de sabotagem inimiga"
+            : "sem tropa a guardar: uma equipa inimiga trabalha aqui quase à vontade", 14);
+        note.AddThemeColorOverride("font_color", guards > 0 ? Ui.TextDim : Fuse);
+        v.AddChild(note);
+        return v;
+    }
 
     /// <summary>Operação nossa já a caminho desta região (null quando não há nenhuma).</summary>
     public static ActiveSpyOp? Running(World w, int playerId, int regionId) =>
@@ -55,6 +86,10 @@ public static class SabotageView
             var left = Ui.Lbl($"{(int)MathF.Ceiling(running.DaysLeft)} dias", 15);
             left.AddThemeColorOverride("font_color", Ui.TextDim);
             row.AddChild(left);
+            // a guarnição deles pode apanhá-la a qualquer dia: é o preço de mandar gente à retaguarda inimiga
+            var risk = Ui.Lbl($"risco de ser apanhada: {Risk(w, r):P0} por dia ({CounterIntelSystem.Guards(w, r.ControllerId, r)} de guarnição)", 14);
+            risk.AddThemeColorOverride("font_color", Ui.Danger);
+            v.AddChild(risk);
             return v;                                  // uma operação de cada vez: não se oferecem mais
         }
 
@@ -73,7 +108,8 @@ public static class SabotageView
         }
         if (target is not null)
         {
-            var note = Ui.Lbl($"equipas nossas em terreno de {target.Name}: uma operação de cada vez por inimigo", 14);
+            var note = Ui.Lbl($"equipas nossas em terreno de {target.Name}: uma operação de cada vez por inimigo"
+                            + $"  ·  guarnição deles aqui: {CounterIntelSystem.Guards(w, r.ControllerId, r)} ({Risk(w, r):P0} de apanharem a equipa por dia)", 14);
             note.AddThemeColorOverride("font_color", Ui.TextDim);
             v.AddChild(note);
         }

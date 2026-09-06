@@ -82,6 +82,8 @@ public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpI
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 /// <summary>Sabotagem consumada numa região do inimigo: o quê, onde e o estrago em texto curto.</summary>
 public sealed record RegionSabotaged(int CountryId, int TargetCountryId, string OpId, int RegionId, string Damage) : IGameEvent;
+/// <summary>Equipa de sabotagem apanhada na retaguarda antes de fazer o estrago.</summary>
+public sealed record SabotageFoiled(int CountryId, int TargetCountryId, string OpId, int RegionId) : IGameEvent;
 public sealed record DivisionDisbanded(int DivisionId, int CountryId) : IGameEvent;
 public sealed record PactSigned(int A, int B, int UntilDay) : IGameEvent;
 public sealed record PactRejected(int FromCountryId, int ToCountryId) : IGameEvent;

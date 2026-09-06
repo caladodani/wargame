@@ -326,14 +326,16 @@ public partial class RegionPanel : PanelContainer
             }
             // sabotagem na retaguarda: o que se pode mandar rebentar aqui, e a equipa que já vai a caminho
             var running = pid is int me ? SabotageView.Running(w, me, r.Id) : null;
-            var sabKey = pid is int p2 && w.AreAtWar(p2, r.ControllerId)
-                ? $"{r.Id}|{r.Fort}|{r.Infrastructure:0.00}|{string.Join(",", r.Buildings.Select(kv => kv.Key + ":" + kv.Value))}|{running?.OpId}:{(int)(running?.DaysLeft ?? 0f)}|{(int)(w.Countries.TryGetValue(p2, out var mc) ? mc.Money : 0f)}"
+            var sabKey = pid is int p2
+                ? $"{r.Id}|{r.ControllerId}|{r.Fort}|{r.Infrastructure:0.00}|{string.Join(",", r.Buildings.Select(kv => kv.Key + ":" + kv.Value))}|{running?.OpId}:{(int)(running?.DaysLeft ?? 0f)}|{(int)(w.Countries.TryGetValue(p2, out var mc) ? mc.Money : 0f)}|g{CounterIntelSystem.Guards(w, r.ControllerId, r)}"
                 : "";
             if (sabKey != _sabKey)
             {
                 _sabKey = sabKey;
                 Ui.Clear(_sab);
                 if (pid is int p3 && SabotageView.Card(w, p3, r, OnSabotage) is VBoxContainer sab) _sab.AddChild(sab);
+                // a nossa própria retaguarda: quem guarda isto e o que apanhamos aqui
+                if (pid is int p4 && SabotageView.Rear(w, p4, r) is VBoxContainer rear) _sab.AddChild(rear);
             }
             UpdateButtons();
         }

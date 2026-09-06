@@ -356,6 +356,13 @@ INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude,scope) VALUES
  ('sabotagem_forte','Sabotagem das defesas','Minas nas casamatas: as fortificações da região perdem um nível.',50,18,'sabotage_fort',1,'region');
 INSERT INTO chronicle_kind VALUES ('sabotagem','Sabotagem','💥',2);
 
+-- Defesa da retaguarda (CounterIntelSystem): cada dia que uma equipa de sabotagem passa em terreno
+-- inimigo é um dia em que pode ser apanhada. A guarnição do dono da região é o que mais pesa.
+INSERT INTO rule (key,value,note) VALUES
+ ('catch_base',0.03,'hipótese diária de a guarnição apanhar uma equipa de sabotagem'),
+ ('catch_guard',0.02,'acrescento a essa hipótese por divisão de guarnição na região'),
+ ('catch_max',0.35,'tecto da hipótese diária de apanhar a equipa');
+
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),
