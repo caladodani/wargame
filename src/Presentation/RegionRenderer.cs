@@ -27,7 +27,10 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, StyleBoxFlat> _pillStyle = new();
     private readonly Dictionary<int, Node2D> _markers = new();      // região → Node2D (escala 1/zoom) com um Label
     private readonly Dictionary<int, Tween> _pulses = new();        // região em batalha → animação do marcador
-    private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!;
+    private readonly Dictionary<int, float> _area = new();          // região → área do polígono (peso do centróide do país)
+    private readonly Dictionary<int, Node2D> _countryNames = new();  // país → etiqueta com o nome no mapa
+    private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
+    private float _zoom = 1f;
     private string _goalKey = "";                                   // objectivos desenhados (evita refazer o contorno todos os dias)
     private Tween? _goalPulse;
     private Game _game = null!;
@@ -38,16 +41,18 @@ public partial class RegionRenderer : Node2D
         _game = game;
         foreach (var r in staticDb.Query("SELECT id,color FROM country"))
             _countryColor[Convert.ToInt32(r["id"])] = new Color((string?)r["color"] ?? "#cccccc");
+        SeparateNeighbourColours(game.World);
 
         foreach (var (regionId, pts) in repo.ReadPolygons())
         {
             var v = new Vector2[pts.Length / 2];
             for (int i = 0; i < v.Length; i++) v[i] = new Vector2(pts[2 * i], pts[2 * i + 1]);
+            _area[regionId] = _area.GetValueOrDefault(regionId) + Area(v);
             var poly = new Polygon2D { Polygon = v, Color = ColorFor(regionId) };
             var ring = v.Append(v[0]).ToArray();
             // duas linhas por anel: uma grossa na cor do controlador (dá relevo à fronteira nacional)
             // e uma fina preta por cima, que separa regiões do mesmo país.
-            var border = new Line2D { Points = ring, Width = 3.5f, DefaultColor = BorderFor(regionId) };
+            var border = new Line2D { Points = ring, Width = BorderWidth(regionId), DefaultColor = BorderFor(regionId) };
             var outline = new Line2D { Points = ring, Width = 1.2f, DefaultColor = new Color(0, 0, 0, 0.45f) };
             AddChild(poly); poly.AddChild(border); poly.AddChild(outline);
             if (!_byRegion.TryGetValue(regionId, out var list)) _byRegion[regionId] = list = new();
@@ -58,7 +63,8 @@ public partial class RegionRenderer : Node2D
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
         _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
-        _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);
+        _nameRoot = new Node2D { Name = "CountryNames", Modulate = new Color(1, 1, 1, 0.9f) }; AddChild(_nameRoot);
+        _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);   // números por cima dos nomes
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
         // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
         game.World.Events.Subscribe<CountryCapitulated>(_ => Callable.From(RecolorAll).CallDeferred());
@@ -79,8 +85,88 @@ public partial class RegionRenderer : Node2D
     /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
     public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
 
-    /// <summary>Cor da moldura da região: a do controlador, clareada, para a fronteira saltar à vista.</summary>
-    private Color BorderFor(int regionId) => ColorFor(regionId).Lightened(0.45f) with { A = 0.75f };
+    /// <summary>Cor da moldura da região. A fronteira com outro país é quase branca — vê-se onde acaba um
+    /// país e começa o outro mesmo que os dois tenham cores parecidas, que era o que acontecia com a
+    /// Polónia e a Rússia. Dentro do mesmo país a moldura é discreta, na cor dele.</summary>
+    private Color BorderFor(int regionId) =>
+        IsFrontier(regionId) ? new Color(0.96f, 0.97f, 1f, 0.95f) : ColorFor(regionId).Lightened(0.3f) with { A = 0.35f };
+
+    /// <summary>Espessura da moldura: as fronteiras nacionais são traço grosso, as internas um risco fino.</summary>
+    private float BorderWidth(int regionId) => IsFrontier(regionId) ? 5f : 1.5f;
+
+    /// <summary>Região com pelo menos um vizinho de outro país (por terra ou por mar estreito).</summary>
+    private bool IsFrontier(int regionId)
+    {
+        var w = _game.World;
+        if (!w.Regions.TryGetValue(regionId, out var r)) return false;
+        foreach (int n in r.Neighbours)
+            if (w.Regions.TryGetValue(n, out var o) && o.ControllerId != r.ControllerId) return true;
+        return false;
+    }
+
+    /// <summary>Área do anel (fórmula do sapateiro), para o nome do país cair no meio do território que conta.</summary>
+    private static float Area(Vector2[] v)
+    {
+        float a = 0f;
+        for (int i = 0; i < v.Length; i++) { var p = v[i]; var q = v[(i + 1) % v.Length]; a += p.X * q.Y - q.X * p.Y; }
+        return MathF.Abs(a) * 0.5f;
+    }
+
+    /// <summary>As cores vêm das bandeiras e repetem-se: 247 países para 84 cores, 27 deles brancos — a
+    /// Polónia e a Rússia saíam do mesmo branco e não havia como distingui-las no mapa. Aqui, e só para
+    /// desenhar, quem colide com um vizinho recebe uma variação da sua própria cor (matiz rodado por
+    /// passos irregulares; aos cinzentos dá-se matiz a partir do id). Os países maiores são servidos
+    /// primeiro, para que sejam os pequenos a ceder a cor de bandeira. A base de dados fica intacta.</summary>
+    private void SeparateNeighbourColours(World w)
+    {
+        var neighbours = new Dictionary<int, HashSet<int>>();
+        var size = new Dictionary<int, int>();
+        foreach (var r in w.Regions.Values)
+        {
+            size[r.OwnerId] = size.GetValueOrDefault(r.OwnerId) + 1;
+            foreach (int n in r.Neighbours)
+                if (w.Regions.TryGetValue(n, out var o) && o.OwnerId != r.OwnerId)
+                {
+                    if (!neighbours.TryGetValue(r.OwnerId, out var set)) neighbours[r.OwnerId] = set = new();
+                    set.Add(o.OwnerId);
+                }
+        }
+
+        foreach (int id in neighbours.Keys.OrderByDescending(x => size.GetValueOrDefault(x)).ThenBy(x => x))
+        {
+            if (!_countryColor.TryGetValue(id, out var original)) continue;
+            var mine = original;
+            for (int step = 0; step < 24 && Collides(id, mine, neighbours[id]); step++)
+                mine = Vary(original, id, step);
+            _countryColor[id] = mine;
+        }
+    }
+
+    private bool Collides(int id, Color mine, HashSet<int> neighbours) =>
+        neighbours.Any(n => n != id && _countryColor.TryGetValue(n, out var other) && TooClose(mine, other));
+
+    /// <summary>Variação nº `step` da cor de um país: o matiz roda em passos que não fecham o círculo, por
+    /// isso duas tentativas nunca caem na mesma família; o cinzento ganha um matiz próprio do id.</summary>
+    private static Color Vary(Color baseColor, int countryId, int step)
+    {
+        float h = baseColor.S < 0.18f
+            ? Mathf.PosMod(countryId * 0.13f + step * 0.191f, 1f)
+            : Mathf.PosMod(baseColor.H + (step + 1) * 0.191f, 1f);
+        float sat = Mathf.Clamp(MathF.Max(baseColor.S, 0.45f) + step % 3 * 0.12f, 0.35f, 0.95f);
+        float val = Mathf.Clamp(MathF.Max(baseColor.V, 0.55f) - step % 4 * 0.1f, 0.4f, 1f);
+        return Color.FromHsv(h, sat, val);
+    }
+
+    /// <summary>Duas cores que ninguém distingue lado a lado num mapa. Cinzentos comparam-se pelo brilho
+    /// (preto e branco convivem bem); as coloridas, pelo matiz.</summary>
+    private static bool TooClose(Color a, Color b)
+    {
+        bool greyA = a.S < 0.18f, greyB = b.S < 0.18f;
+        if (greyA != greyB) return false;
+        if (greyA) return MathF.Abs(a.V - b.V) < 0.25f;
+        float dh = MathF.Abs(a.H - b.H); dh = MathF.Min(dh, 1f - dh);
+        return dh < 0.08f && MathF.Abs(a.V - b.V) < 0.22f && MathF.Abs(a.S - b.S) < 0.3f;
+    }
 
     private Color ColorFor(int regionId)
     {
@@ -94,24 +180,40 @@ public partial class RegionRenderer : Node2D
         foreach (var (id, polys) in _byRegion)
         {
             var col = ColorFor(id); foreach (var p in polys) p.Color = col;
-            var bc = BorderFor(id); foreach (var b in _borders[id]) b.DefaultColor = bc;
+            PaintBorder(id);
         }
     });
+
+    /// <summary>Moldura da região: cor e espessura conforme seja fronteira nacional ou risco interno.</summary>
+    private void PaintBorder(int regionId)
+    {
+        if (!_borders.TryGetValue(regionId, out var borders)) return;
+        var bc = BorderFor(regionId); float bw = BorderWidth(regionId);
+        foreach (var b in borders) { b.DefaultColor = bc; b.Width = bw; }
+    }
 
     // Chega na main thread (deferred); a leitura do controlador espera pelo fim do tick.
     private void Recolor(int regionId) => _game.RunWhenIdle(() =>
     {
         if (_byRegion.TryGetValue(regionId, out var polys)) foreach (var p in polys) p.Color = ColorFor(regionId);
-        if (_borders.TryGetValue(regionId, out var borders))
-        { var bc = BorderFor(regionId); foreach (var b in borders) b.DefaultColor = bc; }
+        PaintBorder(regionId);
+        // mudar de dono muda a fronteira dos dois lados: os vizinhos têm de ser repintados também
+        if (_game.World.Regions.TryGetValue(regionId, out var reg))
+            foreach (int n in reg.Neighbours) PaintBorder(n);
     });
 
     /// <summary>Marcadores e realce à escala inversa do zoom (clamp 0.05..6): tamanho constante no ecrã —
     /// ao aproximar encolhem no mapa em vez de crescerem no ecrã.</summary>
     public void SetZoom(float zoom)
     {
+        _zoom = zoom;
         _markerScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var m in _markers.Values) m.Scale = Vector2.One * _markerScale;
+        foreach (var n in _countryNames.Values)
+        {
+            n.Scale = Vector2.One * _markerScale;
+            n.Visible = (bool)n.GetMeta("alive", false) && ShowName(n);   // ao afastar, ficam só os grandes
+        }
         foreach (var c in _highlightRoot.GetChildren()) if (c is Line2D l) l.Width = 4f * _markerScale;
         foreach (var c in _multiRoot.GetChildren()) if (c is Line2D l2) l2.Width = 4f * _markerScale;
         foreach (var c in _goalRoot.GetChildren()) if (c is Line2D l3) l3.Width = 5f * _markerScale;
@@ -155,9 +257,67 @@ public partial class RegionRenderer : Node2D
             }
             foreach (var (id, m) in _markers)
                 if (!seen.Contains(id)) { m.Visible = false; Pulse(id, null, false); }
+            RefreshCountryNames(w);
         }
         catch (Exception ex) { GD.PushError("RegionRenderer.Refresh: " + ex); }
     }
+
+    /// <summary>Nome de cada país escrito por cima do território que controla, no centro de gravidade das
+    /// regiões dele (pesadas pela área, para o nome cair na massa principal e não num arquipélago).
+    ///
+    /// Sem isto o mapa é uma manta de cores anónima: dois vizinhos de tom parecido só se distinguem quando
+    /// se toca em cada um. O tamanho da letra cresce com o país e a etiqueta esconde-se quando o território
+    /// é pequeno demais no ecrã para caber lá o nome (ver ShowNames).</summary>
+    private void RefreshCountryNames(World w)
+    {
+        var sum = new Dictionary<int, (float X, float Y, float A)>();
+        foreach (var r in w.Regions.Values)
+        {
+            float a = MathF.Max(1f, _area.GetValueOrDefault(r.Id));
+            var acc = sum.GetValueOrDefault(r.ControllerId);
+            sum[r.ControllerId] = (acc.X + r.CenterX * a, acc.Y + r.CenterY * a, acc.A + a);
+        }
+
+        foreach (var (id, acc) in sum)
+        {
+            if (acc.A <= 0f || !w.Countries.TryGetValue(id, out var c)) continue;
+            if (!_countryNames.TryGetValue(id, out var node)) _countryNames[id] = node = NewCountryName(c.Name);
+            node.Position = new Vector2(acc.X / acc.A, acc.Y / acc.A);
+            var label = node.GetNode<Label>("Text");
+            var st = label.LabelSettings;
+            // países grandes levam letra maior; o texto centra-se no sítio onde está pousado
+            st.FontSize = (int)Mathf.Clamp(MathF.Sqrt(acc.A) * 0.16f, 16f, 64f);
+            st.FontColor = _countryColor.GetValueOrDefault(id, Colors.White).Lightened(0.55f);
+            label.Size = new Vector2(600, st.FontSize * 1.6f);
+            label.Position = new Vector2(-300, -st.FontSize * 0.8f);
+            node.SetMeta("span", MathF.Sqrt(acc.A));
+        }
+        foreach (var (id, node) in _countryNames)
+        {
+            node.SetMeta("alive", sum.ContainsKey(id));   // país sem território não tem nome no mapa
+            node.Visible = sum.ContainsKey(id) && ShowName(node);
+        }
+    }
+
+    /// <summary>Etiqueta com o nome do país: letra clara com contorno preto, para se ler por cima de
+    /// qualquer cor de mapa. Fica na sua própria camada, por baixo dos marcadores das divisões.</summary>
+    private Node2D NewCountryName(string name)
+    {
+        var node = new Node2D { Scale = Vector2.One * _markerScale };
+        node.AddChild(new Label
+        {
+            Name = "Text", Text = name.ToUpperInvariant(),
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            LabelSettings = new LabelSettings { FontSize = 24, FontColor = Colors.White, OutlineSize = 8, OutlineColor = new Color(0, 0, 0, 0.85f) },
+        });
+        _nameRoot.AddChild(node);
+        return node;
+    }
+
+    /// <summary>O nome só aparece quando o país ocupa espaço que chegue no ecrã (largura aparente em píxeis):
+    /// afastado vêem-se os impérios, ao aproximar aparecem os pequenos.</summary>
+    private bool ShowName(Node2D node) => (float)node.GetMeta("span", 0f) * _zoom > 90f;
 
     /// <summary>Regiões que o jogador exigiu nas guerras em curso (objectivos de guerra) e ainda não controla.</summary>
     private HashSet<int> PlayerGoals(World w)

@@ -118,9 +118,10 @@ public partial class Hud : CanvasLayer
         // A barra leva uma tira fina por baixo, pintada com a cor do país do jogador: dá identidade
         // ao ecrã inteiro e fica vermelha quando o país está em guerra.
         var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 6); bar.AddChild(stack);
+
+        // Primeira linha: o estado do jogo (data, velocidade, país, exército). Num telemóvel isto sozinho
+        // já enche a largura — por isso a navegação desceu para a linha de baixo.
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); stack.AddChild(row);
-        _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
-        stack.AddChild(_accent);
         _date = Ui.Lbl("2030-01-01", 22); row.AddChild(_date);
         row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
         _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
@@ -128,13 +129,28 @@ public partial class Hud : CanvasLayer
         _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
         _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
         _army = Ui.Lbl("", 20); row.AddChild(_army);
-        row.AddChild(Ui.Btn("Frente", DefendBorders));
-        row.AddChild(Ui.Btn("País", OpenCountry));
-        row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
-        row.AddChild(Ui.Btn("Guerra", OpenWar));
-        row.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
-        row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
-        row.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
+
+        // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
+        // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
+        var nav = new ScrollContainer
+        {
+            Name = "Nav",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
+        };
+        stack.AddChild(nav);
+        var tabs = new HBoxContainer(); tabs.AddThemeConstantOverride("separation", 8); nav.AddChild(tabs);
+        tabs.AddChild(Ui.Btn("Frente", DefendBorders));
+        tabs.AddChild(Ui.Btn("País", OpenCountry));
+        tabs.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
+        tabs.AddChild(Ui.Btn("Guerra", OpenWar));
+        tabs.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
+        tabs.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
+        tabs.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
+
+        _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
+        stack.AddChild(_accent);
     }
 
     /// <summary>Plano de batalha simplificado: manda as divisões paradas guardar a fronteira com o inimigo.</summary>
@@ -172,7 +188,7 @@ public partial class Hud : CanvasLayer
         // Toast: caixa centrada por baixo da barra; Ignore no wrapper para o toque passar ao mapa.
         var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
-        center.OffsetTop = 70; center.OffsetBottom = 130;
+        center.OffsetTop = 132; center.OffsetBottom = 192;   // a barra de topo tem duas linhas
         AddChild(center);
         _toastBox = new PanelContainer { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
         _toastBox.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.92f }, 12));
@@ -183,7 +199,7 @@ public partial class Hud : CanvasLayer
         // Instrução enquanto não há jogador.
         var center2 = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         center2.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
-        center2.OffsetTop = 140; center2.OffsetBottom = 200;
+        center2.OffsetTop = 202; center2.OffsetBottom = 262;
         AddChild(center2);
         _hint = Ui.Lbl("Toca num país e escolhe-o", 26); _hint.Visible = false; center2.AddChild(_hint);
     }

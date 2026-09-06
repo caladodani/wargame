@@ -29,7 +29,7 @@ public partial class ArmySelect : PanelContainer
         _game = game; _map = map;
         Visible = false;
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop);
-        OffsetTop = 64;
+        OffsetTop = 128;   // por baixo das duas linhas da barra de topo
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.16f, 0.14f, 0.04f, 0.92f)));
         var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 12); AddChild(h);
         _label = Ui.Lbl("", 18); h.AddChild(_label);
