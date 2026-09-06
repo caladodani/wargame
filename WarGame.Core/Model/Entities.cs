@@ -59,6 +59,9 @@ public sealed class Region
     public int Fort { get; set; }
     public bool FortBuilding { get; set; }
     public float FortProgress { get; set; }
+    /// <summary>Resistência da população ocupada (0..1, ResistanceSystem): cresce sem guarnição do ocupante,
+    /// corta o rendimento (resistance_output_hit) e a 1.0 devolve o controlo ao dono.</summary>
+    public float Resistance { get; set; }
     public int Population { get; init; }
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }

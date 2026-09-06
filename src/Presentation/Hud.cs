@@ -241,6 +241,12 @@ public partial class Hud : CanvasLayer
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
                 Later($"Fortificação nível {e.Level} em {r.Name}");
         }));
+        _subs.Add(w.Events.Subscribe<RegionRevolted>(e =>
+        {
+            if (_game.PlayerId is not int p || !w.Regions.TryGetValue(e.RegionId, out var r)) return;
+            if (r.OwnerId == p) Later($"{r.Name} revoltou-se e voltou para nós");
+            else if (e.OldController == p) Later($"Perdemos {r.Name} para uma revolta popular");
+        }));
         _subs.Add(w.Events.Subscribe<LawChanged>(e =>
         {
             if (Player(e.CountryId) && w.Laws.TryGetValue(e.LawId, out var l)) Later($"Nova lei: {l.Name}");

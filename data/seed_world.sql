@@ -158,3 +158,8 @@ INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES
  ('agitacao','Agitação social','Propaganda e greves: a estabilidade do alvo cai.',60,30,'stability_hit',15);
 INSERT INTO rule (key,value,note) VALUES
  ('ai_spy_reserve',200,'a IA só lança operações de espionagem com dinheiro acima disto');
+
+-- Resistência nas regiões ocupadas (ResistanceSystem)
+INSERT INTO rule VALUES ('resistance_growth', 0.02, 'subida diária da resistência numa região ocupada sem guarnição');
+INSERT INTO rule VALUES ('resistance_suppress', 0.04, 'descida diária com divisão do ocupante presente (ou ocupação terminada)');
+INSERT INTO rule VALUES ('resistance_output_hit', 0.5, 'corte máximo do rendimento da região ocupada (a resistência 1.0)');

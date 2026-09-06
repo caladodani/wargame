@@ -165,6 +165,7 @@ public partial class RegionPanel : PanelContainer
             _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
             var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
+            if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
             if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);

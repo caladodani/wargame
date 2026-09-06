@@ -42,6 +42,8 @@ public sealed record FortBuilt(int RegionId, int Level) : IGameEvent;
 public sealed record MoneyTransferred(int FromCountryId, int ToCountryId, float Amount) : IGameEvent;
 /// <summary>Proposta de paz branca recusada (OfferPeaceCommand: a IA ainda acha que ganha).</summary>
 public sealed record PeaceOfferRejected(int FromCountryId, int ToCountryId) : IGameEvent;
+/// <summary>Região ocupada revoltou-se e voltou ao dono (ResistanceSystem).</summary>
+public sealed record RegionRevolted(int RegionId, int OldController) : IGameEvent;
 public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
