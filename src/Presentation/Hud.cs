@@ -482,6 +482,33 @@ public partial class Hud : CanvasLayer
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
             Later($"▮ {unit} passa a chamar-se «{e.Title}»");
         }));
+        // Baixas no comando: perder um marechal é dos acontecimentos mais caros da campanha.
+        _subs.Add(w.Events.Subscribe<GeneralKilled>(e =>
+        {
+            if (!Player(e.CountryId)) return;
+            string who = w.GeneralDefs.TryGetValue(e.GeneralId, out var kd) ? kd.Name : e.GeneralId;
+            string place = w.Regions.TryGetValue(e.RegionId, out var kr) ? $" em {kr.Name}" : "";
+            Later($"⚰ {who} morre em combate{place}");
+        }));
+        _subs.Add(w.Events.Subscribe<GeneralWounded>(e =>
+        {
+            if (!Player(e.CountryId)) return;
+            string who = w.GeneralDefs.TryGetValue(e.GeneralId, out var wd) ? wd.Name : e.GeneralId;
+            string kind = w.WoundKinds.TryGetValue(e.KindId, out var k) ? $"{k.Icon} {k.Name}" : "🩸 Ferido";
+            Later($"{kind}: {who} sai do campo por {e.Days} dias");
+        }));
+        _subs.Add(w.Events.Subscribe<GeneralRecovered>(e =>
+        {
+            if (!Player(e.CountryId)) return;
+            string who = w.GeneralDefs.TryGetValue(e.GeneralId, out var rd) ? rd.Name : e.GeneralId;
+            Later($"🩹 {who} volta ao serviço");
+        }));
+        _subs.Add(w.Events.Subscribe<CommandHandedOver>(e =>
+        {
+            if (!Player(e.CountryId) || !w.ArmyGroups.TryGetValue(e.GroupId, out var g)) return;
+            string sub = e.NewGeneralId is string nid && w.GeneralDefs.TryGetValue(nid, out var sd) ? sd.Name : null!;
+            Later(sub is null ? $"🎖 {g.Name} fica sem comandante" : $"🎖 {g.Name} passa às mãos de {sub}");
+        }));
         // Estação nova: muda a marcha, a recomposição e o desgaste de toda a gente — é notícia de primeira.
         _subs.Add(w.Events.Subscribe<SeasonChanged>(e =>
         {
@@ -662,9 +689,22 @@ public partial class Hud : CanvasLayer
             hero.Battles = Math.Max(hero.Battles, 12); hero.Captures = Math.Max(hero.Captures, 6); hero.Xp = MathF.Max(hero.Xp, 95f);
             new MedalSystem().Tick(w); new DivisionHonourSystem().Tick(w);
         }
+        // um comandante do jogador ferido, para a enfermaria e as barras de convalescença desenharem
+        int hurt = 0;
+        if (c.Generals.Count == 0 && w.GeneralDefs.Values.OrderBy(g => g.Cost).FirstOrDefault() is GeneralDef cheap)
+        {
+            c.Money = MathF.Max(c.Money, cheap.Cost);                // ao dia 73 ninguém tem troco: o smoke adianta-o
+            _game.Dispatch(new HireGeneralCommand(pid, cheap.Id));   // sem estado-maior não há enfermaria para desenhar
+        }
+        if (c.Generals.FirstOrDefault() is string gen && w.WoundKinds.Values.FirstOrDefault(k => !k.Fatal) is WoundKind wk)
+        {
+            c.GeneralWound[gen] = w.Clock.Day + wk.Days;
+            World.ApplyGenerals(w, c);
+            hurt = c.GeneralWound.Count;
+        }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

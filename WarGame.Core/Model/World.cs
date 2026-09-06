@@ -61,6 +61,8 @@ public sealed class World
     public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
+    /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
+    public Dictionary<string, WoundKind> WoundKinds { get; } = new();
     /// <summary>Patamares de potência mundial (tabela power_tier).</summary>
     public List<PowerTier> PowerTiers { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
@@ -142,7 +144,7 @@ public sealed class World
         var detached = w.ArmyGroups.Values.Where(x => x.CountryId == c.Id && x.GeneralId is not null)
                                           .Select(x => x.GeneralId!).ToHashSet();
         foreach (var id in c.Generals)
-            if (!detached.Contains(id) && w.GeneralDefs.TryGetValue(id, out var g))   // destacado manda no grupo, não no país
+            if (!detached.Contains(id) && !w.IsWounded(c.Id, id) && w.GeneralDefs.TryGetValue(id, out var g))   // destacado manda no grupo, ferido não manda em nada
                 c.GeneralMult[g.StatKey] = c.GeneralMult.GetValueOrDefault(g.StatKey, 1f) * g.Mult;
     }
 
@@ -324,6 +326,7 @@ public sealed class World
     {
         if (ArmyGroups.Count == 0 || d.GroupId is not int gid) return 1f;
         if (!ArmyGroups.TryGetValue(gid, out var g) || g.GeneralId is not string gen) return 1f;
+        if (IsWounded(g.CountryId, gen)) return 1f;                                     // o homem está no hospital
         if (!GeneralDefs.TryGetValue(gen, out var def) || def.StatKey != key) return 1f;
         return 1f + (def.Mult - 1f) * (Rule("general_command_bonus", 2f) + RankBonus(g.CountryId, gen));
     }
@@ -352,6 +355,16 @@ public sealed class World
 
     /// <summary>Quanto o posto acrescenta ao multiplicador de destacamento deste comandante.</summary>
     public float RankBonus(int countryId, string generalId) => RankOf(countryId, generalId)?.Bonus ?? 0f;
+
+    /// <summary>Está fora de serviço por ferimento? Vale para o país e para o exército: um comandante no
+    /// hospital não soma stats nem amplifica nada (ver ApplyGenerals e CommandMult).</summary>
+    public bool IsWounded(int countryId, string generalId) =>
+        Countries.TryGetValue(countryId, out var c) && c.GeneralWound.TryGetValue(generalId, out var until) && until > Clock.Day;
+
+    /// <summary>Dias que faltam até o comandante voltar ao serviço (0 = está de pé).</summary>
+    public int WoundDaysLeft(int countryId, string generalId) =>
+        Countries.TryGetValue(countryId, out var c) && c.GeneralWound.TryGetValue(generalId, out var until)
+            ? Math.Max(0, until - Clock.Day) : 0;
 
     public int NewDivisionId()
     {

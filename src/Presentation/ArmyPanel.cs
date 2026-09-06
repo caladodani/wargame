@@ -85,7 +85,7 @@ public partial class ArmyPanel : PanelContainer
             var groups = w.ArmyGroups.Values.Where(g => g.CountryId == pid).OrderBy(g => g.Id).ToList();
             var foes = w.Wars.Values.Where(x => x.Involves(pid)).Select(x => x.EnemyOf(pid)).Distinct().ToList();
 
-            var key = $"{w.Clock.Day}|{_fronts}|{_generals}|{_select.RegionCount}|{string.Join(",", w.Countries[pid].Generals)}|" + string.Join(",", foes) + "|" +
+            var key = $"{w.Clock.Day}|{_fronts}|{_generals}|{_select.RegionCount}|{string.Join(",", w.Countries[pid].Generals)}|{string.Join(",", w.Countries[pid].GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|" + string.Join(",", foes) + "|" +
                       string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -198,7 +198,11 @@ public partial class ArmyPanel : PanelContainer
         var gdef = g.GeneralId is string gid && w.GeneralDefs.TryGetValue(gid, out var found) ? found : null;
         if (gdef is null)
         {
-            genRow.AddChild(Ui.Grow(Ui.Lbl("Comandante: nenhum (o estado-maior serve o país todo)", 16)));
+            var none = Ui.Lbl(w.Countries[pid].GeneralWound.Count > 0
+                ? "Comando vago — o comandante caiu e não havia ninguém livre para o render"
+                : "Comandante: nenhum (o estado-maior serve o país todo)", 16);
+            if (w.Countries[pid].GeneralWound.Count > 0) none.AddThemeColorOverride("font_color", CommanderView.Hurt);
+            genRow.AddChild(Ui.Grow(none));
         }
         else
         {
@@ -223,8 +227,14 @@ public partial class ArmyPanel : PanelContainer
                     var busy = w.ArmyGroups.Values.FirstOrDefault(x => x.Id != g.Id && x.GeneralId == id);
                     // a divisa vai no botão: escolhe-se o comandante pelo posto que ele já ganhou, não só pelo stat
                     string mark = CommanderView.Insignia(w.RankOf(pid, id)?.Level ?? 1);
-                    flow.AddChild(Ui.Btn(busy is null ? $"{mark} {def.Name} ({StatName(def.StatKey)})" : $"{mark} {def.Name} — {busy.Name}",
-                        () => SetGeneral(pid, g.Id, id), 0, g.GeneralId == id ? Ui.Kind.Primary : Ui.Kind.Normal));
+                    // um ferido não se destaca: o botão fica lá a dizer quantos dias faltam, mas não pega
+                    int hurt = w.WoundDaysLeft(pid, id);
+                    string label = hurt > 0 ? $"🩸 {def.Name} — hospital, {hurt} d"
+                        : busy is null ? $"{mark} {def.Name} ({StatName(def.StatKey)})" : $"{mark} {def.Name} — {busy.Name}";
+                    var pick = Ui.Btn(label, () => SetGeneral(pid, g.Id, id), 0,
+                        hurt > 0 ? Ui.Kind.Danger : g.GeneralId == id ? Ui.Kind.Primary : Ui.Kind.Normal);
+                    pick.Disabled = hurt > 0;
+                    flow.AddChild(pick);
                 }
                 if (g.GeneralId is not null) flow.AddChild(Ui.Btn("Chamar de volta", () => SetGeneral(pid, g.Id, null), 0));
                 v.AddChild(flow);

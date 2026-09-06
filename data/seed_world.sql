@@ -306,6 +306,7 @@ CREATE TABLE IF NOT EXISTS chronicle_kind (
 INSERT INTO chronicle_kind VALUES ('guerra','Guerra','⚔',3);
 INSERT INTO chronicle_kind VALUES ('paz','Paz','🕊',3);
 INSERT INTO chronicle_kind VALUES ('capitulacao','Capitulação','🏳',3);
+INSERT INTO chronicle_kind VALUES ('baixa','Baixa no comando','🎖',3);
 INSERT INTO chronicle_kind VALUES ('capital','Capital tomada','🏛',3);
 INSERT INTO chronicle_kind VALUES ('dominio','Domínio mundial','👑',3);
 INSERT INTO chronicle_kind VALUES ('bomba','Bomba atómica','☢',3);
@@ -425,6 +426,21 @@ INSERT INTO rule (key,value,note) VALUES
  ('general_xp_win',3,'experiência extra do comandante por batalha ganha pelo grupo'),
  ('general_xp_capture',4,'experiência do comandante por região tomada por divisões do grupo'),
  ('general_xp_max',400,'tecto da experiência de campanha de um comandante');
+
+-- Baixas no comando (tabela wound_kind; CommandCasualtySystem). Cada batalha travada por um exército
+-- com comandante destacado é uma hipótese de o perder: days = dias fora de serviço (a zero quando é
+-- fatal), weight = peso no sorteio, fatal = fica lá. Enquanto está ferido não soma nada ao país nem
+-- amplifica nada no exército, e o comando passa a um substituto do estado-maior.
+CREATE TABLE IF NOT EXISTS wound_kind (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, days INTEGER NOT NULL,
+  weight REAL NOT NULL, fatal INTEGER NOT NULL DEFAULT 0);
+INSERT INTO wound_kind VALUES ('arranhao','Ferimento ligeiro','🩹',6,50,0);
+INSERT INTO wound_kind VALUES ('ferido','Ferido em combate','🩸',21,28,0);
+INSERT INTO wound_kind VALUES ('grave','Ferido com gravidade','🏥',60,15,0);
+INSERT INTO wound_kind VALUES ('morto','Morto em combate','⚰',0,7,1);
+INSERT INTO rule (key,value,note) VALUES
+ ('wound_chance',0.035,'probabilidade de o comandante de um exército cair por batalha travada'),
+ ('wound_loss_mult',2.2,'quanto a derrota multiplica essa probabilidade');
 
 -- Grupos de exércitos com frente atribuída (ArmyGroupSystem)
 INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');

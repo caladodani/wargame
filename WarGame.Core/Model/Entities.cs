@@ -135,6 +135,11 @@ public sealed record PowerTier(int Level, string Name, float MinShare);
 /// limiares são dados, não código — mudar a progressão é mexer na tabela.</summary>
 public sealed record GeneralRank(int Level, string Name, float Xp, float Bonus);
 
+/// <summary>Gravidade de uma baixa no comando (tabela wound_kind): quantos dias tira o comandante de
+/// serviço, o peso com que sai no sorteio e se é fatal. Um arranhão e um caixão são a mesma linha com
+/// números diferentes — a progressão muda-se na tabela, não no código.</summary>
+public sealed record WoundKind(string Id, string Name, string Icon, int Days, float Weight, bool Fatal);
+
 /// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
 public sealed class ActiveDecision
 {
@@ -235,6 +240,9 @@ public sealed class Country
     /// <summary>Experiência de campanha de cada comandante contratado (GeneralXpSystem): sobe com as
     /// batalhas do grupo que ele comanda e nunca desce. Manda no posto — ver World.RankOf.</summary>
     public Dictionary<string, float> GeneralXp { get; } = new();
+    /// <summary>Comandantes fora de serviço por ferimento (CommandCasualtySystem): general → dia em que
+    /// regressa. Enquanto lá está não conta para os stats do país nem comanda exército nenhum.</summary>
+    public Dictionary<string, int> GeneralWound { get; } = new();
     /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
     public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>

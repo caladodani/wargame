@@ -55,7 +55,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -138,18 +138,24 @@ public partial class CountryPanel : PanelContainer
                         : $"{StatName(def.StatKey)} ×{1f + (def.Mult - 1f) * (w.Rule("general_command_bonus", 2f) + w.RankBonus(c.Id, def.Id)):0.00} no {posted.Name}";
                     var row = new HBoxContainer(); _body.AddChild(row);
                     // a divisa do posto só faz sentido em quem serve: um comandante por contratar não tem folha
-                    string mark = posted is not null ? "⚔ " : serving ? CommanderView.Insignia(w.RankOf(c.Id, def.Id)?.Level ?? 1) + " " : "";
+                    bool hurt = serving && w.IsWounded(c.Id, def.Id);
+                    string mark = hurt ? CommanderView.WoundMark(w, c.Id, def.Id)
+                        : posted is not null ? "⚔ " : serving ? CommanderView.Insignia(w.RankOf(c.Id, def.Id)?.Level ?? 1) + " " : "";
                     string rank = serving && CommanderView.RankName(w, c.Id, def.Id) is string rn && rn.Length > 0 ? $" · {rn}" : "";
-                    var lbl = Ui.Lbl($"{mark}{def.Name}{rank} — {eff}", 16);
-                    if (serving) lbl.AddThemeColorOverride("font_color", CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w)));
+                    var lbl = Ui.Lbl($"{mark}{def.Name}{rank} — {(hurt ? "no hospital, não conta para nada" : eff)}", 16);
+                    if (serving) lbl.AddThemeColorOverride("font_color", hurt ? CommanderView.Hurt : CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w)));
                     row.AddChild(Ui.Grow(lbl));
                     if (serving)
                         row.AddChild(Ui.Btn("Dispensar", () => Faction(new DismissGeneralCommand(c.Id, def.Id)), 160));
                     else if (c.Generals.Count < slots)
                         row.AddChild(Ui.Btn($"Contratar ({def.Cost:0})", () => Faction(new HireGeneralCommand(c.Id, def.Id)), 160));
                     // barra de carreira: mostra o que a guerra lhe deu e quanto falta para a promoção
-                    if (serving) _body.AddChild(CommanderView.Progress(w, c.Id, def.Id, CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w))));
+                    if (serving) _body.AddChild(hurt
+                        ? CommanderView.Recovery(w, c.Id, def.Id)
+                        : CommanderView.Progress(w, c.Id, def.Id, CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w))));
                 }
+                // a enfermaria só aparece quando há quem lá esteja: é o aviso de que há exércitos por comandar
+                if (CommanderView.Infirmary(w, c.Id) is PanelContainer sick) _body.AddChild(sick);
             }
 
             // decisões nacionais (só o jogador decide)

@@ -28,6 +28,14 @@ public sealed record MedalAwarded(int DivisionId, int CountryId, string MedalId)
 public sealed record DivisionHonoured(int DivisionId, int CountryId, string HonourId, string Title) : IGameEvent;
 /// <summary>Mudou a estação do ano (WeatherSystem): a marcha, a recomposição e o desgaste mudam com ela.</summary>
 public sealed record SeasonChanged(string SeasonId, string Name, int Day) : IGameEvent;
+
+/// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
+public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;
+public sealed record GeneralKilled(int CountryId, string GeneralId, int RegionId) : IGameEvent;
+public sealed record GeneralRecovered(int CountryId, string GeneralId) : IGameEvent;
+/// <summary>O exército mudou de comandante sem ninguém o mandar: o anterior caiu. NewGeneralId a null =
+/// ficou sem comando.</summary>
+public sealed record CommandHandedOver(int CountryId, int GroupId, string? NewGeneralId) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 /// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>

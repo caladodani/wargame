@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS s_decision (          -- decisões nacionais (Decisio
 CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (HireGeneralCommand)
   country_id INTEGER NOT NULL, general TEXT NOT NULL,
   xp REAL NOT NULL DEFAULT 0,                   -- experiência de campanha (GeneralXpSystem)
+  wound_until INTEGER NOT NULL DEFAULT 0,       -- dia em que volta do hospital (CommandCasualtySystem)
   PRIMARY KEY (country_id, general));
 
 CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGroupSystem)

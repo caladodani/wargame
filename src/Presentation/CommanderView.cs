@@ -45,11 +45,14 @@ public static class CommanderView
         title.AddThemeColorOverride("font_color", tint);
         top.AddChild(Ui.Grow(title));
 
-        var eff = Ui.Lbl(effect, 15);
-        eff.AddThemeColorOverride("font_color", Ui.Text);
+        bool hurt = w.IsWounded(countryId, def.Id);
+        if (hurt) card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.20f, 0.10f, 0.11f, 0.94f), 10));
+
+        var eff = Ui.Lbl(hurt ? "Fora de serviço — o exército não leva nada do que ele vale" : effect, 15);
+        eff.AddThemeColorOverride("font_color", hurt ? Ui.Danger : Ui.Text);
         v.AddChild(eff);
 
-        v.AddChild(Progress(w, countryId, def.Id, tint));
+        v.AddChild(hurt ? Recovery(w, countryId, def.Id) : Progress(w, countryId, def.Id, tint));
         return card;
     }
 
@@ -73,5 +76,64 @@ public static class CommanderView
         note.AddThemeColorOverride("font_color", Ui.TextDim);
         v.AddChild(note);
         return v;
+    }
+
+    /// <summary>Cor da enfermaria: vermelho apagado, para o comandante ferido não se confundir com o que
+    /// está de pé.</summary>
+    public static readonly Color Hurt = new(0.92f, 0.45f, 0.42f);
+
+    /// <summary>Marca curta do estado de baixa ("🩸 12 d") ou vazio se o homem está de pé. É o que vai à
+    /// frente do nome nas listas do estado-maior.</summary>
+    public static string WoundMark(World w, int countryId, string generalId)
+    {
+        int left = w.WoundDaysLeft(countryId, generalId);
+        return left <= 0 ? "" : $"🩸 {left} d ";
+    }
+
+    /// <summary>Barra da convalescença: enche à medida que os dias passam, medida contra a baixa mais
+    /// longa da tabela. Substitui a barra de carreira enquanto o comandante está no hospital — a carreira
+    /// dele está parada, e quem olha para o painel tem de ver isso.</summary>
+    public static VBoxContainer Recovery(World w, int countryId, string generalId)
+    {
+        int left = w.WoundDaysLeft(countryId, generalId);
+        float longest = w.WoundKinds.Count == 0 ? 60f : MathF.Max(1f, w.WoundKinds.Values.Max(k => k.Days));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 2);
+        v.AddChild(Ui.Bar(Math.Clamp(1f - left / longest, 0f, 1f), Hurt, 0f));
+        var note = Ui.Lbl(left <= 1 ? "volta ao serviço amanhã" : $"volta ao serviço daqui a {left} dias", 14);
+        note.AddThemeColorOverride("font_color", Ui.TextDim);
+        v.AddChild(note);
+        return v;
+    }
+
+    /// <summary>Enfermaria do estado-maior: quem está fora, há quanto tempo falta e o aviso de que os
+    /// exércitos deles andam entregues a interinos. Vazia (null) quando não há baixas — o painel não
+    /// mostra secções vazias.</summary>
+    public static PanelContainer? Infirmary(World w, int countryId)
+    {
+        if (!w.Countries.TryGetValue(countryId, out var c)) return null;
+        var hurt = c.GeneralWound.Where(kv => kv.Value > w.Clock.Day)
+                                 .OrderBy(kv => kv.Value).ToList();
+        if (hurt.Count == 0) return null;
+
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.20f, 0.10f, 0.11f, 0.90f), 10));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
+        var head = Ui.Lbl($"🏥 Enfermaria · {hurt.Count} fora de serviço", 17);
+        head.AddThemeColorOverride("font_color", Hurt);
+        v.AddChild(head);
+
+        foreach (var (id, until) in hurt)
+        {
+            string name = w.GeneralDefs.TryGetValue(id, out var def) ? def.Name : id;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); v.AddChild(row);
+            var who = Ui.Lbl(name, 16);
+            who.AddThemeColorOverride("font_color", Ui.Text);
+            row.AddChild(Ui.Grow(who));
+            var when = Ui.Lbl($"{Math.Max(0, until - w.Clock.Day)} dias", 15);
+            when.AddThemeColorOverride("font_color", Hurt);
+            row.AddChild(when);
+            v.AddChild(Recovery(w, countryId, id));
+        }
+        return card;
     }
 }
