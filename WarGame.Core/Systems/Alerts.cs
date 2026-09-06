@@ -89,7 +89,13 @@ public static class Alerts
                                               : free == 1 ? "1 ranhura de investigação livre"
                                                           : $"{free} ranhuras de investigação livres", AlertLevel.Info));
 
-        // 7. Propostas em cima da mesa: caem sozinhas se ninguém lhes tocar.
+        // 7. Fábricas civis paradas: obras que se podiam ter começado hoje e ficam para depois.
+        var yards = Industry.Of(w, countryId);
+        if (yards.FreeCivil > 0 && c.Money >= w.Rule("alert_idle_money", 150f))
+            list.Add(new Alert("factories", "🏭", yards.FreeCivil == 1 ? "1 fábrica civil parada"
+                                                : $"{yards.FreeCivil} fábricas civis paradas", AlertLevel.Info));
+
+        // 8. Propostas em cima da mesa: caem sozinhas se ninguém lhes tocar.
         int offers = w.Offers.Count(o => o.ToId == countryId);
         if (offers > 0)
             list.Add(new Alert("offers", "✉", offers == 1 ? "1 proposta à espera de resposta"

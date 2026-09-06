@@ -72,11 +72,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap FROM resource"))
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]));
-        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range FROM building"))
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
-                Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]));
+                Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]), (string)r["yard"]!);
         foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort FROM medal ORDER BY sort"))
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));

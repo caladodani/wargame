@@ -134,8 +134,10 @@ public sealed record ChronicleKind(string Id, string Name, string Icon, int Weig
 /// sessão e a guerra de há dois anos ficava sem memória nenhuma.</summary>
 public sealed record ChronicleEntry(int Day, string Kind, string Text, int CountryId, int RegionId);
 
+/// <param name="Yard">Fila de fábricas que este edifício alimenta (coluna building.yard): "civil", "militar",
+/// "naval" ou vazio. É o que liga um edifício aos contadores do Industry.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
-    bool Coastal = false, float SupplyRange = 0f);
+    bool Coastal = false, float SupplyRange = 0f, string Yard = "");
 
 /// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
 /// depois Cooldown dias de espera.</summary>

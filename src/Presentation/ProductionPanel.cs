@@ -1,16 +1,21 @@
 using Godot;
 using WarGame.Core.Commands;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
-/// <summary>Painel de produção do jogador (45% inferior): templates com custo e "+", fila com % e "×".
-/// Lê o World só em Fill (mundo parado); muta só por Game.Dispatch.</summary>
+/// <summary>Painel de produção do jogador (45% inferior): bancada de fábricas militares, templates com custo
+/// e "+", fila com % e "×". A bancada é a fila de lâmpadas do HoI4: quantas linhas de montagem existem e
+/// quantas estão a trabalhar hoje — e a fila marca as encomendas que estão à espera de fábrica, que antes
+/// pareciam simplesmente paradas sem explicação. Lê o World só em Fill (mundo parado); muta só por
+/// Game.Dispatch.</summary>
 public partial class ProductionPanel : PanelContainer
 {
     private Game _game = null!;
     private Label _title = null!;
     private VBoxContainer _templates = null!, _queue = null!;
+    private HBoxContainer _bench = null!;
     private string _lastKey = "";
 
     public void Setup(Game game)
@@ -27,6 +32,10 @@ public partial class ProductionPanel : PanelContainer
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
         var body = Ui.Grow(new VBoxContainer()); scroll.AddChild(body);
+        // Bancada: ⚙ + lâmpadas + a conta em palavras. Fica por cima dos modelos porque é o tecto de tudo
+        // o que se encomenda a seguir.
+        _bench = new HBoxContainer(); _bench.AddThemeConstantOverride("separation", 8); body.AddChild(_bench);
+        body.AddChild(Ui.Rule());
         var mhead = new HBoxContainer(); body.AddChild(mhead);
         mhead.AddChild(Ui.Grow(Ui.Lbl("Modelos", 20)));
         mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
@@ -48,11 +57,19 @@ public partial class ProductionPanel : PanelContainer
             _title.Text = $"Produção — {c.Name}   {c.Money:0.0} pts   ·   {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens";
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : ""))) + "#" + (int)(c.Manpower / 1000f);
+            var y = Industry.Of(w, pid);
+            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : ""))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
             if (key == _lastKey) return;
             _lastKey = key;
 
-            Ui.Clear(_templates); Ui.Clear(_queue);
+            Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench);
+            var gear = Ui.Lbl("⚙", 18); gear.AddThemeColorOverride("font_color", Ui.Accent); _bench.AddChild(gear);
+            _bench.AddChild(Ui.Pips(y.MilitaryBusy, y.Military));
+            var lines = Ui.Lbl(y.Military == 0 ? "sem fábricas militares"
+                               : $"{y.MilitaryBusy} de {y.Military} linhas de montagem a trabalhar"
+                                 + (c.Queue.Count > y.Military ? "  ·  o resto da fila espera vez" : ""), 16);
+            lines.AddThemeColorOverride("font_color", Ui.TextDim);
+            _bench.AddChild(Ui.Grow(lines));
             foreach (var t in tmpls)
             {
                 float cost; try { cost = w.TemplateCost(t.Id); } catch { cost = 0f; }
@@ -70,11 +87,14 @@ public partial class ProductionPanel : PanelContainer
                 var row = new HBoxContainer();
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
+                // a encomenda só anda se tiver linha: as que estão para lá das fábricas ficam à espera
+                bool waitingLine = !waitingMen && Working(w, c, i) >= y.Military;
                 bool rep = o.Repeat;
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
-                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "") + (waitingMen ? "   (à espera de homens)" : "")));
-                cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : Ui.Accent)));
+                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "")
+                                     + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : "")));
+                cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent)));
                 row.AddChild(cell);
                 row.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
                 row.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
@@ -83,6 +103,19 @@ public partial class ProductionPanel : PanelContainer
             if (c.Queue.Count == 0) _queue.AddChild(Ui.Lbl("Fila vazia"));
         }
         catch (Exception ex) { GD.PushError("ProductionPanel.Fill: " + ex); }
+    }
+
+    /// <summary>Quantas encomendas por acabar estão à frente desta na fila: se já forem tantas como as
+    /// fábricas militares, esta não tem linha hoje.</summary>
+    private static int Working(World w, Country c, int index)
+    {
+        int n = 0;
+        for (int i = 0; i < index; i++)
+        {
+            float cost; try { cost = w.TemplateCost(c.Queue[i].TemplateId); } catch { cost = 0f; }
+            if (c.Queue[i].Progress < cost - 1e-3f) n++;
+        }
+        return n;
     }
 
     private static int Pct(World w, ProductionOrder o)

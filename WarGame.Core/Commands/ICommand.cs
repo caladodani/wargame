@@ -433,7 +433,8 @@ public sealed record LeaveFactionCommand(int CountryId, string FactionId) : ICom
 }
 
 /// <summary>Iniciar obra de infraestrutura numa região própria (paga infra_build_cost já;
-/// o ConstructionSystem conclui ao fim de infra_build_days).</summary>
+/// o ConstructionSystem conclui ao fim de infra_build_days). Ocupa uma fábrica civil (Industry): com todas
+/// tomadas por outras obras, a ordem é recusada mesmo com o cofre cheio.</summary>
 public sealed record BuildInfrastructureCommand(int CountryId, int RegionId) : ICommand
 {
     public string? Validate(World w)
@@ -444,6 +445,7 @@ public sealed record BuildInfrastructureCommand(int CountryId, int RegionId) : I
         if (r.Infrastructure >= w.Rule("infra_max", 2f) - 1e-4f) return "infraestrutura no máximo";
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (c.Money < w.Rule("infra_build_cost", 40f)) return $"faltam pontos de produção ({w.Rule("infra_build_cost", 40f):0})";
+        if (Industry.Of(w, CountryId).FreeCivil <= 0) return "fábricas civis todas ocupadas";
         return null;
     }
 
@@ -478,7 +480,8 @@ public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
     }
 }
 
-/// <summary>Fortificar uma região própria (+1 nível; paga fort_build_cost, demora fort_build_days).</summary>
+/// <summary>Fortificar uma região própria (+1 nível; paga fort_build_cost, demora fort_build_days).
+/// Ocupa uma fábrica civil (Industry) enquanto a obra durar.</summary>
 public sealed record BuildFortCommand(int CountryId, int RegionId) : ICommand
 {
     public string? Validate(World w)
@@ -489,6 +492,7 @@ public sealed record BuildFortCommand(int CountryId, int RegionId) : ICommand
         if (r.Fort >= (int)w.Rule("fort_max", 5f)) return "fortificação no máximo";
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (c.Money < w.Rule("fort_build_cost", 30f)) return $"faltam pontos de produção ({w.Rule("fort_build_cost", 30f):0})";
+        if (Industry.Of(w, CountryId).FreeCivil <= 0) return "fábricas civis todas ocupadas";
         return null;
     }
 
@@ -845,7 +849,8 @@ public sealed record CancelTradeDealCommand(int CountryId, int OtherId, string R
 }
 
 
-/// <summary>Começa a obra de um edifício da tabela building numa região própria e controlada.</summary>
+/// <summary>Começa a obra de um edifício da tabela building numa região própria e controlada.
+/// Ocupa uma fábrica civil (Industry) enquanto a obra durar.</summary>
 public sealed record BuildBuildingCommand(int CountryId, int RegionId, string BuildingId) : ICommand
 {
     public string? Validate(World w)
@@ -858,6 +863,7 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
         if (r.Project is not null) return "já há uma obra de edifício em curso";
         if (r.Buildings.GetValueOrDefault(BuildingId) >= def.MaxLevel) return "nível máximo atingido";
         if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        if (Industry.Of(w, CountryId).FreeCivil <= 0) return "fábricas civis todas ocupadas";
         return null;
     }
 

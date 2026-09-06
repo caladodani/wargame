@@ -16,6 +16,9 @@ public partial class Hud : CanvasLayer
     private Label _date = null!, _country = null!, _toast = null!, _hint = null!;
     // Mostradores da barra de topo: cada um é um número grande com a sua nota por baixo.
     private Label _money = null!, _moneyNote = null!, _men = null!, _menNote = null!, _divs = null!, _divsNote = null!;
+    // Fábricas civis, militares e estaleiros: a fila de mostradores industriais do HoI4.
+    private Label _civ = null!, _civNote = null!, _mil = null!, _milNote = null!, _yard = null!, _yardNote = null!;
+    private PanelContainer _yardPlate = null!;
     private PanelContainer _season = null!;
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
@@ -159,6 +162,12 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Counter("₵", out _money, out _moneyNote, Ui.Accent));
         row.AddChild(Ui.Counter("♟", out _men, out _menNote, Ui.Text));
         row.AddChild(Ui.Counter("⚔", out _divs, out _divsNote, Ui.Danger.Lightened(0.25f)));
+        // Indústria: quantas fábricas estão ao serviço e quantas há. Sem isto o jogador só descobria o
+        // tecto da economia quando uma obra ou uma encomenda era recusada.
+        row.AddChild(Ui.Counter("🏭", out _civ, out _civNote, Ui.Good.Lightened(0.2f)));
+        row.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
+        _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
+        row.AddChild(_yardPlate);
 
         // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
         // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
@@ -782,6 +791,16 @@ public partial class Hud : CanvasLayer
             _menNote.Text = "recrutas";
             _divs.Text = w.Divisions.Values.Count(d => d.CountryId == pid).ToString();
             _divsNote.Text = p.Queue.Count > 0 ? $"fila {p.Queue.Count}" : "divisões";
+            var yards = Industry.Of(w, pid);
+            _civ.Text = $"{yards.CivilBusy}/{yards.Civil}";
+            _civ.AddThemeColorOverride("font_color", yards.FreeCivil > 0 ? Ui.TextDim : Ui.Text);
+            _civNote.Text = yards.CivilBusy == 1 ? "obra" : "obras";
+            _mil.Text = $"{yards.MilitaryBusy}/{yards.Military}";
+            _mil.AddThemeColorOverride("font_color", yards.MilitaryBusy < yards.Military ? Ui.TextDim : Ui.Text);
+            _milNote.Text = yards.MilitaryBusy == 1 ? "linha" : "linhas";
+            _yardPlate.Visible = yards.Naval > 0;                 // país sem costa não tem cais nenhum a mostrar
+            _yard.Text = $"{yards.NavalBusy}/{yards.Naval}";
+            _yardNote.Text = yards.Naval == 1 ? "estaleiro" : "estaleiros";
             _hint.Visible = false;
             int posted = OfferView.Count(w, pid);
             if (posted != _offersShown)
@@ -800,7 +819,7 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     /// <summary>Leva o mapa a uma região e abre-lhe a ficha: o "Ver no mapa" da cedência aterra aqui, e
@@ -943,7 +962,9 @@ public partial class Hud : CanvasLayer
         // folha de comparação: nós contra o vizinho, pelas três abas
         int rival = smokeFoe != 0 ? smokeFoe : w.Countries.Values.FirstOrDefault(x => x.Id != pid)?.Id ?? pid;
         int cmp = _compare.Smoke(rival); _compare.Close();
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas");
+        var ind = Industry.Of(w, pid);                                   // fábricas: os mostradores e a bancada
+        _production.Open(); _production.Close();
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

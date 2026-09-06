@@ -92,6 +92,29 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>Fila de lâmpadas: quantas de um total estão acesas. É como os jogos do género mostram
+    /// fábricas, ranhuras e cais — um número diz "3 de 5", mas uma fila de chapas acesas vê-se sem ler.
+    /// Acima de `max` a fila pára e o resto vai num "+n" para não atravessar o ecrã.</summary>
+    public static HBoxContainer Pips(int filled, int total, Color? on = null, int max = 12)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 3);
+        int shown = Math.Min(total, max);
+        for (int i = 0; i < shown; i++)
+            row.AddChild(new ColorRect
+            {
+                CustomMinimumSize = new Vector2(9, 16),
+                Color = i < filled ? (on ?? Accent) : SurfaceHi.Darkened(0.35f),
+            });
+        if (total > shown)
+        {
+            var more = Lbl("+" + (total - shown), 13);
+            more.AddThemeColorOverride("font_color", TextDim);
+            row.AddChild(more);
+        }
+        return row;
+    }
+
     /// <summary>Fila de abas metálicas no topo de um painel: canto de cima redondo, canto de baixo direito
     /// e a aba activa mais clara com a moldura de latão acesa — a forma que os painéis dos jogos de grande
     /// estratégia usam para arrumar secções sem gastar um ecrã por cada uma.</summary>

@@ -4,7 +4,9 @@ namespace WarGame.Core.Systems;
 
 /// <summary>Gasta Country.Money nas encomendas (Country.Queue, pela ordem) e cria divisões na capital.
 /// HoI4: linhas de produção com output diário limitado; aqui cada encomenda avança no máximo custo/build_min_days
-/// por dia (× country_stat production_speed), e várias avançam no mesmo dia enquanto houver Money. Regras: build_min_days, new_division_org.</summary>
+/// por dia (× country_stat production_speed). Quantas avançam no mesmo dia é o número de fábricas militares
+/// (Industry): a fila pode ser longa, mas só as primeiras encomendas têm linha de montagem — o resto espera.
+/// Regras: build_min_days, new_division_org, factory_mil_*.</summary>
 public sealed class ProductionSystem : ISystem
 {
     public string Name => "Production";
@@ -16,18 +18,23 @@ public sealed class ProductionSystem : ISystem
         foreach (var c in w.Countries.Values)
         {
             if (c.Queue.Count == 0) continue;
-            Spend(w, c, minDays);
+            Spend(w, c, minDays, Industry.Of(w, c.Id).Military);
             Deliver(w, c, newOrg);
         }
     }
 
-    /// <summary>Gasto do dia: min(custo/minDays, o que falta, Money) por encomenda. Money nunca fica negativo.</summary>
-    private static void Spend(World w, Country c, float minDays)
+    /// <summary>Gasto do dia: min(custo/minDays, o que falta, Money) por encomenda, e só nas primeiras
+    /// `lines` encomendas por acabar — as outras não têm fábrica militar livre. Uma encomenda já pronta à
+    /// espera de recrutas não ocupa linha: a fábrica largou-a. Money nunca fica negativo.</summary>
+    private static void Spend(World w, Country c, float minDays, int lines)
     {
+        int used = 0;
         foreach (var o in c.Queue)
         {
-            if (c.Money <= 0f) break;
+            if (c.Money <= 0f || used >= lines) break;
             float cost = w.TemplateCost(o.TemplateId);
+            if (o.Progress >= cost - 1e-3f) continue;      // pronta: espera homens, não linha
+            used++;
             float spend = MathF.Min(MathF.Min(cost / minDays * c.Stat("production_speed"), cost - o.Progress), c.Money);
             if (spend <= 0f) continue;
             o.Progress += spend; c.Money -= spend;

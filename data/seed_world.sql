@@ -327,11 +327,22 @@ CREATE TABLE IF NOT EXISTS building (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,
   stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL,
   coastal INTEGER NOT NULL DEFAULT 0,        -- 1 = só em região de costa
-  supply_range REAL NOT NULL DEFAULT 0);     -- km de abastecimento projectado por mar, por nível
-INSERT INTO building VALUES ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0);
-INSERT INTO building VALUES ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0);
-INSERT INTO building VALUES ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0);
-INSERT INTO building VALUES ('porto','Porto',35,20,'port_capacity',0,2,1,900);
+  supply_range REAL NOT NULL DEFAULT 0,      -- km de abastecimento projectado por mar, por nível
+  yard TEXT NOT NULL DEFAULT '');            -- fila de fábricas que abre (Industry): civil | militar | naval
+INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard) VALUES
+ ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil'),
+ ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,''),
+ ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar'),
+ ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval');
+
+-- Capacidade industrial (Industry): quantas obras e quantas linhas de montagem andam ao mesmo tempo.
+INSERT INTO rule (key,value,note) VALUES
+ ('factory_civil_base',2,'fábricas civis de partida: obras em paralelo (infra, edifícios, fortificações)'),
+ ('factory_civil_per_region',0.25,'fábricas civis extra por região controlada'),
+ ('factory_mil_base',2,'fábricas militares de partida: encomendas da fila que avançam por dia'),
+ ('factory_mil_per_region',0.15,'fábricas militares extra por região controlada'),
+ ('factory_per_building',1,'fábricas que cada nível de um edifício de fila (building.yard) acrescenta'),
+ ('yard_divisions',3,'divisões abastecidas por mar que cada estaleiro serve');
 
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES
