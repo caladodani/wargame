@@ -51,7 +51,7 @@ public sealed class GdSqliteDatabase : IDatabase
         foreach (var o in args) a.Add(o switch
         {
             null => default, int i => i, long l => l, float f => f, double d => d,
-            string s => s, bool b => b, _ => o.ToString()
+            string s => s, bool b => b, _ => o.ToString() ?? ""
         });
         return a;
     }
