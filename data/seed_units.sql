@@ -57,3 +57,6 @@ INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,require
 
 -- rules: movement
 INSERT INTO rule (key,value,note) VALUES ('move_infra_floor',0.5,'infraestrutura mínima usada no cálculo dos dias de movimento (uma região arrasada abranda, não pára)');
+-- rules: ai
+INSERT INTO rule (key,value,note) VALUES ('ai_min_org',50,'a IA só mexe divisões com organização ≥ isto');
+INSERT INTO rule (key,value,note) VALUES ('ai_heavy_every',3,'cada N-ésima encomenda da IA (divisões existentes + fila) é o template de maior breakthrough, se o dinheiro chegar');
