@@ -1,0 +1,67 @@
+name: Deploy WarGame
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore dependencies
+        run: dotnet restore WarGame.sln
+      - name: Build
+        run: dotnet build WarGame.sln -nologo -v q
+      - name: Test
+        run: dotnet test WarGame.Core.Tests -nologo -v q
+
+  smoke-test:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Godot
+        run: |
+          sudo wget -O - https://downloads.tuxfamily.org/godotengine/4.3/stable/4.3-stable-linux.x86_64.tar.xz |
+          sudo tar xfJ - -C /usr/local/bin godot
+          sudo ln -sf /usr/local/bin/godot-4.3-stable /usr/local/bin/godot
+      - name: Run smoke test
+        run: |
+          mkdir -p /tmp/x
+          /usr/local/bin/godot --headless --path ./wargame -- --smoke
+      - name: Notify on failure
+        if: failure()
+        run: echo "Smoke test failed"
+
+  build-android:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup environment
+        run: |
+          export DOTNET_ROOT=$HOME/.dotnet
+          export JAVA_HOME=$JAVA_HOME
+          export PATH=$HOME/.dotnet:$PATH:$JAVA_HOME/bin
+      - name: Build .NET
+        run: dotnet build WarGame.sln -nologo -v q
+      - name: Export Android
+        run: godot --headless --path ./wargame --export-debug Android build/wargame.apk
+      - name: Verify APK
+        run: apksigner verify build/wargame.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: wargame.apk
+          path: build/wargame.apk

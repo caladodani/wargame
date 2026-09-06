@@ -82,32 +82,35 @@ public sealed class World
 
     public float Rule(string key, float fallback = 0f) => Rules.TryGetValue(key, out var v) ? v : fallback;
 
+    /// <summary>Current difficulty setting</summary>
+    public DifficultyLevel? Difficulty { get; set; } = null;
+
     /// <summary>Apply difficulty settings to the world, adjusting production rules based on difficulty level</summary>
-    public void ApplyDifficulty(Difficulty difficulty)
+    public void ApplyDifficulty(DifficultyLevel difficulty)
     {
         Difficulty = difficulty;
         switch (difficulty)
         {
-            case Difficulty.SuperEasy:
+            case DifficultyLevel.SuperEasy:
                 Rules["build_min_days"] = 3f;   // Very fast production
                 Rules["new_division_org"] = 70f; // Best organization
                 break;
-            case Difficulty.Easy:
+            case DifficultyLevel.Easy:
                 Rules["build_min_days"] = 5f;   // Half the time for production
                 Rules["new_division_org"] = 60f; // Better organization
                 break;
-            case Difficulty.Hard:
+            case DifficultyLevel.Hard:
                 Rules["build_min_days"] = 15f;  // Longer production time
                 Rules["new_division_org"] = 30f; // Worse organization
                 break;
-            case Difficulty.Normal:
+            case DifficultyLevel.Normal:
                 Rules["build_min_days"] = 10f;   // Default
                 Rules["new_division_org"] = 40f; // Default
                 break;
         }
     }
 
-    public enum Difficulty
+    public enum DifficultyLevel
     {
         SuperEasy,
         Easy,
