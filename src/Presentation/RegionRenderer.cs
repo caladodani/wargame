@@ -11,6 +11,8 @@ public partial class RegionRenderer : Node2D
 {
     public const string BattleMark = "⚔ ";
     public const string FortMark = "■";
+    /// <summary>Região ocupada com resistência relevante (≥ metade do caminho para a revolta).</summary>
+    public const string ResistMark = "✊";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, Color> _countryColor = new();
@@ -81,13 +83,15 @@ public partial class RegionRenderer : Node2D
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
-                if (r.DivisionIds.Count == 0 && r.Fort == 0) continue;
+                bool resisting = r.Resistance >= 0.5f;
+                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var label = (Label)m.GetChild(0);
                 label.Text = (battles.Contains(r.Id) ? BattleMark : "")
                            + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
-                           + (r.Fort > 0 ? FortMark : "");
+                           + (r.Fort > 0 ? FortMark : "")
+                           + (resisting ? ResistMark : "");
                 label.LabelSettings = StyleFor(r.ControllerId);
                 m.Visible = true;
             }
