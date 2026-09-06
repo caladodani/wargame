@@ -1,6 +1,7 @@
 using Godot;
 using WarGame.Core.Commands;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -211,7 +212,7 @@ public partial class RegionPanel : PanelContainer
 
             _flag.Texture = ctrl is not null ? Flags.Of(ctrl.Tag) : null;
             _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
-            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
+            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}  ·  💰 {EconomySystem.RegionIncome(w, r):0.00}/dia";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
             foreach (var (res, amount) in r.Resources.OrderBy(kv => kv.Key))
                 if (w.ResourceDefs.TryGetValue(res, out var rd)) info += $"  ·  {rd.Name} {amount:0}";
