@@ -46,8 +46,14 @@ def check(path, static):
                        ('country_template', 'country_tag'), ('country_unit', 'country_tag'), ('modifier', 'country_tag')):
         for (t,) in db.execute(f'SELECT DISTINCT {col} FROM {table} WHERE {col} IS NOT NULL'):
             if t != tag: errs.append(f'{table}: country_tag {t} num ficheiro de {tag}')
-    for m in re.finditer(r"UPDATE\s+country\s+SET[^;]*WHERE\s+tag\s*=\s*'(\w+)'", path.read_text(encoding='utf-8'), re.I):
+    src = path.read_text(encoding='utf-8')
+    for m in re.finditer(r"UPDATE\s+country\s+SET[^;]*WHERE\s+tag\s*=\s*'(\w+)'", src, re.I):
         if m.group(1) != tag: errs.append(f'UPDATE country de {m.group(1)} num ficheiro de {tag}')
+    for m in re.finditer(r"UPDATE\s+region\s+SET[^;]*;", src, re.I):
+        if f"tag='{tag}'" not in m.group(0).replace('"', "'").replace(' ', ''):
+            errs.append("UPDATE region sem WHERE owner_id=(SELECT id FROM country WHERE tag='%s')" % tag)
+    for m in re.finditer(r"\b(DELETE|DROP|ALTER|INSERT\s+INTO\s+(region|neighbour|country\b|rule|terrain))", src, re.I):
+        errs.append(f'instrução proibida: {m.group(0)}')
 
     # unidades novas
     new_units = {r[0] for r in db.execute('SELECT id FROM unit_type')} - base_units

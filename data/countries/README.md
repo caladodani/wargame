@@ -15,6 +15,7 @@ Tabelas que um ficheiro pode preencher (ver `data/schema.sql`):
 | `modifier` | efeitos: `stat_key` ∈ str, str_attacker, str_defender, command; `op` add/mul; `country_tag='TAG'`; `spirit_id`; condição opcional (`terrain`=plain/forest/urban/mountain/desert/tundra, `river`=true); `required_tag` opcional (infantry/ground/armored/support ou tag própria) | ids ≥ 100, únicos no jogo (gama por país abaixo) |
 | `unit_type` + `unit_stat` + `unit_tag` | batalhões próprios (Comandos, Infantaria de Selva…) | ids ≥ 100; 8 stats obrigatórios (soft_atk, hard_atk, defense, breakthrough, armor, piercing, hardness, hp); balancear a partir dos 1-6 do `seed_units.sql` |
 | `country_template` + `country_template_unit` | templates próprios (o `seed_armies.py` cria-os para esse país) | 6-10 batalhões |
+| `UPDATE region SET terrain=…` | corrigir o terreno das próprias regiões (o import é heurístico) | `WHERE owner_id=(SELECT id FROM country WHERE tag='TAG') AND name IN (…)`; terrenos: plain, forest, urban, mountain, desert, tundra |
 | `country_unit` | brigadas reais nomeadas do exército inicial: nome, `template_name` (genérico ou próprio), `region_name` | região desconhecida → capital; o resto do exército é gerado |
 
 Gamas de ids (para não colidirem entre ficheiros): país nº *k* na lista abaixo usa `unit_type` e
@@ -29,3 +30,5 @@ Gamas de ids (para não colidirem entre ficheiros): país nº *k* na lista abaix
 | 4 | RUS | 10 | KOR | 16 | IRN | 22 | CAN |
 | 5 | IND | 11 | PRK | 17 | PAK | 23 | IDN |
 | 24 | ARG | 25 | AGO | 26 | MOZ | 27 | FRA |
+
+Proibido: DELETE, DROP, ALTER, INSERT em region/country/rule/terrain. Texto em português de Portugal (pt-PT), excepto o ficheiro BRA.sql que pode usar pt-BR nos nomes das unidades.
