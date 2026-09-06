@@ -188,6 +188,10 @@ public sealed class World
     { if (Wars.TryGetValue(WarKey(a, b), out var info)) info.LastProgressDay = Clock.Day; }
     /// <summary>Região controlada por alguém com quem `countryId` está em guerra.</summary>
     public bool IsHostile(int countryId, Region r) => AreAtWar(countryId, r.ControllerId);
+    /// <summary>Salto por mar: as duas regiões só se ligam por sea_link, não por terra — quem o faz
+    /// desembarca (custo de organização) e, se a costa for inimiga, assalta a praia em desvantagem.</summary>
+    public bool IsSeaHop(int fromId, int toId) =>
+        Regions.TryGetValue(fromId, out var f) && f.SeaNeighbours.ContainsKey(toId) && !f.Neighbours.Contains(toId);
 
     /// <summary>Facções de que `countryId` é membro (0, 1 ou várias).</summary>
     public IEnumerable<Faction> FactionsOf(int countryId) => Factions.Values.Where(f => f.Members.Contains(countryId));

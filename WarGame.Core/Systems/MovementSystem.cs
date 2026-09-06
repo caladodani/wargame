@@ -23,10 +23,11 @@ public sealed class MovementSystem : ISystem
             if (d.Path.Count == 0 || inBattle.Contains(d.Id)) continue;
             var target = w.Regions[d.Path[0]];
             var origin = w.Regions[d.RegionId];
+            bool bySea = w.IsSeaHop(origin.Id, target.Id);
             float days;
-            if (origin.SeaNeighbours.TryGetValue(target.Id, out float km) && !origin.Neighbours.Contains(target.Id))
+            if (bySea)
                 // travessia marítima: dias pela distância, terreno e infraestrutura não contam
-                days = MathF.Max(seaMin, km / seaSpeed);
+                days = MathF.Max(seaMin, origin.SeaNeighbours[target.Id] / seaSpeed);
             else
                 // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
                 days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
@@ -34,8 +35,8 @@ public sealed class MovementSystem : ISystem
             d.MoveProgress += 1f / days;
             if (d.MoveProgress < 1f) continue;
 
-            if (w.CanTraverse(d.CountryId, target)) Enter(w, d, target, inBattle);
-            else if (w.IsHostile(d.CountryId, target)) Attack(w, d, target, inBattle);
+            if (w.CanTraverse(d.CountryId, target)) Enter(w, d, target, inBattle, bySea);
+            else if (w.IsHostile(d.CountryId, target)) Attack(w, d, target, inBattle, bySea);
             else d.ClearPath();   // terceiro (nem nosso, nem aliado, nem inimigo): pára à fronteira
         }
     }
@@ -65,9 +66,11 @@ public sealed class MovementSystem : ISystem
         }
     }
 
-    /// <summary>Entra em região própria; se um inimigo a está a atacar, reforça a defesa.</summary>
-    private static void Enter(World w, Division d, Region target, HashSet<int> inBattle)
+    /// <summary>Entra em região própria; se um inimigo a está a atacar, reforça a defesa.
+    /// Vindo do mar, desembarcar custa naval_invasion_org_cost de organização.</summary>
+    private static void Enter(World w, Division d, Region target, HashSet<int> inBattle, bool bySea = false)
     {
+        if (bySea) Disembark(w, d);
         w.PlaceDivision(d, target.Id); d.AdvanceHop();
         foreach (var b in w.ActiveBattles)
             if (b.RegionId == target.Id && w.AreAtWar(d.CountryId, b.AttackerCountryId) && !b.Defenders.Contains(d.Id))
@@ -76,13 +79,15 @@ public sealed class MovementSystem : ISystem
 
     /// <summary>Chega à fronteira de região inimiga: com defensores abre/junta-se à batalha e espera na origem
     /// (o CombatSystem captura quando os defensores caem); vazia → captura e entra.</summary>
-    private static void Attack(World w, Division d, Region target, HashSet<int> inBattle)
+    private static void Attack(World w, Division d, Region target, HashSet<int> inBattle, bool bySea = false)
     {
         if (!d.CanFight) { d.ClearPath(); return; }
+        if (bySea && !CanLand(w, d, target)) return;
         // Todos os inimigos contam, mesmo sem CanFight — o CombatSystem filtra e decide.
         var defenders = target.DivisionIds.Where(id => w.AreAtWar(d.CountryId, w.Divisions[id].CountryId)).ToList();
         if (defenders.Count == 0)
         {
+            if (bySea) Disembark(w, d);
             int old = target.ControllerId; target.ControllerId = d.CountryId;
             CombatSystem.CaptureDamage(w, target);
             w.NoteWarProgress(old, d.CountryId);
@@ -99,5 +104,28 @@ public sealed class MovementSystem : ISystem
         }
         if (!b.Attackers.Contains(d.Id)) { b.Attackers.Add(d.Id); inBattle.Add(d.Id); }
         d.MoveProgress = 1f;   // fica na origem; entra no tick a seguir à vitória
+    }
+
+    /// <summary>Desembarcar desorganiza a tropa: perde naval_invasion_org_cost de organização.</summary>
+    private static void Disembark(World w, Division d) =>
+        d.Org = MathF.Max(0f, d.Org - w.Rule("naval_invasion_org_cost", 25f));
+
+    /// <summary>Assalto a uma costa inimiga: só embarca quem tem organização acima de
+    /// naval_invasion_min_org (senão desiste e fica em casa) e cabem naval_invasion_max_divs
+    /// divisões por praia ao mesmo tempo — as restantes esperam ao largo.</summary>
+    private static bool CanLand(World w, Division d, Region target)
+    {
+        if (d.Org < w.Rule("naval_invasion_min_org", 45f))
+        {
+            d.ClearPath();
+            w.Events.Publish(new LandingAborted(d.Id, target.Id));
+            return false;
+        }
+        var b = w.BattleAt(target.Id, d.CountryId);
+        if (b is null || b.Attackers.Contains(d.Id)) return true;
+        int landing = b.Attackers.Count(id => w.Divisions.TryGetValue(id, out var a) && w.IsSeaHop(a.RegionId, target.Id));
+        if (landing < (int)w.Rule("naval_invasion_max_divs", 3f)) return true;
+        d.MoveProgress = 1f;   // praia cheia: espera ao largo pela vaga seguinte
+        return false;
     }
 }

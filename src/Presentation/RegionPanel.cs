@@ -319,6 +319,8 @@ public partial class RegionPanel : PanelContainer
         var tag = w.Countries.TryGetValue(d.CountryId, out var c) ? c.Tag : "?";
         var s = $"{tag} {name}   HP {d.Hp:0}  Org {d.Org:0}  Sup {d.Supply:0.0}";
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
+        // travessia marítima em curso: quem vai no barco desembarca com menos organização
+        if (d.TargetRegionId is int hop && w.IsSeaHop(d.RegionId, hop)) s += "   🌊";
         if (d.AutoAdvance) s += "   ⚑";
         if (w.InBattle(d.Id)) s += "   " + RegionRenderer.BattleMark.Trim();
         return s;

@@ -349,3 +349,12 @@ INSERT INTO rule (key,value,note) VALUES
  ('peace_price_free',1.4,'preço de exigir uma região que ainda é dele de facto'),
  ('peace_demand_greed',1.0,'multiplicador global do preço das exigências'),
  ('ai_peace_demand_min_share',0.25,'fatia do inimigo que a IA tem de ocupar para exigir território');
+
+-- Desembarques: atravessar o mar desorganiza (naval_invasion_org_cost) e assaltar uma costa inimiga
+-- exige organização (naval_invasion_min_org); quem bate da praia perde força (naval_invasion_penalty)
+-- e só cabem naval_invasion_max_divs divisões por praia ao mesmo tempo.
+INSERT INTO rule (key,value,note) VALUES
+ ('naval_invasion_org_cost',25,'organização perdida ao desembarcar'),
+ ('naval_invasion_min_org',45,'organização mínima para assaltar uma costa inimiga'),
+ ('naval_invasion_penalty',0.45,'força do atacante que vem do mar'),
+ ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo');

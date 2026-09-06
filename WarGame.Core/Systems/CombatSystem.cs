@@ -24,7 +24,7 @@ public sealed class CombatSystem : ISystem
             var ctxA = BuildContext(w, region, b.AttackerCountryId);
             var ctxD = BuildContext(w, region, region.ControllerId);
 
-            ResolveTick(w, att, def, ctxA, ctxD, 1f + region.Fort * w.Rule("fort_defense_per_level", 0.15f));
+            ResolveTick(w, att, def, ctxA, ctxD, 1f + region.Fort * w.Rule("fort_defense_per_level", 0.15f), region);
             b.Days++;
             foreach (var d in att.Concat(def)) if (d.Hp <= 0f) dead.Add(d.Id);
 
@@ -66,9 +66,9 @@ public sealed class CombatSystem : ISystem
         return ctx;
     }
 
-    public void ResolveTick(World w, List<Division> att, List<Division> def, ModContext ctxA, ModContext ctxD, float fortMult = 1f)
+    public void ResolveTick(World w, List<Division> att, List<Division> def, ModContext ctxA, ModContext ctxD, float fortMult = 1f, Region? battleRegion = null)
     {
-        var strA = SideStrength(w, att, ctxA, attacking: true);
+        var strA = SideStrength(w, att, ctxA, attacking: true, battleRegion);
         var strD = SideStrength(w, def, ctxD, attacking: false);
         if (fortMult != 1f) for (int i = 0; i < strD.Length; i++) strD[i] *= fortMult;
         // intel (rede_info): quem tem intel sobre o país do outro lado bate mais forte
@@ -111,7 +111,12 @@ public sealed class CombatSystem : ISystem
         }
     }
 
-    private float[] SideStrength(World w, List<Division> divs, ModContext ctx, bool attacking)
+    /// <summary>Assalto anfíbio: quem ataca do outro lado de uma travessia marítima bate da praia e
+    /// vale só naval_invasion_penalty da sua força. Fora disso, 1.</summary>
+    public static float AmphibiousMult(World w, Division d, Region? battleRegion) =>
+        battleRegion is not null && w.IsSeaHop(d.RegionId, battleRegion.Id) ? w.Rule("naval_invasion_penalty", 0.45f) : 1f;
+
+    private float[] SideStrength(World w, List<Division> divs, ModContext ctx, bool attacking, Region? battleRegion = null)
     {
         var out_ = new float[divs.Count];
         int excess = Math.Max(0, divs.Count - FrontWidth);
@@ -128,7 +133,8 @@ public sealed class CombatSystem : ISystem
             float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f);
             // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
             float doctrine = w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(attacking ? "attack" : "defense") : 1f;
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * MathF.Max(0.3f, command));
+            float amphibious = attacking ? AmphibiousMult(w, d, battleRegion) : 1f;
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * MathF.Max(0.3f, command));
         }
         return out_;
     }

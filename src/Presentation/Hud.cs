@@ -353,6 +353,11 @@ public partial class Hud : CanvasLayer
             if (Player(e.CountryId)) Later($"Saíste da facção {fname}");
             else if (_game.PlayerId is int p && f is not null && f.Members.Contains(p)) Later($"{Country(e.CountryId)} saiu da {fname}");
         }));
+        _subs.Add(w.Events.Subscribe<LandingAborted>(e =>
+        {
+            if (_game.World.Divisions.TryGetValue(e.DivisionId, out var d) && Player(d.CountryId))
+                Later($"Desembarque adiado em {RegionName(e.RegionId)} — tropa sem organização para assaltar a praia");
+        }));
         _subs.Add(w.Events.Subscribe<WhitePeaceSigned>(e => _whitePeace.Add((e.A, e.B))));
         _subs.Add(w.Events.Subscribe<PeaceSigned>(e =>
         {

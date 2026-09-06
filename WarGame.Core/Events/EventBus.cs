@@ -18,6 +18,8 @@ public sealed record WarEnded(int A, int B) : IGameEvent;
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 /// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>
 public sealed record PeaceSigned(int Winner, int Loser, int Regions) : IGameEvent;
+/// <summary>Desembarque desistido: a divisão chegou à costa inimiga sem organização para assaltar.</summary>
+public sealed record LandingAborted(int DivisionId, int RegionId) : IGameEvent;
 /// <summary>Um país controla ≥ victory_pop_share da população mundial (VictorySystem, uma vez por jogo).</summary>
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>
