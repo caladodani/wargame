@@ -234,7 +234,7 @@ INSERT INTO rule VALUES ('port_overflow_min', 0.35, 'chão do abastecimento por 
 INSERT INTO rule VALUES ('ai_port_supply_floor', 0.9, 'abaixo deste supply a IA manda construir porto para as tropas de além-mar');
 
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
-INSERT INTO spy_op VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);
+INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);
 
 -- Desgaste de guerra: cada divisão perdida acumula desgaste (tecto exhaustion_max) que puxa
 -- o alvo da estabilidade para baixo; em paz decai exhaustion_decay/dia.
@@ -345,7 +345,16 @@ INSERT INTO law_effect VALUES
 -- Intel dá vantagem em combate; operação de fomentar deserção (cara, lenta).
 INSERT INTO rule (key,value,note) VALUES
  ('intel_combat_bonus',1.05,'multiplicador de força de quem tem intel sobre o outro lado');
-INSERT INTO spy_op VALUES ('fomentar_desercao','Fomentar deserção','Uma fracção das divisões inimigas com pior moral dissolve-se.',90,40,'desertion',0.1);
+INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES ('fomentar_desercao','Fomentar deserção','Uma fracção das divisões inimigas com pior moral dissolve-se.',90,40,'desertion',0.1);
+
+-- Sabotagem na retaguarda (scope 'region'): a operação escolhe uma região que o inimigo controla e
+-- estraga o que lá está. É a resposta a uma frente parada — não se ganha terreno, tira-se-lhe o cais,
+-- as vias ou as casamatas antes do assalto.
+INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude,scope) VALUES
+ ('sabotagem_porto','Sabotagem do porto','Cargas nos guindastes e nos molhes: o cais desta região perde um nível e deixa de carregar o que carregava.',55,20,'sabotage_port',1,'region'),
+ ('sabotagem_via','Sabotagem das vias','Pontes e caminhos-de-ferro pelos ares: a infraestrutura da região cai e leva tempo a repor-se.',45,15,'sabotage_infra',0.3,'region'),
+ ('sabotagem_forte','Sabotagem das defesas','Minas nas casamatas: as fortificações da região perdem um nível.',50,18,'sabotage_fort',1,'region');
+INSERT INTO chronicle_kind VALUES ('sabotagem','Sabotagem','💥',2);
 
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES

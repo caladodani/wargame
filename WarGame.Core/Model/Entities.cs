@@ -18,7 +18,11 @@ public sealed record NewsOption(string Id, string EventId, string Title, int Sor
 public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault);
 
 /// <summary>Operação de espionagem (tabela spy_op): one-shot, paga à partida, efeito ao concluir.</summary>
-public sealed record SpyOp(string Id, string Name, string Description, float Cost, int Days, string Effect, float Magnitude);
+public sealed record SpyOp(string Id, string Name, string Description, float Cost, int Days, string Effect, float Magnitude, string Scope = "country")
+{
+    /// <summary>Operação de sabotagem: escolhe-se uma região do inimigo, não só o país.</summary>
+    public bool IsRegional => Scope == "region";
+}
 
 /// <summary>Operação em curso (World.ActiveSpyOps; EspionageSystem conta os dias).</summary>
 public sealed class ActiveSpyOp
@@ -27,6 +31,7 @@ public sealed class ActiveSpyOp
     public int TargetCountryId { get; init; }
     public string OpId { get; init; } = "";
     public float DaysLeft { get; set; }
+    public int RegionId { get; init; }        // alvo da sabotagem (0 = operação contra o país inteiro)
 }
 /// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
 public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);

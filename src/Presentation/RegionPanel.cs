@@ -22,6 +22,8 @@ public partial class RegionPanel : PanelContainer
     private VBoxContainer _rows = null!;
     private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!, _auto = null!;
     private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
+    private VBoxContainer _sab = null!;       // sabotagem na retaguarda (operações spy_op de scope region)
+    private string _sabKey = "";
     private string _bldKey = "";
     private ConfirmationDialog _warDialog = null!;
     private Button _nuke = null!;
@@ -55,6 +57,7 @@ public partial class RegionPanel : PanelContainer
 
         var actions = new HFlowContainer(); v.AddChild(actions);
         _bld = new HFlowContainer(); v.AddChild(_bld);
+        _sab = new VBoxContainer(); v.AddChild(_sab);          // sabotagem: só aparece em região inimiga
         _play = Ui.Btn("", () => _game.RunWhenIdle(OnPlay)); actions.AddChild(_play);
         _all = Ui.Btn("Todas", SelectAll); actions.AddChild(_all);
         _move = Ui.Btn("Mover", BeginMove); actions.AddChild(_move);
@@ -158,6 +161,16 @@ public partial class RegionPanel : PanelContainer
         if (_game.PlayerId is not int pid) return;
         var err = _game.Dispatch(new BuildBuildingCommand(pid, _regionId, buildingId));
         if (err is not null) _game.Notify(err);
+        Refresh();
+    }
+
+    /// <summary>Manda uma equipa rebentar alguma coisa nesta região inimiga.</summary>
+    private void OnSabotage(string opId)
+    {
+        if (_game.PlayerId is not int pid || !_game.World.Regions.TryGetValue(_regionId, out var r)) return;
+        var err = _game.Dispatch(new StartSpyOpCommand(pid, r.ControllerId, opId, r.Id));
+        _game.Notify(err ?? "Equipa a caminho.");
+        _sabKey = "";
         Refresh();
     }
 
@@ -310,6 +323,17 @@ public partial class RegionPanel : PanelContainer
                         _bld.AddChild(Ui.Btn($"{d.Name} {r.Buildings.GetValueOrDefault(bid) + 1} ({d.Cost:0}, {d.Days:0} d)",
                             () => _game.RunWhenIdle(() => OnBuilding(bid))));
                     }
+            }
+            // sabotagem na retaguarda: o que se pode mandar rebentar aqui, e a equipa que já vai a caminho
+            var running = pid is int me ? SabotageView.Running(w, me, r.Id) : null;
+            var sabKey = pid is int p2 && w.AreAtWar(p2, r.ControllerId)
+                ? $"{r.Id}|{r.Fort}|{r.Infrastructure:0.00}|{string.Join(",", r.Buildings.Select(kv => kv.Key + ":" + kv.Value))}|{running?.OpId}:{(int)(running?.DaysLeft ?? 0f)}|{(int)(w.Countries.TryGetValue(p2, out var mc) ? mc.Money : 0f)}"
+                : "";
+            if (sabKey != _sabKey)
+            {
+                _sabKey = sabKey;
+                Ui.Clear(_sab);
+                if (pid is int p3 && SabotageView.Card(w, p3, r, OnSabotage) is VBoxContainer sab) _sab.AddChild(sab);
             }
             UpdateButtons();
         }

@@ -560,8 +560,12 @@ public sealed record DemandPeaceCommand(int CountryId, int TargetCountryId, IRea
 
 /// <summary>Lançar uma operação de espionagem contra outro país (tabela spy_op).
 /// Paga à partida; conclui passado op.Days e o EspionageSystem aplica o efeito.
-/// Uma operação de cada vez por par (autor, alvo).</summary>
-public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, string OpId) : ICommand
+/// Uma operação de cada vez por par (autor, alvo).
+///
+/// As operações de scope 'region' (sabotagem na retaguarda) levam RegionId: a região tem de ser
+/// controlada pelo alvo e só se sabota quem já está em guerra connosco — mandar equipas explodir
+/// pontes é acto de guerra, não espionagem de gabinete.</summary>
+public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, string OpId, int RegionId = 0) : ICommand
 {
     public string? Validate(World w)
     {
@@ -573,6 +577,12 @@ public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, strin
         if (w.ActiveSpyOps.Any(o => o.CountryId == CountryId && o.TargetCountryId == TargetCountryId))
             return "já tens uma operação em curso contra ele";
         if (c.Money < op.Cost) return $"faltam pontos de produção ({op.Cost:0})";
+        if (op.IsRegional)
+        {
+            if (!w.Regions.TryGetValue(RegionId, out var r)) return "escolhe uma região";
+            if (r.ControllerId != TargetCountryId) return "essa região não é dele";
+            if (!w.AreAtWar(CountryId, TargetCountryId)) return "sabotagem só em guerra";
+        }
         return null;
     }
 
@@ -582,7 +592,8 @@ public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, strin
         w.Countries[CountryId].Money -= op.Cost;
         // contra-espionagem do alvo (lei de segurança): a operação demora × counter_intel
         float days = op.Days * w.Countries[TargetCountryId].Stat("counter_intel");
-        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = CountryId, TargetCountryId = TargetCountryId, OpId = OpId, DaysLeft = days });
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = CountryId, TargetCountryId = TargetCountryId, OpId = OpId,
+                                             DaysLeft = days, RegionId = op.IsRegional ? RegionId : 0 });
         w.Events.Publish(new SpyOpStarted(CountryId, TargetCountryId, OpId));
     }
 }

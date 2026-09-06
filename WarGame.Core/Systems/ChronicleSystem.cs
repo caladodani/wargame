@@ -44,6 +44,8 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "honra", $"Uma divisão de {Who(w, e.CountryId)} passa a chamar-se «{e.Title}».", e.CountryId));
         w.Events.Subscribe<PrisonersReturned>(e =>
             Write(w, "prisioneiros", $"{Who(w, e.HolderId)} devolve {e.Men:N0} prisioneiros a {Who(w, e.HomeCountryId)}.", e.HomeCountryId));
+        w.Events.Subscribe<RegionSabotaged>(e =>
+            Write(w, "sabotagem", $"Sabotagem de {Who(w, e.CountryId)} na retaguarda de {Who(w, e.TargetCountryId)}: {e.Damage}.", e.TargetCountryId, e.RegionId));
         w.Events.Subscribe<GeneralKilled>(e =>
             Write(w, "baixa", $"{GeneralName(w, e.GeneralId)} morre em combate em {Place(w, e.RegionId)} ao serviço de {Who(w, e.CountryId)}.", e.CountryId, e.RegionId));
         w.Events.Subscribe<GeneralWounded>(e =>

@@ -80,6 +80,8 @@ public sealed record TradeDealCreated(int BuyerId, int SellerId, string Resource
 public sealed record TradeDealEnded(int BuyerId, int SellerId, string ResourceId) : IGameEvent;
 public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
+/// <summary>Sabotagem consumada numa região do inimigo: o quê, onde e o estrago em texto curto.</summary>
+public sealed record RegionSabotaged(int CountryId, int TargetCountryId, string OpId, int RegionId, string Damage) : IGameEvent;
 public sealed record DivisionDisbanded(int DivisionId, int CountryId) : IGameEvent;
 public sealed record PactSigned(int A, int B, int UntilDay) : IGameEvent;
 public sealed record PactRejected(int FromCountryId, int ToCountryId) : IGameEvent;

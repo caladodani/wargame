@@ -495,6 +495,12 @@ public partial class Hud : CanvasLayer
             if (Player(e.HomeCountryId)) Later($"⛓ {e.Men:N0} prisioneiros nossos voltam a casa");
             else if (Player(e.HolderId)) Later($"⛓ Abrimos os campos: {e.Men:N0} prisioneiros repatriados");
         }));
+        // Sabotagem na retaguarda: interessa quando é nossa ou quando é contra nós.
+        _subs.Add(w.Events.Subscribe<RegionSabotaged>(e =>
+        {
+            if (Player(e.CountryId)) Later($"💥 Sabotagem nossa: {e.Damage}");
+            else if (Player(e.TargetCountryId)) Later($"💥 Sabotagem inimiga na retaguarda: {e.Damage}");
+        }));
         // Baixas no comando: perder um marechal é dos acontecimentos mais caros da campanha.
         _subs.Add(w.Events.Subscribe<GeneralKilled>(e =>
         {
@@ -731,8 +737,28 @@ public partial class Hud : CanvasLayer
         }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
+        // uma equipa de sabotagem a caminho da retaguarda inimiga, para o cartão ter barra e botões
+        int sab = 0;
+        // ao dia 79 o jogador pode ainda não ter guerra nenhuma: o smoke arranja-lhe uma com o vizinho do lado,
+        // senão a secção de sabotagem nunca chegava a ser desenhada
+        if (!w.Countries.Values.Any(x => x.Id != pid && w.AreAtWar(pid, x.Id))
+            && w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.Countries.ContainsKey(r.ControllerId)) is Region foeLand
+            && w.Countries.TryGetValue(foeLand.ControllerId, out var nbc))
+        {
+            c.AtWarWith.Add(nbc.Id); nbc.AtWarWith.Add(pid);
+        }
+        if (w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.AreAtWar(pid, r.ControllerId)) is Region rear)
+        {
+            sab = SabotageView.Options(w, rear).Count;
+            if (SabotageView.Options(w, rear).FirstOrDefault() is SpyOp raid)
+            {
+                c.Money = MathF.Max(c.Money, raid.Cost);                 // o smoke adianta o custo da operação
+                _game.Dispatch(new StartSpyOpCommand(pid, rear.ControllerId, raid.Id, rear.Id));
+            }
+            OnRegionTapped(rear.Id);                                    // painel da região inimiga, com o cartão novo
+        }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

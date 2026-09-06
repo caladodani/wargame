@@ -182,10 +182,12 @@ CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram 
 CREATE TABLE IF NOT EXISTS spy_op (           -- operações de espionagem (StartSpyOpCommand); World.SpyOps
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,
   cost REAL NOT NULL, days INTEGER NOT NULL,  -- pontos pagos à partida; dias até concluir
-  effect TEXT NOT NULL,                       -- steal_money | sabotage_production | stability_hit
-  magnitude REAL NOT NULL);
+  effect TEXT NOT NULL,                       -- steal_money | sabotage_production | stability_hit | sabotage_port | sabotage_infra | sabotage_fort
+  magnitude REAL NOT NULL,
+  scope TEXT NOT NULL DEFAULT 'country');     -- country = contra o país; region = contra uma região ocupada dele
 CREATE TABLE IF NOT EXISTS s_spy_op (         -- operações em curso (save)
   country_id INTEGER, target_id INTEGER, op_id TEXT, days_left REAL NOT NULL,
+  region_id INTEGER NOT NULL DEFAULT 0,       -- alvo da sabotagem (0 = operação contra o país inteiro)
   PRIMARY KEY (country_id, target_id));
 CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (efeito intel; até `until_day`)
   country_id INTEGER, target_id INTEGER, until_day INTEGER NOT NULL,

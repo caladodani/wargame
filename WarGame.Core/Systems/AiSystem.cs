@@ -309,11 +309,24 @@ public sealed class AiSystem : ISystem
         // sob espionagem do alvo → contra-espionagem primeiro; senão a mais barata ofensiva
         bool spiedOn = w.ActiveSpyOps.Any(o => o.CountryId == target && o.TargetCountryId == c.Id);
         var op = (spiedOn ? w.SpyOps.Values.Where(o => o.Effect == "purge_spies") : Enumerable.Empty<SpyOp>())
-            .Concat(w.SpyOps.Values.Where(o => o.Effect != "purge_spies").OrderBy(o => o.Cost))
+            .Concat(w.SpyOps.Values.Where(o => o.Effect != "purge_spies" && !o.IsRegional).OrderBy(o => o.Cost))
             .First();
+        // o cais do inimigo vale mais do que o dinheiro dele: com porto à vista, rebenta-se o porto
+        if (!spiedOn && Quay(w, target) is Region quay
+            && w.SpyOps.Values.FirstOrDefault(o => o.Effect == "sabotage_port") is SpyOp blast
+            && new Commands.StartSpyOpCommand(c.Id, target, blast.Id, quay.Id) is var raid
+            && raid.Validate(w) is null)
+        { raid.Execute(w); return; }
         var cmd = new Commands.StartSpyOpCommand(c.Id, target, op.Id);
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
+
+    /// <summary>Maior cais que este país controla: é o alvo de sabotagem que mais lhe custa, porque é
+    /// dele que vive tudo o que ele tem do outro lado do mar.</summary>
+    private static Region? Quay(World w, int countryId) =>
+        w.Regions.Values.Where(r => r.ControllerId == countryId
+                                 && r.Buildings.Any(b => w.BuildingDefs.TryGetValue(b.Key, out var d) && d.SupplyRange > 0f))
+                        .OrderByDescending(r => r.Buildings.Sum(b => b.Value)).FirstOrDefault();
 
     /// <summary>Apoio financeiro: acima de ai_aid_reserve envia ai_aid_share do excedente ao aliado
     /// de facção em guerra mais pobre (se estiver mais pobre que o próprio).</summary>

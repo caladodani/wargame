@@ -121,9 +121,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), Convert.ToInt32(r["cooldown"]),
                 (string)r["stat_key"]!, Convert.ToSingle(r["mult"]));
-        foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude FROM spy_op"))
+        foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude,scope FROM spy_op"))
             w.SpyOps[(string)r["id"]!] = new SpyOp((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "",
-                Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]));
+                Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]),
+                r["scope"] as string ?? "country");
         foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
@@ -232,6 +233,7 @@ public sealed class SqlWorldRepository : IWorldRepository
 
     private static readonly (string Table, string Column, string Ddl)[] SaveMigrations =
     {
+        ("s_spy_op", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "research_tech", "TEXT"),
         ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "capitulated", "INTEGER NOT NULL DEFAULT 0"),
@@ -366,9 +368,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
             w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
                 ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
-        foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left FROM s_spy_op"))
+        foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left,region_id FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
-                OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]) });
+                OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]), RegionId = Convert.ToInt32(r["region_id"]) });
         foreach (var r in save.Query("SELECT country_id,target_id,until_day FROM s_intel"))
             w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var r in save.Query("SELECT a,b,until_day FROM s_pact"))
@@ -490,7 +492,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var d in w.TradeDeals)
             save.Execute("INSERT INTO s_trade_deal VALUES (?,?,?,?)", d.BuyerId, d.SellerId, d.ResourceId, d.Units);
         foreach (var o in w.ActiveSpyOps)
-            save.Execute("INSERT INTO s_spy_op VALUES (?,?,?,?)", o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft);
+            save.Execute("INSERT INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
+                o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
         foreach (var ((ia, ib), until) in w.Intel)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var ((pa, pb), until) in w.Pacts)
