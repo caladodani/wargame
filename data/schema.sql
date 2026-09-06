@@ -147,7 +147,8 @@ CREATE TABLE IF NOT EXISTS s_country (
   focus TEXT, focus_progress REAL NOT NULL DEFAULT 0,
   justify_target INTEGER, justify_progress REAL NOT NULL DEFAULT 0,
   war_exhaustion REAL NOT NULL DEFAULT 0,
-  air_power REAL NOT NULL DEFAULT 0
+  air_power REAL NOT NULL DEFAULT 0,
+  nukes INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
@@ -218,3 +219,6 @@ CREATE TABLE IF NOT EXISTS s_history (        -- amostras dos gráficos de evolu
 CREATE TABLE IF NOT EXISTS s_region_building (   -- níveis de edifícios por região (ConstructionSystem)
   region_id INTEGER NOT NULL, building TEXT NOT NULL, level INTEGER NOT NULL,
   PRIMARY KEY (region_id, building));
+CREATE TABLE IF NOT EXISTS s_decision (          -- decisões nacionais (DecisionSystem): activa se until_day>=dia
+  country_id INTEGER NOT NULL, decision TEXT NOT NULL, until_day INTEGER NOT NULL, cooldown_until INTEGER NOT NULL,
+  PRIMARY KEY (country_id, decision));

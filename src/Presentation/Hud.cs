@@ -220,6 +220,8 @@ public partial class Hud : CanvasLayer
         {
             if (Player(e.CountryId)) Later($"Investigação concluída: {(w.Techs.TryGetValue(e.TechId, out var t) ? t.Name : e.TechId)}");
         }));
+        _subs.Add(w.Events.Subscribe<NukeStruck>(e =>
+            Later($"☢ {Country(e.AttackerId)} lançou uma ogiva sobre {RegionName(e.RegionId)} ({Country(e.TargetCountryId)})")));
         _subs.Add(w.Events.Subscribe<DivisionDestroyed>(e =>
         {
             if (!w.Divisions.TryGetValue(e.DivisionId, out var d) || !Player(d.CountryId)) return;
@@ -251,6 +253,11 @@ public partial class Hud : CanvasLayer
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
                 Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})");
+        }));
+        _subs.Add(w.Events.Subscribe<DecisionExpired>(e =>
+        {
+            if (_game.PlayerId == e.CountryId && _game.World.DecisionDefs.TryGetValue(e.DecisionId, out var dd))
+                Later($"Decisão terminou: {dd.Name}");
         }));
         _subs.Add(w.Events.Subscribe<RegionIntegrated>(e =>
         {

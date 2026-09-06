@@ -60,8 +60,15 @@ public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGa
 public sealed record NewsFired(string EventId) : IGameEvent;
 /// <summary>Região ocupada integrada no país do controlador (IntegrationSystem): OwnerId mudou.</summary>
 public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
+/// <summary>Decisão nacional activada (ActivateDecisionCommand).</summary>
+public sealed record DecisionActivated(int CountryId, string DecisionId) : IGameEvent;
+/// <summary>Decisão nacional expirou (DecisionSystem).</summary>
+public sealed record DecisionExpired(int CountryId, string DecisionId) : IGameEvent;
 /// <summary>Edifício concluído numa região (ConstructionSystem): nível novo.</summary>
 public sealed record BuildingBuilt(int RegionId, string BuildingId, int Level) : IGameEvent;
+public sealed record NukeBuilt(int CountryId, int Total) : IGameEvent;
+/// <summary>Ataque nuclear a uma região: divisões e infra-estrutura arrasadas, estabilidade dos dois lados sofre.</summary>
+public sealed record NukeStruck(int AttackerId, int RegionId, int TargetCountryId, int DivisionsHit) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

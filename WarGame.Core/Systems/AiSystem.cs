@@ -51,6 +51,7 @@ public sealed class AiSystem : ISystem
             Spy(w, c, divsByCountry);
             Naps(w, c, regionsByController.GetValueOrDefault(c.Id), divsByCountry);
             Air(w, c);
+            Nukes(w, c, divsByCountry);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
@@ -92,6 +93,34 @@ public sealed class AiSystem : ISystem
             if (w.Countries.TryGetValue(e, out var t) && t.AirPower > maxEnemyAir) maxEnemyAir = t.AirPower;
         if (c.AirPower > maxEnemyAir) return;
         var cmd = new Commands.BuyAirWingCommand(c.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
+    }
+
+    /// <summary>Programa nuclear da IA: com a tecnologia e tesouro folgado constrói uma ogiva;
+    /// com ogiva pronta e em guerra, lança-a na região inimiga com mais divisões onde não
+    /// tenha tropas próprias (uma por ronda).</summary>
+    private static void Nukes(World w, Country c, Dictionary<int, List<Division>> divsByCountry)
+    {
+        if (c.Stat("nuclear") <= 1f) return;
+        if (c.AtWarWith.Count > 0 && c.Nukes > 0)
+        {
+            Region? best = null; int bestDivs = 0;
+            foreach (int e in c.AtWarWith)
+                foreach (var d in divsByCountry.GetValueOrDefault(e) ?? new List<Division>())
+                {
+                    if (!w.Regions.TryGetValue(d.RegionId, out var r) || !c.AtWarWith.Contains(r.ControllerId)) continue;
+                    if (r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var own) && own.CountryId == c.Id)) continue;
+                    int n = r.DivisionIds.Count(id => w.Divisions.TryGetValue(id, out var dd) && c.AtWarWith.Contains(dd.CountryId));
+                    if (n > bestDivs) { bestDivs = n; best = r; }
+                }
+            if (best is not null && bestDivs >= (int)w.Rule("ai_nuke_min_divs", 3f))
+            {
+                var strike = new Commands.NuclearStrikeCommand(c.Id, best.Id);
+                if (strike.Validate(w) is null) { strike.Execute(w); return; }
+            }
+        }
+        if (c.Money < w.Rule("nuke_cost", 400f) + w.Rule("ai_nuke_reserve", 600f)) return;
+        var cmd = new Commands.BuildNukeCommand(c.Id);
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 

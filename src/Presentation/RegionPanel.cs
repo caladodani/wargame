@@ -23,6 +23,9 @@ public partial class RegionPanel : PanelContainer
     private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
     private string _bldKey = "";
     private ConfirmationDialog _warDialog = null!;
+    private Button _nuke = null!;
+    private ConfirmationDialog _nukeDialog = null!;
+    private int _nukeTarget;
     private readonly Dictionary<string, string> _terrainNames = new();
     private readonly HashSet<int> _selected = new();
     private readonly Dictionary<int, CheckBox> _boxes = new();
@@ -61,6 +64,7 @@ public partial class RegionPanel : PanelContainer
         _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
         _fort = Ui.Btn("", () => _game.RunWhenIdle(OnFort)); actions.AddChild(_fort);
         _retreat = Ui.Btn("Retirar", () => _game.RunWhenIdle(OnRetreat)); actions.AddChild(_retreat);
+        _nuke = Ui.Btn("☢ Ataque nuclear", () => _nukeDialog.PopupCentered()); actions.AddChild(_nuke);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
         {
             if (!_game.World.Regions.TryGetValue(_regionId, out var r)) return;
@@ -68,6 +72,7 @@ public partial class RegionPanel : PanelContainer
         })));
         actions.AddChild(Ui.Btn("Fechar", Close));
         _warDialog = Ui.Dialog(this, () => _game.RunWhenIdle(OnWar));
+        _nukeDialog = Ui.Dialog(this, () => _game.RunWhenIdle(OnNuke));
     }
 
     public void Open(int regionId)
@@ -165,6 +170,14 @@ public partial class RegionPanel : PanelContainer
         Refresh();
     }
 
+    private void OnNuke()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new NuclearStrikeCommand(pid, _nukeTarget));
+        if (err is not null) _game.Notify(err);
+        Refresh();
+    }
+
     private void OnWar()
     {
         if (_game.PlayerId is not int pid) return;
@@ -244,6 +257,10 @@ public partial class RegionPanel : PanelContainer
             bool canWar = hasPlayer && ctrl is not null && ctrl.Id != pid && !w.AreAtWar(pid!.Value, ctrl.Id);
             _war.Visible = canWar;
             if (canWar) { _war.Text = $"Justificar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Justificar objectivo de guerra contra {ctrl.Name}? A guerra declara-se sozinha ao fim da justificação."; }
+            bool canNuke = hasPlayer && ctrl is not null && ctrl.Id != pid && w.AreAtWar(pid!.Value, ctrl.Id)
+                           && w.Countries.TryGetValue(pid.Value, out var meN) && meN.Nukes > 0;
+            _nuke.Visible = canNuke;
+            if (canNuke) { _nukeTarget = r.Id; _nukeDialog.DialogText = $"Lançar uma ogiva nuclear sobre {r.Name}? As divisões e a infra-estrutura de lá ficam arrasadas; a tua estabilidade também sofre (opinião mundial)."; }
             _produce.Visible = hasPlayer;
             bool canBuild = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.Building
                             && r.Infrastructure < w.Rule("infra_max", 2f) - 1e-4f;

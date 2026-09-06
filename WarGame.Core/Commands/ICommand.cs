@@ -734,3 +734,87 @@ public sealed record BuyAirWingCommand(int CountryId) : ICommand
     }
 }
 
+
+/// <summary>Construir uma ogiva nuclear: exige a tecnologia que dá o multiplicador "nuclear" (> 1)
+/// e nuke_cost pontos de produção. NuclearStrikeCommand gasta uma ogiva.</summary>
+public sealed record BuildNukeCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (c.Stat("nuclear") <= 1f) return "requer o programa nuclear (tecnologia)";
+        float cost = w.Rule("nuke_cost", 400f);
+        if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Money -= w.Rule("nuke_cost", 400f);
+        c.Nukes += 1;
+        w.Events.Publish(new Events.NukeBuilt(CountryId, c.Nukes));
+    }
+}
+
+/// <summary>Ataque nuclear a uma região controlada por um inimigo em guerra: as divisões lá
+/// perdem quase tudo (nuke_div_hp_mult/nuke_div_org_mult), a infra-estrutura e o forte são
+/// arrasados, o alvo perde estabilidade e ganha exaustão — e o atacante também paga em
+/// estabilidade (nuke_self_stability_hit, opinião mundial).</summary>
+public sealed record NuclearStrikeCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (c.Nukes <= 0) return "sem ogivas prontas";
+        if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
+        if (r.ControllerId == CountryId) return "a região é tua";
+        if (!c.AtWarWith.Contains(r.ControllerId)) return "não estás em guerra com o controlador";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId]; var r = w.Regions[RegionId];
+        c.Nukes -= 1;
+        float hpMult = w.Rule("nuke_div_hp_mult", 0.3f), orgMult = w.Rule("nuke_div_org_mult", 0.2f);
+        int hit = 0;
+        foreach (var id in r.DivisionIds.ToList())
+            if (w.Divisions.TryGetValue(id, out var d)) { d.Hp *= hpMult; d.Org *= orgMult; hit++; }
+        r.Infrastructure = MathF.Max(0.1f, r.Infrastructure * w.Rule("nuke_infra_mult", 0.5f));
+        r.Fort = Math.Max(0, r.Fort - (int)w.Rule("nuke_fort_damage", 2f));
+        if (w.Countries.TryGetValue(r.ControllerId, out var t))
+        {
+            t.Stability = MathF.Max(0f, t.Stability - w.Rule("nuke_stability_hit", 10f));
+            t.WarExhaustion = MathF.Min(w.Rule("exhaustion_max", 30f), t.WarExhaustion + w.Rule("nuke_exhaustion", 5f));
+        }
+        c.Stability = MathF.Max(0f, c.Stability - w.Rule("nuke_self_stability_hit", 4f));
+        w.Events.Publish(new Events.NukeStruck(CountryId, RegionId, r.ControllerId, hit));
+    }
+}
+
+/// <summary>Activa uma decisão nacional (tabela decision): paga Cost, efeito Mult no StatKey durante
+/// Days, depois Cooldown dias de espera antes de repetir.</summary>
+public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.DecisionDefs.TryGetValue(DecisionId, out var def)) return "decisão desconhecida";
+        if (w.ActiveDecisions.Any(a => a.CountryId == CountryId && a.DecisionId == DecisionId)) return "já está activa";
+        if (c.DecisionCooldownUntil.TryGetValue(DecisionId, out var until) && until > w.Clock.Day)
+            return $"em espera até ao dia {until}";
+        if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId]; var def = w.DecisionDefs[DecisionId];
+        c.Money -= def.Cost;
+        w.ActiveDecisions.Add(new ActiveDecision { CountryId = CountryId, DecisionId = DecisionId, UntilDay = w.Clock.Day + def.Days });
+        c.DecisionCooldownUntil[DecisionId] = w.Clock.Day + def.Days + def.Cooldown;
+        DecisionSystem.Recompute(w);
+        w.Events.Publish(new DecisionActivated(CountryId, DecisionId));
+    }
+}

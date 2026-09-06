@@ -45,7 +45,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|h{w.History.Count}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -91,8 +91,38 @@ public partial class CountryPanel : PanelContainer
                     () => Faction(new BuyAirWingCommand(c.Id)), 260));
                 _body.AddChild(arow);
             }
+            if (c.Nukes > 0 || (mine && c.Stat("nuclear") > 1f))
+            {
+                var nrow = new HBoxContainer();
+                nrow.AddChild(Ui.Grow(Ui.Lbl($"☢ Ogivas nucleares: {c.Nukes}", 16)));
+                if (mine && c.Stat("nuclear") > 1f)
+                    nrow.AddChild(Ui.Btn($"Construir ogiva ({_game.World.Rule("nuke_cost", 400f):0})",
+                        () => Faction(new BuildNukeCommand(c.Id)), 260));
+                _body.AddChild(nrow);
+            }
             if (mine && c.AtWarWith.Count > 0)
                 _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
+
+            // decisões nacionais (só o jogador decide)
+            if (mine && w.DecisionDefs.Count > 0)
+            {
+                Header("Decisões");
+                foreach (var def in w.DecisionDefs.Values.OrderBy(d => d.Id))
+                {
+                    var active = w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == def.Id);
+                    string eff = $"{StatName(def.StatKey)} ×{def.Mult:0.00}";
+                    if (active is not null)
+                        Line($"✅ {def.Name} — {eff}, faltam {active.UntilDay - w.Clock.Day + 1} dias", 16);
+                    else if (c.DecisionCooldownUntil.TryGetValue(def.Id, out var until) && until > w.Clock.Day)
+                        Line($"⏳ {def.Name} — disponível daqui a {until - w.Clock.Day} dias", 15);
+                    else
+                    {
+                        var row = new HBoxContainer(); _body.AddChild(row);
+                        row.AddChild(Ui.Grow(Ui.Lbl($"{def.Name} — {eff} por {def.Days} dias", 16)));
+                        row.AddChild(Ui.Btn($"Activar ({def.Cost:0})", () => Faction(new ActivateDecisionCommand(c.Id, def.Id)), 160));
+                    }
+                }
+            }
 
             // obras em curso nas regiões do jogador
             if (mine)

@@ -73,3 +73,11 @@ INSERT OR IGNORE INTO country_tech (country_tag,tech_id) VALUES
  ('PAK','inf_1'),('PAK','drones_1'),
  ('IDN','inf_1'),
  ('ARG','inf_1');
+
+-- Programa nuclear (appended): 2 patamares; nuc_2 dá o multiplicador "nuclear" que desbloqueia
+-- BuildNukeCommand (Stat("nuclear") > 1). Só investigação — as ogivas compram-se depois.
+INSERT INTO tech (id,branch,name,cost,requires,description) VALUES
+ ('nuc_1', 'Nuclear', 'Enriquecimento de urânio', 200, 'res_1', 'Centrifugadoras e ciclo de combustível próprio: o caminho para a bomba abre-se.'),
+ ('nuc_2', 'Nuclear', 'Arma nuclear',             320, 'nuc_1', 'Ogiva operacional e vector de lançamento: permite construir ogivas (☢).');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('nuc_2', 'nuclear', 2.0);

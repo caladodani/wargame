@@ -275,3 +275,24 @@ INSERT INTO rule VALUES ('integration_max_resist', 0.1, 'resistência máxima pa
 INSERT INTO rule VALUES ('integration_decay', 2, 'recuo diário do progresso com resistência alta');
 INSERT INTO law_effect VALUES ('occ_gentle', 'integration_speed', 1.5);
 INSERT INTO law_effect VALUES ('occ_harsh', 'integration_speed', 0.6);
+
+-- Armas nucleares: tech nuc_2 desbloqueia; ver BuildNukeCommand/NuclearStrikeCommand.
+INSERT INTO rule (key,value,note) VALUES
+ ('nuke_cost',400,'pontos de produção por ogiva nuclear'),
+ ('nuke_div_hp_mult',0.3,'HP restante das divisões na região atingida'),
+ ('nuke_div_org_mult',0.2,'organização restante das divisões atingidas'),
+ ('nuke_infra_mult',0.5,'infra-estrutura restante após o ataque'),
+ ('nuke_fort_damage',2,'níveis de forte destruídos pelo ataque'),
+ ('nuke_stability_hit',10,'estabilidade que o país atingido perde'),
+ ('nuke_exhaustion',5,'exaustão de guerra que o atingido ganha'),
+ ('nuke_self_stability_hit',4,'estabilidade que o atacante perde (opinião mundial)'),
+ ('ai_nuke_reserve',600,'reserva da IA antes de construir ogivas'),
+ ('ai_nuke_min_divs',3,'divisões inimigas mínimas para a IA gastar uma ogiva');
+
+-- Decisões nacionais (tabela decision; ActivateDecisionCommand/DecisionSystem)
+CREATE TABLE IF NOT EXISTS decision (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days INTEGER NOT NULL,
+  cooldown INTEGER NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL);
+INSERT INTO decision VALUES ('mobilizacao_industrial','Mobilização industrial',30,30,60,'industry',1.15);
+INSERT INTO decision VALUES ('esforco_guerra','Esforço de guerra',35,30,60,'production_speed',1.2);
+INSERT INTO decision VALUES ('fundos_ciencia','Fundos para a ciência',40,45,90,'research_speed',1.25);

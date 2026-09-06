@@ -85,6 +85,18 @@ public sealed class Region
 /// <summary>Edifício construível numa região (tabela building): cada nível multiplica StatKey do controlador por (1+PerLevel).</summary>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel);
 
+/// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
+/// depois Cooldown dias de espera.</summary>
+public sealed record DecisionDef(string Id, string Name, float Cost, int Days, int Cooldown, string StatKey, float Mult);
+
+/// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
+public sealed class ActiveDecision
+{
+    public int CountryId { get; init; }
+    public string DecisionId { get; init; } = "";
+    public int UntilDay { get; set; }
+}
+
 /// <summary>Amostra periódica para os gráficos de evolução (HistorySystem, tabela s_history).</summary>
 public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions);
 
@@ -133,10 +145,14 @@ public sealed class Country
     public Dictionary<string, float> ResourceMult { get; } = new();
     /// <summary>Multiplicadores dos edifícios nas regiões controladas (ConstructionSystem recalcula todos os dias).</summary>
     public Dictionary<string, float> BuildingMult { get; } = new();
+    /// <summary>Multiplicadores das decisões nacionais activas (DecisionSystem recalcula todos os dias).</summary>
+    public Dictionary<string, float> DecisionMult { get; } = new();
+    /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
+    public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
-        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f);
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f);
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
@@ -144,6 +160,7 @@ public sealed class Country
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
     public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
+    public int Nukes { get; set; }                 // ogivas prontas (BuildNukeCommand); NuclearStrikeCommand gasta uma
     /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
     public Dictionary<string, string> Laws { get; } = new();
     public int? JustifyTarget { get; set; }        // a justificar guerra contra (DiplomacySystem)
