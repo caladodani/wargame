@@ -38,6 +38,7 @@ public sealed class CombatSystem : ISystem
                 {
                     int old = region.ControllerId;
                     region.ControllerId = b.AttackerCountryId;
+                    CaptureDamage(w, region);
                     w.NoteWarProgress(old, region.ControllerId);
                     w.Events.Publish(new RegionCaptured(region.Id, old, region.ControllerId));
                 }
@@ -45,6 +46,13 @@ public sealed class CombatSystem : ISystem
         }
         // Divisões destruídas saem do mundo aqui (o evento já foi publicado em ResolveTick).
         foreach (var id in dead) w.RemoveDivision(id);
+    }
+
+    /// <summary>Captura danifica a infraestrutura (capture_infra_hit, chão infra_min) e mata a obra em curso.</summary>
+    public static void CaptureDamage(World w, Region r)
+    {
+        r.Infrastructure = MathF.Max(w.Rule("infra_min", 0.3f), r.Infrastructure - w.Rule("capture_infra_hit", 0.15f));
+        r.Building = false; r.BuildProgress = 0f;
     }
 
     private static ModContext BuildContext(World w, Region r, int countryId)

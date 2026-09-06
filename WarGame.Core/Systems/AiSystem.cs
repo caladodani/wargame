@@ -45,11 +45,25 @@ public sealed class AiSystem : ISystem
             Research(w, c);
             if (divs is null && c.Money <= 0f) continue;
             Produce(w, c, divs?.Count ?? 0);
+            Build(w, c, regionsByController.GetValueOrDefault(c.Id));
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Com dinheiro acima de ai_build_reserve, melhora a infraestrutura da região própria mais fraca
+    /// (uma obra por ronda; BuildInfrastructureCommand valida custo e tecto).</summary>
+    private static void Build(World w, Country c, List<Region>? controlled)
+    {
+        if (controlled is null || c.Money < w.Rule("ai_build_reserve", 150f)) return;
+        Region? best = null;
+        foreach (var r in controlled)
+            if (r.OwnerId == c.Id && !r.Building && (best is null || r.Infrastructure < best.Infrastructure)) best = r;
+        if (best is null) return;
+        var cmd = new BuildInfrastructureCommand(c.Id, best.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Coligações: facções com guerras convidam países que lutam contra o mesmo inimigo
@@ -151,10 +165,10 @@ public sealed class AiSystem : ISystem
         Dictionary<int, Dictionary<int, int>> fighters, HashSet<int> inBattle)
     {
         if (owned is null) return;
-        var front = owned.Where(r => r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
-        // Sem frente terrestre (ilha, ultramar): as costeiras com inimigo ao alcance do mar são a frente.
-        if (front.Count == 0)
-            front = owned.Where(r => r.SeaNeighbours.Keys.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
+        // Frente = fronteira terrestre hostil + costas com inimigo ao alcance do mar (guarnição costeira:
+        // sem isto os desembarques inimigos só eram contra-atacados depois de aterrar).
+        var front = owned.Where(r => r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))
+                                  || r.SeaNeighbours.Keys.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
         if (front.Count == 0) return;
 
         float minOrg = w.Rule("ai_min_org", 50), ratio = w.Rule("ai_attack_ratio", 1.5f);

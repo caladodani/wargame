@@ -389,3 +389,26 @@ public sealed record LeaveFactionCommand(int CountryId, string FactionId) : ICom
         w.Events.Publish(new FactionLeft(FactionId, CountryId));
     }
 }
+
+/// <summary>Iniciar obra de infraestrutura numa região própria (paga infra_build_cost já;
+/// o ConstructionSystem conclui ao fim de infra_build_days).</summary>
+public sealed record BuildInfrastructureCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
+        if (r.OwnerId != CountryId || r.ControllerId != CountryId) return "a região não é tua";
+        if (r.Building) return "já há uma obra em curso";
+        if (r.Infrastructure >= w.Rule("infra_max", 2f) - 1e-4f) return "infraestrutura no máximo";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (c.Money < w.Rule("infra_build_cost", 40f)) return $"faltam pontos de produção ({w.Rule("infra_build_cost", 40f):0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Countries[CountryId].Money -= w.Rule("infra_build_cost", 40f);
+        var r = w.Regions[RegionId];
+        r.Building = true; r.BuildProgress = 0f;
+    }
+}

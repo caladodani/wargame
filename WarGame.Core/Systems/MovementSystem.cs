@@ -83,6 +83,7 @@ public sealed class MovementSystem : ISystem
         if (defenders.Count == 0)
         {
             int old = target.ControllerId; target.ControllerId = d.CountryId;
+            CombatSystem.CaptureDamage(w, target);
             w.NoteWarProgress(old, d.CountryId);
             w.Events.Publish(new RegionCaptured(target.Id, old, d.CountryId));
             w.PlaceDivision(d, target.Id); d.AdvanceHop();

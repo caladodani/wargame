@@ -32,6 +32,8 @@ public sealed record FactionJoined(string FactionId, int CountryId) : IGameEvent
 public sealed record FactionInviteRejected(string FactionId, int CountryId) : IGameEvent;
 /// <summary>País saiu de uma facção (LeaveFactionCommand).</summary>
 public sealed record FactionLeft(string FactionId, int CountryId) : IGameEvent;
+/// <summary>Obra de infraestrutura concluída (ConstructionSystem).</summary>
+public sealed record InfrastructureBuilt(int RegionId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;

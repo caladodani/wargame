@@ -208,6 +208,11 @@ public partial class Hud : CanvasLayer
             if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))
                 Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)");
         }));
+        _subs.Add(w.Events.Subscribe<InfrastructureBuilt>(e =>
+        {
+            if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
+                Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})");
+        }));
         _subs.Add(w.Events.Subscribe<FactionCreated>(e =>
         {
             if (Player(e.CountryId)) Later($"Facção fundada: {(w.Factions.TryGetValue(e.FactionId, out var f) ? f.Name : e.FactionId)}");

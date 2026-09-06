@@ -154,7 +154,8 @@ CREATE TABLE IF NOT EXISTS s_faction_member (     -- fotografia da composição;
   faction_id TEXT, country_id INTEGER, PRIMARY KEY (faction_id, country_id));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
-  owner_id INTEGER          -- NULL = dono da static.db (só muda com capitulações)
+  owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)
+  building INTEGER NOT NULL DEFAULT 0, build_progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS template (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL

@@ -94,3 +94,22 @@ public class SeaTests
         Assert.True(d.Path.Count > 0 || d.RegionId >= 3);   // embarcou (ou já desembarcou) rumo à ilha B
     }
 }
+
+/// <summary>Guarnição costeira: com frente terrestre E costa ameaçada, a costa também é frente —
+/// as reservas não a abandonam.</summary>
+public class CoastalGarrisonTests
+{
+    [Fact]
+    public void Reserve_StaysOnThreatenedCoast()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);                                   // 1-2-3 país 1, 4-5-6 país 2
+        w.Regions[6].SeaNeighbours[1] = 800f; w.Regions[1].SeaNeighbours[6] = 800f;   // costa 6 ↔ costa 1
+        w.Register(new AiSystem());
+        w.StartWar(1, 2);
+        TestWorld.AddDivision(w, 1, 2, TestWorld.Inf2, 6);        // reserva do país 2 na costa 6
+        TestWorld.AddDivision(w, 2, 2, TestWorld.Inf2, 4);        // frente terrestre guarnecida
+        TestWorld.Days(w, 6);
+        Assert.Equal(6, w.Divisions[1].RegionId);                 // não foi puxada para a frente 4
+    }
+}

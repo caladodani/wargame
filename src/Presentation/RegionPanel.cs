@@ -18,7 +18,7 @@ public partial class RegionPanel : PanelContainer
     private CountryPanel _countryPanel = null!;
     private Label _title = null!, _info = null!;
     private VBoxContainer _rows = null!;
-    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _war = null!, _produce = null!;
+    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _war = null!, _produce = null!, _build = null!;
     private ConfirmationDialog _warDialog = null!;
     private readonly Dictionary<string, string> _terrainNames = new();
     private readonly HashSet<int> _selected = new();
@@ -51,6 +51,7 @@ public partial class RegionPanel : PanelContainer
         _stop = Ui.Btn("Parar", () => _game.RunWhenIdle(OnStop)); actions.AddChild(_stop);
         _war = Ui.Btn("", () => _warDialog.PopupCentered()); actions.AddChild(_war);
         _produce = Ui.Btn("Produzir", () => { Close(); _production.Open(); }); actions.AddChild(_produce);
+        _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
         {
             if (!_game.World.Regions.TryGetValue(_regionId, out var r)) return;
@@ -113,6 +114,14 @@ public partial class RegionPanel : PanelContainer
         Refresh();
     }
 
+    private void OnBuild()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new BuildInfrastructureCommand(pid, _regionId));
+        if (err is not null) _game.Notify(err);
+        Refresh();
+    }
+
     private void OnWar()
     {
         if (_game.PlayerId is not int pid) return;
@@ -145,7 +154,8 @@ public partial class RegionPanel : PanelContainer
             var ctrl = w.Countries.GetValueOrDefault(r.ControllerId);
 
             _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
-            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.";
+            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
+            if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);
             if (battle is not null) info += $"  ·  {RegionRenderer.BattleMark}batalha ({battle.Days} dias)";
             if (MoveMode) info += "\nToca na região de destino";
@@ -174,6 +184,10 @@ public partial class RegionPanel : PanelContainer
             _war.Visible = canWar;
             if (canWar) { _war.Text = $"Justificar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Justificar objectivo de guerra contra {ctrl.Name}? A guerra declara-se sozinha ao fim da justificação."; }
             _produce.Visible = hasPlayer;
+            bool canBuild = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.Building
+                            && r.Infrastructure < w.Rule("infra_max", 2f) - 1e-4f;
+            _build.Visible = canBuild;
+            if (canBuild) _build.Text = $"Melhorar infra ({w.Rule("infra_build_cost", 40f):0})";
             UpdateButtons();
         }
         catch (Exception ex) { GD.PushError("RegionPanel.Fill: " + ex); }

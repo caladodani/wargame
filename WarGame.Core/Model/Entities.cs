@@ -36,6 +36,9 @@ public sealed class Region
     public string Terrain { get; init; } = "plain";
     public bool River { get; init; }
     public float Infrastructure { get; set; } = 1f;
+    /// <summary>Obra de infraestrutura em curso (ConstructionSystem); cancela se a região for capturada.</summary>
+    public bool Building { get; set; }
+    public float BuildProgress { get; set; }
     public int Population { get; init; }
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }

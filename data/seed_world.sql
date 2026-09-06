@@ -103,3 +103,13 @@ INSERT INTO news_event_option_effect (option_id,stat_key,value) VALUES
  ('prt_orc_pessoal','conscription',1.08),
  ('bra_ref_producao','production_speed',1.06),
  ('bra_ref_treino','org_regain',1.06);
+
+-- Construção de infraestrutura (ConstructionSystem + BuildInfrastructureCommand).
+INSERT INTO rule (key,value,note) VALUES
+ ('infra_max',2.0,'tecto da infraestrutura por região'),
+ ('infra_step',0.25,'quanto sobe por obra concluída'),
+ ('infra_build_cost',40,'pontos de produção pagos ao iniciar a obra'),
+ ('infra_build_days',30,'dias de obra'),
+ ('capture_infra_hit',0.15,'infraestrutura perdida quando a região é capturada'),
+ ('infra_min',0.3,'chão da infraestrutura'),
+ ('ai_build_reserve',150,'a IA só inicia obras com dinheiro acima disto');
