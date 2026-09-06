@@ -155,7 +155,8 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES
  ('roubo_fundos','Roubo de fundos','Agentes desviam uma fracção do tesouro do alvo.',40,20,'steal_money',0.20),
  ('sabotagem_fabrica','Sabotagem industrial','Explosões nas linhas de produção: parte do progresso das encomendas perde-se.',50,25,'sabotage_production',0.50),
- ('agitacao','Agitação social','Propaganda e greves: a estabilidade do alvo cai.',60,30,'stability_hit',15);
+ ('agitacao','Agitação social','Propaganda e greves: a estabilidade do alvo cai.',60,30,'stability_hit',15),
+ ('rede_info','Rede de informação','Espiões infiltrados: vês o tesouro, os homens e a produção do alvo durante uns tempos.',30,15,'intel',60);
 INSERT INTO rule (key,value,note) VALUES
  ('ai_spy_reserve',200,'a IA só lança operações de espionagem com dinheiro acima disto');
 

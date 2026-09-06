@@ -37,6 +37,9 @@ public sealed class World
 
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
+    /// <summary>Rede de informação activa: (autor, alvo) → último dia com visibilidade (efeito intel).</summary>
+    public Dictionary<(int A, int B), int> Intel { get; } = new();
+    public bool HasIntel(int a, int b) => Intel.TryGetValue((a, b), out var until) && until >= Clock.Day;
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();

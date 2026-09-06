@@ -77,6 +77,25 @@ public class EspionageTests
     }
 
     [Fact]
+    public void Intel_GrantsVisibility_UntilExpiry()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        var op = w.SpyOps["rede_info"];
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 1, TargetCountryId = 2, OpId = op.Id, DaysLeft = 1f });
+        w.Register(new EspionageSystem());
+        TestWorld.Days(w, 1);
+        Assert.True(w.HasIntel(1, 2));
+        Assert.False(w.HasIntel(2, 1));   // só numa direcção
+        Assert.Equal((int)op.Magnitude, w.Intel[(1, 2)]);   // aplicado no dia 0, antes do Advance
+
+        while (w.Clock.Day < w.Intel[(1, 2)]) w.Clock.Advance();
+        Assert.True(w.HasIntel(1, 2));   // último dia ainda vê
+        w.Clock.Advance();
+        Assert.False(w.HasIntel(1, 2));
+    }
+
+    [Fact]
     public void Ai_StartsOp_WhenRichAndAtWar()
     {
         var (w, _) = TestWorld.Build();

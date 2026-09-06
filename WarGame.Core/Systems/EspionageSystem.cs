@@ -6,7 +6,7 @@ namespace WarGame.Core.Systems;
 /// <summary>Conta os dias das operações de espionagem (World.ActiveSpyOps) e aplica o efeito
 /// da tabela spy_op ao concluir: steal_money (fracção do tesouro do alvo passa ao autor),
 /// sabotage_production (fracção do progresso das encomendas do alvo perde-se),
-/// stability_hit (estabilidade do alvo cai `magnitude` pontos). Autor ou alvo capitulado = operação morre.</summary>
+/// stability_hit (estabilidade do alvo cai `magnitude` pontos), intel (vês os detalhes do alvo `magnitude` dias). Autor ou alvo capitulado = operação morre.</summary>
 public sealed class EspionageSystem : ISystem
 {
     public string Name => "Espionage";
@@ -40,6 +40,9 @@ public sealed class EspionageSystem : ISystem
                 break;
             case "stability_hit":
                 target.Stability = System.MathF.Max(0f, target.Stability - op.Magnitude);
+                break;
+            case "intel":
+                w.Intel[(actor.Id, target.Id)] = w.Clock.Day + (int)op.Magnitude;
                 break;
         }
     }

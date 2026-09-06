@@ -169,6 +169,9 @@ CREATE TABLE IF NOT EXISTS spy_op (           -- operações de espionagem (Star
 CREATE TABLE IF NOT EXISTS s_spy_op (         -- operações em curso (save)
   country_id INTEGER, target_id INTEGER, op_id TEXT, days_left REAL NOT NULL,
   PRIMARY KEY (country_id, target_id));
+CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (efeito intel; até `until_day`)
+  country_id INTEGER, target_id INTEGER, until_day INTEGER NOT NULL,
+  PRIMARY KEY (country_id, target_id));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)

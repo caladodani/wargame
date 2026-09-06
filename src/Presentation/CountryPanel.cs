@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -134,6 +134,12 @@ public partial class CountryPanel : PanelContainer
                         aid.AddChild(Ui.Btn($"{a:0} pts", () => Faction(new TransferMoneyCommand(inviter, c.Id, a)), 110));
                     }
                     _body.AddChild(aid);
+                }
+                if (w.HasIntel(inviter, c.Id))
+                {
+                    int until = w.Intel[(inviter, c.Id)];
+                    Line($"🕵 Intel (até dia {until}): {c.Money:0} pts · {c.Manpower / 1000f:0.#}k homens · " +
+                         $"{w.Divisions.Values.Count(d => d.CountryId == c.Id)} divisões · {c.Queue.Count} em produção");
                 }
                 else if (w.SpyOps.Count > 0)
                 {

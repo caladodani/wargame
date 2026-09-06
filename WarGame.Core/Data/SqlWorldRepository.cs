@@ -248,6 +248,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
                 OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]) });
+        foreach (var r in save.Query("SELECT country_id,target_id,until_day FROM s_intel"))
+            w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance FROM s_region"))
         {
@@ -293,7 +295,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -301,6 +303,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
         foreach (var o in w.ActiveSpyOps)
             save.Execute("INSERT INTO s_spy_op VALUES (?,?,?,?)", o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft);
+        foreach (var ((ia, ib), until) in w.Intel)
+            if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var id in w.CustomFactionIds)
         {
             var f = w.Factions[id];
