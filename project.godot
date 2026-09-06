@@ -12,7 +12,7 @@ config/quit_on_go_back=false
 Game="*res://src/Presentation/Game.cs"
 
 [display]
-window/handheld/orientation=4
+window/handheld/orientation=6
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
