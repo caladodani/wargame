@@ -13,7 +13,9 @@ public partial class Hud : CanvasLayer
 {
     private Game _game = null!;
     private MapView _map = null!;
-    private Label _date = null!, _country = null!, _army = null!, _toast = null!, _hint = null!;
+    private Label _date = null!, _country = null!, _toast = null!, _hint = null!;
+    // Mostradores da barra de topo: cada um é um número grande com a sua nota por baixo.
+    private Label _money = null!, _moneyNote = null!, _men = null!, _menNote = null!, _divs = null!, _divsNote = null!;
     private PanelContainer _season = null!;
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
@@ -122,7 +124,7 @@ public partial class Hud : CanvasLayer
     {
         var bar = new PanelContainer { Name = "Top" };
         bar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
-        bar.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.08f, 0.09f, 0.12f, 0.92f), 6));
+        bar.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.043f, 0.051f, 0.059f, 0.96f), 6));
         AddChild(bar);
         // A barra leva uma tira fina por baixo, pintada com a cor do país do jogador: dá identidade
         // ao ecrã inteiro e fica vermelha quando o país está em guerra.
@@ -131,14 +133,21 @@ public partial class Hud : CanvasLayer
         // Primeira linha: o estado do jogo (data, velocidade, país, exército). Num telemóvel isto sozinho
         // já enche a largura — por isso a navegação desceu para a linha de baixo.
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); stack.AddChild(row);
+        _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
+        _country = Ui.Lbl("", 20); _country.AddThemeColorOverride("font_color", Ui.Accent); row.AddChild(_country);
         _date = Ui.Lbl("2030-01-01", 22); row.AddChild(_date);
         row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
         _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
         row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
         _season = SeasonView.Badge(_game.World); row.AddChild(_season);
-        _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
-        _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
-        _army = Ui.Lbl("", 20); row.AddChild(_army);
+        row.AddChild(Ui.Grow(new Control()));
+        // Fila de mostradores à direita, à maneira dos jogos de grande estratégia: dinheiro, homens e
+        // divisões, cada um com a sua nota (rendimento, reserva por chegar, fila de produção). Antes isto
+        // eram duas frases de texto corrido — "Divisões 12 · Fila 3 · Homens 1.2M" — que ninguém lia de
+        // relance nem encontrava outra vez quando queria.
+        row.AddChild(Ui.Counter("₵", out _money, out _moneyNote, Ui.Accent));
+        row.AddChild(Ui.Counter("♟", out _men, out _menNote, Ui.Text));
+        row.AddChild(Ui.Counter("⚔", out _divs, out _divsNote, Ui.Danger.Lightened(0.25f)));
 
         // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
         // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
@@ -164,6 +173,7 @@ public partial class Hud : CanvasLayer
         tabs.AddChild(Ui.Btn("Crónica", () => _journal.Open()));
         tabs.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
 
+        stack.AddChild(Ui.Rule());                                    // risco de latão a fechar a chapa
         _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
         stack.AddChild(_accent);
     }
@@ -743,8 +753,15 @@ public partial class Hud : CanvasLayer
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
             if (_playerFlag.Texture is null) { _playerFlag.Texture = Flags.Of(p.Tag); _playerFlag.Visible = _playerFlag.Texture is not null; }
-            _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
-            _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}  ·  Homens {FmtMen(p.Manpower)}";
+            _country.Text = p.Tag;
+            float income = EconomySystem.Income(w, pid);
+            _money.Text = $"{p.Money:0.0}";
+            _money.AddThemeColorOverride("font_color", income < 0f ? Ui.Danger : Ui.Text);
+            _moneyNote.Text = $"{(income < 0 ? "" : "+")}{income:0.0}/dia";
+            _men.Text = FmtMen(p.Manpower);
+            _menNote.Text = "recrutas";
+            _divs.Text = w.Divisions.Values.Count(d => d.CountryId == pid).ToString();
+            _divsNote.Text = p.Queue.Count > 0 ? $"fila {p.Queue.Count}" : "divisões";
             _hint.Visible = false;
             int posted = OfferView.Count(w, pid);
             if (posted != _offersShown)
@@ -763,7 +780,7 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     /// <summary>Leva o mapa a uma região e abre-lhe a ficha: o "Ver no mapa" da cedência aterra aqui, e
@@ -897,7 +914,11 @@ public partial class Hud : CanvasLayer
             AnswerOffer(false);                                         // recusa: os campos ficam como estavam
         }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}");
+        // nevoeiro: quantas regiões alheias estão tapadas e o que a ficha diz sobre a primeira delas
+        int fogged = 0; string fogWhy = "mapa aberto";
+        foreach (var fr in w.Regions.Values.Where(x => x.ControllerId != pid).OrderBy(x => x.Id))
+            if (!Vision.Sees(w, pid, fr)) { if (fogged++ == 0) { fogWhy = Vision.Why(w, pid, fr); _region.Open(fr.Id); _region.Close(); } }
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy})");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

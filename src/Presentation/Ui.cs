@@ -9,15 +9,20 @@ internal static class Ui
 {
     public const int Font = 18;
 
-    // Paleta: fundo escuro azulado, azul de destaque para acções, vermelho para o que destrói.
-    public static readonly Color Ink = new(0.07f, 0.08f, 0.11f);
-    public static readonly Color Surface = new(0.13f, 0.15f, 0.20f);
-    public static readonly Color SurfaceHi = new(0.19f, 0.22f, 0.29f);
-    public static readonly Color Accent = new(0.25f, 0.55f, 0.95f);
-    public static readonly Color Danger = new(0.80f, 0.28f, 0.28f);
-    public static readonly Color Good = new(0.25f, 0.70f, 0.45f);
-    public static readonly Color Text = new(0.91f, 0.93f, 0.97f);
-    public static readonly Color TextDim = new(0.62f, 0.66f, 0.74f);
+    // Paleta de sala de operações: aço escuro esverdeado, latão nas molduras, letra cor de papel. É a
+    // gramática dos jogos de grande estratégia da casa Paradox — chapas metálicas com moldura de latão e
+    // números a dourado — e cai melhor num mapa de 1930 do que o azul de aplicação que estava aqui.
+    public static readonly Color Ink = new(0.055f, 0.066f, 0.078f);
+    public static readonly Color Surface = new(0.117f, 0.133f, 0.153f);
+    public static readonly Color SurfaceHi = new(0.180f, 0.203f, 0.227f);
+    /// <summary>Latão: molduras, sublinhados e o que o dedo deve encontrar primeiro.</summary>
+    public static readonly Color Accent = new(0.784f, 0.647f, 0.298f);
+    /// <summary>Latão escurecido das molduras (linha de 1 px à volta das chapas).</summary>
+    public static readonly Color Frame = new(0.404f, 0.341f, 0.180f);
+    public static readonly Color Danger = new(0.686f, 0.235f, 0.231f);
+    public static readonly Color Good = new(0.373f, 0.561f, 0.310f);
+    public static readonly Color Text = new(0.902f, 0.886f, 0.827f);
+    public static readonly Color TextDim = new(0.596f, 0.612f, 0.596f);
 
     /// <summary>Papel do botão: muda a cor, não o tamanho.</summary>
     public enum Kind { Normal, Primary, Danger }
@@ -37,10 +42,10 @@ internal static class Ui
         if (kind != Kind.Normal)
         {
             var c = kind == Kind.Primary ? Accent : Danger;
-            b.AddThemeStyleboxOverride("normal", Fill(c.Darkened(0.15f)));
-            b.AddThemeStyleboxOverride("hover", Fill(c));
-            b.AddThemeStyleboxOverride("pressed", Fill(c.Darkened(0.35f)));
-            b.AddThemeColorOverride("font_color", Colors.White);
+            b.AddThemeStyleboxOverride("normal", Fill(c.Darkened(0.55f), border: c));
+            b.AddThemeStyleboxOverride("hover", Fill(c.Darkened(0.35f), border: c.Lightened(0.3f)));
+            b.AddThemeStyleboxOverride("pressed", Fill(c.Darkened(0.7f), border: c));
+            b.AddThemeColorOverride("font_color", kind == Kind.Primary ? Accent.Lightened(0.55f) : Colors.White);
         }
         b.Pressed += () => { try { onPressed(); } catch (Exception ex) { GD.PushError($"Botão '{b.Text}': {ex}"); } };
         return b;
@@ -49,19 +54,48 @@ internal static class Ui
     /// <summary>Faz o controlo ocupar a largura livre da linha.</summary>
     public static T Grow<T>(T c) where T : Control { c.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; return c; }
 
+    /// <summary>Chapa: fundo escuro, canto quase direito e moldura de latão de 1 px. Todas as caixas do
+    /// jogo passam por aqui, por isso é aqui que se muda a cara do jogo inteiro.</summary>
     public static StyleBoxFlat Box(Color bg, int pad = 8) => new()
     {
-        BgColor = bg, CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
+        BgColor = bg,
+        CornerRadiusTopLeft = 2, CornerRadiusTopRight = 2, CornerRadiusBottomLeft = 2, CornerRadiusBottomRight = 2,
+        BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1, BorderWidthBottom = 1,
+        BorderColor = Frame,
         ContentMarginLeft = pad, ContentMarginRight = pad, ContentMarginTop = pad, ContentMarginBottom = pad,
     };
 
-    /// <summary>Stylebox lisa de botão: cantos redondos, margens de toque, sem borda.</summary>
-    private static StyleBoxFlat Fill(Color bg, int radius = 8, int padX = 14, int padY = 8) => new()
+    /// <summary>Chapa de botão: canto direito, moldura de latão e um risco mais claro em cima — o relevo
+    /// gasto das teclas de metal, sem uma única textura carregada.</summary>
+    private static StyleBoxFlat Fill(Color bg, int radius = 2, int padX = 14, int padY = 8, Color? border = null) => new()
     {
         BgColor = bg,
         CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius,
         CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius,
+        BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 2, BorderWidthBottom = 1,
+        BorderColor = border ?? Frame,
         ContentMarginLeft = padX, ContentMarginRight = padX, ContentMarginTop = padY, ContentMarginBottom = padY,
+    };
+
+    /// <summary>Contador da barra de topo: ícone, número e nota, numa chapa estreita com moldura. É a fila
+    /// de mostradores que qualquer jogo do género tem por cima do mapa — dinheiro, homens, divisões — e que
+    /// aqui vivia em duas frases de texto corrido que ninguém lia de relance.</summary>
+    public static PanelContainer Counter(string icon, out Label value, out Label note, Color? tint = null)
+    {
+        var plate = new PanelContainer();
+        plate.AddThemeStyleboxOverride("panel", Box(Ink with { A = 0.85f }, 6));
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6); plate.AddChild(row);
+        var ic = Lbl(icon, 18); ic.AddThemeColorOverride("font_color", tint ?? Accent); row.AddChild(ic);
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 0); row.AddChild(v);
+        value = Lbl("—", 18); value.AddThemeColorOverride("font_color", Text); v.AddChild(value);
+        note = Lbl("", 13); note.AddThemeColorOverride("font_color", TextDim); v.AddChild(note);
+        return plate;
+    }
+
+    /// <summary>Risco de latão a toda a largura: separa secções sem gastar altura.</summary>
+    public static ColorRect Rule(float height = 1f) => new()
+    {
+        Color = Frame, CustomMinimumSize = new Vector2(0, height), MouseFilter = Control.MouseFilterEnum.Ignore,
     };
 
     private static Theme? _theme;
@@ -73,12 +107,12 @@ internal static class Ui
         var t = new Theme { DefaultFontSize = Font };
 
         t.SetStylebox("normal", "Button", Fill(Surface));
-        t.SetStylebox("hover", "Button", Fill(SurfaceHi));
-        t.SetStylebox("pressed", "Button", Fill(Accent.Darkened(0.25f)));
-        t.SetStylebox("focus", "Button", Fill(SurfaceHi));
-        t.SetStylebox("disabled", "Button", Fill(Surface.Darkened(0.35f)));
+        t.SetStylebox("hover", "Button", Fill(SurfaceHi, border: Accent));
+        t.SetStylebox("pressed", "Button", Fill(Accent.Darkened(0.55f), border: Accent));
+        t.SetStylebox("focus", "Button", Fill(SurfaceHi, border: Accent));
+        t.SetStylebox("disabled", "Button", Fill(Surface.Darkened(0.45f), border: Frame.Darkened(0.4f)));
         t.SetColor("font_color", "Button", Text);
-        t.SetColor("font_hover_color", "Button", Colors.White);
+        t.SetColor("font_hover_color", "Button", Accent.Lightened(0.4f));
         t.SetColor("font_pressed_color", "Button", Colors.White);
         t.SetColor("font_disabled_color", "Button", TextDim.Darkened(0.3f));
 

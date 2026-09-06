@@ -2,6 +2,7 @@ using Godot;
 using WarGame.Core.Data;
 using WarGame.Core.Events;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -237,7 +238,9 @@ public partial class RegionRenderer : Node2D
                 bool capital = capitals.Contains(r.Id);
                 bool goal = goals.Contains(r.Id);
                 bool port = r.Buildings.Any(b => b.Value > 0 && portIds.Contains(b.Key));
-                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port) continue;
+                // o marcador conta o que o jogador tem como ver: tropa do outro lado do nevoeiro não aparece
+                int shown = _game.PlayerId is int viewer ? Vision.CountIn(w, viewer, r) : r.DivisionIds.Count;
+                if (shown == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var pill = m.GetNode<PanelContainer>("Center/Pill");
@@ -246,7 +249,7 @@ public partial class RegionRenderer : Node2D
                 label.Text = (goal ? GoalMark : "")
                            + (capital ? CapitalMark : "")
                            + (fighting ? BattleMark : "")
-                           + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
+                           + (shown > 0 ? shown.ToString() : "")
                            + (r.Fort > 0 ? FortMark : "")
                            + (port ? PortMark : "")
                            + (resisting ? ResistMark : "");

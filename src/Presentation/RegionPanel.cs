@@ -267,18 +267,28 @@ public partial class RegionPanel : PanelContainer
             _info.Text = info;
 
             // Divisões: as do jogador primeiro (com caixa), depois as outras.
-            var divs = r.DivisionIds.Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>()
+            // nevoeiro: fora do que temos como ver, a guarnição alheia não se conta
+            bool fogged = pid is int viewer && !Vision.Sees(w, viewer, r);
+            var divs = (pid is int seer ? Vision.DivisionsIn(w, seer, r)
+                                       : r.DivisionIds.Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>())
                         .OrderByDescending(d => d.CountryId == pid).ThenBy(d => d.Id).ToList();
             _mine.Clear(); _mine.AddRange(divs.Where(d => d.CountryId == pid).Select(d => d.Id));
             _selected.IntersectWith(_mine);
             var lines = divs.Select(d => (d.Id, mine: d.CountryId == pid, text: Line(w, d), d.Hp, d.Org)).ToList();
-            var key = string.Join("|", lines.Select(l => l.Id + ":" + l.text));
+            var key = (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
                 Ui.Clear(_rows); _boxes.Clear();
                 foreach (var (id, mine, text, hp, org) in lines) _rows.AddChild(Row(id, mine, text, hp, org));
-                if (lines.Count == 0) _rows.AddChild(Ui.Lbl("Sem divisões"));
+                if (fogged)
+                {
+                    var fog = Ui.Lbl($"🌫 {Vision.Why(w, pid!.Value, r)}", 16);
+                    fog.AddThemeColorOverride("font_color", Ui.TextDim);
+                    _rows.AddChild(fog);
+                    _rows.AddChild(Ui.Lbl("Espia o país ou chega à fronteira para veres a guarnição", 14));
+                }
+                else if (lines.Count == 0) _rows.AddChild(Ui.Lbl("Sem divisões"));
             }
 
             bool hasPlayer = pid is not null, anyMine = _mine.Count > 0;

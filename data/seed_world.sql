@@ -377,6 +377,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('offer_days',20,'dias que uma proposta fica em cima da mesa antes de cair'),
  ('cede_ratio',0.6,'divisões da IA em fracção das nossas abaixo da qual ela paga a paz com uma região');
 
+-- Nevoeiro de guerra (Vision): 1 = só se vêem as guarnições que temos como ver; 0 = mapa aberto.
+INSERT INTO rule (key,value,note) VALUES
+ ('fog_of_war',1,'nevoeiro de guerra ligado: guarnições alheias só à vista de fronteira, aliado ou espionagem');
+
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),
