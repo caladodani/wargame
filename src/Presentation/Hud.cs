@@ -42,6 +42,7 @@ public partial class Hud : CanvasLayer
     private EndScreen _end = null!;
     private MiniMap _mini = null!;
     private AlertStrip _alerts = null!;
+    private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
@@ -70,6 +71,7 @@ public partial class Hud : CanvasLayer
             _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
+            _compare = new ComparePanel(); AddChild(_compare); _compare.Setup(_game);
             _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
             _alerts.OnGoTo = ShowRegion;
             _alerts.OnOpen = id =>
@@ -111,6 +113,7 @@ public partial class Hud : CanvasLayer
         if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
         if (_production.Visible) { _production.Close(); return; }
+        if (_compare.Visible) { _compare.Close(); return; }
         if (_countryPanel.Visible) { _countryPanel.Close(); return; }
         if (_warPanel.Visible) { _warPanel.Close(); return; }
         if (_armyPanel.Visible) { _armyPanel.Close(); return; }
@@ -184,6 +187,14 @@ public partial class Hud : CanvasLayer
         stack.AddChild(Ui.Rule());                                    // risco de latão a fechar a chapa
         _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
         stack.AddChild(_accent);
+    }
+
+    /// <summary>Abre a folha de comparação directa contra este país (o painel do País chama-a).</summary>
+    public void OpenCompare(int otherCountryId)
+    {
+        if (_game.PlayerId is null) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        _countryPanel.Close();
+        _compare.Open(otherCountryId);
     }
 
     /// <summary>Plano de batalha simplificado: manda as divisões paradas guardar a fronteira com o inimigo.</summary>
@@ -722,7 +733,7 @@ public partial class Hud : CanvasLayer
             _armyPanel.Refresh();
             // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
             _alerts.Refresh();
-            _mini.SetCovered(_region.Visible || _production.Visible || _countryPanel.Visible
+            _mini.SetCovered(_compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
                              || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible);
             if (!_mini.Visible) return;
             _mini.Refresh();
@@ -929,7 +940,10 @@ public partial class Hud : CanvasLayer
             if (!Vision.Sees(w, pid, fr)) { if (fogged++ == 0) { fogWhy = Vision.Why(w, pid, fr); _region.Open(fr.Id); _region.Close(); } }
         int alarms = _alerts.Smoke();                                   // faixa de alarmes desenhada
         int labs = ResearchSystem.Slots(w, c), busy = c.Research.Count;  // ranhuras de investigação
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras");
+        // folha de comparação: nós contra o vizinho, pelas três abas
+        int rival = smokeFoe != 0 ? smokeFoe : w.Countries.Values.FirstOrDefault(x => x.Id != pid)?.Id ?? pid;
+        int cmp = _compare.Smoke(rival); _compare.Close();
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

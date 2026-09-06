@@ -77,6 +77,15 @@ public partial class CountryPanel : PanelContainer
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
             Ui.Clear(_body);
 
+            // comparação directa: a pergunta antes de declarar guerra ("nós contra eles, como estamos?")
+            if (!mine && _game.PlayerId is not null)
+            {
+                int other = c.Id;
+                var cmp = new HBoxContainer(); cmp.AddThemeConstantOverride("separation", 8);
+                cmp.AddChild(Ui.Btn("⚖ Comparar com o nosso país", () => GetParent<Hud>().OpenCompare(other), 320, Ui.Kind.Primary));
+                _body.AddChild(cmp);
+            }
+
             // ficha
             CountryInfo? info = null; IReadOnlyList<NationalSpirit> spirits = Array.Empty<NationalSpirit>();
             try { info = _game.WorldRepo.GetCountryInfo(c.Tag); spirits = _game.WorldRepo.GetSpirits(c.Tag); }

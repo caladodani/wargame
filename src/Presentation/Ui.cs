@@ -92,6 +92,36 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>Fila de abas metálicas no topo de um painel: canto de cima redondo, canto de baixo direito
+    /// e a aba activa mais clara com a moldura de latão acesa — a forma que os painéis dos jogos de grande
+    /// estratégia usam para arrumar secções sem gastar um ecrã por cada uma.</summary>
+    public static HBoxContainer Tabs(IReadOnlyList<string> labels, int active, Action<int> onPick)
+    {
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 2);
+        for (int i = 0; i < labels.Count; i++)
+        {
+            int idx = i;
+            bool on = i == active;
+            var b = new Button { Text = labels[i], FocusMode = Control.FocusModeEnum.None };
+            var box = new StyleBoxFlat
+            {
+                BgColor = on ? SurfaceHi : Surface.Darkened(0.25f),
+                CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6,
+                BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = on ? 3 : 1, BorderWidthBottom = 0,
+                BorderColor = on ? Accent : Frame,
+                ContentMarginLeft = 16, ContentMarginRight = 16, ContentMarginTop = 7, ContentMarginBottom = 7,
+            };
+            b.AddThemeStyleboxOverride("normal", box);
+            b.AddThemeStyleboxOverride("hover", box);
+            b.AddThemeStyleboxOverride("pressed", box);
+            b.AddThemeColorOverride("font_color", on ? Text : TextDim);
+            b.AddThemeFontSizeOverride("font_size", 17);
+            b.Pressed += () => onPick(idx);
+            row.AddChild(b);
+        }
+        return row;
+    }
+
     /// <summary>Título de secção à maneira das folhas de estado-maior: versaletes (o Godot não tem a
     /// variante tipográfica, faz-se por maiúsculas com espaço entre letras) em latão, com o risco por
     /// baixo. Dá hierarquia aos painéis sem gastar altura nem tamanho de letra.</summary>
