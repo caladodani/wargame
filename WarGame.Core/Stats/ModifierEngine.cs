@@ -23,6 +23,8 @@ public sealed class ModifierEngine
         foreach (var m in list)
         {
             if (m.RequiredTag is not null && !stats.Tags.Contains(m.RequiredTag)) continue;
+            if (m.CountryTag is not null &&
+                (!ctx.TryGetValue("country", out var c) || c != m.CountryTag)) continue;
             if (m.ConditionKey is not null &&
                 (!ctx.TryGetValue(m.ConditionKey, out var v) || v != m.ConditionValue)) continue;
             if (m.Op == ModOp.Add) flat += m.Value; else mul *= m.Value;

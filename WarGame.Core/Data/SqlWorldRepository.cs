@@ -16,12 +16,18 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,move_cost FROM terrain"))
             w.Rules["move_cost:" + (string)r["id"]!] = Convert.ToSingle(r["move_cost"]);
 
+        var byTag = new Dictionary<string, Country>();
         foreach (var r in _static.Query("SELECT id,tag,name,capital_region_id FROM country"))
-            w.Countries[Convert.ToInt32(r["id"])] = new Country
+        {
+            var c = new Country
             {
                 Id = Convert.ToInt32(r["id"]), Tag = (string)r["tag"]!, Name = (string)r["name"]!,
                 CapitalRegionId = r["capital_region_id"] is null ? 0 : Convert.ToInt32(r["capital_region_id"]),
             };
+            w.Countries[c.Id] = c; byTag[c.Tag] = c;
+        }
+        foreach (var r in _static.Query("SELECT country_tag,key,value FROM country_stat"))
+            if (byTag.TryGetValue((string)r["country_tag"]!, out var c)) c.Stats[(string)r["key"]!] = Convert.ToSingle(r["value"]);
 
         foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y FROM region"))
         {
@@ -41,13 +47,24 @@ public sealed class SqlWorldRepository : IWorldRepository
 
     public void LoadStartArmies(World w)
     {
-        foreach (var r in _static.Query("SELECT id,country_id,template_id,region_id FROM start_division ORDER BY id"))
+        foreach (var r in _static.Query("SELECT id,country_id,template_id,region_id,name FROM start_division ORDER BY id"))
             w.AddDivision(new Division
             {
                 Id = Convert.ToInt32(r["id"]), CountryId = Convert.ToInt32(r["country_id"]),
                 TemplateId = Convert.ToInt32(r["template_id"]), RegionId = Convert.ToInt32(r["region_id"]),
+                Name = r["name"] as string,
             });
     }
+
+    public IReadOnlyList<NationalSpirit> GetSpirits(string countryTag) =>
+        _static.Query("SELECT id,country_tag,name,description FROM national_spirit WHERE country_tag=? ORDER BY rowid", countryTag)
+               .Select(r => new NationalSpirit((string)r["id"]!, (string)r["country_tag"]!, (string)r["name"]!, r["description"] as string ?? "")).ToList();
+
+    public CountryInfo? GetCountryInfo(string countryTag) =>
+        _static.Query("SELECT country_tag,government,leader,doctrine,alliance,description FROM country_info WHERE country_tag=?", countryTag)
+               .Select(r => new CountryInfo((string)r["country_tag"]!, r["government"] as string ?? "", r["leader"] as string ?? "",
+                                            r["doctrine"] as string ?? "", r["alliance"] as string ?? "", r["description"] as string ?? ""))
+               .FirstOrDefault();
 
     /// <summary>Anéis já projectados (float32 x,y). Só a apresentação precisa disto.</summary>
     public IEnumerable<(int RegionId, float[] Points)> ReadPolygons()
@@ -93,12 +110,12 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure FROM s_region"))
         { var reg = w.Regions[Convert.ToInt32(r["id"])]; reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]); }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
                 Id = Convert.ToInt32(r["id"]), CountryId = Convert.ToInt32(r["country_id"]), TemplateId = Convert.ToInt32(r["template_id"]),
-                RegionId = Convert.ToInt32(r["region_id"]),
+                RegionId = Convert.ToInt32(r["region_id"]), Name = r["name"] as string,
                 Hp = Convert.ToSingle(r["hp"]), Org = Convert.ToSingle(r["org"]), Supply = Convert.ToSingle(r["supply"]),
             };
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
@@ -136,8 +153,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f)
                 save.Execute("INSERT INTO s_region VALUES (?,?,?)", r.Id, r.ControllerId, r.Infrastructure);
         foreach (var d in w.Divisions.Values)
-            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
-                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path));
+            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name);
         foreach (var b in w.ActiveBattles)
         {
             // uma batalha por região no schema: se dois países atacam a mesma região só a primeira persiste

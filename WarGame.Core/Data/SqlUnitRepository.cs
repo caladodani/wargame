@@ -47,11 +47,11 @@ public sealed class SqlUnitRepository : IUnitRepository
     }
 
     public IEnumerable<Modifier> GetModifiers() =>
-        _db.Query("SELECT id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value FROM modifier")
+        _db.Query("SELECT id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id FROM modifier")
            .Select(r => new Modifier(
                Convert.ToInt32(r["id"]), (string)r["source_kind"]!,
                r["condition_key"] as string, r["condition_value"] as string,
                (string)r["stat_key"]!, r["required_tag"] as string,
                (string)r["op"]! == "mul" ? ModOp.Mul : ModOp.Add,
-               Convert.ToSingle(r["value"])));
+               Convert.ToSingle(r["value"]), r["country_tag"] as string, r["spirit_id"] as string));
 }

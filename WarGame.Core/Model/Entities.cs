@@ -6,6 +6,12 @@ public sealed record UnitType(int Id, string Name, string Category, float Cost, 
 
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 
+/// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>
+public sealed record NationalSpirit(string Id, string CountryTag, string Name, string Description);
+
+/// <summary>Texto do painel de país (tabela country_info).</summary>
+public sealed record CountryInfo(string CountryTag, string Government, string Leader, string Doctrine, string Alliance, string Description);
+
 public sealed class Region
 {
     public int Id { get; init; }
@@ -36,6 +42,10 @@ public sealed class Country
     public string Name { get; init; } = "";
     public bool IsPlayer { get; set; }
     public int CapitalRegionId { get; set; }
+    /// <summary>Características do país (tabela country_stat): industry, production_speed, org_regain, start_army_mult…</summary>
+    public StatBlock Stats { get; } = new();
+    /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro.</summary>
+    public float Stat(string key, float fallback = 1f) => Stats.Has(key) ? Stats[key] : fallback;
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
@@ -49,6 +59,7 @@ public sealed class Division
     public int CountryId { get; init; }
     public int TemplateId { get; set; }
     public int RegionId { get; set; }
+    public string? Name { get; set; }             // "Brigada Mecanizada"… (start_division.name / produção); null = nome do template
     public float Hp { get; set; } = 100f;
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;

@@ -9,7 +9,8 @@ Etapas:
  5. rio: intersecta rivers_lake_centerlines (50m)
  6. vizinhos: STRtree, polígonos que se tocam
  7. escreve schema.sql + seed_units.sql + country/region/region_polygon/region_neighbour
- 8. seed_armies.py: templates, exército inicial, capitais
+ 8. país: name = NAME_PT, industry automática por PIB per capita, depois data/countries/*.sql (características únicas)
+ 9. seed_armies.py: templates (genéricos + country_template), exército inicial (country_unit nomeadas + geradas), capitais
 """
 import argparse, json, math, sqlite3, struct, sys, time
 from collections import defaultdict
@@ -194,8 +195,9 @@ def main():
     for i, c in enumerate(sorted(by_country), start=1):
         p = adm0.get(c, {})
         country_ids[c] = i
-        db.execute('INSERT INTO country(id,tag,name,color) VALUES (?,?,?,?)',
-                   (i, c, p.get('NAME') or c, PALETTE7[(p.get('MAPCOLOR7') or i) % 7]))
+        db.execute('INSERT INTO country(id,tag,name,color,name_en,gdp_md) VALUES (?,?,?,?,?,?)',
+                   (i, c, p.get('NAME_PT') or p.get('NAME') or c, PALETTE7[(p.get('MAPCOLOR7') or i) % 7],
+                    p.get('NAME') or c, float(p.get('GDP_MD') or 0)))
 
     for rid, r in enumerate(regions, start=1):
         r['id'] = rid
@@ -209,7 +211,19 @@ def main():
             db.execute('INSERT OR IGNORE INTO region_neighbour VALUES (?,?)', (regions[i]['id'], regions[j]['id']))
     db.commit()
 
-    # exército inicial + capitais (tools/seed_armies.py; re-semeável à parte)
+    # ---- 8. países: industry automática por PIB per capita (√ da razão para a média mundial, 0.4..2.5),
+    #         depois os ficheiros de características únicas (data/countries/*.sql) por cima
+    pop_w = sum(float(adm0.get(c, {}).get('POP_EST') or 0) for c in by_country) or 1
+    gdp_w = sum(float(adm0.get(c, {}).get('GDP_MD') or 0) for c in by_country) or 1
+    for c, i in country_ids.items():
+        p = adm0.get(c, {}); pop = float(p.get('POP_EST') or 0); gdp = float(p.get('GDP_MD') or 0)
+        ratio = (gdp / pop) / (gdp_w / pop_w) if pop > 0 and gdp > 0 else 1.0
+        db.execute('INSERT OR REPLACE INTO country_stat VALUES (?,?,?)', (c, 'industry', round(min(2.5, max(0.4, math.sqrt(ratio))), 2)))
+    for f in sorted((HERE / 'data' / 'countries').glob('*.sql')):
+        db.executescript(f.read_text(encoding='utf-8'))
+    db.commit()
+
+    # ---- 9. exército inicial + capitais (tools/seed_armies.py; re-semeável à parte)
     sys.path.insert(0, str(HERE / 'tools')); import seed_armies
     ntpl, ndiv = seed_armies.seed(db)
     print(f'{ntpl} templates, {ndiv} divisões iniciais')

@@ -17,7 +17,9 @@ CREATE TABLE IF NOT EXISTS modifier (
   id INTEGER PRIMARY KEY, source_kind TEXT NOT NULL,
   condition_key TEXT, condition_value TEXT,
   stat_key TEXT NOT NULL, required_tag TEXT,
-  op TEXT NOT NULL CHECK (op IN ('add','mul')), value REAL NOT NULL
+  op TEXT NOT NULL CHECK (op IN ('add','mul')), value REAL NOT NULL,
+  country_tag TEXT,                          -- NULL = todos os países; senão só divisões desse país
+  spirit_id TEXT                             -- espírito nacional a que pertence (só para a UI agrupar)
 );
 CREATE TABLE IF NOT EXISTS terrain (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT,
@@ -27,7 +29,30 @@ CREATE TABLE IF NOT EXISTS terrain (
 CREATE TABLE IF NOT EXISTS rule (key TEXT PRIMARY KEY, value REAL NOT NULL, note TEXT);
 CREATE TABLE IF NOT EXISTS country (
   id INTEGER PRIMARY KEY, tag TEXT UNIQUE NOT NULL, name TEXT NOT NULL, color TEXT,
-  capital_region_id INTEGER                  -- onde nascem as divisões produzidas (seed_armies.py)
+  capital_region_id INTEGER,                 -- onde nascem as divisões produzidas (seed_armies.py)
+  name_en TEXT, gdp_md REAL                  -- Natural Earth: NAME / GDP_MD (name = NAME_PT)
+);
+-- ===== Características únicas por país (data/countries/*.sql; ver tools/check_countries.py) =====
+CREATE TABLE IF NOT EXISTS country_stat (        -- Country.Stats: industry, production_speed, org_regain, start_army_mult…
+  country_tag TEXT NOT NULL, key TEXT NOT NULL, value REAL NOT NULL, PRIMARY KEY (country_tag, key)
+);
+CREATE TABLE IF NOT EXISTS country_info (        -- texto para o painel do país
+  country_tag TEXT PRIMARY KEY, government TEXT, leader TEXT, doctrine TEXT, alliance TEXT, description TEXT
+);
+CREATE TABLE IF NOT EXISTS national_spirit (     -- espíritos nacionais (HoI4); efeitos = linhas modifier com spirit_id
+  id TEXT PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL, description TEXT
+);
+CREATE TABLE IF NOT EXISTS country_template (    -- templates próprios do país (seed_armies cria template/template_unit)
+  id INTEGER PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS country_template_unit (
+  country_template_id INTEGER NOT NULL REFERENCES country_template(id), unit_type_id INTEGER NOT NULL, qty INTEGER NOT NULL,
+  PRIMARY KEY (country_template_id, unit_type_id)
+);
+CREATE TABLE IF NOT EXISTS country_unit (        -- exército inicial nomeado (brigadas reais); o resto é gerado
+  id INTEGER PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL,
+  template_name TEXT NOT NULL,                   -- nome de um template genérico ou de country_template desse país
+  region_name TEXT                               -- região (nome) onde começa; NULL/desconhecida = capital
 );
 CREATE TABLE IF NOT EXISTS region (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner_id INTEGER REFERENCES country(id),
@@ -50,7 +75,7 @@ CREATE TABLE IF NOT EXISTS region_resource (
 -- Exército inicial (tools/seed_armies.py): uma linha por divisão no dia 0. Só se lê quando não há save.
 CREATE TABLE IF NOT EXISTS start_division (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL REFERENCES country(id),
-  template_id INTEGER NOT NULL, region_id INTEGER NOT NULL REFERENCES region(id)
+  template_id INTEGER NOT NULL, region_id INTEGER NOT NULL REFERENCES region(id), name TEXT
 );
 CREATE TABLE IF NOT EXISTS tech (
   id TEXT PRIMARY KEY, branch TEXT NOT NULL, name TEXT NOT NULL, cost REAL NOT NULL, requires TEXT
@@ -82,7 +107,8 @@ CREATE TABLE IF NOT EXISTS s_division (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, template_id INTEGER NOT NULL,
   region_id INTEGER NOT NULL, target_region_id INTEGER,
   hp REAL NOT NULL, org REAL NOT NULL, supply REAL NOT NULL,
-  move_progress REAL NOT NULL DEFAULT 0, path TEXT      -- path: ids separados por vírgula, do próximo salto ao destino
+  move_progress REAL NOT NULL DEFAULT 0, path TEXT,     -- path: ids separados por vírgula, do próximo salto ao destino
+  name TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_div_region ON s_division(region_id);
 CREATE TABLE IF NOT EXISTS s_battle (region_id INTEGER PRIMARY KEY, attacker_country_id INTEGER NOT NULL, days INTEGER NOT NULL);

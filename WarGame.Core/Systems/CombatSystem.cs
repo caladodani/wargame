@@ -48,7 +48,7 @@ public sealed class CombatSystem : ISystem
 
     private static ModContext BuildContext(World w, Region r, int countryId)
     {
-        var ctx = new ModContext().With("terrain", r.Terrain);
+        var ctx = new ModContext().With("terrain", r.Terrain).With("country", w.Countries[countryId].Tag);
         if (r.River) ctx["river"] = "true";
         // Outros sistemas (Air, Cyber, Research) escrevem aqui via flags na região/país — ver AirSystem.
         foreach (var tech in w.Countries[countryId].Techs) ctx[$"tech:{tech}"] = "true";
