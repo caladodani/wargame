@@ -42,9 +42,18 @@ public static class CampaignReport
             .OrderByDescending(x => x.Regions).ThenBy(x => x.CountryId)
             .ToList();
 
+        // o pico da nota de potência e o dia em que aconteceu: o auge da campanha, tirado da história
+        var samples = w.History.Where(h => h.CountryId == countryId).ToList();
+        float peak = samples.Count == 0 ? 0f : samples.Max(h => h.Power);
+        int peakDay = samples.Count == 0 ? 0 : samples.Where(h => h.Power >= peak).Min(h => h.Day);
+        float now = samples.Count == 0 ? 0f : samples[^1].Power;
+
         var report = new Report
         {
             CountryId = countryId,
+            PowerPeak = peak,
+            PowerPeakDay = peakDay,
+            PowerNow = now,
             CountryName = c?.Name ?? "país " + countryId,
             Verdict = verdict,
             Days = w.Clock.Day,
@@ -130,6 +139,16 @@ public static class CampaignReport
         public int BestDivisionBattles { get; init; }
         public IReadOnlyList<Conquest> Conquests { get; init; } = Array.Empty<Conquest>();
         public int Score { get; set; }
+
+        /// <summary>Auge da nota de potência (PowerIndex) na história guardada, e o primeiro dia em que lá
+        /// se chegou; PowerNow é a última amostra. Uma campanha pode acabar a ganhar e a valer menos do que
+        /// já valeu — é a diferença entre estas duas que o diz.</summary>
+        public float PowerPeak { get; init; }
+        public int PowerPeakDay { get; init; }
+        public float PowerNow { get; init; }
+
+        /// <summary>Quanto se caiu (ou subiu) desde o auge.</summary>
+        public float PowerFromPeak => PowerNow - PowerPeak;
 
         /// <summary>Regiões ganhas (ou perdidas) desde o primeiro dia.</summary>
         public int NetRegions => Regions - RegionsAtStart;

@@ -170,7 +170,9 @@ public sealed class ActiveDecision
 }
 
 /// <summary>Amostra periódica para os gráficos de evolução (HistorySystem, tabela s_history).</summary>
-public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions);
+/// <summary>Amostra periódica de um país (HistorySystem). Power é a nota do PowerIndex nesse dia: sem ela
+/// a história só contava coisas contáveis e a subida de um império industrial não se via em lado nenhum.</summary>
+public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions, float Power = 0f);
 
 /// <summary>Acordo de comércio (World.TradeDeals): o comprador conta Units dos depósitos do vendedor
 /// e paga Units × rule trade_price_per_unit por dia (TradeSystem). Cai com guerra, falta de depósitos

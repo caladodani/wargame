@@ -235,6 +235,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         ("s_spy_op", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_offer", "region_id", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_history", "power", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "research_tech", "TEXT"),
         ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "capitulated", "INTEGER NOT NULL DEFAULT 0"),
@@ -363,9 +364,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT day,kind,text,country_id,region_id FROM s_chronicle ORDER BY ord"))
             w.Chronicle.Add(new ChronicleEntry(Convert.ToInt32(r["day"]), (string)r["kind"]!, (string)r["text"]!,
                 Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["region_id"])));
-        foreach (var r in save.Query("SELECT day,country_id,money,divisions,regions FROM s_history ORDER BY day"))
+        foreach (var r in save.Query("SELECT day,country_id,money,divisions,regions,power FROM s_history ORDER BY day"))
             w.History.Add(new HistorySample(Convert.ToInt32(r["day"]), Convert.ToInt32(r["country_id"]),
-                Convert.ToSingle(r["money"]), Convert.ToInt32(r["divisions"]), Convert.ToInt32(r["regions"])));
+                Convert.ToSingle(r["money"]), Convert.ToInt32(r["divisions"]), Convert.ToInt32(r["regions"]),
+                Convert.ToSingle(r["power"])));
         foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
             w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
                 ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
@@ -487,7 +489,8 @@ public sealed class SqlWorldRepository : IWorldRepository
                 save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until) VALUES (?,?,?,?)",
                     c.Id, did, w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == did)?.UntilDay ?? -1, cd);
         foreach (var h in w.History)
-            save.Execute("INSERT INTO s_history VALUES (?,?,?,?,?)", h.Day, h.CountryId, h.Money, h.Divisions, h.Regions);
+            save.Execute("INSERT INTO s_history (day,country_id,money,divisions,regions,power) VALUES (?,?,?,?,?,?)",
+                h.Day, h.CountryId, h.Money, h.Divisions, h.Regions, h.Power);
         for (int i = 0; i < w.Chronicle.Count; i++)
         {
             var e = w.Chronicle[i];

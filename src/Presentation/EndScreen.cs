@@ -118,7 +118,20 @@ public partial class EndScreen : PanelContainer
             }
 
             _body.AddChild(Header("A campanha, dia a dia"));
+            if (r.PowerPeak > 0f)
+            {
+                string peak = $"Auge da potência: {r.PowerPeak:0.0} ao dia {r.PowerPeakDay}";
+                var note = Ui.Lbl(r.PowerFromPeak < -0.05f
+                    ? $"{peak} — acabámos {MathF.Abs(r.PowerFromPeak):0.0} abaixo disso"
+                    : $"{peak} — e é onde estamos", 16);
+                note.AddThemeColorOverride("font_color", r.PowerFromPeak < -0.05f ? Ui.Danger : Ui.Good);
+                _body.AddChild(note);
+            }
             var chart = new HistoryChart(); chart.Setup(_game);
+            chart.SetMetric("power");                                    // o fim da campanha conta-se pela nota
+            var crow = new HBoxContainer(); _body.AddChild(crow);
+            foreach (var (m, label) in new[] { ("power", "Potência"), ("divisions", "Divisões"), ("regions", "Regiões"), ("money", "Pontos") })
+                crow.AddChild(Ui.Btn(label, () => chart.SetMetric(m), 110));
             _body.AddChild(Ui.Grow(chart));
 
             _restart.Text = _verdict == CampaignReport.Ongoing ? "Recomeçar" : "Novo jogo";

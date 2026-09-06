@@ -834,7 +834,8 @@ public partial class Hud : CanvasLayer
             new SupplySystem().Tick(w);                                // recalcula capacidade e carga do cais
         }
         int smokeFoe = 0;                                               // inimigo com quem o smoke negoceia
-        int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
+        int served = _countryPanel.Smoke(pid);                          // painel País: folha de serviço com os cartões
+        int chartDay = _countryPanel.SmokeChart(); _countryPanel.Close();  // e o gráfico na nota de potência, com mira
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
         // uma equipa de sabotagem a caminho da retaguarda inimiga, para o cartão ter barra e botões
         int sab = 0;
@@ -896,7 +897,7 @@ public partial class Hud : CanvasLayer
             AnswerOffer(false);                                         // recusa: os campos ficam como estavam
         }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

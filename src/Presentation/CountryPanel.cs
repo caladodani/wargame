@@ -10,6 +10,9 @@ namespace WarGame.Presentation;
 /// botões; para os outros é só leitura. Lê o World só em Fill (mundo parado); muta só por Game.Dispatch.</summary>
 public partial class CountryPanel : PanelContainer
 {
+    /// <summary>Último gráfico desenhado, só para o --smoke lhe poder mexer na métrica e na mira.</summary>
+    private HistoryChart? _chart;
+
     private Game _game = null!;
     private Label _title = null!;
     private TextureRect _flag = null!;
@@ -46,6 +49,17 @@ public partial class CountryPanel : PanelContainer
         var w = _game.World;
         return w.Divisions.Values.Count(d => d.CountryId == countryId && (d.Honour is not null || d.Medals.Count > 0));
     }
+    /// <summary>Só para o --smoke: passa o gráfico para a nota de potência e pousa-lhe a mira no último dia,
+    /// para o desenho novo (mancha do jogador, vertical, tabela flutuante) ser percorrido sem ecrã.</summary>
+    public int SmokeChart()
+    {
+        if (_chart is null) return 0;
+        _chart.SetMetric("power");
+        int day = _chart.SmokeCursor();
+        _chart.QueueRedraw();
+        return day;
+    }
+
     public void Close() => Visible = false;
 
     private void Fill()
@@ -218,9 +232,11 @@ public partial class CountryPanel : PanelContainer
             {
                 Header("Evolução");
                 var chart = new HistoryChart(); chart.Setup(_game);
+                _chart = chart;
                 var mrow = new HBoxContainer(); _body.AddChild(mrow);
-                foreach (var (m, label) in new[] { ("divisions", "Divisões"), ("regions", "Regiões"), ("money", "Pontos") })
-                    mrow.AddChild(Ui.Btn(label, () => chart.SetMetric(m), 120));
+                foreach (var (m, label) in new[] { ("divisions", "Divisões"), ("regions", "Regiões"), ("money", "Pontos"), ("power", "Potência") })
+                    mrow.AddChild(Ui.Btn(label, () => chart.SetMetric(m), 110));
+                _body.AddChild(Ui.Lbl("Toca no gráfico para ver os números de um dia", 14));
                 _body.AddChild(chart);
                 chart.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             }

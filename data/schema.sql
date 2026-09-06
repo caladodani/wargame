@@ -240,6 +240,7 @@ CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recurso
   PRIMARY KEY (buyer_id, seller_id, resource));
 CREATE TABLE IF NOT EXISTS s_history (        -- amostras dos gráficos de evolução (HistorySystem)
   day INTEGER NOT NULL, country_id INTEGER NOT NULL, money REAL NOT NULL, divisions INTEGER NOT NULL, regions INTEGER NOT NULL,
+  power REAL NOT NULL DEFAULT 0,               -- nota do PowerIndex no dia da amostra
   PRIMARY KEY (day, country_id));
 CREATE TABLE IF NOT EXISTS s_chronicle (      -- crónica da campanha (ChronicleSystem)
   ord INTEGER PRIMARY KEY, day INTEGER NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL,
