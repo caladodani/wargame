@@ -125,6 +125,7 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
         if (CountryId == TargetCountryId) return "Não podes declarar guerra a ti próprio";
         if (!w.Countries.ContainsKey(TargetCountryId)) return "País inexistente";
         if (w.SameFaction(CountryId, TargetCountryId)) return "Aliados na mesma facção";
+        if (w.HasPact(CountryId, TargetCountryId)) return "Pacto de não-agressão em vigor";
         return w.Countries[CountryId].AtWarWith.Contains(TargetCountryId) ? "Já em guerra" : null;
     }
     public void Execute(World w)
@@ -554,5 +555,37 @@ public sealed record DisbandDivisionCommand(int CountryId, int DivisionId) : ICo
         c.Manpower += men;
         w.Events.Publish(new DivisionDisbanded(DivisionId, CountryId));
         w.RemoveDivision(DivisionId);
+    }
+}
+
+/// <summary>Propor pacto de não-agressão. A IA aceita se não está a justificar guerra contra o
+/// proponente e (é mais fraca em divisões ou partilha um inimigo); senão PactRejected.
+/// Aceite = sem DeclareWar entre os dois durante nap_days.</summary>
+public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "alvo inválido";
+        if (CountryId == TargetCountryId) return "contigo próprio não";
+        if (w.AreAtWar(CountryId, TargetCountryId)) return "estão em guerra — propõe paz";
+        if (w.SameFaction(CountryId, TargetCountryId)) return "aliados de facção não precisam de pacto";
+        if (w.HasPact(CountryId, TargetCountryId)) return "já há pacto em vigor";
+        if (c.Money < w.Rule("nap_cost", 20f)) return $"faltam pontos de produção ({w.Rule("nap_cost", 20f):0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId]; var t = w.Countries[TargetCountryId];
+        c.Money -= w.Rule("nap_cost", 20f);
+        int myDivs = w.Divisions.Values.Count(d => d.CountryId == CountryId);
+        int theirDivs = w.Divisions.Values.Count(d => d.CountryId == TargetCountryId);
+        bool commonEnemy = t.AtWarWith.Any(c.AtWarWith.Contains);
+        bool accepts = t.JustifyTarget != CountryId && (theirDivs < myDivs || commonEnemy);
+        if (!accepts) { w.Events.Publish(new PactRejected(CountryId, TargetCountryId)); return; }
+        int until = w.Clock.Day + (int)w.Rule("nap_days", 180f);
+        w.Pacts[World.WarKey(CountryId, TargetCountryId)] = until;
+        w.Events.Publish(new PactSigned(CountryId, TargetCountryId, until));
     }
 }

@@ -40,6 +40,10 @@ public sealed class World
     /// <summary>Rede de informação activa: (autor, alvo) → último dia com visibilidade (efeito intel).</summary>
     public Dictionary<(int A, int B), int> Intel { get; } = new();
     public bool HasIntel(int a, int b) => Intel.TryGetValue((a, b), out var until) && until >= Clock.Day;
+
+    /// <summary>Pactos de não-agressão: (a,b) com a&lt;b → último dia em vigor. Bloqueia DeclareWar.</summary>
+    public Dictionary<(int A, int B), int> Pacts { get; } = new();
+    public bool HasPact(int a, int b) => Pacts.TryGetValue(WarKey(a, b), out var until) && until >= Clock.Day;
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();

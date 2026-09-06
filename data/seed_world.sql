@@ -192,3 +192,16 @@ INSERT INTO rule (key,value,note) VALUES
 -- Roubo de tecnologia (efeito research_boost): dá `magnitude` dias de progresso à investigação activa do autor.
 INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES
  ('roubo_tech','Roubo de tecnologia','Agentes copiam os planos do alvo: a tua investigação em curso avança de um golpe.',70,35,'research_boost',30);
+
+-- Pacto de não-agressão (ProposeNonAggressionCommand): bloqueia declarações de guerra entre os dois
+-- durante nap_days. A IA aceita se não está a justificar guerra contra o proponente e é mais fraca
+-- ou partilha um inimigo.
+INSERT INTO rule (key,value,note) VALUES
+ ('nap_days',180,'duração do pacto de não-agressão'),
+ ('nap_cost',20,'pontos de produção para propor o pacto');
+
+-- Recursos estratégicos (ResourceSystem): controlar depósitos multiplica stats do país.
+INSERT INTO resource (id,name,stat_key,per_unit,cap) VALUES
+ ('aco','Aço','production_speed',0.02,10),
+ ('petroleo','Petróleo','industry',0.015,10),
+ ('raros','Metais raros','research_speed',0.02,5);

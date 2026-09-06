@@ -250,6 +250,8 @@ public sealed class SqlWorldRepository : IWorldRepository
                 OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]) });
         foreach (var r in save.Query("SELECT country_id,target_id,until_day FROM s_intel"))
             w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
+        foreach (var r in save.Query("SELECT a,b,until_day FROM s_pact"))
+            w.Pacts[(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance FROM s_region"))
         {
@@ -295,7 +297,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -305,6 +307,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("INSERT INTO s_spy_op VALUES (?,?,?,?)", o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft);
         foreach (var ((ia, ib), until) in w.Intel)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
+        foreach (var ((pa, pb), until) in w.Pacts)
+            if (until >= w.Clock.Day) save.Execute("INSERT INTO s_pact VALUES (?,?,?)", pa, pb, until);
         foreach (var id in w.CustomFactionIds)
         {
             var f = w.Factions[id];

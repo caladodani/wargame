@@ -172,6 +172,9 @@ CREATE TABLE IF NOT EXISTS s_spy_op (         -- operações em curso (save)
 CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (efeito intel; até `until_day`)
   country_id INTEGER, target_id INTEGER, until_day INTEGER NOT NULL,
   PRIMARY KEY (country_id, target_id));
+CREATE TABLE IF NOT EXISTS s_pact (           -- pactos de não-agressão (a<b, até `until_day`)
+  a INTEGER, b INTEGER, until_day INTEGER NOT NULL,
+  PRIMARY KEY (a, b));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)
@@ -200,3 +203,9 @@ CREATE TABLE IF NOT EXISTS s_production_queue (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, template_id INTEGER NOT NULL, progress REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qty INTEGER NOT NULL, PRIMARY KEY (country_id, unit_type_id));
+CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
+  stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS region_resource (  -- depósitos por região (gerados no fim do import: seed_resources.sql)
+  region_id INTEGER NOT NULL, resource_id TEXT NOT NULL REFERENCES resource(id), amount REAL NOT NULL,
+  PRIMARY KEY (region_id, resource_id));

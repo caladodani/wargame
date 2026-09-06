@@ -229,6 +229,14 @@ public partial class Hud : CanvasLayer
             if (Player(e.ToCountryId)) Later($"{Country(e.FromCountryId)} enviou-te {e.Amount:0} pontos de produção");
             else if (Player(e.FromCountryId)) Later($"Apoio de {e.Amount:0} pts enviado a {Country(e.ToCountryId)}");
         }));
+        _subs.Add(w.Events.Subscribe<PactSigned>(e =>
+        {
+            if (Player(e.A) || Player(e.B)) Later($"Pacto de não-agressão com {Country(Player(e.A) ? e.B : e.A)} até ao dia {e.UntilDay}");
+        }));
+        _subs.Add(w.Events.Subscribe<PactRejected>(e =>
+        {
+            if (Player(e.FromCountryId)) Later($"{Country(e.ToCountryId)} recusou o pacto de não-agressão");
+        }));
         _subs.Add(w.Events.Subscribe<SpyOpStarted>(e =>
         {
             if (Player(e.CountryId) && _game.World.SpyOps.TryGetValue(e.OpId, out var op))
