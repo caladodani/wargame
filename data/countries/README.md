@@ -28,4 +28,4 @@ Gamas de ids (para não colidirem entre ficheiros): país nº *k* na lista abaix
 | 3 | CHN | 9 | JPN | 15 | TUR | 21 | AUS |
 | 4 | RUS | 10 | KOR | 16 | IRN | 22 | CAN |
 | 5 | IND | 11 | PRK | 17 | PAK | 23 | IDN |
-| 24 | ARG | 25 | AGO | 26 | MOZ | 27 | … |
+| 24 | ARG | 25 | AGO | 26 | MOZ | 27 | FRA |

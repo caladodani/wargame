@@ -5,7 +5,7 @@ Etapas:
  1. admin-1 (10m) agrupado por país; k-means nos centróides até ao orçamento de regiões por país (∝ área)
  2. união dos polígonos, limpeza, simplificação, projecção Robinson → unidades Godot
  3. terreno por intersecção com ne_10m_geography_regions_polys + heurísticas de latitude / densidade
- 4. população: populated_places dentro da região + resto do POP_EST do país ∝ área
+ 4. população: populated_places (10m se existir) dentro da região + resto do POP_EST 30 % ∝ área, 70 % ∝ cidades
  5. rio: intersecta rivers_lake_centerlines (50m)
  6. vizinhos: STRtree, polígonos que se tocam
  7. escreve schema.sql + seed_units.sql + country/region/region_polygon/region_neighbour
@@ -27,11 +27,15 @@ from pyproj import Transformer
 HERE = Path(__file__).resolve().parent.parent
 
 FEATURE_TERRAIN = {
-    'Range/mtn': 'mountain', 'Foothills': 'mountain', 'Plateau': 'mountain', 'Gorge': 'mountain',
+    'Range/mtn': 'mountain', 'Foothills': 'mountain', 'Gorge': 'mountain',
     'Desert': 'desert', 'Depression': 'desert',
     'Tundra': 'tundra',
     'Plain': 'plain', 'Lowland': 'plain', 'Basin': 'plain', 'Valley': 'plain', 'Wetlands': 'plain', 'Delta': 'plain',
+    'Plateau': 'plain',  # os planaltos do NE (Brasil, Meseta, Decão) são enormes e maioritariamente aráveis
 }
+# Fração da área da região que uma classe do NE tem de cobrir para mandar; as cordilheiras do NE são
+# polígonos gigantes (Andes, Rochosas, "Sistema Ibérico") — exigir maioria clara para ser montanha.
+TERRAIN_MIN_SHARE = {'mountain': 0.55, 'desert': 0.4, 'tundra': 0.4, 'plain': 0.25}
 PALETTE7 = ['#e6a0a0', '#a0c8e6', '#a0e6b4', '#e6dca0', '#c8a0e6', '#e6b4a0', '#a0e6e0']
 
 
@@ -79,8 +83,12 @@ def main():
     adm0 = {f['properties']['ADM0_A3']: f['properties'] for f in load(a.ne, 'ne_50m_admin_0_countries')}
     geo = load(a.ne, 'ne_10m_geography_regions_polys')
     rivers = [shape(f['geometry']) for f in load(a.ne, 'ne_50m_rivers_lake_centerlines') if f['geometry']]
+    places_src = 'ne_10m_populated_places' if (Path(a.ne) / 'ne_10m_populated_places.geojson').exists() else 'ne_50m_populated_places'
     places = [(Point(f['geometry']['coordinates']), f['properties'].get('POP_MAX') or 0)
-              for f in load(a.ne, 'ne_50m_populated_places') if f['geometry']]
+              for f in load(a.ne, places_src) if f['geometry']]
+    place_tree = STRtree([p for p, _ in places])
+    def places_pop(g):
+        return sum(places[i][1] for i in place_tree.query(g, predicate='contains'))
 
     # ---- 1. agrupar admin-1 por país
     by_country = defaultdict(list)
@@ -100,8 +108,12 @@ def main():
     weight = {c: math.sqrt(country_area[c] * max(country_pop[c], 1e5)) for c in by_country}
     total_w = sum(weight.values())
 
+    # Países ao detalhe máximo (todas as admin-1): os que o jogador quer jogar a sério.
+    FULL_DETAIL = {'PRT', 'BRA'}
+
     def budgets(k):
-        return {c: min(len(by_country[c]), max(a.min_per_country, round(k * weight[c] / total_w)))
+        return {c: len(by_country[c]) if c in FULL_DETAIL else
+                min(len(by_country[c]), max(a.min_per_country, round(k * weight[c] / total_w)))
                 for c in by_country}
     k = a.target
     for _ in range(20):
@@ -123,7 +135,7 @@ def main():
         for grp in groups:
             geom = clean(unary_union([u[0] for u in grp]))
             if geom.is_empty: continue
-            name = max(grp, key=lambda u: u[2])[1] if len(grp) > 1 else grp[0][1]
+            name = max(grp, key=lambda u: (places_pop(u[0]), u[2]))[1] if len(grp) > 1 else grp[0][1]  # a mais povoada dá o nome
             regions.append(dict(name=name, country=c, geom=geom, area=sum(u[2] for u in grp)))
 
     # ---- 3. terreno
@@ -138,25 +150,28 @@ def main():
                 try: scores[t] += g.intersection(geo_geoms[i]).area
                 except Exception: pass
         lat = abs(g.centroid.y)
-        if scores and max(scores.values()) > g.area * 0.25:
-            terrain = max(scores, key=scores.get)
+        best = max(scores, key=scores.get) if scores else None
+        belt_forest = 48 <= lat <= 63 or (lat < 8 and -80 < g.centroid.x < 60)  # boreal / equatorial (o NE não tem "floresta")
+        if best and best != 'plain' and scores[best] > g.area * TERRAIN_MIN_SHARE[best]: terrain = best
         elif lat > 63: terrain = 'tundra'
-        elif 48 <= lat <= 63 or (lat < 8 and g.centroid.x < 60 and g.centroid.x > -80): terrain = 'forest'  # boreal / equatorial
+        elif belt_forest: terrain = 'forest'
         else: terrain = 'plain'
         r['terrain'] = terrain
 
     # ---- 4. população
-    place_tree = STRtree([p for p, _ in places])
+    # cidades dentro da região + resto do POP_EST do país repartido 30 % pela área e 70 % pela
+    # população urbana (a área sozinha dava a Beja quatro vezes o Porto)
     country_place_pop = defaultdict(float)
     for r in regions:
-        pop = sum(places[i][1] for i in place_tree.query(r['geom'], predicate='contains'))
-        r['pop_places'] = pop; country_place_pop[r['country']] += pop
+        r['pop_places'] = places_pop(r['geom']); country_place_pop[r['country']] += r['pop_places']
     for r in regions:
         c = r['country']; cpop = float(adm0.get(c, {}).get('POP_EST') or 0)
         rest = max(0.0, cpop - country_place_pop[c])
-        r['pop'] = int(r['pop_places'] + rest * r['area'] / country_area[c])
-        if r['area'] > 0 and r['pop'] / r['area'] > 300 and r['terrain'] in ('plain', 'forest'):
-            r['terrain'] = 'urban'
+        share_area = r['area'] / country_area[c] if country_area[c] else 0
+        share_city = r['pop_places'] / country_place_pop[c] if country_place_pop[c] else share_area
+        r['pop'] = int(r['pop_places'] + rest * (0.3 * share_area + 0.7 * share_city))
+        if r['area'] > 0 and r['pop'] / r['area'] > 300:
+            r['terrain'] = 'urban'  # metrópole manda, seja qual for o relevo
 
     # ---- 5. rios
     river_tree = STRtree(rivers)
