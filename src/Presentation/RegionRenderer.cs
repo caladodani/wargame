@@ -68,10 +68,11 @@ public partial class RegionRenderer : Node2D
         if (_byRegion.TryGetValue(regionId, out var polys)) foreach (var p in polys) p.Color = ColorFor(regionId);
     });
 
-    /// <summary>Marcadores e realce à escala inversa do zoom (clamp 1..6) para se lerem em qualquer zoom.</summary>
+    /// <summary>Marcadores e realce à escala inversa do zoom (clamp 0.05..6): tamanho constante no ecrã —
+    /// ao aproximar encolhem no mapa em vez de crescerem no ecrã.</summary>
     public void SetZoom(float zoom)
     {
-        _markerScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 1f, 6f);
+        _markerScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var m in _markers.Values) m.Scale = Vector2.One * _markerScale;
         foreach (var c in _highlightRoot.GetChildren()) if (c is Line2D l) l.Width = 4f * _markerScale;
         foreach (var c in _multiRoot.GetChildren()) if (c is Line2D l2) l2.Width = 4f * _markerScale;
