@@ -209,6 +209,9 @@ public partial class Hud : CanvasLayer
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
 
+    private static string FmtMen(float m) =>
+        m < 0 ? "—" : m >= 1e6f ? $"{m / 1e6f:0.0}M" : m >= 1e3f ? $"{m / 1e3f:0}k" : $"{m:0}";
+
     private void RefreshTop()
     {
         var w = _game.World; var c = w.Clock;
@@ -217,7 +220,7 @@ public partial class Hud : CanvasLayer
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
             _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
-            _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}";
+            _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}  ·  Homens {FmtMen(p.Manpower)}";
             _hint.Visible = false;
         }
         else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; }

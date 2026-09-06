@@ -31,6 +31,15 @@ INSERT INTO faction_member (faction_id,country_tag) VALUES
  ('cn_prk','CHN'),('cn_prk','PRK'),
  ('ru_prk','RUS'),('ru_prk','PRK');
 
+-- rules: manpower (ManpowerSystem — pool de homens estilo HoI4)
+INSERT INTO rule (key,value,note) VALUES
+ ('manpower_per_million_daily',60,'homens novos por dia por milhão de população controlada (× country_stat conscription)'),
+ ('manpower_cap_share',0.05,'tecto do pool: fracção da população controlada (× conscription)'),
+ ('manpower_start_share',0.5,'pool inicial = tecto × isto'),
+ ('manpower_per_cost',500,'homens gastos por ponto de custo do template ao entregar uma divisão'),
+ ('reinforce_hp_manpower',30,'homens por ponto de HP recuperado (RecoverySystem)'),
+ ('reinforce_hp_money',0.05,'pontos de produção por ponto de HP recuperado');
+
 -- rules: peace (PeaceSystem — capitulação estilo HoI4)
 INSERT INTO rule (key,value,note) VALUES
  ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção da população das suas regiões'),

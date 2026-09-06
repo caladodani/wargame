@@ -32,8 +32,8 @@ public static class TestWorld
     /// População 10M por região (→ 1 ponto/dia com points_per_million=0.1).</summary>
     public static void LinearMap(World w, int n = 6, int split = 3, string terrain = "plain", int population = 10_000_000)
     {
-        w.Countries[1] = new Country { Id = 1, Tag = "A", Name = "Alfa", CapitalRegionId = 1 };
-        w.Countries[2] = new Country { Id = 2, Tag = "B", Name = "Beta", CapitalRegionId = n };
+        w.Countries[1] = new Country { Id = 1, Tag = "A", Name = "Alfa", CapitalRegionId = 1, Manpower = 1e9f };
+        w.Countries[2] = new Country { Id = 2, Tag = "B", Name = "Beta", CapitalRegionId = n, Manpower = 1e9f };
         for (int i = 1; i <= n; i++)
         {
             int owner = i <= split ? 1 : 2;

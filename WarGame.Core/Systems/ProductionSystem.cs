@@ -35,16 +35,21 @@ public sealed class ProductionSystem : ISystem
     }
 
     /// <summary>Encomendas prontas (Progress ≥ custo − 1e-3) saem da fila e nascem em SpawnRegion.
-    /// Sem região controlada ficam à espera (prontas, sem gastar mais).</summary>
+    /// Sem região controlada, ou sem homens (rule manpower_per_cost × custo), ficam à espera.</summary>
     private static void Deliver(World w, Country c, float newOrg)
     {
+        float perCost = w.Rule("manpower_per_cost", 500f);
         int? spawn = null;
         for (int i = 0; i < c.Queue.Count;)
         {
             var o = c.Queue[i];
-            if (o.Progress < w.TemplateCost(o.TemplateId) - 1e-3f) { i++; continue; }
+            float cost = w.TemplateCost(o.TemplateId);
+            if (o.Progress < cost - 1e-3f) { i++; continue; }
+            float men = cost * perCost;
+            if (c.Manpower < men) { i++; continue; }   // pool ainda por encher — a encomenda espera
             spawn ??= SpawnRegion(w, c);
             if (spawn < 0) return;
+            c.Manpower -= men;
             w.AddDivision(new Division
             {
                 Id = w.NewDivisionId(), CountryId = c.Id, TemplateId = o.TemplateId, RegionId = spawn.Value,

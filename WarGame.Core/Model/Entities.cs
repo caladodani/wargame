@@ -61,6 +61,7 @@ public sealed class Country
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
+    public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
     public HashSet<int> AtWarWith { get; } = new();
