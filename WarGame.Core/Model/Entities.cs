@@ -74,6 +74,9 @@ public sealed class Region
     public Dictionary<string, float> Resources { get; init; } = new();
 }
 
+/// <summary>Amostra periódica para os gráficos de evolução (HistorySystem, tabela s_history).</summary>
+public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions);
+
 /// <summary>Acordo de comércio (World.TradeDeals): o comprador conta Units dos depósitos do vendedor
 /// e paga Units × rule trade_price_per_unit por dia (TradeSystem). Cai com guerra, falta de depósitos
 /// ou falta de dinheiro.</summary>

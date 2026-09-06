@@ -92,6 +92,7 @@ public partial class Game : Node
         World.Register(new VictorySystem());
         World.Register(new DiplomacySystem());
         World.Register(new RecoverySystem());
+        World.Register(new HistorySystem());
         World.Register(new AiSystem());
 
         RefreshPlayer();

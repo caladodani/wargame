@@ -216,3 +216,14 @@ INSERT INTO rule (key,value,note) VALUES
 
 -- Comércio de recursos (TradeSystem)
 INSERT INTO rule VALUES ('trade_price_per_unit', 2, 'pontos por dia por unidade de recurso alugada');
+
+-- Reserva de dinheiro abaixo da qual a IA não propõe pactos de não-agressão.
+INSERT INTO rule (key,value,note) VALUES
+ ('ai_nap_reserve',100,'em guerra, a IA propõe NAP a vizinhos neutros se tiver dinheiro acima disto');
+
+-- Gráficos de evolução (HistorySystem)
+INSERT INTO rule VALUES ('history_sample_days', 7, 'dias entre amostras dos gráficos');
+INSERT INTO rule VALUES ('history_tracked', 8, 'países por amostra (jogador + maiores)');
+
+-- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
+INSERT INTO spy_op VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);

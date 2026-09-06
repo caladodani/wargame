@@ -209,3 +209,6 @@ CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven);
 CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recursos em vigor (save)
   buyer_id INTEGER NOT NULL, seller_id INTEGER NOT NULL, resource TEXT NOT NULL, units REAL NOT NULL,
   PRIMARY KEY (buyer_id, seller_id, resource));
+CREATE TABLE IF NOT EXISTS s_history (        -- amostras dos gráficos de evolução (HistorySystem)
+  day INTEGER NOT NULL, country_id INTEGER NOT NULL, money REAL NOT NULL, divisions INTEGER NOT NULL, regions INTEGER NOT NULL,
+  PRIMARY KEY (day, country_id));
