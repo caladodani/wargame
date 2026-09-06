@@ -18,7 +18,7 @@ public partial class RegionPanel : PanelContainer
     private CountryPanel _countryPanel = null!;
     private Label _title = null!, _info = null!;
     private VBoxContainer _rows = null!;
-    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _war = null!, _produce = null!, _build = null!, _fort = null!;
+    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!;
     private ConfirmationDialog _warDialog = null!;
     private readonly Dictionary<string, string> _terrainNames = new();
     private readonly HashSet<int> _selected = new();
@@ -49,6 +49,7 @@ public partial class RegionPanel : PanelContainer
         _all = Ui.Btn("Todas", SelectAll); actions.AddChild(_all);
         _move = Ui.Btn("Mover", BeginMove); actions.AddChild(_move);
         _stop = Ui.Btn("Parar", () => _game.RunWhenIdle(OnStop)); actions.AddChild(_stop);
+        _disband = Ui.Btn("Dissolver", () => _game.RunWhenIdle(OnDisband)); actions.AddChild(_disband);
         _war = Ui.Btn("", () => _warDialog.PopupCentered()); actions.AddChild(_war);
         _produce = Ui.Btn("Produzir", () => { Close(); _production.Open(); }); actions.AddChild(_produce);
         _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
@@ -112,6 +113,16 @@ public partial class RegionPanel : PanelContainer
         string? first = null;
         foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new StopDivisionCommand(pid, id));
         if (first is not null) _game.Notify(first);
+        Refresh();
+    }
+
+    private void OnDisband()
+    {
+        if (_game.PlayerId is not int pid) return;
+        string? first = null;
+        foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new DisbandDivisionCommand(pid, id));
+        if (first is not null) _game.Notify(first);
+        _selected.Clear();
         Refresh();
     }
 
@@ -198,7 +209,7 @@ public partial class RegionPanel : PanelContainer
             bool hasPlayer = pid is not null, anyMine = _mine.Count > 0;
             _play.Visible = !hasPlayer && ctrl is not null;
             if (_play.Visible) _play.Text = $"Jogar como {ctrl!.Name}";
-            _all.Visible = _move.Visible = _stop.Visible = hasPlayer && anyMine;
+            _all.Visible = _move.Visible = _stop.Visible = _disband.Visible = hasPlayer && anyMine;
             bool canWar = hasPlayer && ctrl is not null && ctrl.Id != pid && !w.AreAtWar(pid!.Value, ctrl.Id);
             _war.Visible = canWar;
             if (canWar) { _war.Text = $"Justificar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Justificar objectivo de guerra contra {ctrl.Name}? A guerra declara-se sozinha ao fim da justificação."; }
@@ -240,6 +251,6 @@ public partial class RegionPanel : PanelContainer
     private void UpdateButtons()
     {
         _move.Disabled = _selected.Count == 0 || MoveMode;
-        _stop.Disabled = _selected.Count == 0;
+        _stop.Disabled = _disband.Disabled = _selected.Count == 0;
     }
 }

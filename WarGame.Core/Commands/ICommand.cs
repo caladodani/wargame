@@ -532,3 +532,27 @@ public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, strin
         w.Events.Publish(new SpyOpStarted(CountryId, TargetCountryId, OpId));
     }
 }
+
+/// <summary>Dissolver uma divisão fora de combate: devolve disband_manpower_refund dos homens
+/// (proporcional ao HP) ao pool do país. HoI4: delete unit, com refund parcial.</summary>
+public sealed record DisbandDivisionCommand(int CountryId, int DivisionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Divisions.TryGetValue(DivisionId, out var d)) return "Divisão inexistente";
+        if (d.CountryId != CountryId) return "Divisão não é tua";
+        if (w.InBattle(DivisionId)) return "Em combate";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var d = w.Divisions[DivisionId];
+        var c = w.Countries[CountryId];
+        float men = w.TemplateCost(d.TemplateId) * w.Rule("manpower_per_cost", 500f)
+                    * (d.Hp / 100f) * w.Rule("disband_manpower_refund", 0.5f);
+        c.Manpower += men;
+        w.Events.Publish(new DivisionDisbanded(DivisionId, CountryId));
+        w.RemoveDivision(DivisionId);
+    }
+}

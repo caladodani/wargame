@@ -46,6 +46,7 @@ public sealed record PeaceOfferRejected(int FromCountryId, int ToCountryId) : IG
 public sealed record RegionRevolted(int RegionId, int OldController) : IGameEvent;
 public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
+public sealed record DivisionDisbanded(int DivisionId, int CountryId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;
