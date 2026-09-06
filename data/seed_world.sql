@@ -188,3 +188,7 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 -- Dissolver divisões (DisbandDivisionCommand): refund parcial de homens, proporcional ao HP.
 INSERT INTO rule (key,value,note) VALUES
  ('disband_manpower_refund',0.5,'fracção dos homens recuperada ao dissolver uma divisão');
+
+-- Roubo de tecnologia (efeito research_boost): dá `magnitude` dias de progresso à investigação activa do autor.
+INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES
+ ('roubo_tech','Roubo de tecnologia','Agentes copiam os planos do alvo: a tua investigação em curso avança de um golpe.',70,35,'research_boost',30);

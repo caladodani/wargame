@@ -77,6 +77,25 @@ public class EspionageTests
     }
 
     [Fact]
+    public void ResearchBoost_AdvancesActiveResearch()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        var op = w.SpyOps["roubo_tech"];
+        var c = w.Countries[1];
+        c.ResearchTech = w.Techs.Keys.First(); c.ResearchProgress = 5f;
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 1, TargetCountryId = 2, OpId = op.Id, DaysLeft = 1f });
+        new EspionageSystem().Tick(w);
+        Assert.Equal(5f + op.Magnitude, c.ResearchProgress, 0.01f);
+
+        // sem investigação activa: não acumula nada
+        var c2 = w.Countries[2]; c2.ResearchTech = null; float before = c2.ResearchProgress;
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 2, TargetCountryId = 1, OpId = op.Id, DaysLeft = 1f });
+        new EspionageSystem().Tick(w);
+        Assert.Equal(before, c2.ResearchProgress, 0.01f);
+    }
+
+    [Fact]
     public void CounterIntel_Law_SlowsEnemyOps()
     {
         var (w, _) = TestWorld.Build();

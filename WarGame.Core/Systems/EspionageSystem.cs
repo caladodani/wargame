@@ -44,6 +44,9 @@ public sealed class EspionageSystem : ISystem
             case "intel":
                 w.Intel[(actor.Id, target.Id)] = w.Clock.Day + (int)op.Magnitude;
                 break;
+            case "research_boost":
+                if (actor.ResearchTech is not null) actor.ResearchProgress += op.Magnitude;
+                break;
         }
     }
 }
