@@ -177,6 +177,102 @@ public class OfferTests
         Assert.Empty(w.Offers);
     }
 
+    /// <summary>Guerra registada e parada há mais tempo do que peace_stale_days.</summary>
+    private static void StaleWar(World w, int a, int b)
+    {
+        w.StartWar(a, b, w.Clock.Day - (int)w.Rule("peace_stale_days", 60f) - 1);
+    }
+
+    [Fact]
+    public void AStalledWarBringsAPeaceOfferToOurTable()
+    {
+        var (w, _, b) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);       // nós temos exército, eles não: querem sair
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        var offer = Assert.Single(w.Offers);
+        Assert.Equal("paz", offer.Kind);
+        Assert.Equal(2, offer.FromId);
+    }
+
+    [Fact]
+    public void AFreshWarBringsNoPeaceOffer()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        w.StartWar(1, 2);                                        // a guerra é de hoje
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void TheOneWinningOnTheGroundDoesNotAskForPeace()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 2, TestWorld.Inf2, 5);       // o exército é deles e não ocupamos nada
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void SigningTheirPeaceEndsTheWarWhereItStands()
+    {
+        var (w, a, _) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Regions[5].ControllerId = 1;                           // ocupamos uma região deles
+        w.Register(new OfferSystem());
+        w.Tick();
+        Assert.Single(w.Offers);
+
+        Assert.Null(new AnswerOfferCommand(1, 2, true, "paz").Validate(w));
+        new AnswerOfferCommand(1, 2, true, "paz").Execute(w);
+
+        Assert.False(w.AreAtWar(1, 2));
+        Assert.Equal(1, w.Regions[5].OwnerId);                   // uti possidetis: fica nossa
+        Assert.Empty(w.Offers);
+        Assert.Empty(a.AtWarWith);
+    }
+
+    [Fact]
+    public void RefusingTheirPeaceKeepsTheWar()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        new AnswerOfferCommand(1, 2, false, "paz").Execute(w);
+
+        Assert.True(w.AreAtWar(1, 2));
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void TheTwoSubjectsSitOnTheTableAtTheSameTime()
+    {
+        var (w, _, _) = Setup(weHold: 200_000, theyHold: 100_000);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        Assert.Equal(2, w.Offers.Count);
+        Assert.Contains(w.Offers, o => o.Kind == "paz");
+        Assert.Contains(w.Offers, o => o.Kind == "prisioneiros");
+        // e responder a uma não mexe na outra
+        new AnswerOfferCommand(1, 2, false, "paz").Execute(w);
+        Assert.Equal("prisioneiros", Assert.Single(w.Offers).Kind);
+    }
+
     [Fact]
     public void TheTableSurvivesASave()
     {

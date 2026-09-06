@@ -23,8 +23,11 @@ public partial class Hud : CanvasLayer
     private Timer _toastTimer = null!;
     private Tween? _toastTween;   // animação de entrada/saída do toast (morre e recomeça a cada mensagem)
     private AcceptDialog _slots = null!;
-    private ConfirmationDialog? _offerDialog;      // proposta do inimigo (troca de prisioneiros)
+    private ConfirmationDialog? _offerDialog;      // proposta do inimigo (troca ou paz)
     private int _offerFrom;
+    private string _offerKind = "prisioneiros";
+    private Button _offers = null!;                // distintivo das propostas em cima da mesa
+    private int _offersShown = -1;
     private RegionPanel _region = null!;
     private ArmySelect _multiSel = null!;
     private GameMenu _menu = null!;
@@ -150,6 +153,11 @@ public partial class Hud : CanvasLayer
         tabs.AddChild(Ui.Btn("País", OpenCountry));
         tabs.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         tabs.AddChild(Ui.Btn("Guerra", OpenWar));
+        // Distintivo das propostas: só aparece quando o inimigo tem alguma coisa em cima da mesa, e
+        // pisca quando chega uma nova. Sem ele a proposta vivia só na notificação, que passa.
+        _offers = Ui.Btn("✉", OpenWar, 0, Ui.Kind.Primary);
+        _offers.Visible = false;
+        tabs.AddChild(_offers);
         tabs.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
         tabs.AddChild(Ui.Btn("Crónica", () => _journal.Open()));
         tabs.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
@@ -497,8 +505,10 @@ public partial class Hud : CanvasLayer
         {
             if (!Player(e.ToId)) return;
             int from = e.FromId;
-            Later($"✉ {Country(from)} propõe trocar {e.Men:N0} prisioneiros de cada lado");
-            Callable.From(() => PopOffer(from)).CallDeferred();
+            string kind = e.Kind;
+            Later(kind == "paz" ? $"🕊 {Country(from)} propõe paz branca"
+                                : $"✉ {Country(from)} propõe trocar {e.Men:N0} prisioneiros de cada lado");
+            Callable.From(() => PopOffer(from, kind)).CallDeferred();
         }));
         _subs.Add(w.Events.Subscribe<OfferExpired>(e =>
         {
@@ -629,17 +639,19 @@ public partial class Hud : CanvasLayer
     /// <summary>Põe a proposta do inimigo à frente do jogador: um Sim/Não com os números do dia. Recusar
     /// não é castigo nenhum — a proposta sai da mesa e eles voltam a insistir mais tarde. Quem quiser
     /// pensar melhor fecha o diálogo e vai buscá-la ao painel Guerra, onde o cartão fica.</summary>
-    private void PopOffer(int fromId)
+    private void PopOffer(int fromId, string kind = "")
     {
         if (_game.PlayerId is not int pid) return;
-        if (OfferView.Pending(_game.World, pid, fromId) is not PendingOffer offer) return;
-        _offerFrom = fromId;
+        var offer = kind.Length > 0 ? OfferView.Pending(_game.World, pid, fromId, kind) : OfferView.First(_game.World, pid, fromId);
+        if (offer is null) return;
+        _offerFrom = fromId; _offerKind = offer.Kind;
         if (_offerDialog is null)
         {
             _offerDialog = Ui.Dialog(this, () => AnswerOffer(true));
             _offerDialog.Canceled += () => AnswerOffer(false);
             _offerDialog.Title = "Proposta do inimigo";
         }
+        _offerDialog.Title = offer.Kind == "paz" ? "Proposta de paz" : "Proposta do inimigo";
         _offerDialog.DialogText = OfferView.Line(_game.World, offer);
         _offerDialog.PopupCentered();
     }
@@ -649,10 +661,11 @@ public partial class Hud : CanvasLayer
     {
         if (_game.PlayerId is not int pid) return;
         var deal = PrisonerExchange.Evaluate(_game.World, _offerFrom, pid);
-        var err = _game.Dispatch(new AnswerOfferCommand(pid, _offerFrom, accept));
+        var err = _game.Dispatch(new AnswerOfferCommand(pid, _offerFrom, accept, _offerKind));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify(accept ? $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa"
-                            : "Proposta recusada");
+        _game.Notify(!accept ? "Proposta recusada"
+                    : _offerKind == "paz" ? "Paz assinada: a guerra acabou onde estava"
+                    : $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa");
         _warPanel.Refresh();
     });
 
@@ -728,6 +741,20 @@ public partial class Hud : CanvasLayer
             _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
             _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}  ·  Homens {FmtMen(p.Manpower)}";
             _hint.Visible = false;
+            int posted = OfferView.Count(w, pid);
+            if (posted != _offersShown)
+            {
+                bool arrived = posted > _offersShown && _offersShown >= 0;
+                _offersShown = posted;
+                _offers.Text = posted == 1 ? "✉ 1 proposta" : $"✉ {posted} propostas";
+                _offers.Visible = posted > 0;
+                if (arrived && posted > 0)
+                {
+                    var pulse = _offers.CreateTween().SetLoops(3);   // três piscadelas: dá nas vistas sem prender o olho
+                    pulse.TweenProperty(_offers, "modulate:a", 0.35f, 0.25);
+                    pulse.TweenProperty(_offers, "modulate:a", 1f, 0.25);
+                }
+            }
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
@@ -802,7 +829,8 @@ public partial class Hud : CanvasLayer
             && w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.Countries.ContainsKey(r.ControllerId)) is Region foeLand
             && w.Countries.TryGetValue(foeLand.ControllerId, out var nbc))
         {
-            c.AtWarWith.Add(nbc.Id); nbc.AtWarWith.Add(pid);
+            // guerra registada e já parada: assim a mesa de propostas tem também a paz branca para desenhar
+            w.StartWar(pid, nbc.Id, w.Clock.Day - (int)w.Rule("peace_stale_days", 60f) - 1);
         }
         if (w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.AreAtWar(pid, r.ControllerId)) is Region rear)
         {

@@ -64,7 +64,7 @@ public partial class WarPanel : PanelContainer
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
-                      string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}:{o.Men}:{o.ExpiresDay}")) + "|" +
+                      string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.ExpiresDay}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -102,7 +102,7 @@ public partial class WarPanel : PanelContainer
                 // e a mesa da troca: homem por homem sem esperar pela paz, se eles assinarem
                 int foeId = foe;
                 // a proposta deles primeiro: a iniciativa é do outro lado e não pode ficar escondida
-                if (OfferView.Card(w, pid, foeId, () => Answer(pid, foeId, true), () => Answer(pid, foeId, false)) is VBoxContainer post)
+                if (OfferView.Card(w, pid, foeId, o => Answer(pid, o, true), o => Answer(pid, o, false)) is VBoxContainer post)
                     card.AddChild(post);
                 if (PrisonerView.Exchange(w, pid, foeId, () => Swap(pid, foeId)) is VBoxContainer swap) card.AddChild(swap);
 
@@ -208,14 +208,16 @@ public partial class WarPanel : PanelContainer
         Fill();
     });
 
-    /// <summary>Responde à proposta que este inimigo pôs na mesa.</summary>
-    private void Answer(int pid, int foe, bool accept) => _game.RunWhenIdle(() =>
+    /// <summary>Responde a uma proposta que este inimigo pôs na mesa (paz ou troca).</summary>
+    private void Answer(int pid, PendingOffer offer, bool accept) => _game.RunWhenIdle(() =>
     {
-        var deal = PrisonerExchange.Evaluate(_game.World, foe, pid);
-        var err = _game.Dispatch(new AnswerOfferCommand(pid, foe, accept));
+        var deal = PrisonerExchange.Evaluate(_game.World, offer.FromId, pid);
+        var err = _game.Dispatch(new AnswerOfferCommand(pid, offer.FromId, accept, offer.Kind));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify(accept ? $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa"
-                            : "Proposta recusada");
+        _game.Notify(!accept ? "Proposta recusada"
+                    : offer.Kind == "paz" ? "Paz assinada: a guerra acabou onde estava"
+                    : $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa");
+        _deal = null; _demand.Clear();
         Fill();
     });
 
