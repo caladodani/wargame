@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -11,6 +12,8 @@ public partial class WorldPanel : PanelContainer
     private CountryPanel _countryPanel = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    /// <summary>Nota do primeiro classificado da última contagem: as barras são todas relativas a ela.</summary>
+    private float _best;
 
     public void Setup(Game game, CountryPanel countryPanel)
     {
@@ -29,6 +32,17 @@ public partial class WorldPanel : PanelContainer
     }
 
     public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+
+    /// <summary>Só para o --smoke: enche a tabela mundial sem esperar pelo idle e devolve quantas potências
+    /// ficaram desenhadas, para o caminho novo do painel não passar despercebido se rebentar.</summary>
+    public int Smoke()
+    {
+        _lastKey = ""; Visible = true;
+        Fill();
+        int rows = _body.GetChildCount();
+        Visible = false;
+        return rows;
+    }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 
@@ -54,22 +68,21 @@ public partial class WorldPanel : PanelContainer
                 popTotal += r.Population;
             }
 
-            Header("Potências (por divisões)");
-            foreach (var c in w.Countries.Values.Where(c => !c.Capitulated)
-                        .OrderByDescending(c => divs.GetValueOrDefault(c.Id)).Take(15))
+            // Tabela mundial: nota de potência do PowerIndex em vez da contagem de divisões, com as quatro
+            // parcelas desenhadas por baixo — quem manda no mundo não é quem tem mais divisões cansadas.
+            var standings = PowerIndex.Rankings(w);
+            _best = standings.Count > 0 ? standings[0].Score : 1f;
+            Header("Potências mundiais");
+            int shown = 0;
+            foreach (var st in standings)
             {
-                int id = c.Id;
-                float share = popTotal > 0 ? 100f * pop.GetValueOrDefault(c.Id) / popTotal : 0f;
-                string atWar = c.AtWarWith.Count > 0 ? "  ⚔" : "";
-                var b = Ui.Btn($"{c.Name}   {divs.GetValueOrDefault(c.Id)} div · {regions.GetValueOrDefault(c.Id)} reg · {share:0.0}% pop{atWar}",
-                    () => { Close(); _countryPanel.Open(id); }, 0);
-                b.Alignment = HorizontalAlignment.Left;
-                b.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-                var row = new HBoxContainer();
-                var fl = Flags.Rect(22); fl.Texture = Flags.Of(c.Tag); fl.Visible = fl.Texture is not null;
-                row.AddChild(fl); row.AddChild(b);
-                _body.AddChild(row);
+                if (shown++ >= 15) break;
+                if (!w.Countries.TryGetValue(st.CountryId, out var c)) continue;
+                _body.AddChild(Standing(w, st, shown, divs, regions, pop, popTotal));
             }
+            // o jogador vê-se sempre, mesmo lá do fundo da tabela
+            int mineIdx = _game.PlayerId is int me ? standings.FindIndex(x => x.CountryId == me) : -1;
+            if (mineIdx >= 15) _body.AddChild(Standing(w, standings[mineIdx], mineIdx + 1, divs, regions, pop, popTotal));
 
             Header("Guerras activas");
             if (w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
@@ -116,6 +129,55 @@ public partial class WorldPanel : PanelContainer
             }
         }
         catch (Exception ex) { GD.PushError("WorldPanel.Fill: " + ex); }
+    }
+
+    /// <summary>Cartão de um país na tabela mundial: lugar, seta de subida/descida, bandeira, patamar,
+    /// barra da nota e as quatro parcelas que a fazem. O do jogador leva moldura acesa.</summary>
+    private Control Standing(World w, PowerIndex.Standing st, int place, Dictionary<int, int> divs,
+                             Dictionary<int, int> regions, Dictionary<int, long> pop, long popTotal)
+    {
+        var c = w.Countries[st.CountryId];
+        bool mine = _game.PlayerId == c.Id;
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(mine ? new Color(0.16f, 0.22f, 0.32f, 0.95f) : Ui.Surface with { A = 0.75f }, 8));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 3); card.AddChild(v);
+
+        var top = new HBoxContainer(); top.AddThemeConstantOverride("separation", 8); v.AddChild(top);
+        var pos = Ui.Lbl($"{place}.º", 18);
+        pos.AddThemeColorOverride("font_color", place <= 3 ? new Color(1f, 0.82f, 0.25f) : Ui.TextDim);
+        top.AddChild(pos);
+        var arrow = Move(c);
+        if (arrow is not null) top.AddChild(arrow);
+        var fl = Flags.Rect(22); fl.Texture = Flags.Of(c.Tag); fl.Visible = fl.Texture is not null;
+        top.AddChild(fl);
+        int id = c.Id;
+        var btn = Ui.Btn($"{c.Name}{(c.AtWarWith.Count > 0 ? "  ⚔" : "")}", () => { Close(); _countryPanel.Open(id); }, 0);
+        btn.Alignment = HorizontalAlignment.Left;
+        top.AddChild(Ui.Grow(btn));
+        var tier = Ui.Lbl(PowerIndex.Tier(w, st.Share), 15);
+        tier.AddThemeColorOverride("font_color", Ui.TextDim);
+        top.AddChild(tier);
+
+        // barra da nota, sempre relativa ao primeiro classificado: dá a distância ao topo de relance
+        float best = _best > 0f ? _best : 1f;
+        v.AddChild(Ui.Bar(Math.Clamp(st.Score / best, 0f, 1f), mine ? Ui.Accent : Ui.Good, 0f));
+
+        float popShare = popTotal > 0 ? 100f * pop.GetValueOrDefault(c.Id) / popTotal : 0f;
+        var note = Ui.Lbl($"nota {st.Score:0.0} · {divs.GetValueOrDefault(c.Id)} div · {regions.GetValueOrDefault(c.Id)} reg · {popShare:0.0}% pop" +
+                          $"   ⚒ {st.Industry * 100f:0.0}%  ⚔ {st.Army * 100f:0.0}%  🔬 {st.Tech * 100f:0.0}%", 14);
+        note.AddThemeColorOverride("font_color", Ui.TextDim);
+        v.AddChild(note);
+        return card;
+    }
+
+    /// <summary>Seta de quem subiu ou desceu desde a última contagem (PowerRankingSystem).</summary>
+    private static Label? Move(Country c)
+    {
+        if (c.PowerRankPrev == 0 || c.PowerRank == 0 || c.PowerRankPrev == c.PowerRank) return null;
+        bool up = c.PowerRank < c.PowerRankPrev;
+        var l = Ui.Lbl(up ? $"▲{c.PowerRankPrev - c.PowerRank}" : $"▼{c.PowerRank - c.PowerRankPrev}", 15);
+        l.AddThemeColorOverride("font_color", up ? Ui.Good : Ui.Danger);
+        return l;
     }
 
     private static string Name(WarGame.Core.Model.World w, int id) => w.Countries.TryGetValue(id, out var c) ? c.Name : "#" + id;

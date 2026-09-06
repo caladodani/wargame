@@ -45,6 +45,8 @@ public sealed class World
     public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
+    /// <summary>Patamares de potência mundial (tabela power_tier).</summary>
+    public List<PowerTier> PowerTiers { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();

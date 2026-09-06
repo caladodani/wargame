@@ -64,6 +64,16 @@ public partial class CountryPanel : PanelContainer
                 if (info.Doctrine.Length > 0) Line($"Doutrina: {info.Doctrine}");
                 if (info.Description.Length > 0) Wrap(info.Description, 17);
             }
+            // lugar na tabela mundial: o painel do país dizia tudo menos onde ele está entre os outros
+            if (c.PowerRank > 0)
+            {
+                string move = c.PowerRankPrev > 0 && c.PowerRankPrev != c.PowerRank
+                    ? c.PowerRank < c.PowerRankPrev ? $"  ▲{c.PowerRankPrev - c.PowerRank}" : $"  ▼{c.PowerRank - c.PowerRankPrev}"
+                    : "";
+                var rank = Ui.Lbl($"🌍 {c.PowerRank}.º do mundo · nota {c.PowerScore:0.0}{move}", 17);
+                rank.AddThemeColorOverride("font_color", c.PowerRank <= 3 ? new Color(1f, 0.82f, 0.25f) : Ui.Text);
+                _body.AddChild(rank);
+            }
             Line($"Indústria ×{c.Stat("industry"):0.00}   Produção ×{c.Stat("production_speed"):0.00}   Organização ×{c.Stat("org_regain"):0.00}   Investigação ×{c.Stat("research_speed"):0.00}");
             Line($"Divisões {w.Divisions.Values.Count(d => d.CountryId == c.Id)}   ·   Regiões {w.Regions.Values.Count(r => r.ControllerId == c.Id)}   ·   Rendimento {EconomySystem.Income(w, c.Id):0.0}/dia");
             if (w.ResourceDefs.Count > 0)

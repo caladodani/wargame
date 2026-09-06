@@ -148,7 +148,9 @@ CREATE TABLE IF NOT EXISTS s_country (
   justify_target INTEGER, justify_progress REAL NOT NULL DEFAULT 0,
   war_exhaustion REAL NOT NULL DEFAULT 0,
   air_power REAL NOT NULL DEFAULT 0,
-  nukes INTEGER NOT NULL DEFAULT 0
+  nukes INTEGER NOT NULL DEFAULT 0,
+  power_rank INTEGER NOT NULL DEFAULT 0,        -- lugar na tabela mundial (PowerRankingSystem)
+  power_rank_prev INTEGER NOT NULL DEFAULT 0    -- lugar anterior, para a seta de subida/descida
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));

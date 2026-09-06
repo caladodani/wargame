@@ -450,6 +450,13 @@ public partial class Hud : CanvasLayer
             if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz");
             else if (Player(e.TargetCountryId)) Later($"⚠ {Country(e.CountryId)} já tem o que veio buscar");
         }));
+        // Tabela mundial: só o lugar do jogador, e só quando ele muda mesmo (a contagem é de dias a dias).
+        _subs.Add(w.Events.Subscribe<PowerRankChanged>(e =>
+        {
+            if (!Player(e.CountryId) || e.From == 0) return;
+            string tier = e.Tier.Length > 0 ? $" ({e.Tier})" : "";
+            Later(e.To < e.From ? $"🌍 Subimos ao {e.To}.º lugar mundial{tier}" : $"🌍 Descemos ao {e.To}.º lugar mundial{tier}");
+        }));
         // Promoção de comandante: acontece poucas vezes por campanha, por isso vai toda para as notícias.
         _subs.Add(w.Events.Subscribe<GeneralPromoted>(e =>
         {
@@ -624,7 +631,8 @@ public partial class Hud : CanvasLayer
         _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
         _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
         _end.Show(CampaignReport.Ongoing); _end.Close();               // ecrã de fim de campanha, com o relatório todo
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}");
+        int world = _worldPanel.Smoke();                               // painel Mundo: tabela de potências desenhada
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

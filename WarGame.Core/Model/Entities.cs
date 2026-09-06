@@ -105,6 +105,10 @@ public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<
 /// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
 public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
 
+/// <summary>Patamar de potência mundial (tabela power_tier): a partir de MinShare da potência total do
+/// mundo, um país é chamado assim. Puro rótulo — quem faz a conta é o PowerIndex.</summary>
+public sealed record PowerTier(int Level, string Name, float MinShare);
+
 /// <summary>Posto de comandante (tabela general_rank): a partir de Xp de experiência de campanha o
 /// comandante sobe a este posto e soma Bonus ao que o destacamento já amplifica. Os nomes e os
 /// limiares são dados, não código — mudar a progressão é mexer na tabela.</summary>
@@ -237,6 +241,12 @@ public sealed class Country
     public HashSet<string> FocusesDone { get; } = new();
     public HashSet<int> AtWarWith { get; } = new();
     /// <summary>Capitulou (PeaceSystem): sem regiões nem exército; a IA ignora-o. Persistido em s_country.</summary>
+    /// <summary>Nota de potência mundial e lugar na tabela (PowerRankingSystem, de power_rank_days em
+    /// power_rank_days). PowerRankPrev guarda o lugar anterior para a UI mostrar quem subiu e quem desceu;
+    /// 0 = ainda sem classificação.</summary>
+    public float PowerScore { get; set; }
+    public int PowerRank { get; set; }
+    public int PowerRankPrev { get; set; }
     public bool Capitulated { get; set; }
     public int? CapitulatedDay { get; set; }
 }

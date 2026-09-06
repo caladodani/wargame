@@ -382,6 +382,25 @@ INSERT INTO rule VALUES ('score_per_advance', 8, 'pontos por tecnologia ou foco 
 INSERT INTO rule VALUES ('score_domination_bonus', 2, 'multiplicador da pontuação quando se domina o mundo');
 INSERT INTO rule VALUES ('score_defeat_penalty', 0.4, 'multiplicador da pontuação de quem capitulou');
 INSERT INTO rule VALUES ('rank_power_score', 1500, 'pontuação a partir da qual a campanha é "Potência regional"');
+
+-- Tabela mundial de potências (PowerIndex/PowerRankingSystem). A nota de cada país é a soma pesada de
+-- quatro parcelas normalizadas: população controlada, capacidade industrial, exército em campo e avanço
+-- tecnológico. Os patamares (power_tier) são só o nome que se dá à quota de potência mundial.
+CREATE TABLE IF NOT EXISTS power_tier (
+  level INTEGER PRIMARY KEY, name TEXT NOT NULL, min_share REAL NOT NULL);
+INSERT INTO power_tier VALUES (5,'Superpotência',0.20);
+INSERT INTO power_tier VALUES (4,'Grande potência',0.10);
+INSERT INTO power_tier VALUES (3,'Potência',0.04);
+INSERT INTO power_tier VALUES (2,'Potência regional',0.015);
+INSERT INTO power_tier VALUES (1,'Estado menor',0);
+INSERT INTO rule (key,value,note) VALUES
+ ('power_weight_pop',0.3,'peso da população controlada na nota de potência'),
+ ('power_weight_industry',0.3,'peso da capacidade industrial na nota de potência'),
+ ('power_weight_army',0.3,'peso do exército em campo na nota de potência'),
+ ('power_weight_tech',0.1,'peso do avanço tecnológico na nota de potência'),
+ ('power_air_weight',4,'quanto vale um esquadrão aéreo em força de exército para a nota de potência'),
+ ('power_nuke_weight',40,'quanto vale uma ogiva nuclear em força de exército para a nota de potência'),
+ ('power_rank_days',5,'de quantos em quantos dias se refaz a tabela mundial de potências');
 INSERT INTO rule VALUES ('rank_legend_score', 4000, 'pontuação a partir da qual a campanha é "Grande potência"');
 INSERT INTO rule VALUES ('auto_advance_min_org', 40, 'organização mínima para o avanço automático atacar');
 
