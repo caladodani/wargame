@@ -21,6 +21,7 @@ public partial class Hud : CanvasLayer
     private ConfirmationDialog _confirmNew = null!;
     private AcceptDialog _slots = null!;
     private RegionPanel _region = null!;
+    private ArmySelect _multiSel = null!;
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
@@ -45,8 +46,10 @@ public partial class Hud : CanvasLayer
             _worldPanel = new WorldPanel(); AddChild(_worldPanel); _worldPanel.Setup(_game, _countryPanel);
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
+            _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
 
             _map.RegionTapped += OnRegionTapped;
+            _map.RegionAltTapped += rid => _multiSel.AltTap(rid);
             _game.TickCompleted += OnTick;
             _game.StateChanged += RefreshAll;
             _game.CommandFailed += Toast;
@@ -72,6 +75,7 @@ public partial class Hud : CanvasLayer
     private void Back()
     {
         if (_game is null) return;
+        if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
         if (_production.Visible) { _production.Close(); return; }
         if (_countryPanel.Visible) { _countryPanel.Close(); return; }
@@ -487,5 +491,8 @@ public partial class Hud : CanvasLayer
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         _production.Open();
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
+        _multiSel.AltTap(cap.Id);
+        if (cap.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.AltTap(nb);
+        GD.Print($"smoke: multi-selecção {(_multiSel.Active ? "activa" : "limpa")}");
     }
 }

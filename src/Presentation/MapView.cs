@@ -7,6 +7,8 @@ namespace WarGame.Presentation;
 public partial class MapView : Node2D
 {
     [Signal] public delegate void RegionTappedEventHandler(int regionId);
+    /// <summary>Toque de 2 dedos ou botão direito do rato — o "clique alternativo" (selecção múltipla).</summary>
+    [Signal] public delegate void RegionAltTappedEventHandler(int regionId);
     [Signal] public delegate void ZoomChangedEventHandler(float zoom);
 
     public RegionRenderer Regions => _regions;
@@ -16,7 +18,8 @@ public partial class MapView : Node2D
     private RegionRenderer _regions = null!;
     private readonly Dictionary<int, Vector2> _touches = new();
     private float _lastPinch, _dragDist;
-    private bool _multi;
+    private bool _multi, _altCandidate;
+    private Vector2 _altPos;   // posição do 1º dedo quando o 2º pousou (alvo do alt-toque)
 
     public override void _Ready()
     {
@@ -37,15 +40,28 @@ public partial class MapView : Node2D
                     if (t.Pressed)
                     {
                         if (t.Index == 0) _touches.Clear();     // 1º dedo: limpa toques presos (release engolido pela GUI)
-                        if (_touches.Count == 0) { _dragDist = 0; _multi = false; }
+                        if (_touches.Count == 0) { _dragDist = 0; _multi = false; _altCandidate = false; }
                         _touches[t.Index] = t.Position;
-                        if (_touches.Count >= 2) { _multi = true; _lastPinch = Pinch(); }
+                        if (_touches.Count == 2)
+                        {
+                            _multi = true; _lastPinch = Pinch();
+                            // 2º dedo pousou sem arrasto: candidato a alt-toque no ponto do 1º dedo
+                            _altCandidate = _dragDist < TapMaxDrag;
+                            _altPos = _touches.TryGetValue(0, out var p0) ? p0 : t.Position;
+                        }
+                        else if (_touches.Count > 2) _altCandidate = false;
                     }
                     else
                     {
                         _touches.Remove(t.Index);
-                        if (_touches.Count == 0 && !_multi && _dragDist < TapMaxDrag && _regions.RegionAt(ToWorld(t.Position)) is int rid)
-                            EmitSignal(SignalName.RegionTapped, rid);
+                        if (_touches.Count == 0)
+                        {
+                            if (_altCandidate && _dragDist < TapMaxDrag && _regions.RegionAt(ToWorld(_altPos)) is int arid)
+                                EmitSignal(SignalName.RegionAltTapped, arid);
+                            else if (!_multi && _dragDist < TapMaxDrag && _regions.RegionAt(ToWorld(t.Position)) is int rid)
+                                EmitSignal(SignalName.RegionTapped, rid);
+                            _altCandidate = false;
+                        }
                     }
                     break;
                 case InputEventScreenDrag d:
@@ -61,6 +77,10 @@ public partial class MapView : Node2D
                     break;
                 case InputEventMouseButton { Pressed: true } mb when mb.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown:
                     SetZoom(_cam.Zoom.X * (mb.ButtonIndex == MouseButton.WheelUp ? 1.15f : 1f / 1.15f));   // roda do rato no PC
+                    break;
+                case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mbr:
+                    // botão direito no PC = alt-toque (a emulação de toque só cobre o esquerdo)
+                    if (_regions.RegionAt(ToWorld(mbr.Position)) is int mrid) EmitSignal(SignalName.RegionAltTapped, mrid);
                     break;
             }
         }

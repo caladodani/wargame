@@ -20,7 +20,7 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, Color> _countryColor = new();
     private readonly Dictionary<int, LabelSettings> _labelStyle = new();
     private readonly Dictionary<int, Node2D> _markers = new();      // região → Node2D (escala 1/zoom) com um Label
-    private Node2D _highlightRoot = null!, _markerRoot = null!;
+    private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!;
     private Game _game = null!;
     private float _markerScale = 1f;
 
@@ -42,6 +42,7 @@ public partial class RegionRenderer : Node2D
         }
         // Por cima dos polígonos: primeiro o realce, depois os marcadores.
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
+        _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
         _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
         // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
@@ -73,6 +74,7 @@ public partial class RegionRenderer : Node2D
         _markerScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 1f, 6f);
         foreach (var m in _markers.Values) m.Scale = Vector2.One * _markerScale;
         foreach (var c in _highlightRoot.GetChildren()) if (c is Line2D l) l.Width = 4f * _markerScale;
+        foreach (var c in _multiRoot.GetChildren()) if (c is Line2D l2) l2.Width = 4f * _markerScale;
     }
 
     /// <summary>Um Label por região com divisões: "N" ou "⚔ N" se há batalha, "■" se há forte, cor do controlador. Esconde os vazios.</summary>
@@ -135,6 +137,16 @@ public partial class RegionRenderer : Node2D
         if (regionId is null || !_byRegion.TryGetValue(regionId.Value, out var polys)) return;
         foreach (var p in polys)
             _highlightRoot.AddChild(new Line2D { Points = p.Polygon.Append(p.Polygon[0]).ToArray(), Width = 4f * _markerScale, DefaultColor = Colors.White });
+    }
+
+    /// <summary>Contorno amarelo nas regiões da selecção múltipla — camada própria, não mexe no Highlight.</summary>
+    public void HighlightMulti(IReadOnlyCollection<int> regionIds)
+    {
+        foreach (var c in _multiRoot.GetChildren()) { _multiRoot.RemoveChild(c); c.QueueFree(); }
+        foreach (var id in regionIds)
+            if (_byRegion.TryGetValue(id, out var polys))
+                foreach (var p in polys)
+                    _multiRoot.AddChild(new Line2D { Points = p.Polygon.Append(p.Polygon[0]).ToArray(), Width = 4f * _markerScale, DefaultColor = Colors.Yellow });
     }
 
     /// <summary>Hit-test para toque: região cujo polígono contém o ponto (mundo).</summary>
