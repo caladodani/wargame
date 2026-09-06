@@ -54,3 +54,6 @@ INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,require
  ('air',    'air_sup','enemy',   'str',         NULL,     'add',-0.25),
  ('tech',   'tech:drones_1','true','str',       NULL,     'add',0.10),
  ('cyber',  'cyber_hit','true',  'command',     NULL,     'mul',0.9);
+
+-- rules: movement
+INSERT INTO rule (key,value,note) VALUES ('move_infra_floor',0.5,'infraestrutura mínima usada no cálculo dos dias de movimento (uma região arrasada abranda, não pára)');
