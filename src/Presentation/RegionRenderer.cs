@@ -13,6 +13,8 @@ public partial class RegionRenderer : Node2D
     public const string FortMark = "■";
     /// <summary>Região ocupada com resistência relevante (≥ metade do caminho para a revolta).</summary>
     public const string ResistMark = "✊";
+    /// <summary>Capital de um país vivo.</summary>
+    public const string CapitalMark = "★";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, Color> _countryColor = new();
@@ -80,15 +82,18 @@ public partial class RegionRenderer : Node2D
         {
             var w = _game.World;
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
+            var capitals = new HashSet<int>(w.Countries.Values.Where(c => !c.Capitulated).Select(c => c.CapitalRegionId));
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
                 bool resisting = r.Resistance >= 0.5f;
-                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting) continue;
+                bool capital = capitals.Contains(r.Id);
+                if (r.DivisionIds.Count == 0 && r.Fort == 0 && !resisting && !capital) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var label = (Label)m.GetChild(0);
-                label.Text = (battles.Contains(r.Id) ? BattleMark : "")
+                label.Text = (capital ? CapitalMark : "")
+                           + (battles.Contains(r.Id) ? BattleMark : "")
                            + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
                            + (r.Fort > 0 ? FortMark : "")
                            + (resisting ? ResistMark : "");

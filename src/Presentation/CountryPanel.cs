@@ -45,7 +45,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|h{w.History.Count}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|h{w.History.Count}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -75,10 +75,36 @@ public partial class CountryPanel : PanelContainer
                 var txt = string.Join("   ·   ", parts);
                 if (txt.Length > 0) Line("Recursos: " + txt);
             }
+            if (!mine && _game.PlayerId is int me && w.Countries.TryGetValue(me, out var my))
+            {
+                string Cmp(string k) { float d = c.Stat(k) - my.Stat(k); return MathF.Abs(d) < 0.005f ? "=" : d > 0 ? "▲" : "▼"; }
+                int cd = w.Divisions.Values.Count(d => d.CountryId == c.Id), md = w.Divisions.Values.Count(d => d.CountryId == me);
+                Line($"vs {my.Tag}: indústria {Cmp("industry")}  produção {Cmp("production_speed")}  investigação {Cmp("research_speed")}  divisões {cd}/{md}", 15);
+            }
             Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
             if (c.WarExhaustion >= 1f) Line($"Desgaste de guerra: −{c.WarExhaustion:0} estabilidade");
             if (mine && c.AtWarWith.Count > 0)
                 _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
+
+            // obras em curso nas regiões do jogador
+            if (mine)
+            {
+                var works = new List<string>();
+                foreach (var r in w.Regions.Values)
+                {
+                    if (r.ControllerId != c.Id) continue;
+                    if (r.Building) works.Add($"{r.Name}: infraestrutura, {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias");
+                    if (r.FortBuilding) works.Add($"{r.Name}: forte {r.Fort + 1}, {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias");
+                    if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var bd))
+                        works.Add($"{r.Name}: {bd.Name} {r.Buildings.GetValueOrDefault(proj) + 1}, {(int)MathF.Ceiling(bd.Days - r.ProjectProgress)} dias");
+                }
+                if (works.Count > 0)
+                {
+                    Header("Obras em curso");
+                    foreach (var t in works.OrderBy(t => t).Take(12)) Line("🏗 " + t, 15);
+                    if (works.Count > 12) Line($"… e mais {works.Count - 12}", 14);
+                }
+            }
 
             // evolução (só no país do jogador; amostras do HistorySystem)
             if (mine && w.History.Count > 0)
