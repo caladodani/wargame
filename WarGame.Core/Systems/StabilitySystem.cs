@@ -35,7 +35,9 @@ public sealed class StabilitySystem : ISystem
             if (c.Capitulated) continue;
             var tot = total.GetValueOrDefault(c.Id);
             float occFrac = tot > 0 ? (float)occupied.GetValueOrDefault(c.Id) / tot : 0f;
-            float target = Math.Clamp(50f - MathF.Min(2, c.AtWarWith.Count) * warPen - occFrac * occPen, 0f, 100f);
+            if (c.AtWarWith.Count == 0 && c.WarExhaustion > 0f)
+                c.WarExhaustion = MathF.Max(0f, c.WarExhaustion - w.Rule("exhaustion_decay", 0.1f));
+            float target = Math.Clamp(50f - MathF.Min(2, c.AtWarWith.Count) * warPen - occFrac * occPen - c.WarExhaustion, 0f, 100f);
             c.Stability = c.Stability < target
                 ? MathF.Min(target, c.Stability + speed)
                 : MathF.Max(target, c.Stability - speed);

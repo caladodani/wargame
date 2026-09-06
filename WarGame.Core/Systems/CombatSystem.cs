@@ -77,7 +77,13 @@ public sealed class CombatSystem : ISystem
         {
             d.Org -= 4f * (1f - MathF.Min(1f, d.Supply));
             d.Org = MathF.Max(0f, d.Org); d.Hp = MathF.Max(0f, d.Hp);
-            if (d.Hp <= 0f) w.Events.Publish(new DivisionDestroyed(d.Id));
+            if (d.Hp <= 0f)
+            {
+                w.Events.Publish(new DivisionDestroyed(d.Id));
+                if (w.Countries.TryGetValue(d.CountryId, out var cc))
+                    cc.WarExhaustion = MathF.Min(w.Rule("exhaustion_max", 30f),
+                        cc.WarExhaustion + w.Rule("exhaustion_per_division", 2f));
+            }
         }
     }
 

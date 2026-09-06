@@ -227,3 +227,10 @@ INSERT INTO rule VALUES ('history_tracked', 8, 'países por amostra (jogador + m
 
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
 INSERT INTO spy_op VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);
+
+-- Desgaste de guerra: cada divisão perdida acumula desgaste (tecto exhaustion_max) que puxa
+-- o alvo da estabilidade para baixo; em paz decai exhaustion_decay/dia.
+INSERT INTO rule (key,value,note) VALUES
+ ('exhaustion_per_division',2,'desgaste por divisão destruída'),
+ ('exhaustion_max',30,'tecto do desgaste de guerra'),
+ ('exhaustion_decay',0.1,'decaimento diário do desgaste em paz');

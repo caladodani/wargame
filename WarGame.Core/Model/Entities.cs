@@ -129,6 +129,7 @@ public sealed class Country
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
+    public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
     /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
     public Dictionary<string, string> Laws { get; } = new();
     public int? JustifyTarget { get; set; }        // a justificar guerra contra (DiplomacySystem)

@@ -76,6 +76,7 @@ public partial class CountryPanel : PanelContainer
                 if (txt.Length > 0) Line("Recursos: " + txt);
             }
             Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
+            if (c.WarExhaustion >= 1f) Line($"Desgaste de guerra: −{c.WarExhaustion:0} estabilidade");
             if (mine && c.AtWarWith.Count > 0)
                 _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
 
