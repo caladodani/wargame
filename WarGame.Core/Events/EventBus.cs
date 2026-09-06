@@ -8,12 +8,16 @@ public sealed record WarDeclared(int Aggressor, int Target) : IGameEvent;
 public sealed record FactionJoinedWar(string FactionId, int MemberCountryId, int AgainstCountryId) : IGameEvent;
 public sealed record RegionCaptured(int RegionId, int OldController, int NewController) : IGameEvent;
 public sealed record BattleStarted(int RegionId) : IGameEvent;
-public sealed record BattleEnded(int RegionId, bool AttackerWon) : IGameEvent;
+/// <summary>Batalha resolvida. Traz os dois beligerantes para quem conta estatísticas não ter de
+/// adivinhar quem lá estava (a batalha já saiu de ActiveBattles quando isto é publicado).</summary>
+public sealed record BattleEnded(int RegionId, bool AttackerWon, int AttackerCountryId, int DefenderCountryId) : IGameEvent;
 public sealed record DivisionDestroyed(int DivisionId) : IGameEvent;
 public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
+/// <summary>Saldo de uma guerra que acabou de terminar (WarStatsSystem), já guardado em World.WarHistory.</summary>
+public sealed record WarSummary(WarGame.Core.Model.WarRecord Record) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 /// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>

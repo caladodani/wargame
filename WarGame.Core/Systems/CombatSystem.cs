@@ -33,7 +33,7 @@ public sealed class CombatSystem : ISystem
             if (defOut || attOut)
             {
                 w.ActiveBattles.RemoveAt(i);
-                w.Events.Publish(new BattleEnded(b.RegionId, defOut));
+                w.Events.Publish(new BattleEnded(b.RegionId, defOut, b.AttackerCountryId, region.ControllerId));
                 if (defOut)
                 {
                     int old = region.ControllerId;

@@ -152,7 +152,17 @@ CREATE TABLE IF NOT EXISTS s_country (
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
-CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, last_progress_day INTEGER, PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, last_progress_day INTEGER,
+  a_regions INTEGER NOT NULL DEFAULT 0, b_regions INTEGER NOT NULL DEFAULT 0,   -- regiões tomadas por lado (WarStatsSystem)
+  a_losses INTEGER NOT NULL DEFAULT 0, b_losses INTEGER NOT NULL DEFAULT 0,     -- divisões perdidas por lado
+  a_battles INTEGER NOT NULL DEFAULT 0, b_battles INTEGER NOT NULL DEFAULT 0,   -- batalhas ganhas por lado
+  PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS s_war_history (    -- guerras terminadas, com o saldo final (WarStatsSystem)
+  id INTEGER PRIMARY KEY, a INTEGER NOT NULL, b INTEGER NOT NULL,
+  start_day INTEGER NOT NULL, end_day INTEGER NOT NULL,
+  a_regions INTEGER NOT NULL, b_regions INTEGER NOT NULL,
+  a_losses INTEGER NOT NULL, b_losses INTEGER NOT NULL,
+  a_battles INTEGER NOT NULL, b_battles INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS s_faction (            -- facções fundadas em jogo (CreateFactionCommand)
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT);
 CREATE TABLE IF NOT EXISTS s_faction_member (     -- fotografia da composição; linhas presentes = substitui a estática

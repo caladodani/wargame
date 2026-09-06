@@ -124,12 +124,43 @@ public sealed class TradeDeal
 /// StatKey por (1+PerUnit), até Cap unidades (ResourceSystem).</summary>
 public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap);
 
+/// <summary>Contadores de um dos lados de uma guerra (WarStatsSystem alimenta-os por eventos).</summary>
+public sealed class WarSide
+{
+    public int RegionsTaken { get; set; }    // regiões tiradas ao inimigo
+    public int DivisionsLost { get; set; }   // divisões próprias destruídas
+    public int BattlesWon { get; set; }      // batalhas ganhas (a atacar ou a defender)
+}
+
 /// <summary>Estado de uma guerra em curso (World.Wars, chave min,max).</summary>
 public sealed class WarInfo
 {
+    /// <summary>Os dois beligerantes, já normalizados: A é o id menor (é a chave em World.Wars).</summary>
+    public int A { get; init; }
+    public int B { get; init; }
     public int StartDay { get; set; }
     /// <summary>Último dia em que um dos dois capturou região ao outro; estagnado → paz branca.</summary>
     public int LastProgressDay { get; set; }
+    public WarSide SideA { get; } = new();
+    public WarSide SideB { get; } = new();
+    public bool Involves(int countryId) => countryId == A || countryId == B;
+    /// <summary>Contadores do país indicado (só faz sentido para um dos dois beligerantes).</summary>
+    public WarSide Side(int countryId) => countryId == A ? SideA : SideB;
+    public WarSide Enemy(int countryId) => countryId == A ? SideB : SideA;
+    public int EnemyOf(int countryId) => countryId == A ? B : A;
+}
+
+/// <summary>Guerra acabada, com o saldo final: fica em World.WarHistory para o resumo do jogador.</summary>
+public sealed record WarRecord(int A, int B, int StartDay, int EndDay,
+    int ARegions, int BRegions, int ALosses, int BLosses, int ABattles, int BBattles)
+{
+    public int Days => EndDay - StartDay;
+    public int Regions(int countryId) => countryId == A ? ARegions : BRegions;
+    public int Losses(int countryId) => countryId == A ? ALosses : BLosses;
+    public int Battles(int countryId) => countryId == A ? ABattles : BBattles;
+    public bool Involves(int countryId) => countryId == A || countryId == B;
+    /// <summary>Quem saiu por cima: mais regiões tomadas; empate = ninguém (null).</summary>
+    public int? Winner => ARegions == BRegions ? null : ARegions > BRegions ? A : B;
 }
 
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>

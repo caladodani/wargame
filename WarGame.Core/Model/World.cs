@@ -167,12 +167,16 @@ public sealed class World
     public Dictionary<(int A, int B), WarInfo> Wars { get; } = new();
     public static (int A, int B) WarKey(int a, int b) => (Math.Min(a, b), Math.Max(a, b));
 
+    /// <summary>Guerras já terminadas, da mais recente para trás (WarStatsSystem escreve, corta em war_history_max).
+    /// É o material do ecrã de resumo: quem tomou o quê a quem e quanto custou.</summary>
+    public List<WarRecord> WarHistory { get; } = new();
+
     /// <summary>Começa (ou regista) uma guerra: AtWarWith dos dois + entrada em Wars.</summary>
     public void StartWar(int a, int b, int? sinceDay = null)
     {
         Countries[a].AtWarWith.Add(b); Countries[b].AtWarWith.Add(a);
         var key = WarKey(a, b);
-        if (!Wars.ContainsKey(key)) Wars[key] = new WarInfo { StartDay = sinceDay ?? Clock.Day, LastProgressDay = sinceDay ?? Clock.Day };
+        if (!Wars.ContainsKey(key)) Wars[key] = new WarInfo { A = key.A, B = key.B, StartDay = sinceDay ?? Clock.Day, LastProgressDay = sinceDay ?? Clock.Day };
     }
 
     /// <summary>Fim de guerra entre dois: AtWarWith + Wars. Não publica eventos (o chamador decide).</summary>

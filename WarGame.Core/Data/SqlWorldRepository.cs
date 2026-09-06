@@ -226,6 +226,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "nukes", "INTEGER NOT NULL DEFAULT 0"),
         ("s_production_queue", "repeat_order", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "a_regions", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "b_regions", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "a_losses", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "b_losses", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "a_battles", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_war", "b_battles", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -340,12 +346,20 @@ public sealed class SqlWorldRepository : IWorldRepository
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
         }
-        foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day FROM s_war"))
+        foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war"))
         {
             int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]);
             w.StartWar(a, b, Convert.ToInt32(r["since_day"]));
-            w.Wars[World.WarKey(a, b)].LastProgressDay = r["last_progress_day"] is null ? Convert.ToInt32(r["since_day"]) : Convert.ToInt32(r["last_progress_day"]);
+            var info = w.Wars[World.WarKey(a, b)];
+            info.LastProgressDay = r["last_progress_day"] is null ? Convert.ToInt32(r["since_day"]) : Convert.ToInt32(r["last_progress_day"]);
+            info.SideA.RegionsTaken = Convert.ToInt32(r["a_regions"]); info.SideB.RegionsTaken = Convert.ToInt32(r["b_regions"]);
+            info.SideA.DivisionsLost = Convert.ToInt32(r["a_losses"]); info.SideB.DivisionsLost = Convert.ToInt32(r["b_losses"]);
+            info.SideA.BattlesWon = Convert.ToInt32(r["a_battles"]); info.SideB.BattlesWon = Convert.ToInt32(r["b_battles"]);
         }
+        foreach (var r in save.Query("SELECT a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war_history ORDER BY id"))
+            w.WarHistory.Add(new WarRecord(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]), Convert.ToInt32(r["start_day"]), Convert.ToInt32(r["end_day"]),
+                Convert.ToInt32(r["a_regions"]), Convert.ToInt32(r["b_regions"]), Convert.ToInt32(r["a_losses"]), Convert.ToInt32(r["b_losses"]),
+                Convert.ToInt32(r["a_battles"]), Convert.ToInt32(r["b_battles"])));
         foreach (var r in save.Query("SELECT country_id,template_id,progress,repeat_order FROM s_production_queue ORDER BY id"))
             w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]), Repeat = Convert.ToInt32(r["repeat_order"]) != 0 });
         foreach (var r in save.Query("SELECT region_id,attacker_country_id,days FROM s_battle"))
@@ -360,7 +374,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -412,10 +426,16 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (c.Id < e)
                 {
                     var info = w.Wars.GetValueOrDefault(World.WarKey(c.Id, e));
-                    save.Execute("INSERT INTO s_war (a,b,since_day,last_progress_day) VALUES (?,?,?,?)",
-                        c.Id, e, info?.StartDay ?? w.Clock.Day, info?.LastProgressDay ?? w.Clock.Day);
+                    save.Execute("INSERT INTO s_war (a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        c.Id, e, info?.StartDay ?? w.Clock.Day, info?.LastProgressDay ?? w.Clock.Day,
+                        info?.SideA.RegionsTaken ?? 0, info?.SideB.RegionsTaken ?? 0,
+                        info?.SideA.DivisionsLost ?? 0, info?.SideB.DivisionsLost ?? 0,
+                        info?.SideA.BattlesWon ?? 0, info?.SideB.BattlesWon ?? 0);
                 }
         }
+        foreach (var rec in w.WarHistory)   // pela ordem da lista (mais recente primeiro); o load lê por id e mantém-na
+            save.Execute("INSERT INTO s_war_history (a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                rec.A, rec.B, rec.StartDay, rec.EndDay, rec.ARegions, rec.BRegions, rec.ALosses, rec.BLosses, rec.ABattles, rec.BBattles);
         foreach (var r in w.Regions.Values)
         {
             if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building || r.Fort > 0 || r.FortBuilding || r.Resistance > 0f || r.Project is not null || r.Integration > 0f)

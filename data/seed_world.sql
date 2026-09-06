@@ -224,6 +224,7 @@ INSERT INTO rule (key,value,note) VALUES
 -- Gráficos de evolução (HistorySystem)
 INSERT INTO rule VALUES ('history_sample_days', 7, 'dias entre amostras dos gráficos');
 INSERT INTO rule VALUES ('history_tracked', 8, 'países por amostra (jogador + maiores)');
+INSERT INTO rule VALUES ('war_history_max', 40, 'guerras terminadas guardadas no resumo');
 
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
 INSERT INTO spy_op VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);

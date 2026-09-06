@@ -27,6 +27,7 @@ public partial class Hud : CanvasLayer
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
     private WorldPanel _worldPanel = null!;
+    private WarPanel _warPanel = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
@@ -46,6 +47,7 @@ public partial class Hud : CanvasLayer
             _production = new ProductionPanel(); AddChild(_production); _production.Setup(_game);
             _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
             _worldPanel = new WorldPanel(); AddChild(_worldPanel); _worldPanel.Setup(_game, _countryPanel);
+            _warPanel = new WarPanel(); AddChild(_warPanel); _warPanel.Setup(_game);
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
@@ -84,6 +86,7 @@ public partial class Hud : CanvasLayer
         if (_region.Visible) { _region.Close(); return; }
         if (_production.Visible) { _production.Close(); return; }
         if (_countryPanel.Visible) { _countryPanel.Close(); return; }
+        if (_warPanel.Visible) { _warPanel.Close(); return; }
         var now = Time.GetTicksMsec();
         if (now - _backAt < 2000) { _game.Save(); GetTree().Quit(); return; }
         _backAt = now;
@@ -120,6 +123,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("Frente", DefendBorders));
         row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
+        row.AddChild(Ui.Btn("Guerra", OpenWar));
         row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
         row.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
     }
@@ -130,6 +134,13 @@ public partial class Hud : CanvasLayer
         if (_game.PlayerId is not int pid) { Toast("Toca num país e escolhe-o primeiro"); return; }
         var err = _game.Dispatch(new DefendBordersCommand(pid));
         Toast(err ?? "Divisões a caminho da frente");
+    }
+
+    private void OpenWar()
+    {
+        if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        _region.Close(); _production.Close(); _countryPanel.Close(); _worldPanel.Close();
+        _warPanel.Open();
     }
 
     private void OpenCountry()
@@ -404,6 +415,15 @@ public partial class Hud : CanvasLayer
                 Later(white ? $"🕊 Paz branca entre {Country(e.A)} e {Country(e.B)} — cada um fica com o que controla"
                             : $"Paz entre {Country(e.A)} e {Country(e.B)}");
         }));
+        // Saldo da guerra que acabou: sai como notícia e fica no painel Guerra para consulta.
+        _subs.Add(w.Events.Subscribe<WarSummary>(e =>
+        {
+            if (_game.PlayerId is not int pid || !e.Record.Involves(pid)) return;
+            var r = e.Record;
+            int foe = r.A == pid ? r.B : r.A;
+            string verdict = r.Winner is null ? "sem vencedor" : r.Winner == pid ? "vitória nossa" : "derrota";
+            Later($"📜 Guerra com {Country(foe)} ({r.Days} dias): {verdict} — regiões {r.Regions(pid)}–{r.Regions(foe)}, divisões perdidas {r.Losses(pid)}");
+        }));
         _subs.Add(w.Events.Subscribe<CountryCapitulated>(e =>
         {
             if (Player(e.CountryId)) Callable.From(ShowDefeat).CallDeferred();
@@ -497,6 +517,7 @@ public partial class Hud : CanvasLayer
             _production.Refresh();
             _countryPanel.Refresh();
             _worldPanel.Refresh();
+            _warPanel.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
@@ -542,6 +563,7 @@ public partial class Hud : CanvasLayer
         GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos");
         if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
         _production.Open();
+        _warPanel.Open(); _warPanel.Close();   // o painel Guerra também tem de encher sem rebentar
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
