@@ -158,4 +158,33 @@ public class EspionageTests
         Assert.DoesNotContain(w.ActiveSpyOps, o => o.CountryId == 2 && o.TargetCountryId == 1);
         Assert.Contains(w.ActiveSpyOps, o => o.CountryId == 1 && o.TargetCountryId == 2 && o.OpId == "rede_info");
     }
+
+    [Fact]
+    public void Ai_PrefersCounterEspionage_WhenSpiedOn()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
+        w.Countries[1].Money = 1000;
+        TestWorld.AddDivision(w, 1, 2, TestWorld.Inf2, 6);
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 2, TargetCountryId = 1, OpId = "roubo_fundos", DaysLeft = 30 });
+        w.Register(new AiSystem());
+        TestWorld.Days(w, 1);
+        Assert.Contains(w.ActiveSpyOps, o => o.CountryId == 1 && o.TargetCountryId == 2 && o.OpId == "contra_espionagem");
+    }
+
+    [Fact]
+    public void Ai_SkipsCounterEspionage_WhenNotTargeted()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
+        w.Countries[1].Money = 1000;
+        TestWorld.AddDivision(w, 1, 2, TestWorld.Inf2, 6);
+        w.Register(new AiSystem());
+        TestWorld.Days(w, 1);
+        var mine = w.ActiveSpyOps.Where(o => o.CountryId == 1).ToList();
+        Assert.Single(mine);
+        Assert.NotEqual("contra_espionagem", mine[0].OpId);
+    }
 }

@@ -115,7 +115,11 @@ public sealed class AiSystem : ISystem
             if (n > best) { best = n; target = e; }
         }
         if (target < 0) return;
-        var op = w.SpyOps.Values.OrderBy(o => o.Cost).First();
+        // sob espionagem do alvo → contra-espionagem primeiro; senão a mais barata ofensiva
+        bool spiedOn = w.ActiveSpyOps.Any(o => o.CountryId == target && o.TargetCountryId == c.Id);
+        var op = (spiedOn ? w.SpyOps.Values.Where(o => o.Effect == "purge_spies") : Enumerable.Empty<SpyOp>())
+            .Concat(w.SpyOps.Values.Where(o => o.Effect != "purge_spies").OrderBy(o => o.Cost))
+            .First();
         var cmd = new Commands.StartSpyOpCommand(c.Id, target, op.Id);
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
