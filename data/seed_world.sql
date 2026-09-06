@@ -248,3 +248,12 @@ CREATE TABLE IF NOT EXISTS building (
 INSERT INTO building VALUES ('fabrica','Fábrica',40,25,'industry',0.05,5);
 INSERT INTO building VALUES ('laboratorio','Laboratório',50,30,'research_speed',0.06,3);
 INSERT INTO building VALUES ('arsenal','Arsenal',45,25,'production_speed',0.05,4);
+
+-- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
+INSERT INTO law VALUES
+ ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),
+ ('doc_combinada','doctrine','Armas combinadas','Equilíbrio ofensivo-defensivo.',1,1),
+ ('doc_ofensiva','doctrine','Doutrina ofensiva','Tudo no ataque: mais ataque, menos defesa.',2,0);
+INSERT INTO law_effect VALUES
+ ('doc_defensiva','defense',1.12),('doc_defensiva','attack',0.95),('doc_defensiva','org_regain',1.05),
+ ('doc_ofensiva','attack',1.10),('doc_ofensiva','defense',0.95);

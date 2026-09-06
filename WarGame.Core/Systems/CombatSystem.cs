@@ -104,7 +104,9 @@ public sealed class CombatSystem : ISystem
             var (cf, cm) = w.Modifiers.Evaluate("command", st, ctx);
             float command = cm + cf - 0.15f * excess;
             float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f);
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * MathF.Max(0.3f, command));
+            // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
+            float doctrine = w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(attacking ? "attack" : "defense") : 1f;
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * MathF.Max(0.3f, command));
         }
         return out_;
     }
