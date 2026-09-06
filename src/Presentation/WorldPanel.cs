@@ -37,7 +37,7 @@ public partial class WorldPanel : PanelContainer
         try
         {
             var w = _game.World;
-            var key = w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B));
+            var key = w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count;
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.Clear(_body);
@@ -76,6 +76,23 @@ public partial class WorldPanel : PanelContainer
                 Line($"⚔ {na} vs {nb}   ({w.Clock.Day - info.StartDay} dias)", 17);
             }
 
+            if (_game.PlayerId is int pid)
+            {
+                var mine = w.ActiveSpyOps.Where(o => o.CountryId == pid).ToList();
+                var against = w.ActiveSpyOps.Where(o => o.TargetCountryId == pid).ToList();
+                var intel = w.Intel.Where(kv => kv.Key.A == pid && kv.Value >= w.Clock.Day).ToList();
+                if (mine.Count > 0 || against.Count > 0 || intel.Count > 0)
+                {
+                    Header("Espionagem");
+                    foreach (var o in mine)
+                        Line($"🕵 {(w.SpyOps.TryGetValue(o.OpId, out var op) ? op.Name : o.OpId)} contra {Name(w, o.TargetCountryId)} — {(int)MathF.Ceiling(o.DaysLeft)} dias", 16);
+                    foreach (var (k, until) in intel)
+                        Line($"👁 Intel sobre {Name(w, k.B)} até ao dia {until}", 16);
+                    if (against.Count > 0)
+                        Line($"⚠ {against.Count} operação(ões) inimiga(s) contra nós em curso", 16);
+                }
+            }
+
             Header("Facções");
             foreach (var f in w.Factions.Values.Where(f => f.Members.Count > 0).OrderByDescending(f => f.Members.Count))
             {
@@ -86,6 +103,8 @@ public partial class WorldPanel : PanelContainer
         }
         catch (Exception ex) { GD.PushError("WorldPanel.Fill: " + ex); }
     }
+
+    private static string Name(WarGame.Core.Model.World w, int id) => w.Countries.TryGetValue(id, out var c) ? c.Name : "#" + id;
 
     private void Header(string text) { var l = Ui.Lbl(text, 20); l.Modulate = new Color(1f, 0.85f, 0.4f); _body.AddChild(l); }
     private void Line(string text, int size = 18) => _body.AddChild(Ui.Lbl(text, size));
