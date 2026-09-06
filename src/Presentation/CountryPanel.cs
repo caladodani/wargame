@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -77,7 +77,31 @@ public partial class CountryPanel : PanelContainer
             {
                 var names = f.Members.Where(w.Countries.ContainsKey).Select(m => w.Countries[m].Tag).OrderBy(t => t).ToList();
                 string list = names.Count > 12 ? string.Join(", ", names.Take(12)) + ", …" : string.Join(", ", names);
-                Line($"{f.Name} — {names.Count} membros: {list}", 16);
+                var frow = new HBoxContainer();
+                frow.AddChild(Ui.Grow(Ui.Lbl($"{f.Name} — {names.Count} membros: {list}", 16)));
+                string fid = f.Id;
+                if (mine) frow.AddChild(Ui.Btn("Sair", () => Faction(new LeaveFactionCommand(c.Id, fid)), 100));
+                _body.AddChild(frow);
+            }
+            if (mine)
+            {
+                foreach (var f in w.Factions.Values.Where(f => !f.Members.Contains(c.Id)).OrderBy(f => f.Name))
+                {
+                    string fid = f.Id;
+                    var frow = new HBoxContainer();
+                    frow.AddChild(Ui.Grow(Ui.Lbl($"{f.Name} — {f.Members.Count} membros", 16)));
+                    frow.AddChild(Ui.Btn("Aderir", () => Faction(new JoinFactionCommand(c.Id, fid)), 130));
+                    _body.AddChild(frow);
+                }
+                _body.AddChild(Ui.Btn("＋ Fundar facção", OpenCreateFaction, 220));
+            }
+            else if (_game.PlayerId is int inviter)
+            {
+                foreach (var f in w.FactionsOf(inviter).Where(f => !f.Members.Contains(c.Id)))
+                {
+                    string fid = f.Id;
+                    _body.AddChild(Ui.Btn($"Convidar para {f.Name}", () => Faction(new InviteToFactionCommand(inviter, fid, c.Id)), 320));
+                }
             }
             if (c.JustifyTarget is int jt && w.Countries.TryGetValue(jt, out var jtc))
                 Line($"A justificar guerra contra {jtc.Name}: {(int)MathF.Ceiling(w.Rule("war_justify_days", 30f) - c.JustifyProgress)} dias");
@@ -125,6 +149,28 @@ public partial class CountryPanel : PanelContainer
             Line($"Concluídas ({known.Count}): " + (known.Count == 0 ? "nenhuma" : string.Join(", ", known)), 16);
         }
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }
+    }
+
+    private void Faction(WarGame.Core.Commands.ICommand cmd)
+    {
+        _game.RunWhenIdle(() =>
+        {
+            var err = _game.Dispatch(cmd);
+            if (err is not null) GetParent<Hud>().Toast(err);
+        });
+    }
+
+    private void OpenCreateFaction()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var dlg = new AcceptDialog { Title = "Fundar facção", OkButtonText = "Fundar" };
+        var name = new LineEdit { PlaceholderText = "Nome da facção", MaxLength = 40, CustomMinimumSize = new Vector2(360, 0) };
+        dlg.AddChild(name);
+        dlg.Confirmed += () => Faction(new CreateFactionCommand(pid, name.Text));
+        dlg.Canceled += () => dlg.QueueFree();
+        dlg.Confirmed += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
     }
 
     private void PickFocus(string focusId)

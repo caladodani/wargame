@@ -24,6 +24,14 @@ public sealed record TemplateCreated(int CountryId, int TemplateId) : IGameEvent
 public sealed record NewsChoiceRequired(string EventId) : IGameEvent;
 /// <summary>Escolha feita num evento com opções (ChooseNewsOptionCommand ou IA).</summary>
 public sealed record NewsChoiceMade(int CountryId, string EventId, string OptionId) : IGameEvent;
+/// <summary>Facção fundada em jogo (CreateFactionCommand).</summary>
+public sealed record FactionCreated(int CountryId, string FactionId) : IGameEvent;
+/// <summary>País entrou numa facção (convite aceite ou adesão).</summary>
+public sealed record FactionJoined(string FactionId, int CountryId) : IGameEvent;
+/// <summary>Convite recusado (sem inimigo comum — World.FactionWouldAccept).</summary>
+public sealed record FactionInviteRejected(string FactionId, int CountryId) : IGameEvent;
+/// <summary>País saiu de uma facção (LeaveFactionCommand).</summary>
+public sealed record FactionLeft(string FactionId, int CountryId) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;
 public sealed record NewsFired(string EventId) : IGameEvent;

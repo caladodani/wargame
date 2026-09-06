@@ -195,6 +195,16 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.Units.AddCustomTemplate(tid, Convert.ToInt32(r["country_id"]), (string)r["name"]!, units);
             w.CustomTemplateIds.Add(tid);
         }
+        // Facções fundadas em jogo + composição gravada (linhas presentes substituem a da static.db)
+        foreach (var r in save.Query("SELECT id,name,description FROM s_faction"))
+            w.CreateFaction((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "");
+        var factionMembers = save.Query("SELECT faction_id,country_id FROM s_faction_member");
+        if (factionMembers.Count > 0)
+        {
+            foreach (var f in w.Factions.Values) f.Members.Clear();
+            foreach (var r in factionMembers)
+                if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f)) f.Members.Add(Convert.ToInt32(r["country_id"]));
+        }
         foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
@@ -254,12 +264,20 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+        foreach (var id in w.CustomFactionIds)
+        {
+            var f = w.Factions[id];
+            save.Execute("INSERT INTO s_faction VALUES (?,?,?)", f.Id, f.Name, f.Description);
+        }
+        foreach (var f in w.Factions.Values)
+            foreach (var m in f.Members)
+                save.Execute("INSERT INTO s_faction_member VALUES (?,?)", f.Id, m);
         foreach (var id in w.CustomTemplateIds)
         {
             var t = w.Units.GetTemplate(id);

@@ -35,6 +35,8 @@ public sealed class AiSystem : ISystem
         }
         var inBattle = new HashSet<int>(w.ActiveBattles.SelectMany(b => b.Attackers.Concat(b.Defenders)));
 
+        FactionInvites(w);
+
         foreach (var c in w.Countries.Values)
         {
             if (c.IsPlayer) continue;   // o jogador nunca é mexido pela IA
@@ -47,6 +49,32 @@ public sealed class AiSystem : ISystem
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
+        }
+    }
+
+    /// <summary>Coligações: facções com guerras convidam países que lutam contra o mesmo inimigo
+    /// (InviteToFactionCommand decide a aceitação — inimigo comum). O jogador nunca convida nem é
+    /// convidado automaticamente; adere pelo painel do país.</summary>
+    private static void FactionInvites(World w)
+    {
+        foreach (var f in w.Factions.Values.ToList())
+        {
+            int inviter = 0;
+            var enemies = new HashSet<int>();
+            foreach (var m in f.Members)
+                if (w.Countries.TryGetValue(m, out var mc) && !mc.Capitulated)
+                {
+                    enemies.UnionWith(mc.AtWarWith);
+                    if (inviter == 0 && !mc.IsPlayer) inviter = m;
+                }
+            if (inviter == 0 || enemies.Count == 0) continue;
+            foreach (var c in w.Countries.Values.ToList())
+            {
+                if (c.IsPlayer || c.Capitulated || f.Members.Contains(c.Id)) continue;
+                if (!c.AtWarWith.Overlaps(enemies)) continue;
+                var cmd = new InviteToFactionCommand(inviter, f.Id, c.Id);
+                if (cmd.Validate(w) is null) cmd.Execute(w);
+            }
         }
     }
 

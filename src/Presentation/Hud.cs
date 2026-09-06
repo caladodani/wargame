@@ -208,6 +208,27 @@ public partial class Hud : CanvasLayer
             if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))
                 Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)");
         }));
+        _subs.Add(w.Events.Subscribe<FactionCreated>(e =>
+        {
+            if (Player(e.CountryId)) Later($"Facção fundada: {(w.Factions.TryGetValue(e.FactionId, out var f) ? f.Name : e.FactionId)}");
+        }));
+        _subs.Add(w.Events.Subscribe<FactionJoined>(e =>
+        {
+            string fname = w.Factions.TryGetValue(e.FactionId, out var f) ? f.Name : e.FactionId;
+            if (Player(e.CountryId)) Later($"Aderiste à facção {fname}");
+            else if (_game.PlayerId is int p && f is not null && f.Members.Contains(p)) Later($"{Country(e.CountryId)} entrou na {fname}");
+        }));
+        _subs.Add(w.Events.Subscribe<FactionInviteRejected>(e =>
+        {
+            if (_game.PlayerId is int p && w.Factions.TryGetValue(e.FactionId, out var f) && f.Members.Contains(p))
+                Later($"{Country(e.CountryId)} recusou o convite (sem inimigo comum)");
+        }));
+        _subs.Add(w.Events.Subscribe<FactionLeft>(e =>
+        {
+            string fname = w.Factions.TryGetValue(e.FactionId, out var f) ? f.Name : e.FactionId;
+            if (Player(e.CountryId)) Later($"Saíste da facção {fname}");
+            else if (_game.PlayerId is int p && f is not null && f.Members.Contains(p)) Later($"{Country(e.CountryId)} saiu da {fname}");
+        }));
         _subs.Add(w.Events.Subscribe<WhitePeaceSigned>(e => _whitePeace.Add((e.A, e.B))));
         _subs.Add(w.Events.Subscribe<WarEnded>(e =>
         {

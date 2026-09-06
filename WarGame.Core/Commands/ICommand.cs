@@ -1,3 +1,4 @@
+using WarGame.Core.Events;
 using WarGame.Core.Model;
 
 namespace WarGame.Core.Commands;
@@ -301,4 +302,90 @@ public sealed record ChoosePlayerCommand(int CountryId) : ICommand
         return null;
     }
     public void Execute(World w) => w.Countries[CountryId].IsPlayer = true;
+}
+
+/// <summary>Fundar uma facção nova (diplomacia). Id gerado (fx_N); o fundador é o primeiro membro.</summary>
+public sealed record CreateFactionCommand(int CountryId, string Name) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        var name = Name?.Trim() ?? "";
+        if (name.Length is < 1 or > 40) return "nome tem de ter 1-40 caracteres";
+        if (w.Factions.Values.Any(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return "já existe uma facção com esse nome";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var f = w.CreateFaction(w.NewFactionId(), Name.Trim(), "");
+        f.Members.Add(CountryId);
+        w.Events.Publish(new FactionCreated(CountryId, f.Id));
+    }
+}
+
+/// <summary>Convidar um país (IA) para uma facção de que se é membro. A IA aceita só com inimigo comum
+/// (World.FactionWouldAccept); o resultado sai como FactionJoined ou FactionInviteRejected.</summary>
+public sealed record InviteToFactionCommand(int CountryId, string FactionId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Factions.TryGetValue(FactionId, out var f)) return "facção desconhecida";
+        if (!f.Members.Contains(CountryId)) return "não és membro dessa facção";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "país inválido";
+        if (t.IsPlayer) return "o jogador decide sozinho se adere";
+        if (f.Members.Contains(TargetCountryId)) return "já é membro";
+        foreach (var m in f.Members) if (w.AreAtWar(TargetCountryId, m)) return "está em guerra com um membro";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var f = w.Factions[FactionId];
+        if (w.FactionWouldAccept(TargetCountryId, f))
+        {
+            f.Members.Add(TargetCountryId);
+            w.Events.Publish(new FactionJoined(FactionId, TargetCountryId));
+        }
+        else w.Events.Publish(new FactionInviteRejected(FactionId, TargetCountryId));
+    }
+}
+
+/// <summary>Pedir adesão a uma facção (jogador). A mesma regra da IA: só com inimigo comum.</summary>
+public sealed record JoinFactionCommand(int CountryId, string FactionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Factions.TryGetValue(FactionId, out var f)) return "facção desconhecida";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (f.Members.Contains(CountryId)) return "já és membro";
+        foreach (var m in f.Members) if (w.AreAtWar(CountryId, m)) return "estás em guerra com um membro";
+        if (!w.FactionWouldAccept(CountryId, f)) return "recusado: sem inimigo comum com a facção";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Factions[FactionId].Members.Add(CountryId);
+        w.Events.Publish(new FactionJoined(FactionId, CountryId));
+    }
+}
+
+/// <summary>Sair de uma facção. Em guerra não se sai (HoI4).</summary>
+public sealed record LeaveFactionCommand(int CountryId, string FactionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Factions.TryGetValue(FactionId, out var f)) return "facção desconhecida";
+        if (!f.Members.Contains(CountryId)) return "não és membro";
+        if (w.Countries.TryGetValue(CountryId, out var c) && c.AtWarWith.Count > 0) return "em guerra não se sai da facção";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Factions[FactionId].Members.Remove(CountryId);
+        w.Events.Publish(new FactionLeft(FactionId, CountryId));
+    }
 }

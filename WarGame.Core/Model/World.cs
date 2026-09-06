@@ -137,6 +137,33 @@ public sealed class World
         return result;
     }
 
+    /// <summary>Facções fundadas em jogo (CreateFactionCommand); persistem em s_faction. As da static.db não entram.</summary>
+    public List<string> CustomFactionIds { get; } = new();
+    public Faction CreateFaction(string id, string name, string description)
+    {
+        var f = new Faction(id, name, description, new List<int>());
+        Factions[id] = f; CustomFactionIds.Add(id);
+        return f;
+    }
+    public string NewFactionId()
+    {
+        int n = 0;
+        foreach (var id in CustomFactionIds)
+            if (id.StartsWith("fx_") && int.TryParse(id.AsSpan(3), out var k) && k > n) n = k;
+        return "fx_" + (n + 1);
+    }
+    /// <summary>A IA (e a regra de adesão do jogador) aceita entrar numa facção só com inimigo comum:
+    /// o candidato está em guerra com alguém com quem um membro também está. Nunca em guerra com membros.</summary>
+    public bool FactionWouldAccept(int countryId, Faction f)
+    {
+        if (!Countries.TryGetValue(countryId, out var c) || c.Capitulated || f.Members.Contains(countryId)) return false;
+        foreach (var m in f.Members) if (AreAtWar(countryId, m)) return false;
+        foreach (var e in c.AtWarWith)
+            foreach (var m in f.Members)
+                if (AreAtWar(m, e)) return true;
+        return false;
+    }
+
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);
 
