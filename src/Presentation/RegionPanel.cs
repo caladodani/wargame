@@ -322,6 +322,8 @@ public partial class RegionPanel : PanelContainer
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
         // travessia marítima em curso: quem vai no barco desembarca com menos organização
         if (d.TargetRegionId is int hop && w.IsSeaHop(d.RegionId, hop)) s += "   🌊";
+        if (d.Xp >= 1f) s += $"   XP {d.Xp:0}";
+        if (d.Medals.Count > 0) s += "   🎖" + (d.Medals.Count > 1 ? "×" + d.Medals.Count : "");
         if (d.AutoAdvance) s += "   ⚑";
         if (w.InBattle(d.Id)) s += "   " + RegionRenderer.BattleMark.Trim();
         return s;

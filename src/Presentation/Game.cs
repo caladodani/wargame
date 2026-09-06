@@ -86,6 +86,7 @@ public partial class Game : Node
         World.Register(new WarGoalSystem());
         World.Register(new MovementSystem());
         World.Register(new CombatSystem());
+        World.Register(new MedalSystem());       // depois do combate: condecora com os contadores do dia
         World.Register(new PeaceSystem());
         World.Register(new TruceSystem());
         World.Register(new ConstructionSystem());

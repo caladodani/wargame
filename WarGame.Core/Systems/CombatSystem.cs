@@ -34,8 +34,13 @@ public sealed class CombatSystem : ISystem
             {
                 w.ActiveBattles.RemoveAt(i);
                 w.Events.Publish(new BattleEnded(b.RegionId, defOut, b.AttackerCountryId, region.ControllerId));
+                // Batalha travada até ao fim conta para as condecorações de quem lá ficou vivo.
+                foreach (int id in b.Attackers.Concat(b.Defenders))
+                    if (w.Divisions.TryGetValue(id, out var vet) && vet.Hp > 0f) vet.Battles++;
                 if (defOut)
                 {
+                    foreach (int id in b.Attackers)
+                        if (w.Divisions.TryGetValue(id, out var win) && win.Hp > 0f) win.Captures++;
                     int old = region.ControllerId;
                     region.ControllerId = b.AttackerCountryId;
                     CaptureDamage(w, region);
@@ -130,7 +135,8 @@ public sealed class CombatSystem : ISystem
             float morale = 0.5f + d.Org / 200f;
             var (cf, cm) = w.Modifiers.Evaluate("command", st, ctx);
             float command = cm + cf - 0.15f * excess;
-            float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f);
+            float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f)
+                              + MedalSystem.Bonus(w, d);   // condecorações: veteranos batem-se melhor
             // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
             float doctrine = w.Countries.TryGetValue(d.CountryId, out var dc) ? dc.Stat(attacking ? "attack" : "defense") : 1f;
             float amphibious = attacking ? AmphibiousMult(w, d, battleRegion) : 1f;

@@ -77,6 +77,9 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
                 Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]));
+        foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort FROM medal ORDER BY sort"))
+            w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
+                (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,sort FROM difficulty ORDER BY sort"))
             w.DifficultyDefs[(string)r["id"]!] = new DifficultyDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToInt32(r["sort"]), new Dictionary<string, float>());
@@ -233,6 +236,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_war", "b_losses", "INTEGER NOT NULL DEFAULT 0"),
         ("s_war", "a_battles", "INTEGER NOT NULL DEFAULT 0"),
         ("s_war", "b_battles", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_division", "battles", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_division", "captures", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -333,7 +338,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -343,10 +348,14 @@ public sealed class SqlWorldRepository : IWorldRepository
             };
             if (r["xp"] is not null) d.Xp = Convert.ToSingle(r["xp"]);
             if (r["auto_advance"] is not null) d.AutoAdvance = Convert.ToInt32(r["auto_advance"]) != 0;
+            if (r["battles"] is not null) d.Battles = Convert.ToInt32(r["battles"]);
+            if (r["captures"] is not null) d.Captures = Convert.ToInt32(r["captures"]);
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
         }
+        foreach (var r in save.Query("SELECT division_id,medal FROM s_division_medal"))
+            if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var md)) md.Medals.Add((string)r["medal"]!);
         foreach (var r in save.Query("SELECT a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles FROM s_war"))
         {
             int a = Convert.ToInt32(r["a"]), b = Convert.ToInt32(r["b"]);
@@ -378,7 +387,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -454,8 +463,13 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (lvl > 0) save.Execute("INSERT INTO s_region_building (region_id,building,level) VALUES (?,?,?)", r.Id, bid, lvl);
         }
         foreach (var d in w.Divisions.Values)
-            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
-                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0);
+        {
+            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
+                d.Battles, d.Captures);
+            foreach (var medal in d.Medals)
+                save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
+        }
         foreach (var b in w.ActiveBattles)
         {
             // uma batalha por região no schema: se dois países atacam a mesma região só a primeira persiste

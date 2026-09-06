@@ -427,6 +427,14 @@ public partial class Hud : CanvasLayer
             if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz");
             else if (Player(e.TargetCountryId)) Later($"⚠ {Country(e.CountryId)} já tem o que veio buscar");
         }));
+        // Condecoração: só as do jogador, e só as de peso (as primeiras chegam às centenas num exército grande).
+        _subs.Add(w.Events.Subscribe<MedalAwarded>(e =>
+        {
+            if (!Player(e.CountryId) || !w.MedalDefs.TryGetValue(e.MedalId, out var m) || m.Sort < 3) return;
+            string unit = w.Divisions.TryGetValue(e.DivisionId, out var d)
+                ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
+            Later($"🎖 {unit}: {m.Name}");
+        }));
         // Saldo da guerra que acabou: sai como notícia e fica no painel Guerra para consulta.
         _subs.Add(w.Events.Subscribe<WarSummary>(e =>
         {
@@ -537,6 +545,12 @@ public partial class Hud : CanvasLayer
             _mini.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
+    }
+
+    /// <summary>Nome do modelo da divisão, sem deixar rebentar o toast se o template já não existir.</summary>
+    private static string SafeTemplate(World w, Division d)
+    {
+        try { return w.Units.GetTemplate(d.TemplateId).Name; } catch { return "Divisão " + d.Id; }
     }
 
     /// <summary>Nomes das regiões de um objectivo, cortados para o toast não virar parágrafo.</summary>

@@ -88,6 +88,10 @@ public sealed class Region
 /// <summary>Edifício construível numa região (tabela building): cada nível multiplica StatKey do controlador por (1+PerLevel).</summary>
 /// <summary>Edifício regional (tabela building). Coastal = só se constrói em região de costa;
 /// SupplyRange = alcance em km a que o edifício projecta abastecimento por mar, por nível (0 = nenhum).</summary>
+/// <summary>Condecoração de divisão (tabela medal). Metric: "xp", "battles" ou "captures"; ao passar
+/// o limiar a divisão ganha-a para sempre e Bonus soma-se à sua força (tecto medal_bonus_max).</summary>
+public sealed record MedalDef(string Id, string Name, string Description, string Metric, float Threshold, float Bonus, int Sort);
+
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
     bool Coastal = false, float SupplyRange = 0f);
 
@@ -241,6 +245,12 @@ public sealed class Division
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;
     public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
+    /// <summary>Batalhas em que esteve e de que saiu viva (CombatSystem, ao fechar a batalha).</summary>
+    public int Battles { get; set; }
+    /// <summary>Regiões inimigas que tomou, por assalto ou entrando em região vazia.</summary>
+    public int Captures { get; set; }
+    /// <summary>Condecorações ganhas (ids da tabela medal); MedalSystem só acrescenta.</summary>
+    public HashSet<string> Medals { get; } = new();
     public float MoveProgress { get; set; }        // 0..1 dentro do salto actual (MovementSystem)
     /// <summary>Ordem permanente de avanço (AutoFrontSystem): parada e sem combate, a divisão ataca
     /// sozinha a região inimiga vizinha mais fraca. Desliga-se ao dar uma ordem manual.</summary>

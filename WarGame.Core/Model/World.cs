@@ -36,6 +36,7 @@ public sealed class World
     public Dictionary<string, ResourceDef> ResourceDefs { get; } = new();
     /// <summary>Edifícios construíveis (tabela building).</summary>
     public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
+    public Dictionary<string, MedalDef> MedalDefs { get; } = new();
     /// <summary>Decisões nacionais (tabela decision) e as activas.</summary>
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>

@@ -92,6 +92,7 @@ public sealed class MovementSystem : ISystem
             CombatSystem.CaptureDamage(w, target);
             w.NoteWarProgress(old, d.CountryId);
             w.Events.Publish(new RegionCaptured(target.Id, old, d.CountryId));
+            d.Captures++;                       // entrar numa região inimiga vazia também é tomá-la
             w.PlaceDivision(d, target.Id); d.AdvanceHop();
             return;
         }
