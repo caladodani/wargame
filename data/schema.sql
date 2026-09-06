@@ -146,7 +146,8 @@ CREATE TABLE IF NOT EXISTS s_country (
   manpower REAL NOT NULL DEFAULT -1,  -- -1 = por inicializar (ManpowerSystem)
   focus TEXT, focus_progress REAL NOT NULL DEFAULT 0,
   justify_target INTEGER, justify_progress REAL NOT NULL DEFAULT 0,
-  war_exhaustion REAL NOT NULL DEFAULT 0
+  war_exhaustion REAL NOT NULL DEFAULT 0,
+  air_power REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));

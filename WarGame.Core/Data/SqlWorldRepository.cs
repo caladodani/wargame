@@ -208,6 +208,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_region", "project_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "war_exhaustion", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "xp", "REAL NOT NULL DEFAULT 0"),
+        ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -237,7 +238,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var r in factionMembers)
                 if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f)) f.Members.Add(Convert.ToInt32(r["country_id"]));
         }
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
@@ -251,6 +252,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             c.JustifyTarget = r["justify_target"] is null ? null : Convert.ToInt32(r["justify_target"]);
             if (r["justify_progress"] is not null) c.JustifyProgress = Convert.ToSingle(r["justify_progress"]);
             if (r["war_exhaustion"] is not null) c.WarExhaustion = Convert.ToSingle(r["war_exhaustion"]);
+            if (r["air_power"] is not null) c.AirPower = Convert.ToSingle(r["air_power"]);
         }
         foreach (var r in save.Query("SELECT country_id,tech_id FROM s_country_tech"))
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
@@ -358,8 +360,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var c in w.Countries.Values)
         {
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion);
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);

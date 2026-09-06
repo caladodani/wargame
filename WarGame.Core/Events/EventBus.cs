@@ -53,6 +53,7 @@ public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string O
 public sealed record DivisionDisbanded(int DivisionId, int CountryId) : IGameEvent;
 public sealed record PactSigned(int A, int B, int UntilDay) : IGameEvent;
 public sealed record PactRejected(int FromCountryId, int ToCountryId) : IGameEvent;
+public sealed record AirWingBought(int CountryId, int Total) : IGameEvent;
 public sealed record BattleRetreat(int RegionId, int CountryId, int Divisions) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;

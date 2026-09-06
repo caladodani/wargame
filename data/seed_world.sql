@@ -262,3 +262,9 @@ INSERT INTO law_effect VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('intel_combat_bonus',1.05,'multiplicador de força de quem tem intel sobre o outro lado');
 INSERT INTO spy_op VALUES ('fomentar_desercao','Fomentar deserção','Uma fracção das divisões inimigas com pior moral dissolve-se.',90,40,'desertion',0.1);
+
+-- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
+INSERT INTO rule (key,value,note) VALUES
+ ('air_wing_cost',60,'custo de um esquadrão aéreo'),
+ ('air_combat_weight',0.15,'peso máximo da superioridade aérea na força (±15%)'),
+ ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões');

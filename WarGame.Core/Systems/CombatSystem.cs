@@ -79,6 +79,20 @@ public sealed class CombatSystem : ISystem
             if (w.HasIntel(attC, defC)) for (int i = 0; i < strA.Length; i++) strA[i] *= intelMult;
             if (w.HasIntel(defC, attC)) for (int i = 0; i < strD.Length; i++) strD[i] *= intelMult;
         }
+        // superioridade aérea: razão de esquadrões modula a força (±air_combat_weight no máximo)
+        if (att.Count > 0 && def.Count > 0
+            && w.Countries.TryGetValue(att[0].CountryId, out var ac) && w.Countries.TryGetValue(def[0].CountryId, out var dc2))
+        {
+            float airTot = ac.AirPower + dc2.AirPower;
+            if (airTot > 0f)
+            {
+                float weight = w.Rule("air_combat_weight", 0.15f);
+                float mA = 1f + (ac.AirPower / airTot - 0.5f) * 2f * weight;
+                float mD = 1f + (dc2.AirPower / airTot - 0.5f) * 2f * weight;
+                for (int i = 0; i < strA.Length; i++) strA[i] *= mA;
+                for (int i = 0; i < strD.Length; i++) strD[i] *= mD;
+            }
+        }
         Exchange(w, att, strA, def, "defense");
         Exchange(w, def, strD, att, "breakthrough");
         float xpGain = w.Rule("xp_per_battle_day", 1f), xpMax = w.Rule("xp_max", 100f);

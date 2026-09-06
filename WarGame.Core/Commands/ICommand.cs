@@ -712,3 +712,25 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
         r.Project = BuildingId; r.ProjectProgress = 0f;
     }
 }
+
+/// <summary>Comprar um esquadrão aéreo: +1 AirPower por air_wing_cost pontos. O poder aéreo
+/// relativo dos dois lados modula a força no combate terrestre (CombatSystem, air_combat_weight).</summary>
+public sealed record BuyAirWingCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        float cost = w.Rule("air_wing_cost", 60f);
+        if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Money -= w.Rule("air_wing_cost", 60f);
+        c.AirPower += 1f;
+        w.Events.Publish(new Events.AirWingBought(CountryId, (int)c.AirPower));
+    }
+}
+

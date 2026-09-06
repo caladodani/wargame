@@ -50,6 +50,7 @@ public sealed class AiSystem : ISystem
             Aid(w, c);
             Spy(w, c, divsByCountry);
             Naps(w, c, regionsByController.GetValueOrDefault(c.Id), divsByCountry);
+            Air(w, c);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
@@ -78,6 +79,20 @@ public sealed class AiSystem : ISystem
             var cmd = new Commands.OfferPeaceCommand(c.Id, e);
             if (cmd.Validate(w) is null) cmd.Execute(w);
         }
+    }
+
+    /// <summary>Aviação: em guerra e com dinheiro acima de ai_air_reserve, compra um esquadrão
+    /// por tick enquanto tiver menos poder aéreo que o inimigo mais forte no ar.</summary>
+    private static void Air(World w, Country c)
+    {
+        if (c.AtWarWith.Count == 0) return;
+        if (c.Money < w.Rule("air_wing_cost", 60f) + w.Rule("ai_air_reserve", 250f)) return;
+        float maxEnemyAir = 0f;
+        foreach (int e in c.AtWarWith)
+            if (w.Countries.TryGetValue(e, out var t) && t.AirPower > maxEnemyAir) maxEnemyAir = t.AirPower;
+        if (c.AirPower > maxEnemyAir) return;
+        var cmd = new Commands.BuyAirWingCommand(c.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Em guerra, segura as outras fronteiras: propõe não-agressão a um vizinho neutro
