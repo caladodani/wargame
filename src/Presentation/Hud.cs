@@ -2,6 +2,7 @@ using Godot;
 using Timer = Godot.Timer;
 using WarGame.Core.Events;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -18,6 +19,7 @@ public partial class Hud : CanvasLayer
     private ConfirmationDialog _confirmNew = null!;
     private RegionPanel _region = null!;
     private ProductionPanel _production = null!;
+    private CountryPanel _countryPanel = null!;
     private readonly List<IDisposable> _subs = new();
     private bool _smoke, _smoked;
 
@@ -32,7 +34,8 @@ public partial class Hud : CanvasLayer
             _confirmNew = Ui.Dialog(this, () => _game.NewGame());
             _confirmNew.DialogText = "Começar um novo jogo? O jogo actual perde-se.";
             _production = new ProductionPanel(); AddChild(_production); _production.Setup(_game);
-            _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production);
+            _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
+            _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
 
             _map.RegionTapped += OnRegionTapped;
             _game.TickCompleted += OnTick;
@@ -66,8 +69,15 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
         _country = Ui.Grow(Ui.Lbl("", 20)); row.AddChild(_country);
         _army = Ui.Lbl("", 20); row.AddChild(_army);
+        row.AddChild(Ui.Btn("País", OpenCountry));
         row.AddChild(Ui.Btn("Guardar", () => { _game.Save(); Toast("Jogo guardado"); }));
         row.AddChild(Ui.Btn("Novo jogo", () => _confirmNew.PopupCentered()));
+    }
+
+    private void OpenCountry()
+    {
+        if (_game.PlayerId is not int pid) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        _region.Close(); _production.Close(); _countryPanel.Open(pid);
     }
 
     // delta 0 = alternar pausa. Sem jogador o relógio fica parado (Speed 0 é o Game que o põe).
@@ -131,6 +141,10 @@ public partial class Hud : CanvasLayer
         {
             if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}: {(e.AttackerWon ? "atacante venceu" : "defesa aguentou")}");
         }));
+        _subs.Add(w.Events.Subscribe<TechResearched>(e =>
+        {
+            if (Player(e.CountryId)) Later($"Investigação concluída: {(w.Techs.TryGetValue(e.TechId, out var t) ? t.Name : e.TechId)}");
+        }));
         _subs.Add(w.Events.Subscribe<DivisionDestroyed>(e =>
         {
             if (!w.Divisions.TryGetValue(e.DivisionId, out var d) || !Player(d.CountryId)) return;
@@ -165,6 +179,7 @@ public partial class Hud : CanvasLayer
             _map.Regions.Refresh();
             _region.Refresh();
             _production.Refresh();
+            _countryPanel.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
@@ -176,20 +191,11 @@ public partial class Hud : CanvasLayer
         _pause.Text = c.Paused ? "Play" : "||";
         if (_game.PlayerId is int pid && w.Countries.TryGetValue(pid, out var p))
         {
-            _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{Income(w, pid):0.0}/dia)";
+            _country.Text = $"{p.Tag}   {p.Money:0.0}  (+{EconomySystem.Income(w, pid):0.0}/dia)";
             _army.Text = $"Divisões {w.Divisions.Values.Count(d => d.CountryId == pid)}  ·  Fila {p.Queue.Count}";
             _hint.Visible = false;
         }
         else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; }
-    }
-
-    /// <summary>Rendimento diário estimado, só leitura (espelha a regra do EconomySystem).</summary>
-    private static float Income(World w, int pid)
-    {
-        float ppm = w.Rule("points_per_million", 0.1f), occ = w.Rule("occupied_yield", 0.5f), sum = 0f;
-        foreach (var r in w.Regions.Values)
-            if (r.ControllerId == pid) sum += r.Population / 1e6f * ppm * r.Infrastructure * (r.OwnerId == pid ? 1f : occ);
-        return sum;
     }
 
     private void OnRegionTapped(int regionId)
@@ -197,7 +203,7 @@ public partial class Hud : CanvasLayer
         try
         {
             if (_region.MoveMode) { _region.MoveTo(regionId); return; }
-            _production.Close();
+            _production.Close(); _countryPanel.Close();
             _map.Regions.Highlight(regionId);
             _region.Open(regionId);
         }

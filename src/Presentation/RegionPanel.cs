@@ -15,6 +15,7 @@ public partial class RegionPanel : PanelContainer
     private Game _game = null!;
     private MapView _map = null!;
     private ProductionPanel _production = null!;
+    private CountryPanel _countryPanel = null!;
     private Label _title = null!, _info = null!;
     private VBoxContainer _rows = null!;
     private Button _play = null!, _all = null!, _move = null!, _stop = null!, _war = null!, _produce = null!;
@@ -26,9 +27,9 @@ public partial class RegionPanel : PanelContainer
     private int _regionId, _warTarget;
     private string _lastKey = "";
 
-    public void Setup(Game game, MapView map, ProductionPanel production)
+    public void Setup(Game game, MapView map, ProductionPanel production, CountryPanel countryPanel)
     {
-        _game = game; _map = map; _production = production;
+        _game = game; _map = map; _production = production; _countryPanel = countryPanel;
         try { foreach (var r in game.StaticDb.Query("SELECT id,name FROM terrain")) _terrainNames[(string)r["id"]!] = (string)r["name"]!; }
         catch (Exception ex) { GD.PushError("terrain: " + ex.Message); }
 
@@ -50,6 +51,11 @@ public partial class RegionPanel : PanelContainer
         _stop = Ui.Btn("Parar", () => _game.RunWhenIdle(OnStop)); actions.AddChild(_stop);
         _war = Ui.Btn("", () => _warDialog.PopupCentered()); actions.AddChild(_war);
         _produce = Ui.Btn("Produzir", () => { Close(); _production.Open(); }); actions.AddChild(_produce);
+        actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
+        {
+            if (!_game.World.Regions.TryGetValue(_regionId, out var r)) return;
+            Close(); _countryPanel.Open(r.ControllerId);
+        })));
         actions.AddChild(Ui.Btn("Fechar", Close));
         _warDialog = Ui.Dialog(this, () => _game.RunWhenIdle(OnWar));
     }

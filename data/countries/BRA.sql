@@ -1,0 +1,102 @@
+-- BRA (k=1) — Exército Brasileiro, ordem de batalha aproximada 2024-2026.
+-- Fontes: brigadas de Infantaria de Selva amazônicas, Brigada de Infantaria Paraquedista (RJ),
+-- brigadas de Cavalaria Mecanizada e de Infantaria Motorizada da fronteira sul/oeste, Brigadas
+-- de Cavalaria Blindada e de Infantaria Blindada (Leopard 1A5 BR), Guarani (VBTP) generalizado.
+-- Carácter (pt-BR nos nomes das unidades): exército grande, de conscritos, fronteiras extensas,
+-- doutrina de selva própria, indústria de defesa nacional (Embraer, Avibras, Iveco-FNSS).
+
+-- ===== unit_type próprios (100+20*1 .. 119+20*1 = 120..139) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (120,'Infantaria de Selva','ground',1.3,35,0.9,22),
+ (121,'Guarani','ground',2.2,42,1.4,48),
+ (122,'Leopard 1A5 BR','ground',2.2,45,1.8,42),
+ (123,'Cavalaria Mecanizada','ground',2.0,38,1.3,58);
+
+INSERT INTO unit_stat VALUES
+ (120,'soft_atk',7), (120,'hard_atk',1), (120,'defense',26),(120,'breakthrough',9), (120,'armor',0), (120,'piercing',5), (120,'hardness',0.1), (120,'hp',27),
+ (121,'soft_atk',9), (121,'hard_atk',4), (121,'defense',25),(121,'breakthrough',15),(121,'armor',12),(121,'piercing',18),(121,'hardness',0.45),(121,'hp',28),
+ (122,'soft_atk',10),(122,'hard_atk',11),(122,'defense',10),(122,'breakthrough',22),(122,'armor',35),(122,'piercing',40),(122,'hardness',0.75),(122,'hp',16),
+ (123,'soft_atk',8), (123,'hard_atk',5), (123,'defense',18),(123,'breakthrough',20),(123,'armor',20),(123,'piercing',25),(123,'hardness',0.5), (123,'hp',22);
+
+INSERT INTO unit_tag VALUES
+ (120,'infantry'),(120,'ground'),(120,'selva'),
+ (121,'infantry'),(121,'armored'),(121,'ground'),
+ (122,'armored'),(122,'ground'),
+ (123,'armored'),(123,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 120..139) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('BRA_selva','BRA','Selva!',
+   'Décadas de operações na Amazônia deram origem a uma doutrina própria de guerra de selva: as unidades de Infantaria de Selva combatem com grande vantagem em terreno de floresta.'),
+ ('BRA_exercito_de_massa','BRA','Exército de Massa',
+   'Um grande contingente anual de recrutas permite mobilizar um exército numeroso, mas o treino médio por soldado é mais raso do que em forças totalmente profissionais.'),
+ ('BRA_fronteiras_vivas','BRA','Fronteiras Vivas',
+   'Doutrina de presença permanente ao longo da fronteira amazônica e platina: as tropas defendem melhor o território nacional.'),
+ ('BRA_industria_de_defesa','BRA','Indústria de Defesa Nacional',
+   'Embraer, Avibras e a Iveco-FNSS sustentam produção local de blindados, viaturas e munições, reduzindo a dependência de importação e melhorando ligeiramente o equipamento em campo.'),
+ ('BRA_potencia_regional','BRA','Potência Regional Não-Alinhada',
+   'Liderança histórica na América do Sul e larga experiência em missões de paz da ONU reforçam a coordenação de comando das Forças Armadas.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (120,'spirit','terrain','forest','str_attacker','selva','mul',1.25,'BRA','BRA_selva'),
+ (121,'spirit','terrain','forest','str_defender','selva','mul',1.20,'BRA','BRA_selva'),
+ (122,'spirit',NULL,NULL,        'str',          NULL,   'mul',0.94,'BRA','BRA_exercito_de_massa'),
+ (123,'spirit',NULL,NULL,        'str_defender', NULL,   'add',0.15,'BRA','BRA_fronteiras_vivas'),
+ (124,'spirit',NULL,NULL,        'str',          NULL,   'mul',1.04,'BRA','BRA_industria_de_defesa'),
+ (125,'spirit',NULL,NULL,        'command',      NULL,   'mul',1.06,'BRA','BRA_potencia_regional');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('BRA','production_speed',1.15),
+ ('BRA','org_regain',0.8),
+ ('BRA','start_army_mult',1.6);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('BRA','República federativa presidencialista','Presidente da República Federativa do Brasil',
+  'Defesa de fronteiras extensas e da Amazônia, apoiada em mobilização de massa e indústria de defesa nacional.',
+  'Não-alinhado',
+  'O Brasil possui o maior exército da América do Sul, historicamente concentrado na defesa da fronteira amazônica e platina. Uma doutrina própria de guerra de selva sustenta várias brigadas amazônicas, enquanto o sul do país concentra a cavalaria mecanizada e blindada. A indústria de defesa nacional (Embraer, Avibras, Iveco-FNSS) garante alguma autonomia de produção, e a longa tradição de missões de paz da ONU reforça a coordenação de comando.');
+
+-- ===== templates próprios (ids 51..100) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (51,'BRA','Infantaria de Selva'),
+ (52,'BRA','Cavalaria Mecanizada'),
+ (53,'BRA','Blindada Leopard'),
+ (54,'BRA','Infantaria Motorizada');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (51,120,5),(51,1,2),(51,4,1),
+ (52,123,4),(52,121,3),(52,4,1),
+ (53,122,4),(53,121,3),(53,4,1),
+ (54,1,5),(54,121,2),(54,4,1),(54,6,1);
+
+-- ===== brigadas reais nomeadas (ids 51..100) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (61,'BRA','1ª Brigada de Infantaria de Selva','Infantaria de Selva','Roraima'),
+ (62,'BRA','2ª Brigada de Infantaria de Selva','Infantaria de Selva','Amazonas'),
+ (63,'BRA','16ª Brigada de Infantaria de Selva','Infantaria de Selva','Amazonas'),
+ (64,'BRA','17ª Brigada de Infantaria de Selva','Infantaria de Selva','Rondônia'),
+ (65,'BRA','23ª Brigada de Infantaria de Selva','Infantaria de Selva','Pará'),
+ (66,'BRA','Brigada de Infantaria Paraquedista','Infantaria','Rio de Janeiro'),
+ (67,'BRA','12ª Brigada de Infantaria Leve Aeromóvel','Infantaria Motorizada','São Paulo'),
+ (68,'BRA','5ª Brigada de Cavalaria Blindada','Blindada Leopard','Paraná'),
+ (69,'BRA','6ª Brigada de Infantaria Blindada','Blindada Leopard','Rio Grande do Sul'),
+ (70,'BRA','1ª Brigada de Cavalaria Mecanizada','Cavalaria Mecanizada','Rio Grande do Sul'),
+ (71,'BRA','2ª Brigada de Cavalaria Mecanizada','Cavalaria Mecanizada','Rio Grande do Sul'),
+ (72,'BRA','3ª Brigada de Cavalaria Mecanizada','Cavalaria Mecanizada','Rio Grande do Sul'),
+ (73,'BRA','4ª Brigada de Cavalaria Mecanizada','Cavalaria Mecanizada','Mato Grosso do Sul'),
+ (74,'BRA','13ª Brigada de Infantaria Motorizada','Infantaria Motorizada','Mato Grosso'),
+ (75,'BRA','10ª Brigada de Infantaria Motorizada','Infantaria Motorizada','Pernambuco'),
+ (76,'BRA','7ª Brigada de Infantaria Motorizada','Infantaria Motorizada','Rio Grande do Norte'),
+ (77,'BRA','3ª Brigada de Infantaria Motorizada','Infantaria Motorizada','Goiás'),
+ (78,'BRA','4ª Brigada de Infantaria Leve de Montanha','Infantaria','Minas Gerais'),
+ (79,'BRA','15ª Brigada de Infantaria Mecanizada','Mecanizada','Paraná'),
+ (80,'BRA','9ª Brigada de Infantaria Motorizada','Infantaria Motorizada','Distrito Federal');
+
+-- ===== correcção de terreno =====
+UPDATE region SET terrain='forest'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='BRA') AND name IN ('Acre','Rondônia');
+UPDATE region SET terrain='mountain'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='BRA') AND name IN ('Minas Gerais','Espírito Santo');
+UPDATE region SET terrain='urban'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='BRA') AND name IN ('São Paulo');

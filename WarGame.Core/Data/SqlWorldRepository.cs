@@ -103,7 +103,17 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var stmt in sb.ToString().Split(';'))
             if (!string.IsNullOrWhiteSpace(stmt)) save.Execute(stmt.Trim());
+        // Colunas acrescentadas a tabelas de save já existentes (saves de versões anteriores).
+        foreach (var (table, column, ddl) in SaveMigrations)
+            if (!save.Query($"PRAGMA table_info({table})").Any(r => (string)r["name"]! == column))
+                save.Execute($"ALTER TABLE {table} ADD COLUMN {column} {ddl}");
     }
+
+    private static readonly (string Table, string Column, string Ddl)[] SaveMigrations =
+    {
+        ("s_country", "research_tech", "TEXT"),
+        ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
+    };
 
     public static bool HasSave(IDatabase save) =>
         save.Query("SELECT name FROM sqlite_master WHERE type='table' AND name='save_meta'").Count > 0

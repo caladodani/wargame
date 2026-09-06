@@ -72,6 +72,7 @@ public partial class Game : Node
         World.Register(new SupplySystem());
         World.Register(new EconomySystem());
         World.Register(new ProductionSystem());
+        World.Register(new ResearchSystem());
         World.Register(new MovementSystem());
         World.Register(new CombatSystem());
         World.Register(new RecoverySystem());
