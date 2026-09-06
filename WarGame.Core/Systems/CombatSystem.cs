@@ -73,8 +73,10 @@ public sealed class CombatSystem : ISystem
         if (fortMult != 1f) for (int i = 0; i < strD.Length; i++) strD[i] *= fortMult;
         Exchange(w, att, strA, def, "defense");
         Exchange(w, def, strD, att, "breakthrough");
+        float xpGain = w.Rule("xp_per_battle_day", 1f), xpMax = w.Rule("xp_max", 100f);
         foreach (var d in att.Concat(def))
         {
+            d.Xp = MathF.Min(xpMax, d.Xp + xpGain);
             d.Org -= 4f * (1f - MathF.Min(1f, d.Supply));
             d.Org = MathF.Max(0f, d.Org); d.Hp = MathF.Max(0f, d.Hp);
             if (d.Hp <= 0f)
@@ -101,7 +103,8 @@ public sealed class CombatSystem : ISystem
             float morale = 0.5f + d.Org / 200f;
             var (cf, cm) = w.Modifiers.Evaluate("command", st, ctx);
             float command = cm + cf - 0.15f * excess;
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * MathF.Max(0.3f, command));
+            float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f);
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * MathF.Max(0.3f, command));
         }
         return out_;
     }

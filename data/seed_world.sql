@@ -234,3 +234,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('exhaustion_per_division',2,'desgaste por divisão destruída'),
  ('exhaustion_max',30,'tecto do desgaste de guerra'),
  ('exhaustion_decay',0.1,'decaimento diário do desgaste em paz');
+
+-- Veterania: XP por dia de combate (tecto xp_max) dá até veterancy_bonus de força extra.
+INSERT INTO rule (key,value,note) VALUES
+ ('xp_per_battle_day',1,'XP ganho por divisão por dia de batalha'),
+ ('xp_max',100,'tecto de XP'),
+ ('veterancy_bonus',0.25,'bónus de força a XP máximo');

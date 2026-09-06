@@ -59,6 +59,11 @@ public sealed class Region
     public int Fort { get; set; }
     public bool FortBuilding { get; set; }
     public float FortProgress { get; set; }
+    /// <summary>Níveis de edifícios construídos (tabela building; ConstructionSystem soma o efeito ao controlador).</summary>
+    public Dictionary<string, int> Buildings { get; init; } = new();
+    /// <summary>Edifício em obra (id da tabela building; null = nenhuma) e dias de progresso.</summary>
+    public string? Project { get; set; }
+    public float ProjectProgress { get; set; }
     /// <summary>Resistência da população ocupada (0..1, ResistanceSystem): cresce sem guarnição do ocupante,
     /// corta o rendimento (resistance_output_hit) e a 1.0 devolve o controlo ao dono.</summary>
     public float Resistance { get; set; }
@@ -73,6 +78,9 @@ public sealed class Region
     /// <summary>Depósitos de recursos (region_resource): resource id → unidades. Rende ao controlador.</summary>
     public Dictionary<string, float> Resources { get; init; } = new();
 }
+
+/// <summary>Edifício construível numa região (tabela building): cada nível multiplica StatKey do controlador por (1+PerLevel).</summary>
+public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel);
 
 /// <summary>Amostra periódica para os gráficos de evolução (HistorySystem, tabela s_history).</summary>
 public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions);
@@ -120,10 +128,12 @@ public sealed class Country
     public Dictionary<string, float> TechMult { get; } = new();
     /// <summary>Multiplicadores dos recursos controlados (ResourceSystem recalcula todos os dias).</summary>
     public Dictionary<string, float> ResourceMult { get; } = new();
+    /// <summary>Multiplicadores dos edifícios nas regiões controladas (ConstructionSystem recalcula todos os dias).</summary>
+    public Dictionary<string, float> BuildingMult { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
-        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f);
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f);
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
@@ -158,6 +168,7 @@ public sealed class Division
     public float Hp { get; set; } = 100f;
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;
+    public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
     public float MoveProgress { get; set; }        // 0..1 dentro do salto actual (MovementSystem)
     /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
     public List<int> Path { get; } = new();
