@@ -198,7 +198,8 @@ CREATE TABLE IF NOT EXISTS s_division (
   hp REAL NOT NULL, org REAL NOT NULL, supply REAL NOT NULL,
   move_progress REAL NOT NULL DEFAULT 0, path TEXT,     -- path: ids separados por vírgula, do próximo salto ao destino
   name TEXT,
-  xp REAL NOT NULL DEFAULT 0
+  xp REAL NOT NULL DEFAULT 0,
+  auto_advance INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS ix_div_region ON s_division(region_id);
 CREATE TABLE IF NOT EXISTS s_battle (region_id INTEGER PRIMARY KEY, attacker_country_id INTEGER NOT NULL, days INTEGER NOT NULL);

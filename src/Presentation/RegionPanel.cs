@@ -20,7 +20,7 @@ public partial class RegionPanel : PanelContainer
     private Label _title = null!, _info = null!;
     private TextureRect _flag = null!;
     private VBoxContainer _rows = null!;
-    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!;
+    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!, _auto = null!;
     private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
     private string _bldKey = "";
     private ConfirmationDialog _warDialog = null!;
@@ -65,6 +65,7 @@ public partial class RegionPanel : PanelContainer
         _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
         _fort = Ui.Btn("", () => _game.RunWhenIdle(OnFort)); actions.AddChild(_fort);
         _retreat = Ui.Btn("Retirar", () => _game.RunWhenIdle(OnRetreat)); actions.AddChild(_retreat);
+        _auto = Ui.Btn("⚑ Avanço auto", () => _game.RunWhenIdle(OnAutoAdvance)); actions.AddChild(_auto);
         _nuke = Ui.Btn("☢ Ataque nuclear", () => _nukeDialog.PopupCentered()); actions.AddChild(_nuke);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
         {
@@ -119,6 +120,19 @@ public partial class RegionPanel : PanelContainer
         if (first is not null) _game.Notify(first);
         Refresh();
     });
+
+    /// <summary>Liga/desliga o avanço automático nas divisões escolhidas: se alguma ainda não o tem,
+    /// liga em todas; se já o têm todas, desliga.</summary>
+    private void OnAutoAdvance()
+    {
+        if (_game.PlayerId is not int pid) return;
+        var w = _game.World;
+        bool on = _selected.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance);
+        string? first = null;
+        foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new SetAutoAdvanceCommand(pid, id, on));
+        if (first is not null) _game.Notify(first);
+        Refresh();
+    }
 
     private void OnStop()
     {
@@ -270,6 +284,10 @@ public partial class RegionPanel : PanelContainer
             if (canBuild) _build.Text = $"Melhorar infra ({w.Rule("infra_build_cost", 40f):0})";
             _retreat.Visible = hasPlayer && battle is not null
                 && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid);
+            _auto.Visible = hasPlayer && _selected.Count > 0;
+            if (_auto.Visible)
+                _auto.Text = _selected.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance)
+                    ? "⚑ Avanço auto" : "⚑ Parar avanço";
             bool canFort = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.FortBuilding
                            && r.Fort < (int)w.Rule("fort_max", 5f);
             _fort.Visible = canFort;
@@ -301,6 +319,7 @@ public partial class RegionPanel : PanelContainer
         var tag = w.Countries.TryGetValue(d.CountryId, out var c) ? c.Tag : "?";
         var s = $"{tag} {name}   HP {d.Hp:0}  Org {d.Org:0}  Sup {d.Supply:0.0}";
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
+        if (d.AutoAdvance) s += "   ⚑";
         if (w.InBattle(d.Id)) s += "   " + RegionRenderer.BattleMark.Trim();
         return s;
     }

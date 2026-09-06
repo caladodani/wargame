@@ -200,6 +200,9 @@ public sealed class Division
     public float Supply { get; set; } = 1f;
     public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
     public float MoveProgress { get; set; }        // 0..1 dentro do salto actual (MovementSystem)
+    /// <summary>Ordem permanente de avanço (AutoFrontSystem): parada e sem combate, a divisão ataca
+    /// sozinha a região inimiga vizinha mais fraca. Desliga-se ao dar uma ordem manual.</summary>
+    public bool AutoAdvance { get; set; }
     /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
     public List<int> Path { get; } = new();
     public int? TargetRegionId => Path.Count > 0 ? Path[0] : null;

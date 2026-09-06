@@ -59,6 +59,16 @@ public sealed record SelectFocusCommand(int CountryId, string FocusId) : IComman
 
 /// <summary>Manda uma divisão para uma região (qualquer distância): caminho por BFS através de regiões
 /// controladas pelo país ou por um inimigo em guerra. O MovementSystem anda salto a salto.</summary>
+/// <summary>Liga ou desliga a ordem permanente de avanço (AutoFrontSystem) numa divisão.</summary>
+public sealed record SetAutoAdvanceCommand(int CountryId, int DivisionId, bool On) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Divisions.TryGetValue(DivisionId, out var d) ? "Divisão inexistente"
+        : d.CountryId != CountryId ? "Divisão não é tua" : null;
+
+    public void Execute(World w) => w.Divisions[DivisionId].AutoAdvance = On;
+}
+
 public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int TargetRegionId) : ICommand
 {
     public string? Validate(World w)
@@ -72,7 +82,12 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
         return null;
     }
 
-    public void Execute(World w) => w.Divisions[DivisionId].SetPath(FindPath(w, w.Divisions[DivisionId].RegionId, TargetRegionId, CountryId)!);
+    public void Execute(World w)
+    {
+        var d = w.Divisions[DivisionId];
+        d.AutoAdvance = false;   // ordem manual manda: desliga o avanço automático
+        d.SetPath(FindPath(w, d.RegionId, TargetRegionId, CountryId)!);
+    }
 
     /// <summary>BFS por terra e mar (sea_link conta como um salto). Devolve os saltos (sem a origem, com o
     /// destino) ou null. Transitável = controlada por `countryId`, por aliado de facção, ou por país com quem está em guerra.</summary>

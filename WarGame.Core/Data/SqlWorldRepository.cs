@@ -216,6 +216,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_region", "integration", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "war_exhaustion", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "xp", "REAL NOT NULL DEFAULT 0"),
+        ("s_division", "auto_advance", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "nukes", "INTEGER NOT NULL DEFAULT 0"),
     };
@@ -315,7 +316,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -324,6 +325,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Hp = Convert.ToSingle(r["hp"]), Org = Convert.ToSingle(r["org"]), Supply = Convert.ToSingle(r["supply"]),
             };
             if (r["xp"] is not null) d.Xp = Convert.ToSingle(r["xp"]);
+            if (r["auto_advance"] is not null) d.AutoAdvance = Convert.ToInt32(r["auto_advance"]) != 0;
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
@@ -413,8 +415,8 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (lvl > 0) save.Execute("INSERT INTO s_region_building (region_id,building,level) VALUES (?,?,?)", r.Id, bid, lvl);
         }
         foreach (var d in w.Divisions.Values)
-            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
-                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp);
+            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+                d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0);
         foreach (var b in w.ActiveBattles)
         {
             // uma batalha por região no schema: se dois países atacam a mesma região só a primeira persiste
