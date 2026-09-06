@@ -29,6 +29,7 @@ public partial class Hud : CanvasLayer
     private WorldPanel _worldPanel = null!;
     private WarPanel _warPanel = null!;
     private ArmyPanel _armyPanel = null!;
+    private EndScreen _end = null!;
     private MiniMap _mini = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
@@ -54,7 +55,8 @@ public partial class Hud : CanvasLayer
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
             _armyPanel = new ArmyPanel(); AddChild(_armyPanel); _armyPanel.Setup(_game, _map, _multiSel);
-            _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots);
+            _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
+            _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
 
             _map.RegionTapped += OnRegionTapped;
@@ -85,6 +87,7 @@ public partial class Hud : CanvasLayer
     private void Back()
     {
         if (_game is null) return;
+        if (_end.Visible) { _end.Close(); return; }
         if (_menu.Visible) { _menu.Close(); return; }
         if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
@@ -450,12 +453,15 @@ public partial class Hud : CanvasLayer
         }));
         _subs.Add(w.Events.Subscribe<CountryCapitulated>(e =>
         {
-            if (Player(e.CountryId)) Callable.From(ShowDefeat).CallDeferred();
+            if (Player(e.CountryId)) Callable.From(() => _end.Show(CampaignReport.Defeat)).CallDeferred();
             else if (Player(e.WinnerId)) Later($"Vitória! {Country(e.CountryId)} capitulou — as regiões dele são tuas");
             else Later($"{Country(e.CountryId)} capitulou! Regiões passam para {Country(e.WinnerId)}");
         }));
-        _subs.Add(w.Events.Subscribe<WorldDominated>(e =>
-            Callable.From(() => ShowDomination(e.CountryId)).CallDeferred()));
+        _subs.Add(w.Events.Subscribe<WorldDominated>(e => Callable.From(() =>
+        {
+            if (Player(e.CountryId)) _end.Show(CampaignReport.Domination);
+            else { ShowDomination(e.CountryId); _end.Show(CampaignReport.Defeat); }
+        }).CallDeferred()));
     }
 
     /// <summary>Evento noticioso do jogador com escolhas: diálogo modal, um botão por opção.
@@ -498,20 +504,7 @@ public partial class Hud : CanvasLayer
         dlg.PopupCentered();
     }
 
-    /// <summary>Fim de jogo do jogador: capitulou. Diálogo com novo jogo ou continuar a ver o mundo.</summary>
-    private void ShowDefeat()
-    {
-        var dlg = new AcceptDialog
-        {
-            Title = "Derrota",
-            DialogText = "O teu país capitulou. As tuas regiões foram ocupadas e o exército dissolvido.",
-            OkButtonText = "Novo jogo",
-        };
-        dlg.AddButton("Continuar a ver", true, "watch");
-        dlg.Confirmed += () => _game.NewGame();
-        AddChild(dlg);
-        dlg.PopupCentered();
-    }
+
 
     private void Later(string msg) => Callable.From(() => Toast(msg)).CallDeferred();
     private bool Player(int countryId) => _game.PlayerId == countryId;
@@ -608,6 +601,7 @@ public partial class Hud : CanvasLayer
         _production.Open();
         _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
         _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
+        _end.Show(CampaignReport.Ongoing); _end.Close();               // ecrã de fim de campanha, com o relatório todo
         GD.Print($"smoke: painéis abertos na capital {cap.Name}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid

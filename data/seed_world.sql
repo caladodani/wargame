@@ -349,6 +349,19 @@ INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
 INSERT INTO rule VALUES ('army_group_min_org', 35, 'organização mínima para uma divisão do grupo marchar');
 INSERT INTO rule VALUES ('army_group_march_range', 25, 'saltos máximos que um grupo procura a frente atribuída');
 INSERT INTO rule VALUES ('army_group_order_days', 2, 'dias entre ordens de marcha de um grupo');
+
+-- Pontuação e título da campanha (CampaignReport, ecrã de fim de jogo)
+INSERT INTO rule VALUES ('score_per_region', 4, 'pontos por região controlada no fim');
+INSERT INTO rule VALUES ('score_per_million', 0.5, 'pontos por milhão de habitantes controlado');
+INSERT INTO rule VALUES ('score_per_war_won', 120, 'pontos por guerra ganha');
+INSERT INTO rule VALUES ('score_per_war_lost', 90, 'pontos perdidos por guerra perdida');
+INSERT INTO rule VALUES ('score_per_battle', 3, 'pontos por batalha ganha');
+INSERT INTO rule VALUES ('score_per_division_lost', 2, 'pontos perdidos por divisão perdida');
+INSERT INTO rule VALUES ('score_per_advance', 8, 'pontos por tecnologia ou foco concluído');
+INSERT INTO rule VALUES ('score_domination_bonus', 2, 'multiplicador da pontuação quando se domina o mundo');
+INSERT INTO rule VALUES ('score_defeat_penalty', 0.4, 'multiplicador da pontuação de quem capitulou');
+INSERT INTO rule VALUES ('rank_power_score', 1500, 'pontuação a partir da qual a campanha é "Potência regional"');
+INSERT INTO rule VALUES ('rank_legend_score', 4000, 'pontuação a partir da qual a campanha é "Grande potência"');
 INSERT INTO rule VALUES ('auto_advance_min_org', 40, 'organização mínima para o avanço automático atacar');
 
 -- Níveis de dificuldade (World.ApplyDifficulty; menu de jogo)

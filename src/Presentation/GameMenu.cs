@@ -12,9 +12,9 @@ public partial class GameMenu : PanelContainer
     private ConfirmationDialog _confirmNew = null!, _confirmQuit = null!;
     private Action _openSlots = null!;
 
-    public void Setup(Game game, Action openSlots)
+    public void Setup(Game game, Action openSlots, Action openReport)
     {
-        _game = game; _openSlots = openSlots;
+        _game = game; _openSlots = openSlots; _openReport = openReport;
         Visible = false;
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.07f, 0.08f, 0.11f, 0.97f), 16));
@@ -33,6 +33,8 @@ public partial class GameMenu : PanelContainer
     public void Close() => Visible = false;
     public void Toggle() { if (Visible) Close(); else Open(); }
 
+    private Action _openReport = () => { };
+
     private void Fill()
     {
         Ui.Clear(_body);
@@ -41,6 +43,7 @@ public partial class GameMenu : PanelContainer
         _body.AddChild(Ui.Btn("Continuar", Close));
         _body.AddChild(Ui.Btn("Guardar jogo", () => { _game.Save(); _game.Notify("Jogo guardado"); Close(); }));
         _body.AddChild(Ui.Btn("Jogos guardados", () => { Close(); _openSlots(); }));
+        _body.AddChild(Ui.Btn("Resumo da campanha", () => { Close(); _openReport(); }));
 
         var w = _game.World;
         if (w.DifficultyDefs.Count > 0)
