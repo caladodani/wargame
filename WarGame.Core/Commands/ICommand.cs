@@ -590,3 +590,57 @@ public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountr
         w.Events.Publish(new PactSigned(CountryId, TargetCountryId, until));
     }
 }
+
+/// <summary>Retirar as próprias divisões de uma batalha: saem das listas com organização
+/// × retreat_org_penalty. Defensores precisam de região vizinha transitável (senão "cercado");
+/// atacantes já estão fisicamente na origem. A batalha resolve-se sozinha se uma lista esvaziar.</summary>
+public sealed record RetreatFromBattleCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        var b = w.ActiveBattles.FirstOrDefault(x => x.RegionId == RegionId);
+        if (b is null) return "não há batalha nesta região";
+        bool mineAtt = b.Attackers.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == CountryId);
+        bool mineDef = b.Defenders.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == CountryId);
+        if (!mineAtt && !mineDef) return "não tens divisões nesta batalha";
+        if (mineDef && FindFallback(w, CountryId, RegionId) is null) return "cercado — sem região para onde retirar";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var b = w.ActiveBattles.First(x => x.RegionId == RegionId);
+        float pen = w.Rule("retreat_org_penalty", 0.5f);
+        int n = 0;
+        foreach (var id in b.Attackers.Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == CountryId).ToList())
+        {
+            var d = w.Divisions[id];
+            d.Org *= pen; d.ClearPath();
+            b.Attackers.Remove(id); n++;
+        }
+        var fallback = FindFallback(w, CountryId, RegionId);
+        foreach (var id in b.Defenders.Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == CountryId).ToList())
+        {
+            var d = w.Divisions[id];
+            d.Org *= pen; d.ClearPath();
+            b.Defenders.Remove(id);
+            if (fallback is int dest) w.PlaceDivision(d, dest);
+            n++;
+        }
+        if (n > 0) w.Events.Publish(new BattleRetreat(RegionId, CountryId, n));
+    }
+
+    /// <summary>Região vizinha transitável (própria ou aliada) com mais divisões próprias; null = cercado.</summary>
+    private int? FindFallback(World w, int countryId, int regionId)
+    {
+        int? best = null; int bestOwn = -1;
+        foreach (var nb in w.Regions[regionId].Neighbours)
+        {
+            var r = w.Regions[nb];
+            if (!w.CanTraverse(countryId, r)) continue;
+            int own = r.DivisionIds.Count(id => w.Divisions[id].CountryId == countryId);
+            if (own > bestOwn || (own == bestOwn && (best is null || nb < best))) { best = nb; bestOwn = own; }
+        }
+        return best;
+    }
+}

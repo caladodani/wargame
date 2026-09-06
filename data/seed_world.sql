@@ -205,3 +205,7 @@ INSERT INTO resource (id,name,stat_key,per_unit,cap) VALUES
  ('aco','Aço','production_speed',0.02,10),
  ('petroleo','Petróleo','industry',0.015,10),
  ('raros','Metais raros','research_speed',0.02,5);
+
+-- Retirada manual de batalha (RetreatFromBattleCommand): sai do combate com penalização de organização.
+INSERT INTO rule (key,value,note) VALUES
+ ('retreat_org_penalty',0.5,'multiplicador de organização ao retirar de uma batalha');
