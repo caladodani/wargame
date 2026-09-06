@@ -45,4 +45,20 @@ public class AiPeaceTests
         while (w.Clock.Day < (int)w.Rule("peace_stale_days", 60f) + 10) w.Tick();
         Assert.True(w.AreAtWar(1, 2));
     }
+
+    [Fact]
+    public void StaleWar_WinnerHoldingLand_ClosesToKeepIt()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.StartWar(1, 2);
+        w.Regions[4].ControllerId = 1;   // país 1 ocupa a região 4 do país 2
+        TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);
+        TestWorld.AddDivision(w, 2, 1, TestWorld.Inf, 2);   // 1 é o mais forte
+        TestWorld.AddDivision(w, 3, 2, TestWorld.Inf2, 6);
+        w.Register(new AiSystem());
+        while (w.Clock.Day < (int)w.Rule("peace_stale_days", 60f) + 7) w.Tick();
+        Assert.False(w.AreAtWar(1, 2));
+        Assert.Equal(1, w.Regions[4].OwnerId);   // anexada na paz
+    }
 }

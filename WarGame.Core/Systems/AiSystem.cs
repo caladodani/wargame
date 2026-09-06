@@ -71,7 +71,10 @@ public sealed class AiSystem : ISystem
             if (info is null || w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) < w.Rule("peace_stale_days", 60f)) continue;
             int mine = divsByCountry.GetValueOrDefault(c.Id)?.Count ?? 0;
             int theirs = divsByCountry.GetValueOrDefault(e)?.Count ?? 0;
-            if (mine >= theirs) continue;
+            // fecha se está a perder (corta perdas) ou se ocupa território do inimigo (uti
+            // possidetis: a paz branca anexa o que controla — consolida os ganhos)
+            bool holdsTheirLand = w.Regions.Values.Any(r => r.OwnerId == e && r.ControllerId == c.Id);
+            if (mine >= theirs && !holdsTheirLand) continue;
             var cmd = new Commands.OfferPeaceCommand(c.Id, e);
             if (cmd.Validate(w) is null) cmd.Execute(w);
         }
