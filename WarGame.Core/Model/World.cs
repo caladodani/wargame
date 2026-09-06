@@ -34,6 +34,9 @@ public sealed class World
     /// <summary>Leis nacionais (tabelas law + law_effect); ActiveLaw resolve o default por grupo.</summary>
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
+
+    public Dictionary<string, SpyOp> SpyOps { get; } = new();
+    public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();

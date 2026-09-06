@@ -16,6 +16,18 @@ public sealed record NewsOption(string Id, string EventId, string Title, int Sor
 /// <summary>Lei nacional (tabela law): grupos (conscrição, economia…) com uma lei activa por grupo.
 /// Sort maior = mais mobilizada (a IA escala em guerra). Efeitos em law_effect.</summary>
 public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault);
+
+/// <summary>Operação de espionagem (tabela spy_op): one-shot, paga à partida, efeito ao concluir.</summary>
+public sealed record SpyOp(string Id, string Name, string Description, float Cost, int Days, string Effect, float Magnitude);
+
+/// <summary>Operação em curso (World.ActiveSpyOps; EspionageSystem conta os dias).</summary>
+public sealed class ActiveSpyOp
+{
+    public int CountryId { get; init; }
+    public int TargetCountryId { get; init; }
+    public string OpId { get; init; } = "";
+    public float DaysLeft { get; set; }
+}
 /// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
 public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);
 

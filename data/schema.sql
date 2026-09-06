@@ -161,6 +161,14 @@ CREATE TABLE IF NOT EXISTS law (              -- leis nacionais (grupos: conscri
 CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
   law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (law_id, stat_key));
+CREATE TABLE IF NOT EXISTS spy_op (           -- operações de espionagem (StartSpyOpCommand); World.SpyOps
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,
+  cost REAL NOT NULL, days INTEGER NOT NULL,  -- pontos pagos à partida; dias até concluir
+  effect TEXT NOT NULL,                       -- steal_money | sabotage_production | stability_hit
+  magnitude REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS s_spy_op (         -- operações em curso (save)
+  country_id INTEGER, target_id INTEGER, op_id TEXT, days_left REAL NOT NULL,
+  PRIMARY KEY (country_id, target_id));
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)

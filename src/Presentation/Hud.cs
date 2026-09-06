@@ -225,6 +225,17 @@ public partial class Hud : CanvasLayer
             if (Player(e.ToCountryId)) Later($"{Country(e.FromCountryId)} enviou-te {e.Amount:0} pontos de produção");
             else if (Player(e.FromCountryId)) Later($"Apoio de {e.Amount:0} pts enviado a {Country(e.ToCountryId)}");
         }));
+        _subs.Add(w.Events.Subscribe<SpyOpStarted>(e =>
+        {
+            if (Player(e.CountryId) && _game.World.SpyOps.TryGetValue(e.OpId, out var op))
+                Later($"Operação \"{op.Name}\" lançada contra {Country(e.TargetCountryId)}");
+        }));
+        _subs.Add(w.Events.Subscribe<SpyOpCompleted>(e =>
+        {
+            var op = _game.World.SpyOps.GetValueOrDefault(e.OpId);
+            if (Player(e.CountryId)) Later($"Operação \"{op?.Name ?? e.OpId}\" concluída contra {Country(e.TargetCountryId)}");
+            else if (Player(e.TargetCountryId)) Later($"Fomos alvo de espionagem: {op?.Name ?? e.OpId} ({Country(e.CountryId)})");
+        }));
         _subs.Add(w.Events.Subscribe<FortBuilt>(e =>
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)

@@ -10,6 +10,7 @@ namespace WarGame.Presentation;
 public partial class RegionRenderer : Node2D
 {
     public const string BattleMark = "⚔ ";
+    public const string FortMark = "■";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, Color> _countryColor = new();
@@ -70,7 +71,7 @@ public partial class RegionRenderer : Node2D
         foreach (var c in _highlightRoot.GetChildren()) if (c is Line2D l) l.Width = 4f * _markerScale;
     }
 
-    /// <summary>Um Label por região com divisões: "N" ou "⚔ N" se há batalha, cor do controlador. Esconde os vazios.</summary>
+    /// <summary>Um Label por região com divisões: "N" ou "⚔ N" se há batalha, "■" se há forte, cor do controlador. Esconde os vazios.</summary>
     public void Refresh()
     {
         try
@@ -80,11 +81,13 @@ public partial class RegionRenderer : Node2D
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
-                if (r.DivisionIds.Count == 0) continue;
+                if (r.DivisionIds.Count == 0 && r.Fort == 0) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var label = (Label)m.GetChild(0);
-                label.Text = (battles.Contains(r.Id) ? BattleMark : "") + r.DivisionIds.Count;
+                label.Text = (battles.Contains(r.Id) ? BattleMark : "")
+                           + (r.DivisionIds.Count > 0 ? r.DivisionIds.Count.ToString() : "")
+                           + (r.Fort > 0 ? FortMark : "");
                 label.LabelSettings = StyleFor(r.ControllerId);
                 m.Visible = true;
             }

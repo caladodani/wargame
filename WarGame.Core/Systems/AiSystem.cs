@@ -48,11 +48,31 @@ public sealed class AiSystem : ISystem
             Build(w, c, regionsByController.GetValueOrDefault(c.Id));
             Laws(w, c);
             Aid(w, c);
+            Spy(w, c, divsByCountry);
             if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Espionagem: em guerra e com dinheiro acima de ai_spy_reserve, lança a operação
+    /// mais barata que ainda não corre contra o inimigo com mais divisões.</summary>
+    private static void Spy(World w, Country c, Dictionary<int, List<Division>> divsByCountry)
+    {
+        if (c.AtWarWith.Count == 0 || w.SpyOps.Count == 0) return;
+        if (c.Money <= w.Rule("ai_spy_reserve", 200f)) return;
+        int target = -1, best = -1;
+        foreach (var e in c.AtWarWith)
+        {
+            if (w.ActiveSpyOps.Any(o => o.CountryId == c.Id && o.TargetCountryId == e)) continue;
+            int n = divsByCountry.GetValueOrDefault(e)?.Count ?? 0;
+            if (n > best) { best = n; target = e; }
+        }
+        if (target < 0) return;
+        var op = w.SpyOps.Values.OrderBy(o => o.Cost).First();
+        var cmd = new Commands.StartSpyOpCommand(c.Id, target, op.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Apoio financeiro: acima de ai_aid_reserve envia ai_aid_share do excedente ao aliado

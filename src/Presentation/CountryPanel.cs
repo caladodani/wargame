@@ -43,7 +43,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}";
             if (key == _lastKey) return;
             _lastKey = key;
             _title.Text = $"{c.Name} ({c.Tag})" + (mine ? "  — o teu país" : "");
@@ -134,6 +134,21 @@ public partial class CountryPanel : PanelContainer
                         aid.AddChild(Ui.Btn($"{a:0} pts", () => Faction(new TransferMoneyCommand(inviter, c.Id, a)), 110));
                     }
                     _body.AddChild(aid);
+                }
+                else if (w.SpyOps.Count > 0)
+                {
+                    var running = w.ActiveSpyOps.FirstOrDefault(o => o.CountryId == inviter && o.TargetCountryId == c.Id);
+                    if (running is not null && w.SpyOps.TryGetValue(running.OpId, out var rop))
+                        Line($"Operação em curso: {rop.Name} — {(int)MathF.Ceiling(running.DaysLeft)} dias");
+                    else
+                    {
+                        _body.AddChild(Ui.Lbl("Espionagem:", 16));
+                        foreach (var op in w.SpyOps.Values.OrderBy(o => o.Cost))
+                        {
+                            string oid = op.Id;
+                            _body.AddChild(Ui.Btn($"{op.Name} ({op.Cost:0} pts, {op.Days} d)", () => Faction(new StartSpyOpCommand(inviter, c.Id, oid)), 340));
+                        }
+                    }
                 }
             }
             if (c.JustifyTarget is int jt && w.Countries.TryGetValue(jt, out var jtc))

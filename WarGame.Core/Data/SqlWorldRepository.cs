@@ -69,6 +69,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.LawEffects.TryGetValue(lid, out var llist)) w.LawEffects[lid] = llist = new();
             llist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
+        foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude FROM spy_op"))
+            w.SpyOps[(string)r["id"]!] = new SpyOp((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "",
+                Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]));
         foreach (var r in _static.Query("SELECT id,country_tag,name,description,days,requires,sort FROM focus"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var fc))
                 w.Focuses[(string)r["id"]!] = new Focus((string)r["id"]!, fc.Id, (string)r["name"]!, (string)r["description"]!,
@@ -241,6 +244,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
+        foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left FROM s_spy_op"))
+            w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
+                OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]) });
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress FROM s_region"))
         {
@@ -285,12 +291,14 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+        foreach (var o in w.ActiveSpyOps)
+            save.Execute("INSERT INTO s_spy_op VALUES (?,?,?,?)", o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft);
         foreach (var id in w.CustomFactionIds)
         {
             var f = w.Factions[id];

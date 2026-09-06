@@ -149,3 +149,12 @@ INSERT INTO rule (key,value,note) VALUES
 -- ou sem exército para continuar.
 INSERT INTO rule (key,value,note) VALUES
  ('peace_stale_days',60,'dias sem progresso a partir dos quais a IA aceita paz branca');
+
+-- Espionagem (StartSpyOpCommand + EspionageSystem): operações one-shot pagas à partida,
+-- concluem passado `days` e aplicam o efeito ao alvo nesse dia.
+INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES
+ ('roubo_fundos','Roubo de fundos','Agentes desviam uma fracção do tesouro do alvo.',40,20,'steal_money',0.20),
+ ('sabotagem_fabrica','Sabotagem industrial','Explosões nas linhas de produção: parte do progresso das encomendas perde-se.',50,25,'sabotage_production',0.50),
+ ('agitacao','Agitação social','Propaganda e greves: a estabilidade do alvo cai.',60,30,'stability_hit',15);
+INSERT INTO rule (key,value,note) VALUES
+ ('ai_spy_reserve',200,'a IA só lança operações de espionagem com dinheiro acima disto');

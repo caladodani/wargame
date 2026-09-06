@@ -503,3 +503,30 @@ public sealed record OfferPeaceCommand(int CountryId, int TargetCountryId) : ICo
         else w.Events.Publish(new PeaceOfferRejected(CountryId, TargetCountryId));
     }
 }
+
+/// <summary>Lançar uma operação de espionagem contra outro país (tabela spy_op).
+/// Paga à partida; conclui passado op.Days e o EspionageSystem aplica o efeito.
+/// Uma operação de cada vez por par (autor, alvo).</summary>
+public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, string OpId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.SpyOps.TryGetValue(OpId, out var op)) return "operação inválida";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "alvo inválido";
+        if (CountryId == TargetCountryId) return "não podes espiar-te a ti próprio";
+        if (w.SameFaction(CountryId, TargetCountryId)) return "não se espia um aliado de facção";
+        if (w.ActiveSpyOps.Any(o => o.CountryId == CountryId && o.TargetCountryId == TargetCountryId))
+            return "já tens uma operação em curso contra ele";
+        if (c.Money < op.Cost) return $"faltam pontos de produção ({op.Cost:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var op = w.SpyOps[OpId];
+        w.Countries[CountryId].Money -= op.Cost;
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = CountryId, TargetCountryId = TargetCountryId, OpId = OpId, DaysLeft = op.Days });
+        w.Events.Publish(new SpyOpStarted(CountryId, TargetCountryId, OpId));
+    }
+}
