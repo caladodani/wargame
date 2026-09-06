@@ -71,6 +71,8 @@ public sealed class World
 
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
+    /// <summary>Propostas à espera de resposta do jogador (OfferSystem). Uma por par e assunto.</summary>
+    public List<PendingOffer> Offers { get; } = new();
     /// <summary>Acordos de comércio de recursos em vigor (TradeSystem).</summary>
     public List<TradeDeal> TradeDeals { get; } = new();
     /// <summary>Amostras dos gráficos (HistorySystem): jogador + maiores potências, de history_sample_days em history_sample_days.</summary>

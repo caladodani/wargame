@@ -371,6 +371,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('exchange_ai_edge',1.4,'quanto mais gente o outro lado tem de guardar para recusar a troca'),
  ('exchange_need_men',150000,'pool de homens abaixo do qual se aceita qualquer troca');
 
+-- Propostas do outro lado (OfferSystem): a IA também bate à porta com uma troca de prisioneiros.
+INSERT INTO rule (key,value,note) VALUES
+ ('offer_period_days',10,'de quantos em quantos dias a IA volta a olhar para a mesa de propostas'),
+ ('offer_days',20,'dias que uma proposta fica em cima da mesa antes de cair');
+
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),

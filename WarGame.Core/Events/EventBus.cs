@@ -36,6 +36,11 @@ public sealed record PrisonersReturned(int HolderId, int HomeCountryId, int Men)
 /// dos campos e Home de cada lado chegaram a casa.</summary>
 public sealed record PrisonersExchanged(int CountryId, int OtherId, int Men, int Home) : IGameEvent;
 
+/// <summary>Propostas em cima da mesa (OfferSystem): feita ao jogador, respondida, ou caída por prazo.</summary>
+public sealed record OfferMade(int FromId, int ToId, string Kind, int Men) : IGameEvent;
+public sealed record OfferAnswered(int FromId, int ToId, string Kind, bool Accepted) : IGameEvent;
+public sealed record OfferExpired(int FromId, int ToId, string Kind) : IGameEvent;
+
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;
 public sealed record GeneralKilled(int CountryId, string GeneralId, int RegionId) : IGameEvent;

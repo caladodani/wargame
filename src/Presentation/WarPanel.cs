@@ -64,6 +64,7 @@ public partial class WarPanel : PanelContainer
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
+                      string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}:{o.Men}:{o.ExpiresDay}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -100,6 +101,9 @@ public partial class WarPanel : PanelContainer
                 if (PrisonerView.Balance(w, pid, foe) is VBoxContainer pris) card.AddChild(pris);
                 // e a mesa da troca: homem por homem sem esperar pela paz, se eles assinarem
                 int foeId = foe;
+                // a proposta deles primeiro: a iniciativa é do outro lado e não pode ficar escondida
+                if (OfferView.Card(w, pid, foeId, () => Answer(pid, foeId, true), () => Answer(pid, foeId, false)) is VBoxContainer post)
+                    card.AddChild(post);
                 if (PrisonerView.Exchange(w, pid, foeId, () => Swap(pid, foeId)) is VBoxContainer swap) card.AddChild(swap);
 
                 Goals(w, card, war, pid, foe);
@@ -201,6 +205,17 @@ public partial class WarPanel : PanelContainer
         var err = _game.Dispatch(new ExchangePrisonersCommand(pid, foe));
         if (err is not null) { _game.Notify(err); return; }
         _game.Notify($"Troca feita: {PrisonerView.Short(offer.Home)} dos nossos a caminho de casa");
+        Fill();
+    });
+
+    /// <summary>Responde à proposta que este inimigo pôs na mesa.</summary>
+    private void Answer(int pid, int foe, bool accept) => _game.RunWhenIdle(() =>
+    {
+        var deal = PrisonerExchange.Evaluate(_game.World, foe, pid);
+        var err = _game.Dispatch(new AnswerOfferCommand(pid, foe, accept));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify(accept ? $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa"
+                            : "Proposta recusada");
         Fill();
     });
 

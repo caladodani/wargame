@@ -262,6 +262,15 @@ CREATE TABLE IF NOT EXISTS s_prisoner (        -- prisioneiros de guerra (Prison
   men INTEGER NOT NULL,
   PRIMARY KEY (country_id, from_country_id));
 
+CREATE TABLE IF NOT EXISTS s_offer (           -- propostas à espera de resposta do jogador (OfferSystem)
+  from_id INTEGER NOT NULL,                     -- quem propõe
+  to_id INTEGER NOT NULL,                       -- a quem propõe (o jogador)
+  kind TEXT NOT NULL,                           -- assunto da proposta ('prisioneiros')
+  men INTEGER NOT NULL,                         -- tamanho combinado no dia em que foi feita
+  day INTEGER NOT NULL,
+  expires_day INTEGER NOT NULL,                 -- dia em que cai da mesa
+  PRIMARY KEY (from_id, to_id, kind));
+
 CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGroupSystem)
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL,
   front_country_id INTEGER, advancing INTEGER NOT NULL DEFAULT 0,

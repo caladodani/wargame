@@ -33,6 +33,20 @@ public sealed class ActiveSpyOp
     public float DaysLeft { get; set; }
     public int RegionId { get; init; }        // alvo da sabotagem (0 = operação contra o país inteiro)
 }
+/// <summary>Proposta que um país põe em cima da mesa de outro e que fica à espera de resposta. Só existe
+/// quando quem recebe é gente que não decide sozinha (o jogador): entre países da IA a resposta sai no
+/// mesmo dia. Kind diz de que é a proposta ("prisioneiros"); Men é o tamanho combinado no dia em que foi
+/// feita, e serve para a UI mostrar números — quem manda no fim é o estado dos campos nesse momento.</summary>
+public sealed class PendingOffer
+{
+    public int FromId { get; init; }
+    public int ToId { get; init; }
+    public string Kind { get; init; } = "prisioneiros";
+    public int Men { get; set; }
+    public int Day { get; init; }
+    public int ExpiresDay { get; init; }
+}
+
 /// <summary>Foco nacional (HoI4): tabela focus; efeitos = focus_effect (multiplicadores de Stat).</summary>
 public sealed record Focus(string Id, int CountryId, string Name, string Description, int Days, string? Requires, int Sort);
 

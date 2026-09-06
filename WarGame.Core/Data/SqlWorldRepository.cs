@@ -368,6 +368,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
             w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
                 ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
+        foreach (var r in save.Query("SELECT from_id,to_id,kind,men,day,expires_day FROM s_offer"))
+            w.Offers.Add(new PendingOffer { FromId = Convert.ToInt32(r["from_id"]), ToId = Convert.ToInt32(r["to_id"]),
+                Kind = (string)r["kind"]!, Men = Convert.ToInt32(r["men"]),
+                Day = Convert.ToInt32(r["day"]), ExpiresDay = Convert.ToInt32(r["expires_day"]) });
         foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left,region_id FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
                 OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]), RegionId = Convert.ToInt32(r["region_id"]) });
@@ -463,7 +467,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -494,6 +498,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var o in w.ActiveSpyOps)
             save.Execute("INSERT INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
                 o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
+        foreach (var o in w.Offers)
+            save.Execute("INSERT INTO s_offer (from_id,to_id,kind,men,day,expires_day) VALUES (?,?,?,?,?,?)",
+                o.FromId, o.ToId, o.Kind, o.Men, o.Day, o.ExpiresDay);
         foreach (var ((ia, ib), until) in w.Intel)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var ((pa, pb), until) in w.Pacts)

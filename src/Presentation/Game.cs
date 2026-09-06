@@ -86,6 +86,7 @@ public partial class Game : Node
         World.Register(new GeneralXpSystem());  // idem: ouve as batalhas para dar posto aos comandantes
         World.Register(new CommandCasualtySystem());  // e as mesmas batalhas podem tirar-lhe o comandante
         World.Register(new PrisonerSystem());    // quem cai em terreno inimigo rende-se: prisioneiros, trabalho e repatriação
+        World.Register(new OfferSystem());       // logo a seguir: a IA olha para os campos e propõe trocas
         World.Register(new WarGoalSystem());
         World.Register(new MovementSystem());
         World.Register(new CombatSystem());

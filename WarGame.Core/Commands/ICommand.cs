@@ -626,6 +626,36 @@ public sealed record ExchangePrisonersCommand(int CountryId, int TargetCountryId
     }
 }
 
+/// <summary>Responder a uma proposta que o outro lado pôs em cima da mesa (OfferSystem). Aceitar uma
+/// troca de prisioneiros abre os dois campos pelo tamanho que eles tiverem no dia da resposta — o número
+/// da proposta é o que se viu quando ela chegou, e uma batalha entretanto pode tê-lo mudado. Recusar
+/// tira-a da mesa e nada mais: quem propôs volta a insistir passado offer_period_days.</summary>
+public sealed record AnswerOfferCommand(int CountryId, int FromCountryId, bool Accept) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.ContainsKey(CountryId)) return "país inválido";
+        if (Find(w) is null) return "essa proposta já não está em cima da mesa";
+        if (!Accept) return null;
+        if (!w.AreAtWar(CountryId, FromCountryId)) return "a guerra acabou: já não há campos para abrir";
+        var offer = PrisonerExchange.Evaluate(w, FromCountryId, CountryId);
+        if (offer.Men <= 0) return "os campos mudaram: já não há homens dos dois lados";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var pending = Find(w);
+        if (pending is null) return;
+        w.Offers.Remove(pending);
+        if (Accept) OfferSystem.Exchange(w, FromCountryId, CountryId, PrisonerExchange.Evaluate(w, FromCountryId, CountryId));
+        w.Events.Publish(new OfferAnswered(FromCountryId, CountryId, pending.Kind, Accept));
+    }
+
+    private PendingOffer? Find(World w) =>
+        w.Offers.FirstOrDefault(o => o.FromId == FromCountryId && o.ToId == CountryId);
+}
+
 /// <summary>Dissolver uma divisão fora de combate: devolve disband_manpower_refund dos homens
 /// (proporcional ao HP) ao pool do país. HoI4: delete unit, com refund parcial.</summary>
 public sealed record DisbandDivisionCommand(int CountryId, int DivisionId) : ICommand

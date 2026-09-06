@@ -23,6 +23,8 @@ public partial class Hud : CanvasLayer
     private Timer _toastTimer = null!;
     private Tween? _toastTween;   // animação de entrada/saída do toast (morre e recomeça a cada mensagem)
     private AcceptDialog _slots = null!;
+    private ConfirmationDialog? _offerDialog;      // proposta do inimigo (troca de prisioneiros)
+    private int _offerFrom;
     private RegionPanel _region = null!;
     private ArmySelect _multiSel = null!;
     private GameMenu _menu = null!;
@@ -490,6 +492,18 @@ public partial class Hud : CanvasLayer
             if (Player(e.CaptorId)) Later($"⛓ {e.Men:N0} prisioneiros de {foe} nas nossas mãos");
             else if (Player(e.FromCountryId)) Later($"⛓ {e.Men:N0} dos nossos caem prisioneiros");
         }));
+        // Propostas do outro lado: a IA bate à porta e o jogador tem de responder alguma coisa.
+        _subs.Add(w.Events.Subscribe<OfferMade>(e =>
+        {
+            if (!Player(e.ToId)) return;
+            int from = e.FromId;
+            Later($"✉ {Country(from)} propõe trocar {e.Men:N0} prisioneiros de cada lado");
+            Callable.From(() => PopOffer(from)).CallDeferred();
+        }));
+        _subs.Add(w.Events.Subscribe<OfferExpired>(e =>
+        {
+            if (Player(e.ToId)) Later($"✉ A proposta de {Country(e.FromId)} caiu da mesa");
+        }));
         _subs.Add(w.Events.Subscribe<PrisonersExchanged>(e =>
         {
             if (!Player(e.CountryId) && !Player(e.OtherId)) return;
@@ -612,6 +626,36 @@ public partial class Hud : CanvasLayer
 
     private void Later(string msg) => Callable.From(() => Toast(msg)).CallDeferred();
     private bool Player(int countryId) => _game.PlayerId == countryId;
+    /// <summary>Põe a proposta do inimigo à frente do jogador: um Sim/Não com os números do dia. Recusar
+    /// não é castigo nenhum — a proposta sai da mesa e eles voltam a insistir mais tarde. Quem quiser
+    /// pensar melhor fecha o diálogo e vai buscá-la ao painel Guerra, onde o cartão fica.</summary>
+    private void PopOffer(int fromId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        if (OfferView.Pending(_game.World, pid, fromId) is not PendingOffer offer) return;
+        _offerFrom = fromId;
+        if (_offerDialog is null)
+        {
+            _offerDialog = Ui.Dialog(this, () => AnswerOffer(true));
+            _offerDialog.Canceled += () => AnswerOffer(false);
+            _offerDialog.Title = "Proposta do inimigo";
+        }
+        _offerDialog.DialogText = OfferView.Line(_game.World, offer);
+        _offerDialog.PopupCentered();
+    }
+
+    /// <summary>Resposta ao diálogo da proposta. Vai pelo mesmo comando do painel Guerra.</summary>
+    private void AnswerOffer(bool accept) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid) return;
+        var deal = PrisonerExchange.Evaluate(_game.World, _offerFrom, pid);
+        var err = _game.Dispatch(new AnswerOfferCommand(pid, _offerFrom, accept));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify(accept ? $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa"
+                            : "Proposta recusada");
+        _warPanel.Refresh();
+    });
+
     private string Country(int id) => _game.World.Countries.TryGetValue(id, out var c) ? c.Name : "?";
     private string RegionName(int id) => _game.World.Regions.TryGetValue(id, out var r) ? r.Name : "R" + id;
     // Região controlada pelo jogador ou com divisões dele.
@@ -781,8 +825,22 @@ public partial class Hud : CanvasLayer
             swap = PrisonerExchange.Evaluate(w, pid, prey.Id).Men;
             _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();  // agora com guerra a sério: balança e troca desenhadas
         }
+        // uma proposta do inimigo em cima da mesa, para o cartão do painel Guerra e o diálogo serem desenhados
+        int posted = 0;
+        if (w.Countries.Values.FirstOrDefault(x => x.Id != pid && !x.IsPlayer && w.AreAtWar(pid, x.Id)) is Country caller)
+        {
+            float period = w.Rule("offer_period_days", 10f);
+            w.Rules["offer_period_days"] = 1f;                          // ao dia 86 a ronda das propostas não calhava
+            new OfferSystem().Tick(w);
+            w.Rules["offer_period_days"] = period;
+            posted = w.Offers.Count(o => o.ToId == pid);
+            _warPanel.Open(); _warPanel.Close();                        // cartão da proposta desenhado
+            PopOffer(caller.Id);                                        // e o diálogo Sim/Não em cima dele
+            _offerDialog?.Hide();
+            AnswerOffer(false);                                         // recusa: os campos ficam como estavam
+        }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
