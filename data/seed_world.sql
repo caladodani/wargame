@@ -299,6 +299,26 @@ INSERT INTO season_terrain VALUES ('outono','forest',1.2),('outono','mountain',1
 INSERT INTO rule (key,value,note) VALUES
  ('season_shelter',0.4,'quanto do desgaste da estação sobra a quem está em terreno próprio');
 
+-- Crónica da campanha (tabela chronicle_kind; ChronicleSystem). weight: 1 rotina, 2 de peso, 3 história.
+-- chronicle_min_weight decide o que chega a ser escrito; chronicle_max é o tecto de entradas guardadas.
+CREATE TABLE IF NOT EXISTS chronicle_kind (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, weight INTEGER NOT NULL);
+INSERT INTO chronicle_kind VALUES ('guerra','Guerra','⚔',3);
+INSERT INTO chronicle_kind VALUES ('paz','Paz','🕊',3);
+INSERT INTO chronicle_kind VALUES ('capitulacao','Capitulação','🏳',3);
+INSERT INTO chronicle_kind VALUES ('capital','Capital tomada','🏛',3);
+INSERT INTO chronicle_kind VALUES ('dominio','Domínio mundial','👑',3);
+INSERT INTO chronicle_kind VALUES ('bomba','Bomba atómica','☢',3);
+INSERT INTO chronicle_kind VALUES ('revolta','Revolta','✊',2);
+INSERT INTO chronicle_kind VALUES ('alianca','Aliança','🤝',2);
+INSERT INTO chronicle_kind VALUES ('honra','Honra de batalha','▮',2);
+INSERT INTO chronicle_kind VALUES ('promocao','Promoção','🎖',2);
+INSERT INTO chronicle_kind VALUES ('foco','Foco nacional','🎯',2);
+INSERT INTO chronicle_kind VALUES ('estacao','Estação','🌦',1);
+INSERT INTO rule (key,value,note) VALUES
+ ('chronicle_min_weight',2,'peso mínimo para um acontecimento entrar na crónica'),
+ ('chronicle_max',400,'entradas guardadas na crónica; as mais antigas caem');
+
 -- Edifícios regionais (tabela building; ConstructionSystem/BuildBuildingCommand)
 CREATE TABLE IF NOT EXISTS building (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,

@@ -101,6 +101,7 @@ public partial class Game : Node
         World.Register(new PowerRankingSystem());   // tabela mundial de potências (só lê o estado do dia)
         World.Register(new VictorySystem());
         World.Register(new DiplomacySystem());
+        World.Register(new ChronicleSystem());   // só ouve: escreve a história da campanha para o save
         World.Register(new WeatherSystem());     // antes da recomposição: o Inverno gasta o que a paz repõe
         World.Register(new RecoverySystem());
         World.Register(new DecisionSystem());

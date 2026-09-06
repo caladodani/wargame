@@ -83,6 +83,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,icon,weight FROM chronicle_kind"))
+            w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
+                (string)r["icon"]!, Convert.ToInt32(r["weight"]));
         w.SeasonDefs.Clear(); w.SeasonMonths.Clear(); w.SeasonTerrain.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note FROM season"))
             w.SeasonDefs[(string)r["id"]!] = new SeasonDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
@@ -345,6 +348,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT region_id,building,level FROM s_region_building"))
             if (w.Regions.TryGetValue(Convert.ToInt32(r["region_id"]), out var reg))
                 reg.Buildings[(string)r["building"]!] = Convert.ToInt32(r["level"]);
+        foreach (var r in save.Query("SELECT day,kind,text,country_id,region_id FROM s_chronicle ORDER BY ord"))
+            w.Chronicle.Add(new ChronicleEntry(Convert.ToInt32(r["day"]), (string)r["kind"]!, (string)r["text"]!,
+                Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["region_id"])));
         foreach (var r in save.Query("SELECT day,country_id,money,divisions,regions FROM s_history ORDER BY day"))
             w.History.Add(new HistorySample(Convert.ToInt32(r["day"]), Convert.ToInt32(r["country_id"]),
                 Convert.ToSingle(r["money"]), Convert.ToInt32(r["divisions"]), Convert.ToInt32(r["regions"])));
@@ -446,7 +452,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -462,6 +468,12 @@ public sealed class SqlWorldRepository : IWorldRepository
                     c.Id, did, w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == did)?.UntilDay ?? -1, cd);
         foreach (var h in w.History)
             save.Execute("INSERT INTO s_history VALUES (?,?,?,?,?)", h.Day, h.CountryId, h.Money, h.Divisions, h.Regions);
+        for (int i = 0; i < w.Chronicle.Count; i++)
+        {
+            var e = w.Chronicle[i];
+            save.Execute("INSERT INTO s_chronicle (ord,day,kind,text,country_id,region_id) VALUES (?,?,?,?,?,?)",
+                i, e.Day, e.Kind, e.Text, e.CountryId, e.RegionId);
+        }
         foreach (var d in w.TradeDeals)
             save.Execute("INSERT INTO s_trade_deal VALUES (?,?,?,?)", d.BuyerId, d.SellerId, d.ResourceId, d.Units);
         foreach (var o in w.ActiveSpyOps)

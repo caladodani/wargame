@@ -149,7 +149,7 @@ public partial class Hud : CanvasLayer
         tabs.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         tabs.AddChild(Ui.Btn("Guerra", OpenWar));
         tabs.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
-        tabs.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
+        tabs.AddChild(Ui.Btn("Crónica", () => _journal.Open()));
         tabs.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
 
         _accent = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.SurfaceHi, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -663,7 +663,8 @@ public partial class Hud : CanvasLayer
             new MedalSystem().Tick(w); new DivisionHonourSystem().Tick(w);
         }
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}");
+        int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

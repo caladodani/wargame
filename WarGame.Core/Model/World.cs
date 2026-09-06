@@ -42,6 +42,10 @@ public sealed class World
     /// <summary>Honras de batalha (tabela division_honour), o nome próprio que uma divisão ganha em campanha.</summary>
     public Dictionary<string, HonourDef> HonourDefs { get; } = new();
     /// <summary>Estações do ano (tabela season) e o mês a que cada uma manda (tabela season_month).</summary>
+    /// <summary>Géneros de acontecimento da crónica (tabela chronicle_kind).</summary>
+    public Dictionary<string, ChronicleKind> ChronicleKinds { get; } = new();
+    /// <summary>Crónica da campanha, do mais antigo para o mais recente (ChronicleSystem; save s_chronicle).</summary>
+    public List<ChronicleEntry> Chronicle { get; } = new();
     public Dictionary<string, SeasonDef> SeasonDefs { get; } = new();
     public Dictionary<int, string> SeasonMonths { get; } = new();
     /// <summary>Quanto cada estação castiga cada terreno (tabela season_terrain): [estação][terreno] = factor

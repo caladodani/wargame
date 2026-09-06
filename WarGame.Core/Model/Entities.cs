@@ -104,6 +104,15 @@ public sealed record HonourDef(string Id, string Title, string Description, stri
 /// e a tropa em campo aberto gasta-se sem um tiro.</summary>
 public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float Attrition, string Note);
 
+/// <summary>Género de acontecimento da crónica (tabela chronicle_kind): o ícone com que aparece na linha do
+/// tempo e o peso (1 = rotina, 3 = história). A regra chronicle_min_weight decide o que chega a ser escrito —
+/// mudar o que a campanha lembra é mudar uma linha de SQL, não o código.</summary>
+public sealed record ChronicleKind(string Id, string Name, string Icon, int Weight);
+
+/// <summary>Uma entrada da crónica da campanha (ChronicleSystem). Guarda-se no save: o Jornal morria com a
+/// sessão e a guerra de há dois anos ficava sem memória nenhuma.</summary>
+public sealed record ChronicleEntry(int Day, string Kind, string Text, int CountryId, int RegionId);
+
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
     bool Coastal = false, float SupplyRange = 0f);
 

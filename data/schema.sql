@@ -239,6 +239,9 @@ CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recurso
 CREATE TABLE IF NOT EXISTS s_history (        -- amostras dos gráficos de evolução (HistorySystem)
   day INTEGER NOT NULL, country_id INTEGER NOT NULL, money REAL NOT NULL, divisions INTEGER NOT NULL, regions INTEGER NOT NULL,
   PRIMARY KEY (day, country_id));
+CREATE TABLE IF NOT EXISTS s_chronicle (      -- crónica da campanha (ChronicleSystem)
+  ord INTEGER PRIMARY KEY, day INTEGER NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL,
+  country_id INTEGER NOT NULL DEFAULT 0, region_id INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS s_region_building (   -- níveis de edifícios por região (ConstructionSystem)
   region_id INTEGER NOT NULL, building TEXT NOT NULL, level INTEGER NOT NULL,
   PRIMARY KEY (region_id, building));
