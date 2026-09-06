@@ -139,4 +139,23 @@ public class EspionageTests
         TestWorld.Days(w, 1);   // IA corre no dia 0
         Assert.Contains(w.ActiveSpyOps, o => o.CountryId == 2 && o.TargetCountryId == 1);
     }
+
+    [Fact]
+    public void PurgeSpies_RemovesEnemyOpsAgainstUs()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.Countries[1].Money = 500; w.Countries[2].Money = 500;
+        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
+        // inimigo (2) tem duas redes contra nós (1); nós temos uma contra ele
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 2, TargetCountryId = 1, OpId = "roubo_fundos", DaysLeft = 10 });
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 2, TargetCountryId = 1, OpId = "agitacao", DaysLeft = 20 });
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 1, TargetCountryId = 2, OpId = "rede_info", DaysLeft = 5 });
+        var op = w.SpyOps["contra_espionagem"];
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = 1, TargetCountryId = 2, OpId = op.Id, DaysLeft = 0.5f });
+        w.Register(new EspionageSystem());
+        TestWorld.Days(w, 1);
+        Assert.DoesNotContain(w.ActiveSpyOps, o => o.CountryId == 2 && o.TargetCountryId == 1);
+        Assert.Contains(w.ActiveSpyOps, o => o.CountryId == 1 && o.TargetCountryId == 2 && o.OpId == "rede_info");
+    }
 }

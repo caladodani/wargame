@@ -13,16 +13,18 @@ public sealed class EspionageSystem : ISystem
 
     public void Tick(World w)
     {
-        for (int i = w.ActiveSpyOps.Count - 1; i >= 0; i--)
+        // snapshot: Apply pode remover outras operações da lista (purge_spies) — uma operação
+        // entretanto removida já não conta nem aplica efeito
+        foreach (var o in w.ActiveSpyOps.ToList())
         {
-            var o = w.ActiveSpyOps[i];
+            if (!w.ActiveSpyOps.Contains(o)) continue;
             if (!w.Countries.TryGetValue(o.CountryId, out var c) || c.Capitulated
                 || !w.Countries.TryGetValue(o.TargetCountryId, out var t) || t.Capitulated)
-            { w.ActiveSpyOps.RemoveAt(i); continue; }
+            { w.ActiveSpyOps.Remove(o); continue; }
             o.DaysLeft -= 1f;
             if (o.DaysLeft > 0f) continue;
+            w.ActiveSpyOps.Remove(o);
             if (w.SpyOps.TryGetValue(o.OpId, out var op)) Apply(w, op, c, t);
-            w.ActiveSpyOps.RemoveAt(i);
             w.Events.Publish(new SpyOpCompleted(o.CountryId, o.TargetCountryId, o.OpId));
         }
     }
@@ -46,6 +48,10 @@ public sealed class EspionageSystem : ISystem
                 break;
             case "research_boost":
                 if (actor.ResearchTech is not null) actor.ResearchProgress += op.Magnitude;
+                break;
+            case "purge_spies":
+                // contra-espionagem: expulsa todas as redes do alvo contra nós
+                w.ActiveSpyOps.RemoveAll(o => o.CountryId == target.Id && o.TargetCountryId == actor.Id);
                 break;
         }
     }
