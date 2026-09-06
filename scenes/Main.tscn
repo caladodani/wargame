@@ -16,21 +16,3 @@ script = ExtResource("3")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("2")
-
-[node name="Top" type="HBoxContainer" parent="Hud"]
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 64.0
-
-[node name="Date" type="Label" parent="Hud/Top"]
-text = "2030-01-01"
-size_flags_horizontal = 3
-
-[node name="Slower" type="Button" parent="Hud/Top"]
-text = "<"
-
-[node name="Pause" type="Button" parent="Hud/Top"]
-text = "||"
-
-[node name="Faster" type="Button" parent="Hud/Top"]
-text = ">"
