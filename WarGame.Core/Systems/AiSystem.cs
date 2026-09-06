@@ -385,16 +385,20 @@ public sealed class AiSystem : ISystem
         {
             if (!groups.TryGetValue(f.Id, out var g)) continue;
             Region? target = null; int best = int.MaxValue, total = 0;
-            foreach (var n in f.SeaNeighbours.Count == 0 ? f.Neighbours : f.Neighbours.Concat(f.SeaNeighbours.Keys))
+            foreach (var n in f.Neighbours)
             {
                 var r = w.Regions[n];
                 if (!w.IsHostile(c.Id, r)) continue;
                 int def = Defenders(c, r.Id, fighters); total += def;
                 if (def < best) { best = def; target = r; }
             }
-            if (target is null) continue;
-            if (best == 0) { if (g.Count >= 2 || total == 0) Send(w, c, g.Take(1), target.Id); }
-            else if (g.Count >= best * ratio) Send(w, c, g, target.Id);
+            if (target is not null)
+            {
+                if (best == 0) { if (g.Count >= 2 || total == 0) Send(w, c, g.Take(1), target.Id); }
+                else if (g.Count >= best * ratio) Send(w, c, g, target.Id);
+            }
+            // sem alvo em terra, ou com a frente terrestre parada, o que sobra pode ir por mar
+            Landing(w, c, f, g, fighters);
         }
 
         var nearest = new Dictionary<int, int>();   // região nossa → região da frente mais próxima
@@ -411,6 +415,35 @@ public sealed class AiSystem : ISystem
         }
         foreach (var (regionId, g) in groups)
             if (!frontIds.Contains(regionId) && nearest.TryGetValue(regionId, out var dest)) Send(w, c, g, dest);
+    }
+
+    /// <summary>Desembarque planeado a partir de uma costa nossa. Bater da praia vale só
+    /// naval_invasion_penalty da força, por isso exige-se mais vantagem do que em terra
+    /// (ai_naval_ratio) e mais organização do que o mínimo legal (ai_naval_org_margin acima de
+    /// naval_invasion_min_org, para a travessia não a gastar toda). Embarcam no máximo
+    /// naval_invasion_max_divs — as que sobram ficam a guardar a costa em vez de esperar ao largo.
+    /// Costa inimiga vazia é a preferida: toma-se sem combate.</summary>
+    private static void Landing(World w, Country c, Region from, List<Division> g,
+        Dictionary<int, Dictionary<int, int>> fighters)
+    {
+        if (from.SeaNeighbours.Count == 0) return;
+        float minOrg = w.Rule("naval_invasion_min_org", 45f) + w.Rule("ai_naval_org_margin", 20f);
+        var ready = g.Where(d => d.Org >= minOrg && d.Path.Count == 0).ToList();
+        if (ready.Count == 0) return;
+
+        Region? target = null; int best = int.MaxValue;
+        foreach (var n in from.SeaNeighbours.Keys)
+        {
+            var r = w.Regions[n];
+            if (!w.IsHostile(c.Id, r)) continue;
+            int def = Defenders(c, r.Id, fighters);
+            if (def < best) { best = def; target = r; }
+        }
+        if (target is null) return;
+
+        int wave = Math.Max(1, (int)w.Rule("naval_invasion_max_divs", 3f));
+        if (best > 0 && ready.Count < best * w.Rule("ai_naval_ratio", 3f)) return;
+        Send(w, c, ready.Take(best == 0 ? 1 : wave), target.Id);
     }
 
     /// <summary>Corpo expedicionário: sem frente própria mas em guerra, as divisões paradas vão
