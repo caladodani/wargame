@@ -3,7 +3,7 @@ using WarGame.Core.Model;
 namespace WarGame.Core.Systems;
 
 /// <summary>Supply de cada divisão (0..1). Contrato: corre antes de tudo no tick; escreve só Division.Supply.
-/// HoI4 simplificado: território próprio abastece sempre (portos incluídos — ilhas não sofrem); região ocupada
+/// HoI4 simplificado: território próprio ou de aliado de facção abastece (portos incluídos — ilhas não sofrem); região ocupada
 /// só está abastecida se houver cadeia de regiões controladas até território próprio; o resto (bolsa cercada,
 /// divisão em região hostil) leva supply_pocket. Empilhar mais de supply_stack divisões do mesmo país numa
 /// região divide o supply por n/supply_stack. Regras em World.Rules: supply_pocket, supply_stack.</summary>
@@ -24,12 +24,18 @@ public sealed class SupplySystem : ISystem
             stacked[k] = stacked.GetValueOrDefault(k) + 1;
         }
 
-        var linked = LinkedRegions(w, stacked.Keys.Select(k => k.country).ToHashSet());
+        // países cuja rede interessa: os que têm divisões + os controladores das regiões onde elas estão
+        // (acesso militar: divisão em território de aliado bebe da rede do aliado)
+        var countries = stacked.Keys.Select(k => k.country).ToHashSet();
+        foreach (var d in w.Divisions.Values) countries.Add(w.Regions[d.RegionId].ControllerId);
+        var linked = LinkedRegions(w, countries);
 
         foreach (var d in w.Divisions.Values)
         {
-            // ligada = controlada pelo país da divisão E com cadeia até território próprio
-            float s = w.Regions[d.RegionId].ControllerId == d.CountryId && linked.Contains(d.RegionId) ? 1f : pocket;
+            // ligada = controlada pelo país da divisão (ou aliado de facção) E com cadeia até território próprio
+            var reg = w.Regions[d.RegionId];
+            bool friendly = reg.ControllerId == d.CountryId || w.SameFaction(d.CountryId, reg.ControllerId);
+            float s = friendly && linked.Contains(d.RegionId) ? 1f : pocket;
             int n = stacked[(d.CountryId, d.RegionId)];
             if (n > stack) s *= stack / n;
             d.Supply = s;

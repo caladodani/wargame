@@ -59,6 +59,22 @@ public class MilitaryAccessTests
     }
 
     [Fact]
+    public void Supply_FlowsInAllyTerritory()
+    {
+        var w = Build(allied: true);
+        w.Register(new SupplySystem());
+        var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 4);   // em terra do aliado 2
+        TestWorld.Days(w, 1);
+        Assert.Equal(1f, d.Supply, 0.001f);
+
+        var w2 = Build(allied: false);
+        w2.Register(new SupplySystem());
+        var d2 = TestWorld.AddDivision(w2, 1, 1, TestWorld.Inf, 4);
+        TestWorld.Days(w2, 1);
+        Assert.Equal(w2.Rule("supply_pocket", 0.5f), d2.Supply, 0.001f);
+    }
+
+    [Fact]
     public void Ai_SendsExpedition_ToAllyFront()
     {
         var (w, _) = TestWorld.Build();
