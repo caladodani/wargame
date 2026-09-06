@@ -1,0 +1,81 @@
+-- ITA (k=8) — Esercito Italiano, ordem de batalha aproximada 2024-2026.
+-- Fontes: Brigata Alpina "Taurinense" (Torino) e "Julia" (Udine), Brigata Corazzata "Ariete"
+-- (Pordenone/Friuli), Brigata Paracadutisti "Folgore" (Livorno/Toscana), Brigata Meccanizzata
+-- "Aosta" (Messina/Sicília), "Sassari" (Cagliari), "Pinerolo" (Bari), Brigata Bersaglieri
+-- "Garibaldi" (Caserta), Brigata Cavalleria "Pozzuolo del Friuli", Brigata Granatieri di Sardegna
+-- (Roma). Carácter: forte tradição de guerra de montanha (Alpini) e de elite aerotransportada
+-- (Folgore), flanco sul da NATO no Mediterrâneo.
+
+-- ===== unit_type próprios (100+20*8 .. 119+20*8 = 260..279) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (260,'Ariete','ground',7.2,80,2.3,36),
+ (261,'Paracadutisti Folgore','ground',1.6,42,0.9,35),
+ (262,'Alpini','ground',1.5,40,0.9,26),
+ (263,'Freccia (Centauro)','ground',2.6,46,1.4,52);
+
+INSERT INTO unit_stat VALUES
+ (260,'soft_atk',13),  (260,'hard_atk',18.5),(260,'defense',14),(260,'breakthrough',31),(260,'armor',74),(260,'piercing',64),(260,'hardness',0.91),(260,'hp',22),
+ (261,'soft_atk',7.5), (261,'hard_atk',1),   (261,'defense',21),(261,'breakthrough',12),(261,'armor',0), (261,'piercing',5), (261,'hardness',0.1), (261,'hp',21),
+ (262,'soft_atk',8),   (262,'hard_atk',1.5), (262,'defense',25),(262,'breakthrough',10),(262,'armor',0), (262,'piercing',6), (262,'hardness',0.15),(262,'hp',24),
+ (263,'soft_atk',10),  (263,'hard_atk',6),   (263,'defense',25),(263,'breakthrough',17),(263,'armor',22),(263,'piercing',24),(263,'hardness',0.5), (263,'hp',29);
+
+INSERT INTO unit_tag VALUES
+ (260,'armored'),(260,'ground'),
+ (261,'infantry'),(261,'ground'),(261,'especial'),
+ (262,'infantry'),(262,'ground'),(262,'especial'),
+ (263,'infantry'),(263,'armored'),(263,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 260..279) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('ITA_tradicao_alpina','ITA','Tradição Alpina',
+   'Os Alpini treinam há mais de um século nas Dolomitas e nos Alpes: combatem e defendem-se melhor em terreno montanhoso.'),
+ ('ITA_folgore_elite','ITA','Elite Aerotransportada Folgore',
+   'A Brigata Paracadutisti Folgore mantém uma reputação de combate desde El Alamein: as tropas especiais atacam com mais força.'),
+ ('ITA_industria_de_defesa','ITA','Indústria de Defesa (Leonardo)',
+   'A Leonardo fornece sistemas de comando e vigilância de ponta às Forças Armadas: maior eficiência de comando.'),
+ ('ITA_flanco_mediterraneo','ITA','Flanco Sul da NATO',
+   'Guarnições distribuídas por toda a península e ilhas, com foco na defesa de portos e cidades costeiras: melhor defesa em terreno urbano.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (260,'spirit','terrain','mountain','str_defender','especial','mul',1.20,'ITA','ITA_tradicao_alpina'),
+ (261,'spirit','terrain','mountain','str_attacker','especial','mul',1.15,'ITA','ITA_tradicao_alpina'),
+ (262,'spirit',NULL,NULL,           'str_attacker','especial','mul',1.18,'ITA','ITA_folgore_elite'),
+ (263,'spirit',NULL,NULL,           'command',     NULL,      'mul',1.08,'ITA','ITA_industria_de_defesa'),
+ (264,'spirit','terrain','urban',   'str_defender',NULL,      'mul',1.10,'ITA','ITA_flanco_mediterraneo');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('ITA','production_speed',1.0),
+ ('ITA','org_regain',1.15),
+ ('ITA','start_army_mult',0.45);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('ITA','República Parlamentar','Presidente do Conselho de Ministros e Ministro da Defesa',
+  'Guerra de montanha (Alpini), projecção rápida aerotransportada (Folgore), defesa do flanco sul mediterrânico da NATO.',
+  'NATO',
+  'O Esercito Italiano combina uma das mais antigas tradições de guerra de montanha da Europa, os Alpini, com uma força aerotransportada de elite, a Folgore. Geograficamente responsável pelo flanco sul da NATO no Mediterrâneo, mantém guarnições espalhadas pela península e pelas grandes ilhas, apoiadas pela indústria de defesa da Leonardo.');
+
+-- ===== templates próprios (ids 401..450) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (401,'ITA','Brigata Alpina'),
+ (402,'ITA','Brigata Corazzata Ariete'),
+ (403,'ITA','Brigata Paracadutisti Folgore');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (401,262,4),(401,1,2),(401,4,1),
+ (402,260,4),(402,263,2),(402,4,1),(402,6,1),
+ (403,261,4),(403,4,1),(403,5,1);
+
+-- ===== brigadas/divisões reais nomeadas (ids 404..450) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (404,'ITA','Brigata Alpina Taurinense','Brigata Alpina','Turin'),
+ (405,'ITA','Brigata Alpina Julia','Brigata Alpina','Udine'),
+ (406,'ITA','Brigata Meccanizzata Aosta','Mecanizada','Catania'),
+ (407,'ITA','Brigata Meccanizzata Sassari','Mecanizada','Cagliari'),
+ (408,'ITA','Brigata Corazzata Ariete','Brigata Corazzata Ariete','Udine'),
+ (409,'ITA','Brigata Paracadutisti Folgore','Brigata Paracadutisti Folgore','Pisa'),
+ (410,'ITA','Brigata Bersaglieri Garibaldi','Mecanizada','Napoli'),
+ (411,'ITA','Brigata Meccanizzata Pinerolo','Mecanizada','Bari'),
+ (412,'ITA','Brigata Cavalleria Pozzuolo del Friuli','Infantaria AT','Udine'),
+ (413,'ITA','Brigata Granatieri di Sardegna','Infantaria','Roma'),
+ (414,'ITA','Brigata Meccanizzata Friuli','Mecanizada','Bologna');

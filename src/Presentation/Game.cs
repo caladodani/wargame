@@ -60,12 +60,12 @@ public partial class Game : Node
         try
         {
             if (_save is not null && SqlWorldRepository.HasSave(_save)) WorldRepo.LoadSave(World, _save);
-            else WorldRepo.LoadStartArmies(World);
+            else { WorldRepo.LoadStartArmies(World); WorldRepo.LoadStartWars(World); }
         }
         catch (Exception ex)
         {
             GD.PushError("Save ilegível, a começar de novo: " + ex.Message);
-            Fresh(); WorldRepo.LoadStartArmies(World);
+            Fresh(); WorldRepo.LoadStartArmies(World); WorldRepo.LoadStartWars(World);
         }
 
         // Ordem do tick — única fonte de verdade.
@@ -222,7 +222,8 @@ public partial class Game : Node
         GD.Print($"smoke: dia {World.Clock.Day}, jogador {PlayerId?.ToString() ?? "nenhum"}, {World.Divisions.Count} divisões");
         if (PlayerId is null)
         {
-            int best = World.Divisions.Values.GroupBy(d => d.CountryId).OrderByDescending(g => g.Count()).First().Key;
+            int best = World.Countries.Values.FirstOrDefault(c => c.Tag == "PRT")?.Id
+                       ?? World.Divisions.Values.GroupBy(d => d.CountryId).OrderByDescending(g => g.Count()).First().Key;
             var err = Dispatch(new ChoosePlayerCommand(best));
             if (err is not null) GD.PushError("smoke: " + err);
         }

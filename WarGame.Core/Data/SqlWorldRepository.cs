@@ -68,6 +68,14 @@ public sealed class SqlWorldRepository : IWorldRepository
             });
     }
 
+    public void LoadStartWars(World w)
+    {
+        var byTag = w.Countries.Values.ToDictionary(c => c.Tag);
+        foreach (var r in _static.Query("SELECT a_tag,b_tag FROM start_war"))
+            if (byTag.TryGetValue((string)r["a_tag"]!, out var a) && byTag.TryGetValue((string)r["b_tag"]!, out var b) && a.Id != b.Id)
+            { a.AtWarWith.Add(b.Id); b.AtWarWith.Add(a.Id); }
+    }
+
     public IReadOnlyList<NationalSpirit> GetSpirits(string countryTag) =>
         _static.Query("SELECT id,country_tag,name,description FROM national_spirit WHERE country_tag=? ORDER BY rowid", countryTag)
                .Select(r => new NationalSpirit((string)r["id"]!, (string)r["country_tag"]!, (string)r["name"]!, r["description"] as string ?? "")).ToList();

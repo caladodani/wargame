@@ -17,6 +17,7 @@ public static class TestWorld
         db.ExecuteScript(File.ReadAllText("data/schema.sql"));
         db.ExecuteScript(File.ReadAllText("data/seed_units.sql"));
         db.ExecuteScript(File.ReadAllText("data/seed_tech.sql"));
+        db.ExecuteScript(File.ReadAllText("data/seed_world.sql"));
         db.ExecuteScript(@"
             INSERT INTO template VALUES (1,1,'Inf'),(2,1,'Blind'),(3,1,'Inf+AT'),(11,2,'Inf'),(12,2,'Blind');
             INSERT INTO template_unit VALUES (1,1,6),(1,4,2), (2,3,4),(2,2,3),(2,4,1), (3,1,5),(3,4,1),(3,6,2),

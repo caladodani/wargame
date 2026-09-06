@@ -86,6 +86,9 @@ CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir:
 CREATE TABLE IF NOT EXISTS country_tech (        -- tecnologias com que o país começa
   country_tag TEXT NOT NULL, tech_id TEXT NOT NULL REFERENCES tech(id), PRIMARY KEY (country_tag, tech_id)
 );
+CREATE TABLE IF NOT EXISTS start_war (           -- guerras já a decorrer no dia 0 (tags)
+  a_tag TEXT NOT NULL, b_tag TEXT NOT NULL, PRIMARY KEY (a_tag, b_tag)
+);
 CREATE TABLE IF NOT EXISTS event_def (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, condition_json TEXT NOT NULL, effect_json TEXT NOT NULL
 );

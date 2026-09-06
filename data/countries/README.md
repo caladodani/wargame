@@ -10,7 +10,7 @@ Tabelas que um ficheiro pode preencher (ver `data/schema.sql`):
 |---|---|---|
 | `UPDATE country SET name=…` | nome em português se o NAME_PT do NE não servir | `WHERE tag='TAG'` |
 | `country_info` | governo, líder, doutrina, aliança, descrição (painel do país) | texto pt-PT |
-| `country_stat` | `industry` (rendimento ×), `production_speed` (×), `org_regain` (×), `start_army_mult` (exército inicial ×), `research_speed` (×), `move_speed` (×) | `INSERT OR REPLACE`; 1 = neutro; a `industry` automática por PIB já existe para todos |
+| `country_stat` | `industry` (rendimento ×), `production_speed` (×), `org_regain` (×), `start_army_mult` (exército inicial ×), `research_speed` (×), `move_speed` (×), `aggression` (0 = pacífico, 1 = declara guerras a vizinhos fracos; ver `seed_world.sql`) | `INSERT OR REPLACE`; 1 = neutro; a `industry` automática por PIB já existe para todos |
 | `national_spirit` | espíritos nacionais (HoI4): id `TAG_slug`, nome, descrição | efeitos = linhas em `modifier` |
 | `modifier` | efeitos: `stat_key` ∈ str, str_attacker, str_defender, command; `op` add/mul; `country_tag='TAG'`; `spirit_id`; condição opcional (`terrain`=plain/forest/urban/mountain/desert/tundra, `river`=true); `required_tag` opcional (infantry/ground/armored/support ou tag própria) | ids ≥ 100, únicos no jogo (gama por país abaixo) |
 | `unit_type` + `unit_stat` + `unit_tag` | batalhões próprios (Comandos, Infantaria de Selva…) | ids ≥ 100; 8 stats obrigatórios (soft_atk, hard_atk, defense, breakthrough, armor, piercing, hardness, hp); balancear a partir dos 1-6 do `seed_units.sql` |

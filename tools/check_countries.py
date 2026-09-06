@@ -11,7 +11,7 @@ import re, sqlite3, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
-STAT_KEYS = {'industry', 'production_speed', 'org_regain', 'start_army_mult', 'research_speed', 'move_speed'}
+STAT_KEYS = {'industry', 'production_speed', 'org_regain', 'start_army_mult', 'research_speed', 'move_speed', 'aggression'}
 MOD_STATS = {'str', 'str_attacker', 'str_defender', 'command'}
 UNIT_STATS = {'soft_atk', 'hard_atk', 'defense', 'breakthrough', 'armor', 'piercing', 'hardness', 'hp'}
 COND_KEYS = {'terrain', 'river', 'country'}
@@ -29,6 +29,7 @@ def check(path, static):
     db.executescript((HERE / 'data' / 'schema.sql').read_text(encoding='utf-8'))
     db.executescript((HERE / 'data' / 'seed_units.sql').read_text(encoding='utf-8'))
     db.executescript((HERE / 'data' / 'seed_tech.sql').read_text(encoding='utf-8'))
+    db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
     base_units = {r[0] for r in db.execute('SELECT id FROM unit_type')}
     base_mods = {r[0] for r in db.execute('SELECT id FROM modifier')}
     base_tags = {r[0] for r in db.execute('SELECT DISTINCT tag FROM unit_tag')}
@@ -142,6 +143,8 @@ def main():
         db.executescript((HERE / 'data' / 'schema.sql').read_text(encoding='utf-8'))
         db.executescript((HERE / 'data' / 'seed_units.sql').read_text(encoding='utf-8'))
         db.executescript((HERE / 'data' / 'seed_tech.sql').read_text(encoding='utf-8'))
+        db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
+    db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
         try:
             for f in files: db.executescript(f.read_text(encoding='utf-8'))
         except sqlite3.IntegrityError as e:

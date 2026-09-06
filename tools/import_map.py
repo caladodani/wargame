@@ -206,6 +206,7 @@ def main():
     db.executescript((HERE / 'data' / 'schema.sql').read_text(encoding='utf-8'))
     db.executescript((HERE / 'data' / 'seed_units.sql').read_text(encoding='utf-8'))
     db.executescript((HERE / 'data' / 'seed_tech.sql').read_text(encoding='utf-8'))
+    db.executescript((HERE / 'data' / 'seed_world.sql').read_text(encoding='utf-8'))
 
     country_ids = {}
     for i, c in enumerate(sorted(by_country), start=1):

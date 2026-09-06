@@ -1,0 +1,91 @@
+-- ESP (k=12) — Ejército de Tierra espanhol, ordem de batalha aproximada 2024-2026.
+-- Fontes: La Legión (Brigada "Rey Alfonso XIII" II, Tercios de Ceuta/Melilla), Brigada Paracaidista
+-- "Almogávares" VI (BRIPAC), brigadas de infantaria mecanizada "Guzmán el Bueno" X e "Guadarrama" XII,
+-- brigadas de infantaria ligeira "Aragón" I e "Galicia" VII, Brigada de Caçadores de Montanha (Jaca),
+-- Brigada "Canarias" XVI, Comandâncias Gerais de Ceuta e Melilla, Brigada de Cavalaria "Castillejos" II.
+-- Carácter: exército de dimensão média-alta, profissional, ponta de lança em La Legión e forças
+-- paraquedistas, forte presença nos enclaves norte-africanos e nas Canárias, pilar sul da NATO.
+
+-- ===== unit_type próprios (100+20*12 .. 119+20*12 = 340..359) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (340,'Legionário (La Legión)','ground',1.3,35,0.9,28),
+ (341,'Paraquedista BRIPAC','ground',1.4,38,0.9,36),
+ (342,'Pizarro (mecanizada)','ground',2.8,48,1.6,48),
+ (343,'Leopardo 2E','ground',7.0,80,2.2,37);
+
+INSERT INTO unit_stat VALUES
+ (340,'soft_atk',8), (340,'hard_atk',1.5),(340,'defense',27),(340,'breakthrough',10),(340,'armor',0), (340,'piercing',6), (340,'hardness',0.1), (340,'hp',27),
+ (341,'soft_atk',7), (341,'hard_atk',1),  (341,'defense',22),(341,'breakthrough',12),(341,'armor',0), (341,'piercing',5), (341,'hardness',0.1), (341,'hp',22),
+ (342,'soft_atk',10),(342,'hard_atk',5),  (342,'defense',27),(342,'breakthrough',18),(342,'armor',18),(342,'piercing',22),(342,'hardness',0.55),(342,'hp',32),
+ (343,'soft_atk',13),(343,'hard_atk',18), (343,'defense',14),(343,'breakthrough',30),(343,'armor',75),(343,'piercing',65),(343,'hardness',0.93),(343,'hp',23);
+
+INSERT INTO unit_tag VALUES
+ (340,'infantry'),(340,'ground'),(340,'elite'),
+ (341,'infantry'),(341,'ground'),(341,'elite'),
+ (342,'infantry'),(342,'armored'),(342,'ground'),
+ (343,'armored'),(343,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 340..359) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('ESP_tradicion_legionaria','ESP','Tradição Legionária',
+   'A Legión Española, forjada em quase um século de campanhas, mantém um núcleo de infantaria de elite muito acima da média em agressividade ofensiva.'),
+ ('ESP_reaccion_rapida','ESP','Reação Rápida Paraquedista',
+   'A Brigada Paracaidista BRIPAC treina para intervenção imediata em qualquer ponto do território: maior eficiência de comando na coordenação de operações aeroterrestres.'),
+ ('ESP_defensa_pirenaica','ESP','Defesa Pirenaica e Cantábrica',
+   'Séculos de guerra em terreno de montanha, dos Pirenéus à Cordilheira Cantábrica, deram às tropas espanholas vantagem clara a defender e atacar em relevo acidentado.'),
+ ('ESP_pilar_sur_otan','ESP','Pilar Sul da OTAN',
+   'Como charneira entre a Europa e o Norte de África, a Espanha investe pesadamente em interoperabilidade aliada: maior eficiência de comando em operações conjuntas.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (340,'spirit',NULL,NULL,       'str_attacker','elite','mul',1.20,'ESP','ESP_tradicion_legionaria'),
+ (341,'spirit',NULL,NULL,       'str_defender','elite','mul',1.10,'ESP','ESP_tradicion_legionaria'),
+ (342,'spirit',NULL,NULL,       'command',     NULL,   'mul',1.08,'ESP','ESP_reaccion_rapida'),
+ (343,'spirit','terrain','mountain','str_defender',NULL,'mul',1.15,'ESP','ESP_defensa_pirenaica'),
+ (344,'spirit','terrain','mountain','str_attacker',NULL,'mul',1.10,'ESP','ESP_defensa_pirenaica'),
+ (345,'spirit',NULL,NULL,       'command',     NULL,   'mul',1.10,'ESP','ESP_pilar_sur_otan');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('ESP','production_speed',1.05),
+ ('ESP','org_regain',1.05),
+ ('ESP','start_army_mult',0.95);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('ESP','Monarquia parlamentar','Chefe do Estado-Maior da Defesa (JEMAD)',
+  'Força expedicionária ligeira assente em La Legión e nas forças paraquedistas, defesa reforçada dos enclaves norte-africanos e das Canárias, plena integração na OTAN.',
+  'NATO',
+  'A Espanha mantém um exército profissional de dimensão média-alta, com La Legión e a Brigada Paracaidista BRIPAC como núcleo de projeção rápida. A presença permanente em Ceuta e Melilla e o arquipélago das Canárias obrigam a uma postura de defesa dispersa por três frentes. Membro fundador da atual estrutura de defesa europeia e pilar meridional da OTAN, investe na modernização blindada com o Leopardo 2E e na mecanização com o Pizarro.');
+
+-- ===== templates próprios (ids 601..650) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (601,'ESP','Brigada de la Legión'),
+ (602,'ESP','Brigada Paracaidista BRIPAC'),
+ (603,'ESP','Brigada Blindada Leopardo'),
+ (604,'ESP','Regimento de Artilharia');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (601,340,3),(601,1,2),(601,4,1),(601,6,1),
+ (602,341,3),(602,1,2),(602,5,1),
+ (603,343,3),(603,342,3),(603,4,1),
+ (604,4,4),(604,1,3),(604,5,1);
+
+-- ===== brigadas/regimentos reais nomeados (ids 605..650) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (605,'ESP','Brigada "Rey Alfonso XIII" II de La Legión','Brigada de la Legión','Almería'),
+ (606,'ESP','Tercio "Don Juan de Austria" de La Legión','Brigada de la Legión','Melilla'),
+ (607,'ESP','Brigada Paracaidista "Almogávares" VI','Brigada Paracaidista BRIPAC','Madrid'),
+ (608,'ESP','Brigada Mecanizada "Guzmán el Bueno" X','Mecanizada','Córdoba'),
+ (609,'ESP','Brigada Mecanizada "Guadarrama" XII','Mecanizada','Madrid'),
+ (610,'ESP','Brigada de Infantaria Ligeira "Aragón" I','Infantaria','Zaragoza'),
+ (611,'ESP','Brigada de Infantaria Ligeira "Galicia" VII','Infantaria','Pontevedra'),
+ (612,'ESP','Brigada de Caçadores de Montanha','Infantaria','Huesca'),
+ (613,'ESP','Brigada "Canarias" XVI','Infantaria','Las Palmas'),
+ (614,'ESP','Comandância Geral de Ceuta','Infantaria AT','Ceuta'),
+ (615,'ESP','Comandância Geral de Melilla','Infantaria AT','Melilla'),
+ (616,'ESP','Brigada de Cavalaria "Castillejos" II','Brigada Blindada Leopardo','Zaragoza'),
+ (617,'ESP','Regimento de Artilharia de Campanha','Regimento de Artilharia','Valladolid');
+
+-- ===== correcção de terreno =====
+UPDATE region SET terrain='mountain'
+ WHERE owner_id=(SELECT id FROM country WHERE tag='ESP')
+   AND name IN ('Huesca','Lérida','Gerona','Navarra','Asturias','León','Granada');

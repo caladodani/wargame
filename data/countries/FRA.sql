@@ -1,0 +1,80 @@
+-- FRA (k=27) — Armée de Terre, ordem de batalha aproximada 2024-2026.
+-- Fontes: Légion étrangère (1er RE Aubagne, 2e REI Nîmes), 27e Brigade d'infanterie de montagne
+-- (Chasseurs Alpins, Annecy/Haute-Savoie), 2e e 7e Brigade blindée (Leclerc), 1re e 3e Brigade
+-- mécanisée (VBCI), 9e Brigade d'infanterie de Marine, 11e Brigade parachutiste (Toulouse),
+-- 6e Brigade légère blindée. Carácter: dissuasão nuclear própria (force de frappe), forte
+-- tradição de projecção expedicionária (Sahel, Líbano), Légion étrangère e Chasseurs Alpins únicos.
+
+-- ===== unit_type próprios (100+20*27 .. 119+20*27 = 640..659) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (640,'Légion étrangère','ground',1.7,45,0.9,34),
+ (641,'Chasseurs Alpins','ground',1.5,40,0.9,27),
+ (642,'Leclerc','ground',7.3,82,2.3,40),
+ (643,'VBCI','ground',2.8,47,1.5,47);
+
+INSERT INTO unit_stat VALUES
+ (640,'soft_atk',8),   (640,'hard_atk',1.5),(640,'defense',23),(640,'breakthrough',12),(640,'armor',0), (640,'piercing',6), (640,'hardness',0.1), (640,'hp',23),
+ (641,'soft_atk',8),   (641,'hard_atk',1.5),(641,'defense',25),(641,'breakthrough',10),(641,'armor',0), (641,'piercing',6), (641,'hardness',0.15),(641,'hp',24),
+ (642,'soft_atk',13.5),(642,'hard_atk',18.5),(642,'defense',14.5),(642,'breakthrough',32),(642,'armor',76),(642,'piercing',66),(642,'hardness',0.92),(642,'hp',22),
+ (643,'soft_atk',10.5),(643,'hard_atk',5),  (643,'defense',27),(643,'breakthrough',18),(643,'armor',19),(643,'piercing',22),(643,'hardness',0.53),(643,'hp',30);
+
+INSERT INTO unit_tag VALUES
+ (640,'infantry'),(640,'ground'),(640,'especial'),
+ (641,'infantry'),(641,'ground'),(641,'especial'),
+ (642,'armored'),(642,'ground'),
+ (643,'infantry'),(643,'armored'),(643,'ground');
+
+-- ===== espíritos nacionais + modificadores (ids 640..659) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('FRA_legiao_estrangeira','FRA','Légion étrangère',
+   'Corpo de elite bicentenário aberto a voluntários estrangeiros, forjado em campanhas coloniais e expedicionárias: as tropas especiais atacam com mais força.'),
+ ('FRA_dissuasao_nuclear','FRA','Force de Frappe',
+   'A dissuasão nuclear independente sustenta a autonomia estratégica francesa: maior eficiência de comando em todas as operações.'),
+ ('FRA_chasseurs_alpins','FRA','Chasseurs Alpins',
+   'Tropas de montanha treinadas nos Alpes franceses desde 1888: defendem-se e atacam melhor em terreno montanhoso.'),
+ ('FRA_projecao_expedicionaria','FRA','Vocação Expedicionária',
+   'Décadas de operações no Sahel, no Líbano e em África deram ao Exército rotina de projecção rápida além-fronteiras: ligeiro bónus de ataque generalizado.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (640,'spirit',NULL,NULL,           'str_attacker','especial','mul',1.20,'FRA','FRA_legiao_estrangeira'),
+ (641,'spirit',NULL,NULL,           'command',     NULL,      'mul',1.10,'FRA','FRA_dissuasao_nuclear'),
+ (642,'spirit','terrain','mountain','str_defender','especial','mul',1.18,'FRA','FRA_chasseurs_alpins'),
+ (643,'spirit','terrain','mountain','str_attacker','especial','mul',1.15,'FRA','FRA_chasseurs_alpins'),
+ (644,'spirit',NULL,NULL,           'str_attacker',NULL,      'add',0.05,'FRA','FRA_projecao_expedicionaria');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('FRA','production_speed',1.10),
+ ('FRA','org_regain',1.15),
+ ('FRA','start_army_mult',0.55);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('FRA','República Semipresidencialista','Presidente da República e Chefe do Estado-Maior das Forças Armadas',
+  'Autonomia estratégica assente na dissuasão nuclear, projecção expedicionária rápida e tradições de elite (Légion étrangère, Chasseurs Alpins).',
+  'NATO',
+  'O Exército francês combina uma dissuasão nuclear própria com uma das forças expedicionárias mais activas da Europa, tendo operado com regularidade no Sahel e no Médio Oriente. A Légion étrangère e os Chasseurs Alpins dão-lhe capacidades de elite únicas, apoiadas pelo blindado Leclerc e pelo VBCI, numa doutrina que privilegia autonomia estratégica e resposta rápida.');
+
+-- ===== templates próprios (ids 1351..1400) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (1351,'FRA','Brigade de la Légion étrangère'),
+ (1352,'FRA','Brigade Blindée Leclerc'),
+ (1353,'FRA','Brigade de Chasseurs Alpins');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (1351,640,4),(1351,4,1),(1351,5,1),
+ (1352,642,4),(1352,643,2),(1352,4,1),(1352,6,1),
+ (1353,641,4),(1353,1,2),(1353,4,1);
+
+-- ===== brigadas/divisões reais nomeadas (ids 1354..1400) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (1354,'FRA','1er Régiment étranger','Brigade de la Légion étrangère','Bouches-du-Rhône'),
+ (1355,'FRA','2e Régiment étranger d''infanterie','Infantaria','Gard'),
+ (1356,'FRA','27e Brigade d''infanterie de montagne','Brigade de Chasseurs Alpins','Haute-Savoie'),
+ (1357,'FRA','7e Brigade blindée','Brigade Blindée Leclerc','Doubs'),
+ (1358,'FRA','2e Brigade blindée','Blindada','Bas-Rhin'),
+ (1359,'FRA','3e Brigade mécanisée','Mecanizada','Marne'),
+ (1360,'FRA','9e Brigade d''infanterie de Marine','Mecanizada','Vienne'),
+ (1361,'FRA','1re Brigade mécanisée','Mecanizada','Meurthe-et-Moselle'),
+ (1362,'FRA','11e Brigade parachutiste','Infantaria','Haute-Garonne'),
+ (1363,'FRA','6e Brigade légère blindée','Blindada','Var'),
+ (1364,'FRA','1er Régiment de Parachutistes d''Infanterie de Marine','Infantaria AT','Pyrénées-Atlantiques');

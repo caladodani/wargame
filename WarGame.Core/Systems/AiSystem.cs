@@ -42,10 +42,36 @@ public sealed class AiSystem : ISystem
             Research(w, c);
             if (divs is null && c.Money <= 0f) continue;
             Produce(w, c, divs?.Count ?? 0);
+            if (c.AtWarWith.Count == 0 && divs is not null) WarGoal(w, c, divs.Count, divsByCountry, regionsByController.GetValueOrDefault(c.Id));
             // Sem guerra não há nada a fazer por terra. TODO: "war goals" (declarar guerra a vizinhos fracos).
             if (c.AtWarWith.Count == 0 || divs is null) continue;
             Fight(w, c, divs, regionsByController.GetValueOrDefault(c.Id), fighters, inBattle);
         }
+    }
+
+    /// <summary>Objectivo de guerra (HoI4: justificação): um país em paz com aggression &gt; 0 tenta, com probabilidade
+    /// ai_war_chance × aggression por ronda a partir de ai_war_min_day, declarar guerra ao vizinho mais fraco cujo exército
+    /// seja ≤ o seu / ai_war_ratio. O jogador só é alvo a partir de ai_war_player_min_day. Uma guerra de cada vez.</summary>
+    private static void WarGoal(World w, Country c, int myDivs, Dictionary<int, List<Division>> divsByCountry, List<Region>? owned)
+    {
+        float aggression = c.Stat("aggression", 0f);
+        if (aggression <= 0f || owned is null || w.Clock.Day < w.Rule("ai_war_min_day", 30f)) return;
+        if (w.Rng.NextDouble() >= w.Rule("ai_war_chance", 0.02f) * aggression) return;
+        float ratio = w.Rule("ai_war_ratio", 2f);
+        Country? target = null; int targetDivs = int.MaxValue;
+        foreach (var r in owned)
+            foreach (var n in r.Neighbours)
+            {
+                int other = w.Regions[n].ControllerId;
+                if (other == c.Id || !w.Countries.TryGetValue(other, out var o)) continue;
+                if (o.IsPlayer && w.Clock.Day < w.Rule("ai_war_player_min_day", 90f)) continue;
+                int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
+                if (theirs * ratio > myDivs) continue;
+                if (theirs < targetDivs || (theirs == targetDivs && target is not null && other < target.Id)) { target = o; targetDivs = theirs; }
+            }
+        if (target is null) return;
+        var cmd = new DeclareWarCommand(c.Id, target.Id);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Sem investigação em curso → a tecnologia disponível mais barata (HoI4: a IA nunca deixa um slot vazio).</summary>

@@ -1,0 +1,81 @@
+-- DEU (k=7) — Bundeswehr (Exército Alemão), ordem de batalha aproximada 2024-2026.
+-- Fontes: 1. Panzerdivision (Oldenburg), 10. Panzerdivision (Veitshöchheim), Panzerlehrbrigade 9
+-- (Munster), Panzergrenadierbrigade 37 "Freistaat Sachsen" e 41 "Vorpommern", Panzergrenadierbrigade
+-- 21 "Lipperland", Division Schnelle Kräfte (Fallschirmjäger + Gebirgsjäger, Saarlouis/Stetten),
+-- Luftlandebrigade 1, Gebirgsjägerbrigade 23 (Bad Reichenhall), Wachbataillon (Berlim).
+-- Carácter: indústria de precisão de classe mundial, doutrina de combate combinado (Panzergrenadier),
+-- frente central da NATO com forte ênfase defensiva e de comando.
+
+-- ===== unit_type próprios (100+20*7 .. 119+20*7 = 240..259) =====
+INSERT INTO unit_type (id,name,category,cost,build_days,supply,mobility) VALUES
+ (240,'Fallschirmjäger','ground',1.6,42,0.9,35),
+ (241,'Leopard 2A7','ground',7.5,85,2.4,38),
+ (242,'Puma (Schützenpanzer)','ground',2.9,48,1.5,46),
+ (243,'Gebirgsjäger','ground',1.5,40,0.9,28);
+
+INSERT INTO unit_stat VALUES
+ (240,'soft_atk',7.5), (240,'hard_atk',1),  (240,'defense',21),(240,'breakthrough',12),(240,'armor',0), (240,'piercing',5), (240,'hardness',0.1), (240,'hp',21),
+ (241,'soft_atk',13.5),(241,'hard_atk',19), (241,'defense',15),(241,'breakthrough',33),(241,'armor',78),(241,'piercing',68),(241,'hardness',0.93),(241,'hp',23),
+ (242,'soft_atk',10.5),(242,'hard_atk',5),  (242,'defense',27),(242,'breakthrough',18),(242,'armor',20),(242,'piercing',23),(242,'hardness',0.55),(242,'hp',31),
+ (243,'soft_atk',8),   (243,'hard_atk',1.5),(243,'defense',25),(243,'breakthrough',10),(243,'armor',0), (243,'piercing',6), (243,'hardness',0.15),(243,'hp',24);
+
+INSERT INTO unit_tag VALUES
+ (240,'infantry'),(240,'ground'),(240,'especial'),
+ (241,'armored'),(241,'ground'),
+ (242,'infantry'),(242,'armored'),(242,'ground'),
+ (243,'infantry'),(243,'ground'),(243,'especial');
+
+-- ===== espíritos nacionais + modificadores (ids 240..259) =====
+INSERT INTO national_spirit (id,country_tag,name,description) VALUES
+ ('DEU_industria_de_precisao','DEU','Indústria de Precisão',
+   'Rheinmetall e Krauss-Maffei Wegmann produzem blindados de referência mundial: as unidades blindadas alemãs atacam com mais força.'),
+ ('DEU_doutrina_combinada','DEU','Doutrina de Armas Combinadas',
+   'A tradição Panzergrenadier de infantaria mecanizada e blindados a operar juntos melhora a coordenação de comando em todas as frentes.'),
+ ('DEU_frente_central_nato','DEU','Frente Central da NATO',
+   'Território alemão como charneira defensiva da Aliança desde a Guerra Fria: as divisões defendem-se melhor.'),
+ ('DEU_forcas_de_montanha','DEU','Fallschirmjäger e Gebirgsjäger',
+   'A Division Schnelle Kräfte combina pára-quedistas e caçadores de montanha de elite: as tropas especiais rendem mais em terreno montanhoso.');
+
+INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value,country_tag,spirit_id) VALUES
+ (240,'spirit',NULL,NULL,           'str_attacker','armored', 'mul',1.15,'DEU','DEU_industria_de_precisao'),
+ (241,'spirit',NULL,NULL,           'str_defender','armored', 'mul',1.08,'DEU','DEU_industria_de_precisao'),
+ (242,'spirit',NULL,NULL,           'command',     NULL,      'mul',1.12,'DEU','DEU_doutrina_combinada'),
+ (243,'spirit',NULL,NULL,           'str_defender',NULL,      'mul',1.10,'DEU','DEU_frente_central_nato'),
+ (244,'spirit','terrain','mountain','str_attacker','especial','mul',1.20,'DEU','DEU_forcas_de_montanha'),
+ (245,'spirit','terrain','mountain','str_defender','especial','mul',1.15,'DEU','DEU_forcas_de_montanha');
+
+-- ===== stats e info do país =====
+INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
+ ('DEU','production_speed',1.15),
+ ('DEU','org_regain',1.15),
+ ('DEU','start_army_mult',0.5);
+
+INSERT INTO country_info (country_tag,government,leader,doctrine,alliance,description) VALUES
+ ('DEU','República Federal Parlamentar','Chanceler Federal e Ministro da Defesa',
+  'Armas combinadas Panzergrenadier, defesa em profundidade da frente central europeia, indústria de blindados de referência.',
+  'NATO',
+  'A Bundeswehr é hoje um exército pequeno para a dimensão do país, mas assente numa indústria de defesa de precisão (Rheinmetall, KMW) e numa doutrina de armas combinadas testada desde a Guerra Fria. O Leopard 2 continua a ser referência mundial em blindados, e as forças especiais reúnem pára-quedistas e caçadores de montanha na Division Schnelle Kräfte.');
+
+-- ===== templates próprios (ids 351..400) =====
+INSERT INTO country_template (id,country_tag,name) VALUES
+ (351,'DEU','Brigada Panzergrenadier'),
+ (352,'DEU','Brigada Blindada Leopard'),
+ (353,'DEU','Brigada de Elite (Jäger)');
+
+INSERT INTO country_template_unit (country_template_id,unit_type_id,qty) VALUES
+ (351,242,4),(351,241,2),(351,4,1),(351,6,1),
+ (352,241,4),(352,242,2),(352,4,1),(352,5,1),
+ (353,240,2),(353,243,2),(353,1,2),(353,4,1);
+
+-- ===== brigadas/divisões reais nomeadas (ids 354..400) =====
+INSERT INTO country_unit (id,country_tag,name,template_name,region_name) VALUES
+ (354,'DEU','1. Panzerdivision','Brigada Blindada Leopard','Niedersachsen'),
+ (355,'DEU','10. Panzerdivision','Brigada Blindada Leopard','Bayern'),
+ (356,'DEU','Panzergrenadierbrigade 37 "Freistaat Sachsen"','Brigada Panzergrenadier','Sachsen'),
+ (357,'DEU','Panzerlehrbrigade 9','Blindada','Niedersachsen'),
+ (358,'DEU','Panzergrenadierbrigade 41 "Vorpommern"','Brigada Panzergrenadier','Mecklenburg-Vorpommern'),
+ (359,'DEU','Division Schnelle Kräfte','Brigada de Elite (Jäger)','Saarland'),
+ (360,'DEU','Luftlandebrigade 1','Infantaria','Saarland'),
+ (361,'DEU','Gebirgsjägerbrigade 23','Brigada de Elite (Jäger)','Bayern'),
+ (362,'DEU','Wachbataillon','Infantaria','Berlin'),
+ (363,'DEU','Panzergrenadierbrigade 21 "Lipperland"','Brigada Panzergrenadier','Nordrhein-Westfalen');
