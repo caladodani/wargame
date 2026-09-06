@@ -49,6 +49,16 @@ public class PactTests
     }
 
     [Fact]
+    public void Pact_BlocksJustify()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        w.Pacts[World.WarKey(1, 2)] = w.Clock.Day + 100;
+        Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));
+        Assert.NotNull(new JustifyWarCommand(2, 1).Validate(w));
+    }
+
+    [Fact]
     public void Pact_Expires()
     {
         var (w, _) = TestWorld.Build();

@@ -157,6 +157,7 @@ public sealed record JustifyWarCommand(int CountryId, int TargetCountryId) : ICo
         if (!w.Countries.TryGetValue(TargetCountryId, out var t)) return "País inexistente";
         if (t.Capitulated) return "Já capitulou";
         if (w.SameFaction(CountryId, TargetCountryId)) return "Aliados na mesma facção";
+        if (w.HasPact(CountryId, TargetCountryId)) return "Pacto de não-agressão em vigor";
         if (w.Countries[CountryId].AtWarWith.Contains(TargetCountryId)) return "Já em guerra";
         if (w.Countries[CountryId].JustifyTarget == TargetCountryId) return "Já a justificar";
         return null;

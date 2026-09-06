@@ -211,31 +211,12 @@ public partial class CountryPanel : PanelContainer
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }
     }
 
-    /// <summary>Distribui as divisões paradas (org ≥ ai_min_org, fora de batalha) pelas regiões
-    /// próprias com fronteira hostil, das mais vazias para as mais cheias. Só despacha MoveDivisionCommand.</summary>
+    /// <summary>Guarnecer fronteiras: despacha DefendBordersCommand (plano de batalha simplificado).</summary>
     private void GarrisonFronts() => _game.RunWhenIdle(() =>
     {
         if (_game.PlayerId is not int pid) return;
-        var w = _game.World;
-        var front = w.Regions.Values.Where(r => r.ControllerId == pid
-                        && (r.Neighbours.Any(n => w.IsHostile(pid, w.Regions[n]))
-                            || r.SeaNeighbours.Keys.Any(n => w.IsHostile(pid, w.Regions[n])))).ToList();
-        if (front.Count == 0) { _game.Notify("Sem frente — nenhuma região tua toca o inimigo"); return; }
-        float minOrg = w.Rule("ai_min_org", 50f);
-        var inBattle = new HashSet<int>(w.ActiveBattles.SelectMany(b => b.Attackers.Concat(b.Defenders)));
-        var idle = w.Divisions.Values.Where(d => d.CountryId == pid && d.Path.Count == 0
-                        && d.Org >= minOrg && d.CanFight && !inBattle.Contains(d.Id)
-                        && !front.Any(f => f.Id == d.RegionId)).ToList();
-        if (idle.Count == 0) { _game.Notify("Nenhuma divisão parada disponível (org baixa ou já na frente)"); return; }
-        var load = front.ToDictionary(f => f.Id, f => f.DivisionIds.Count(id => w.Divisions[id].CountryId == pid));
-        int sent = 0;
-        foreach (var d in idle)
-        {
-            int dest = load.OrderBy(kv => kv.Value).ThenBy(kv => kv.Key).First().Key;
-            if (_game.Dispatch(new MoveDivisionCommand(pid, d.Id, dest)) is not null) continue;
-            load[dest]++; sent++;
-        }
-        _game.Notify(sent > 0 ? $"{sent} divisões a caminho da frente" : "Nenhuma divisão conseguiu caminho");
+        var err = _game.Dispatch(new DefendBordersCommand(pid));
+        _game.Notify(err ?? "Divisões paradas a caminho da frente");
         Fill();
     });
 
