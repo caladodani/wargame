@@ -43,6 +43,8 @@ public sealed class PendingOffer
     public int ToId { get; init; }
     public string Kind { get; init; } = "prisioneiros";
     public int Men { get; set; }
+    /// <summary>Região em cima da mesa (assunto "regiao"); 0 nos assuntos que não mexem no mapa.</summary>
+    public int RegionId { get; init; }
     public int Day { get; init; }
     public int ExpiresDay { get; init; }
 }

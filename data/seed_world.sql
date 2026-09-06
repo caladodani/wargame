@@ -374,7 +374,8 @@ INSERT INTO rule (key,value,note) VALUES
 -- Propostas do outro lado (OfferSystem): a IA também bate à porta com uma troca de prisioneiros.
 INSERT INTO rule (key,value,note) VALUES
  ('offer_period_days',10,'de quantos em quantos dias a IA volta a olhar para a mesa de propostas'),
- ('offer_days',20,'dias que uma proposta fica em cima da mesa antes de cair');
+ ('offer_days',20,'dias que uma proposta fica em cima da mesa antes de cair'),
+ ('cede_ratio',0.6,'divisões da IA em fracção das nossas abaixo da qual ela paga a paz com uma região');
 
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES

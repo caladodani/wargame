@@ -641,6 +641,9 @@ public sealed record AnswerOfferCommand(int CountryId, int FromCountryId, bool A
         if (!w.AreAtWar(CountryId, FromCountryId)) return "a guerra acabou: já não há nada para assinar";
         if (Kind == "prisioneiros" && PrisonerExchange.Evaluate(w, FromCountryId, CountryId).Men <= 0)
             return "os campos mudaram: já não há homens dos dois lados";
+        if (Kind == "regiao" && Find(w) is PendingOffer cede
+            && (!w.Regions.TryGetValue(cede.RegionId, out var r) || r.OwnerId != FromCountryId))
+            return "a região prometida já não é deles";
         return null;
     }
 
@@ -651,7 +654,19 @@ public sealed record AnswerOfferCommand(int CountryId, int FromCountryId, bool A
         w.Offers.Remove(pending);
         if (Accept)
         {
-            if (pending.Kind == "paz") TruceSystem.MakeWhitePeace(w, FromCountryId, CountryId);
+            if (pending.Kind == "regiao")
+            {
+                // primeiro a cedência, depois a paz: assim o uti possidetis já a encontra do nosso lado
+                if (w.Regions.TryGetValue(pending.RegionId, out var ceded) && ceded.OwnerId == FromCountryId)
+                {
+                    ceded.OwnerId = CountryId;
+                    ceded.ControllerId = CountryId;
+                    ceded.Resistance = 0f;                  // entregue à mesa, não tomada à força
+                    w.Events.Publish(new RegionCeded(FromCountryId, CountryId, ceded.Id));
+                }
+                TruceSystem.MakeWhitePeace(w, FromCountryId, CountryId);
+            }
+            else if (pending.Kind == "paz") TruceSystem.MakeWhitePeace(w, FromCountryId, CountryId);
             else OfferSystem.Exchange(w, FromCountryId, CountryId, PrisonerExchange.Evaluate(w, FromCountryId, CountryId));
         }
         w.Events.Publish(new OfferAnswered(FromCountryId, CountryId, pending.Kind, Accept));

@@ -12,10 +12,16 @@ namespace WarGame.Core.Systems;
 /// resposta sai no mesmo dia; contra o jogador fica uma proposta em cima da mesa, válida offer_days, e
 /// quem responde é o AnswerOfferCommand.
 ///
-/// A mesa leva dois assuntos. O outro é a paz branca: a IA já a oferecia entre si (AiSystem.Peace), mas
+/// A mesa leva três assuntos. O segundo é a paz branca: a IA já a oferecia entre si (AiSystem.Peace), mas
 /// ao jogador nunca — fazia-se-lhe a paz sem ele dizer nada, por isso era proibido. Com a mesa deixa de
 /// ser: numa guerra parada há peace_stale_days em que a IA está mais fraca ou já ocupa terreno nosso, ela
 /// propõe, e quem decide é o jogador.
+///
+/// O terceiro é a cedência de território. Uma paz branca só arruma o que já está ocupado; quem está a
+/// perder de forma clara (menos de cede_ratio das nossas divisões) tem de pagar mais para sair da guerra —
+/// entrega uma região que ainda é sua e que ninguém lhe tomou, encostada ao que nós controlamos. Dá a mais
+/// barata que sirva: cede-se o mínimo que compre a paz. Enquanto essa proposta está na mesa não se propõe
+/// paz branca ao mesmo par — seria oferecer menos pelo mesmo.
 ///
 /// Uma proposta por par e assunto: a IA não enche o ecrã com a mesma conversa.</summary>
 public sealed class OfferSystem : ISystem
@@ -39,7 +45,12 @@ public sealed class OfferSystem : ISystem
                     else Settle(w, c.Id, foeId);
                 }
                 // a paz branca só se propõe ao jogador: entre países da IA já é o AiSystem que a fecha
-                if (foe.IsPlayer && WantsPeace(w, c.Id, foeId) && !Open(w, c.Id, foeId, "paz"))
+                if (!foe.IsPlayer) continue;
+                if (CedeTarget(w, c.Id, foeId) is int cede)
+                {
+                    if (!Open(w, c.Id, foeId, "regiao")) Put(w, c.Id, foeId, "regiao", 0, cede);
+                }
+                else if (WantsPeace(w, c.Id, foeId) && !Open(w, c.Id, foeId, "paz"))
                     Put(w, c.Id, foeId, "paz", 0);
             }
     }
@@ -57,9 +68,7 @@ public sealed class OfferSystem : ISystem
     /// É a mesma conta que a IA faz entre si — só que agora com o jogador do outro lado da mesa.</summary>
     public static bool WantsPeace(World w, int fromId, int toId)
     {
-        var info = w.Wars.GetValueOrDefault(World.WarKey(fromId, toId));
-        if (info is null) return false;
-        if (w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) < w.Rule("peace_stale_days", 60f)) return false;
+        if (!Stale(w, fromId, toId)) return false;
 
         int mine = 0, theirs = 0;
         foreach (var d in w.Divisions.Values)
@@ -71,19 +80,54 @@ public sealed class OfferSystem : ISystem
         return mine < theirs || holdsTheirLand;
     }
 
+    /// <summary>A região que `fromId` está disposto a ceder a `toId` para acabar a guerra, ou null.
+    /// Exige a mesma guerra parada da paz branca e uma derrota clara no terreno (cede_ratio): quem ainda
+    /// tem exército não paga com terra. A candidata é sua, está sob o seu controlo (o que já perdeu vem de
+    /// graça com o uti possidetis) e faz fronteira com terreno nosso — ninguém cede um enclave do outro
+    /// lado do mapa. Entre as que servem, a de menos gente: paga-se o mínimo.</summary>
+    public static int? CedeTarget(World w, int fromId, int toId)
+    {
+        if (!Stale(w, fromId, toId)) return null;
+        int mine = 0, theirs = 0;
+        foreach (var d in w.Divisions.Values)
+        {
+            if (d.CountryId == fromId) mine++;
+            else if (d.CountryId == toId) theirs++;
+        }
+        if (mine >= theirs * w.Rule("cede_ratio", 0.6f)) return null;
+
+        Region? best = null;
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.OwnerId != fromId || r.ControllerId != fromId) continue;
+            if (!r.Neighbours.Any(n => w.Regions.TryGetValue(n, out var nb) && nb.ControllerId == toId)) continue;
+            if (best is null || r.Population < best.Population || (r.Population == best.Population && r.Id < best.Id))
+                best = r;
+        }
+        return best?.Id;
+    }
+
+    /// <summary>Guerra registada e sem avanços há peace_stale_days: o pressuposto de qualquer conversa.</summary>
+    private static bool Stale(World w, int a, int b)
+    {
+        var info = w.Wars.GetValueOrDefault(World.WarKey(a, b));
+        return info is not null
+            && w.Clock.Day - Math.Max(info.StartDay, info.LastProgressDay) >= w.Rule("peace_stale_days", 60f);
+    }
+
     /// <summary>Já há uma proposta deste assunto em cima da mesa deste par?</summary>
     private static bool Open(World w, int fromId, int toId, string kind) =>
         w.Offers.Any(o => o.FromId == fromId && o.ToId == toId && o.Kind == kind);
 
     /// <summary>Põe a proposta na mesa do jogador e anuncia-a.</summary>
-    private static void Put(World w, int fromId, int toId, string kind, int men)
+    private static void Put(World w, int fromId, int toId, string kind, int men, int regionId = 0)
     {
         w.Offers.Add(new PendingOffer
         {
-            FromId = fromId, ToId = toId, Kind = kind, Men = men,
+            FromId = fromId, ToId = toId, Kind = kind, Men = men, RegionId = regionId,
             Day = w.Clock.Day, ExpiresDay = w.Clock.Day + Math.Max(1, (int)w.Rule("offer_days", 20f)),
         });
-        w.Events.Publish(new OfferMade(fromId, toId, kind, men));
+        w.Events.Publish(new OfferMade(fromId, toId, kind, men, regionId));
     }
 
     /// <summary>Proposta entre dois países da IA: resolve-se no dia, pelas contas de quem a recebe.</summary>
@@ -112,7 +156,9 @@ public sealed class OfferSystem : ISystem
         {
             bool dead = w.Clock.Day >= o.ExpiresDay
                      || !w.AreAtWar(o.FromId, o.ToId)
-                     || (o.Kind == "prisioneiros" && PrisonerExchange.Evaluate(w, o.FromId, o.ToId).Men <= 0);
+                     || (o.Kind == "prisioneiros" && PrisonerExchange.Evaluate(w, o.FromId, o.ToId).Men <= 0)
+                     // a região prometida deixou de ser deles (tomámo-la, ou foi de outro): a promessa morre
+                     || (o.Kind == "regiao" && (!w.Regions.TryGetValue(o.RegionId, out var rr) || rr.OwnerId != o.FromId));
             if (!dead) continue;
             w.Offers.Remove(o);
             w.Events.Publish(new OfferExpired(o.FromId, o.ToId, o.Kind));

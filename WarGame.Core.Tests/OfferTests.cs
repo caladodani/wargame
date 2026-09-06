@@ -177,6 +177,14 @@ public class OfferTests
         Assert.Empty(w.Offers);
     }
 
+    /// <summary>Exércitos dos dois lados. Com a IA batida mas não esmagada (acima de cede_ratio das nossas
+    /// divisões) ela pede paz branca em vez de pagar com terra — é o caso destes testes.</summary>
+    private static void Armies(World w, int mine, int theirs)
+    {
+        for (int i = 0; i < mine; i++) TestWorld.AddDivision(w, 30 + i, 1, TestWorld.Inf, 1);
+        for (int i = 0; i < theirs; i++) TestWorld.AddDivision(w, 60 + i, 2, TestWorld.Inf2, 6);
+    }
+
     /// <summary>Guerra registada e parada há mais tempo do que peace_stale_days.</summary>
     private static void StaleWar(World w, int a, int b)
     {
@@ -188,7 +196,7 @@ public class OfferTests
     {
         var (w, _, b) = Setup(weHold: 0, theyHold: 0);
         StaleWar(w, 1, 2);
-        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);       // nós temos exército, eles não: querem sair
+        Armies(w, mine: 5, theirs: 3);                           // estamos por cima, mas não os esmagámos
         w.Register(new OfferSystem());
         w.Tick();
 
@@ -226,7 +234,7 @@ public class OfferTests
     {
         var (w, a, _) = Setup(weHold: 0, theyHold: 0);
         StaleWar(w, 1, 2);
-        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        Armies(w, mine: 5, theirs: 3);
         w.Regions[5].ControllerId = 1;                           // ocupamos uma região deles
         w.Register(new OfferSystem());
         w.Tick();
@@ -246,7 +254,7 @@ public class OfferTests
     {
         var (w, _, _) = Setup(weHold: 0, theyHold: 0);
         StaleWar(w, 1, 2);
-        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        Armies(w, mine: 5, theirs: 3);
         w.Register(new OfferSystem());
         w.Tick();
 
@@ -261,7 +269,7 @@ public class OfferTests
     {
         var (w, _, _) = Setup(weHold: 200_000, theyHold: 100_000);
         StaleWar(w, 1, 2);
-        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        Armies(w, mine: 5, theirs: 3);
         w.Register(new OfferSystem());
         w.Tick();
 
@@ -271,6 +279,146 @@ public class OfferTests
         // e responder a uma não mexe na outra
         new AnswerOfferCommand(1, 2, false, "paz").Execute(w);
         Assert.Equal("prisioneiros", Assert.Single(w.Offers).Kind);
+    }
+
+    /// <summary>Guerra parada, a IA sem exército nenhum e nós com um: a derrota clara que faz um país
+    /// pagar a paz com terra.</summary>
+    private static World Beaten()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Register(new OfferSystem());
+        return w;
+    }
+
+    [Fact]
+    public void TheTermsOfACessionComeFromTheDatabase()
+    {
+        var (w, _) = TestWorld.Build();
+        Assert.True(w.Rule("cede_ratio") > 0f);
+    }
+
+    [Fact]
+    public void ABeatenEnemyPaysThePeaceWithLand()
+    {
+        var w = Beaten();
+        var seen = new List<OfferMade>();
+        w.Events.Subscribe<OfferMade>(seen.Add);
+        w.Tick();
+
+        var offer = Assert.Single(w.Offers);
+        Assert.Equal("regiao", offer.Kind);
+        Assert.Equal(4, offer.RegionId);                  // a primeira que é deles e nos faz fronteira
+        Assert.Equal(4, Assert.Single(seen).RegionId);
+    }
+
+    [Fact]
+    public void WithLandOnTheTableTheyDoNotAlsoOfferPlainPeace()
+    {
+        var w = Beaten();
+        w.Tick(); w.Tick();
+
+        Assert.DoesNotContain(w.Offers, o => o.Kind == "paz");
+    }
+
+    [Fact]
+    public void TheyGiveTheCheapestRegionThatTouchesUs()
+    {
+        var w = Beaten();
+        // uma segunda fronteira: R5 também encosta ao nosso R3, e é a de menos gente
+        w.Regions[3].Neighbours.Add(5); w.Regions[5].Neighbours.Add(3);
+        var poor = new Region { Id = 5, Name = "R5", OwnerId = 2, InitialOwnerId = 2, ControllerId = 2,
+                                Population = 1_000, CenterX = 500 };
+        poor.Neighbours.AddRange(new[] { 4, 6, 3 });
+        w.Regions[5] = poor;
+        w.Tick();
+
+        Assert.Equal(5, Assert.Single(w.Offers).RegionId);
+    }
+
+    [Fact]
+    public void AnEnemyStillOnItsFeetKeepsItsLand()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        StaleWar(w, 1, 2);
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        TestWorld.AddDivision(w, 31, 2, TestWorld.Inf2, 5);
+        TestWorld.AddDivision(w, 32, 2, TestWorld.Inf2, 6);
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        Assert.DoesNotContain(w.Offers, o => o.Kind == "regiao");
+    }
+
+    [Fact]
+    public void NobodyOffersLandWhileTheFrontIsStillMoving()
+    {
+        var (w, _, _) = Setup(weHold: 0, theyHold: 0);
+        w.StartWar(1, 2);                                  // guerra de hoje
+        TestWorld.AddDivision(w, 30, 1, TestWorld.Inf, 1);
+        w.Register(new OfferSystem());
+        w.Tick();
+
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void TakingTheLandOurselvesKillsThePromise()
+    {
+        var w = Beaten();
+        w.Tick();
+        Assert.Single(w.Offers);
+
+        w.Regions[4].OwnerId = 1;                          // anexada pela força entretanto
+        w.Rules["offer_period_days"] = 999f;               // e não voltam a propor no mesmo tick
+        w.Tick();
+
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void AcceptingTakesTheLandAndEndsTheWar()
+    {
+        var w = Beaten();
+        var seen = new List<RegionCeded>();
+        w.Events.Subscribe<RegionCeded>(seen.Add);
+        w.Register(new ChronicleSystem());
+        w.Tick();
+
+        Assert.Null(new AnswerOfferCommand(1, 2, true, "regiao").Validate(w));
+        new AnswerOfferCommand(1, 2, true, "regiao").Execute(w);
+
+        Assert.Equal(1, w.Regions[4].OwnerId);
+        Assert.Equal(1, w.Regions[4].ControllerId);
+        Assert.Equal(0f, w.Regions[4].Resistance);         // entregue à mesa: ninguém resiste a um tratado
+        Assert.False(w.AreAtWar(1, 2));
+        Assert.Equal(4, Assert.Single(seen).RegionId);
+        Assert.Contains(w.Chronicle, x => x.Text.Contains("cede"));
+    }
+
+    [Fact]
+    public void RefusingLeavesTheirLandWhereItWas()
+    {
+        var w = Beaten();
+        w.Tick();
+
+        new AnswerOfferCommand(1, 2, false, "regiao").Execute(w);
+
+        Assert.Equal(2, w.Regions[4].OwnerId);
+        Assert.True(w.AreAtWar(1, 2));
+        Assert.Empty(w.Offers);
+    }
+
+    [Fact]
+    public void ThePromisedLandIsCheckedAgainBeforeSigning()
+    {
+        var w = Beaten();
+        w.Tick();
+        w.Regions[4].OwnerId = 3;                          // mudou de dono sem passar por nós
+
+        Assert.Equal("a região prometida já não é deles",
+                     new AnswerOfferCommand(1, 2, true, "regiao").Validate(w));
     }
 
     [Fact]
@@ -285,6 +433,8 @@ public class OfferTests
         w.Register(new OfferSystem());
         w.Tick();
         Assert.Single(w.Offers);
+        w.Offers.Add(new PendingOffer { FromId = 2, ToId = 1, Kind = "regiao", RegionId = 4,
+                                        Day = w.Clock.Day, ExpiresDay = w.Clock.Day + 20 });
 
         using var save = new MsSqliteDatabase();
         var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
@@ -297,9 +447,10 @@ public class OfferTests
         TestWorld.LinearMap(w2);
         repo.LoadSave(w2, save);
 
-        var back = Assert.Single(w2.Offers);
+        Assert.Equal(2, w2.Offers.Count);
+        var back = Assert.Single(w2.Offers, o => o.Kind == "prisioneiros");
         Assert.Equal(2, back.FromId);
-        Assert.Equal("prisioneiros", back.Kind);
         Assert.Equal(100_000, back.Men);
+        Assert.Equal(4, Assert.Single(w2.Offers, o => o.Kind == "regiao").RegionId);   // a coluna nova volta
     }
 }

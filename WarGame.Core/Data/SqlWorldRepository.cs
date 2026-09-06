@@ -234,6 +234,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     private static readonly (string Table, string Column, string Ddl)[] SaveMigrations =
     {
         ("s_spy_op", "region_id", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_offer", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "research_tech", "TEXT"),
         ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "capitulated", "INTEGER NOT NULL DEFAULT 0"),
@@ -368,9 +369,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
             w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
                 ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
-        foreach (var r in save.Query("SELECT from_id,to_id,kind,men,day,expires_day FROM s_offer"))
+        foreach (var r in save.Query("SELECT from_id,to_id,kind,men,region_id,day,expires_day FROM s_offer"))
             w.Offers.Add(new PendingOffer { FromId = Convert.ToInt32(r["from_id"]), ToId = Convert.ToInt32(r["to_id"]),
-                Kind = (string)r["kind"]!, Men = Convert.ToInt32(r["men"]),
+                Kind = (string)r["kind"]!, Men = Convert.ToInt32(r["men"]), RegionId = Convert.ToInt32(r["region_id"]),
                 Day = Convert.ToInt32(r["day"]), ExpiresDay = Convert.ToInt32(r["expires_day"]) });
         foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left,region_id FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
@@ -499,8 +500,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("INSERT INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
                 o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
         foreach (var o in w.Offers)
-            save.Execute("INSERT INTO s_offer (from_id,to_id,kind,men,day,expires_day) VALUES (?,?,?,?,?,?)",
-                o.FromId, o.ToId, o.Kind, o.Men, o.Day, o.ExpiresDay);
+            save.Execute("INSERT INTO s_offer (from_id,to_id,kind,men,region_id,day,expires_day) VALUES (?,?,?,?,?,?,?)",
+                o.FromId, o.ToId, o.Kind, o.Men, o.RegionId, o.Day, o.ExpiresDay);
         foreach (var ((ia, ib), until) in w.Intel)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var ((pa, pb), until) in w.Pacts)

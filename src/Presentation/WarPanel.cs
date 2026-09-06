@@ -13,6 +13,10 @@ public partial class WarPanel : PanelContainer
     private Game _game = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    /// <summary>Levar o mapa a uma região (o Hud é que sabe mexer na câmara): usado pelo "Ver no mapa" das
+    /// cedências, para ninguém assinar terra que não viu.</summary>
+    public Action<int>? OnShowRegion;
+
     /// <summary>Guerra com a mesa de negociação aberta (id do inimigo), e o que lhe estamos a exigir.</summary>
     private int? _deal;
     private readonly HashSet<int> _demand = new();
@@ -64,7 +68,7 @@ public partial class WarPanel : PanelContainer
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
-                      string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.ExpiresDay}")) + "|" +
+                      string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -102,7 +106,8 @@ public partial class WarPanel : PanelContainer
                 // e a mesa da troca: homem por homem sem esperar pela paz, se eles assinarem
                 int foeId = foe;
                 // a proposta deles primeiro: a iniciativa é do outro lado e não pode ficar escondida
-                if (OfferView.Card(w, pid, foeId, o => Answer(pid, o, true), o => Answer(pid, o, false)) is VBoxContainer post)
+                if (OfferView.Card(w, pid, foeId, o => Answer(pid, o, true), o => Answer(pid, o, false),
+                                   OnShowRegion is null ? null : Show) is VBoxContainer post)
                     card.AddChild(post);
                 if (PrisonerView.Exchange(w, pid, foeId, () => Swap(pid, foeId)) is VBoxContainer swap) card.AddChild(swap);
 
@@ -214,12 +219,21 @@ public partial class WarPanel : PanelContainer
         var deal = PrisonerExchange.Evaluate(_game.World, offer.FromId, pid);
         var err = _game.Dispatch(new AnswerOfferCommand(pid, offer.FromId, accept, offer.Kind));
         if (err is not null) { _game.Notify(err); return; }
+        string land = _game.World.Regions.TryGetValue(offer.RegionId, out var lr) ? lr.Name : "uma região";
         _game.Notify(!accept ? "Proposta recusada"
+                    : offer.Kind == "regiao" ? $"Paz assinada: {land} passa a ser nossa"
                     : offer.Kind == "paz" ? "Paz assinada: a guerra acabou onde estava"
                     : $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa");
         _deal = null; _demand.Clear();
         Fill();
     });
+
+    /// <summary>Fecha o painel e manda o mapa para a região: ver a terra é mais forte do que lê-la.</summary>
+    private void Show(int regionId)
+    {
+        Close();
+        OnShowRegion?.Invoke(regionId);
+    }
 
     private void ToggleDeal(int foe) => _game.RunWhenIdle(() =>
     {

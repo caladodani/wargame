@@ -265,8 +265,9 @@ CREATE TABLE IF NOT EXISTS s_prisoner (        -- prisioneiros de guerra (Prison
 CREATE TABLE IF NOT EXISTS s_offer (           -- propostas à espera de resposta do jogador (OfferSystem)
   from_id INTEGER NOT NULL,                     -- quem propõe
   to_id INTEGER NOT NULL,                       -- a quem propõe (o jogador)
-  kind TEXT NOT NULL,                           -- assunto da proposta ('prisioneiros')
+  kind TEXT NOT NULL,                           -- assunto ('prisioneiros', 'paz', 'regiao')
   men INTEGER NOT NULL,                         -- tamanho combinado no dia em que foi feita
+  region_id INTEGER NOT NULL DEFAULT 0,         -- região cedida (assunto 'regiao'); 0 nos outros
   day INTEGER NOT NULL,
   expires_day INTEGER NOT NULL,                 -- dia em que cai da mesa
   PRIMARY KEY (from_id, to_id, kind));

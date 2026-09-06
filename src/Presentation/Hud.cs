@@ -26,6 +26,7 @@ public partial class Hud : CanvasLayer
     private ConfirmationDialog? _offerDialog;      // proposta do inimigo (troca ou paz)
     private int _offerFrom;
     private string _offerKind = "prisioneiros";
+    private int _offerRegion;                     // região da cedência a que o diálogo está a responder
     private Button _offers = null!;                // distintivo das propostas em cima da mesa
     private int _offersShown = -1;
     private RegionPanel _region = null!;
@@ -58,6 +59,7 @@ public partial class Hud : CanvasLayer
             _countryPanel = new CountryPanel(); AddChild(_countryPanel); _countryPanel.Setup(_game);
             _worldPanel = new WorldPanel(); AddChild(_worldPanel); _worldPanel.Setup(_game, _countryPanel);
             _warPanel = new WarPanel(); AddChild(_warPanel); _warPanel.Setup(_game);
+            _warPanel.OnShowRegion = ShowRegion;                     // "Ver no mapa" das cedências
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
@@ -506,7 +508,8 @@ public partial class Hud : CanvasLayer
             if (!Player(e.ToId)) return;
             int from = e.FromId;
             string kind = e.Kind;
-            Later(kind == "paz" ? $"🕊 {Country(from)} propõe paz branca"
+            Later(kind == "regiao" ? $"🏳 {Country(from)} oferece {RegionName(e.RegionId)} para acabar a guerra"
+                : kind == "paz" ? $"🕊 {Country(from)} propõe paz branca"
                                 : $"✉ {Country(from)} propõe trocar {e.Men:N0} prisioneiros de cada lado");
             Callable.From(() => PopOffer(from, kind)).CallDeferred();
         }));
@@ -644,14 +647,15 @@ public partial class Hud : CanvasLayer
         if (_game.PlayerId is not int pid) return;
         var offer = kind.Length > 0 ? OfferView.Pending(_game.World, pid, fromId, kind) : OfferView.First(_game.World, pid, fromId);
         if (offer is null) return;
-        _offerFrom = fromId; _offerKind = offer.Kind;
+        _offerFrom = fromId; _offerKind = offer.Kind; _offerRegion = offer.RegionId;
         if (_offerDialog is null)
         {
             _offerDialog = Ui.Dialog(this, () => AnswerOffer(true));
             _offerDialog.Canceled += () => AnswerOffer(false);
             _offerDialog.Title = "Proposta do inimigo";
         }
-        _offerDialog.Title = offer.Kind == "paz" ? "Proposta de paz" : "Proposta do inimigo";
+        _offerDialog.Title = offer.Kind == "regiao" ? "Cedência de território"
+                           : offer.Kind == "paz" ? "Proposta de paz" : "Proposta do inimigo";
         _offerDialog.DialogText = OfferView.Line(_game.World, offer);
         _offerDialog.PopupCentered();
     }
@@ -664,6 +668,7 @@ public partial class Hud : CanvasLayer
         var err = _game.Dispatch(new AnswerOfferCommand(pid, _offerFrom, accept, _offerKind));
         if (err is not null) { _game.Notify(err); return; }
         _game.Notify(!accept ? "Proposta recusada"
+                    : _offerKind == "regiao" ? $"Paz assinada: {RegionName(_offerRegion)} passa a ser nossa"
                     : _offerKind == "paz" ? "Paz assinada: a guerra acabou onde estava"
                     : $"Troca aceite: {PrisonerView.Short(deal.Home)} dos nossos a caminho de casa");
         _warPanel.Refresh();
@@ -761,6 +766,15 @@ public partial class Hud : CanvasLayer
         else { _country.Text = ""; _army.Text = ""; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
+    /// <summary>Leva o mapa a uma região e abre-lhe a ficha: o "Ver no mapa" da cedência aterra aqui, e
+    /// como o painel Guerra se fecha antes, o jogador fica com a terra à frente dos olhos.</summary>
+    private void ShowRegion(int regionId)
+    {
+        if (!_game.World.Regions.TryGetValue(regionId, out var r)) return;
+        _map.Focus(new Vector2(r.CenterX, r.CenterY), 1.6f);
+        OnRegionTapped(regionId);
+    }
+
     private void OnRegionTapped(int regionId)
     {
         try
@@ -819,18 +833,26 @@ public partial class Hud : CanvasLayer
             coast.Buildings[quay.Id] = 1;
             new SupplySystem().Tick(w);                                // recalcula capacidade e carga do cais
         }
+        int smokeFoe = 0;                                               // inimigo com quem o smoke negoceia
         int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
         int cron = _journal.Smoke(); _journal.Close();                  // painel Crónica: linha do tempo e filtros
         // uma equipa de sabotagem a caminho da retaguarda inimiga, para o cartão ter barra e botões
         int sab = 0;
         // ao dia 79 o jogador pode ainda não ter guerra nenhuma: o smoke arranja-lhe uma com o vizinho do lado,
         // senão a secção de sabotagem nunca chegava a ser desenhada
-        if (!w.Countries.Values.Any(x => x.Id != pid && w.AreAtWar(pid, x.Id))
-            && w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.Countries.ContainsKey(r.ControllerId)) is Region foeLand
+        // e há-de ser com um vizinho de verdade: a cedência de território exige fronteira comum
+        if (w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && r.OwnerId == r.ControllerId
+                    && w.Countries.TryGetValue(r.ControllerId, out var rc) && !rc.IsPlayer && !rc.Capitulated
+                    && r.Neighbours.Any(n => w.Regions.TryGetValue(n, out var nb) && nb.ControllerId == pid)) is Region foeLand
             && w.Countries.TryGetValue(foeLand.ControllerId, out var nbc))
         {
-            // guerra registada e já parada: assim a mesa de propostas tem também a paz branca para desenhar
-            w.StartWar(pid, nbc.Id, w.Clock.Day - (int)w.Rule("peace_stale_days", 60f) - 1);
+            // guerra registada e já parada: assim a mesa leva paz branca e cedência, não só a troca
+            int since = w.Clock.Day - (int)w.Rule("peace_stale_days", 60f) - 1;
+            w.StartWar(pid, nbc.Id, since);
+            var info = w.Wars[World.WarKey(pid, nbc.Id)];
+            info.StartDay = System.Math.Min(info.StartDay, since);
+            info.LastProgressDay = since;                            // guerra já existente: envelhece-se a frente
+            smokeFoe = nbc.Id;
         }
         if (w.Regions.Values.FirstOrDefault(r => r.ControllerId != pid && w.AreAtWar(pid, r.ControllerId)) is Region rear)
         {
@@ -854,21 +876,27 @@ public partial class Hud : CanvasLayer
             _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();  // agora com guerra a sério: balança e troca desenhadas
         }
         // uma proposta do inimigo em cima da mesa, para o cartão do painel Guerra e o diálogo serem desenhados
-        int posted = 0;
-        if (w.Countries.Values.FirstOrDefault(x => x.Id != pid && !x.IsPlayer && w.AreAtWar(pid, x.Id)) is Country caller)
+        int posted = 0; string ceded = "nenhuma";
+        if ((w.Countries.GetValueOrDefault(smokeFoe)
+             ?? w.Countries.Values.FirstOrDefault(x => x.Id != pid && !x.IsPlayer && w.AreAtWar(pid, x.Id))) is Country caller)
         {
             float period = w.Rule("offer_period_days", 10f);
+            float ratio = w.Rule("cede_ratio", 0.6f);
             w.Rules["offer_period_days"] = 1f;                          // ao dia 86 a ronda das propostas não calhava
+            w.Rules["cede_ratio"] = 999f;                               // e o vizinho ainda não está derrotado que chegue
             new OfferSystem().Tick(w);
             w.Rules["offer_period_days"] = period;
+            w.Rules["cede_ratio"] = ratio;
             posted = w.Offers.Count(o => o.ToId == pid);
+            ceded = w.Offers.FirstOrDefault(o => o.ToId == pid && o.Kind == "regiao") is PendingOffer land
+                  ? RegionName(land.RegionId) : "nenhuma";
             _warPanel.Open(); _warPanel.Close();                        // cartão da proposta desenhado
             PopOffer(caller.Id);                                        // e o diálogo Sim/Não em cima dele
             _offerDialog?.Hide();
             AnswerOffer(false);                                         // recusa: os campos ficam como estavam
         }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
