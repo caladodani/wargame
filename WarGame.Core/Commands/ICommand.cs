@@ -598,6 +598,34 @@ public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, strin
     }
 }
 
+/// <summary>Troca negociada de prisioneiros: homem por homem, com a guerra a decorrer. O mínimo dos dois
+/// campos muda de mãos e exchange_return de cada leva chega a casa; o resto ficou pelo caminho. Quem
+/// aceita ou recusa é o outro lado, pelas contas do PrisonerExchange — a UI mostra o veredicto antes de
+/// se propor, para não haver clique às cegas.</summary>
+public sealed record ExchangePrisonersCommand(int CountryId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "não há com quem negociar";
+        if (CountryId == TargetCountryId) return "não se troca com o próprio";
+        if (!w.AreAtWar(CountryId, TargetCountryId)) return "sem guerra não há campos para abrir";
+        var offer = PrisonerExchange.Evaluate(w, CountryId, TargetCountryId);
+        if (offer.Men <= 0) return offer.Reason;
+        if (!offer.Accepted) return "recusam a troca: " + offer.Reason;
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var offer = PrisonerExchange.Evaluate(w, CountryId, TargetCountryId);
+        float back = w.Rule("exchange_return", 0.85f);
+        PrisonerSystem.Release(w, w.Countries[CountryId], TargetCountryId, offer.Men, back);
+        PrisonerSystem.Release(w, w.Countries[TargetCountryId], CountryId, offer.Men, back);
+        w.Events.Publish(new PrisonersExchanged(CountryId, TargetCountryId, offer.Men, offer.Home));
+    }
+}
+
 /// <summary>Dissolver uma divisão fora de combate: devolve disband_manpower_refund dos homens
 /// (proporcional ao HP) ao pool do país. HoI4: delete unit, com refund parcial.</summary>
 public sealed record DisbandDivisionCommand(int CountryId, int DivisionId) : ICommand

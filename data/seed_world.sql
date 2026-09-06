@@ -363,6 +363,14 @@ INSERT INTO rule (key,value,note) VALUES
  ('catch_guard',0.02,'acrescento a essa hipótese por divisão de guarnição na região'),
  ('catch_max',0.35,'tecto da hipótese diária de apanhar a equipa');
 
+-- Troca negociada de prisioneiros (PrisonerExchange, ExchangePrisonersCommand): homem por homem, com a
+-- guerra a decorrer. Quem guarda muito mais gente do que o outro não troca a vantagem de mão-de-obra,
+-- mas um pool de homens vazio compra qualquer troca.
+INSERT INTO rule (key,value,note) VALUES
+ ('exchange_return',0.85,'fracção dos prisioneiros trocados que chega viva a casa'),
+ ('exchange_ai_edge',1.4,'quanto mais gente o outro lado tem de guardar para recusar a troca'),
+ ('exchange_need_men',150000,'pool de homens abaixo do qual se aceita qualquer troca');
+
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),

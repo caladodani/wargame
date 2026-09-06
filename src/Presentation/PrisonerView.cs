@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -56,6 +57,42 @@ public static class PrisonerView
             note.AddThemeColorOverride("font_color", Ui.TextDim);
             v.AddChild(note);
         }
+        return v;
+    }
+
+    /// <summary>Mesa da troca de prisioneiros para o painel Guerra: quantos homens mudam de mãos de cada
+    /// lado, quantos chegam vivos a casa, e o que o outro lado responde antes de se propor seja o que for.
+    /// Null quando um dos campos está vazio — sem homens dos dois lados não há troca nenhuma para mostrar.
+    ///
+    /// O botão fica desligado quando eles recusam: o jogador vê o motivo em vez de levar com um erro.</summary>
+    public static VBoxContainer? Exchange(World w, int pid, int foe, Action onPropose)
+    {
+        var offer = PrisonerExchange.Evaluate(w, pid, foe);
+        if (offer.Men <= 0) return null;
+
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 3);
+        var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 8); v.AddChild(head);
+        head.AddChild(Ui.Grow(Ui.Lbl($"🤝 Troca de prisioneiros · {Short(offer.Men)} de cada lado", 16)));
+        var verdict = Ui.Lbl(offer.Accepted ? "aceitam" : "recusam", 15);
+        verdict.AddThemeColorOverride("font_color", offer.Accepted ? Ui.Good : Ui.Danger);
+        head.AddChild(verdict);
+
+        // o que sai e o que entra: os nossos voltam ao pool, os deles voltam à frente deles
+        var flow = new HBoxContainer(); flow.AddThemeConstantOverride("separation", 8); v.AddChild(flow);
+        flow.AddChild(Side($"{Short(offer.Home)} nossos a casa", 1f, Ours));
+        flow.AddChild(Side($"{Short(offer.Home)} deles de volta", 1f, Theirs));
+
+        int lost = offer.Men - offer.Home;
+        var note = Ui.Lbl(offer.Reason + (lost > 0 ? $"  ·  {Short(lost)} de cada lado não aguentam a viagem" : ""), 14);
+        note.AddThemeColorOverride("font_color", offer.Accepted ? Ui.TextDim : Ui.Danger);
+        v.AddChild(note);
+
+        var btn = Ui.Btn("Propor troca", onPropose, 190, offer.Accepted ? Ui.Kind.Primary : Ui.Kind.Normal);
+        btn.Disabled = !offer.Accepted;
+        btn.TooltipText = offer.Accepted
+            ? "Homem por homem, com a guerra a continuar"
+            : "Enquanto guardarem esta vantagem de mão-de-obra, não assinam";
+        v.AddChild(btn);
         return v;
     }
 

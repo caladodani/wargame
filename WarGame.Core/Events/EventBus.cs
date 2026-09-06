@@ -32,6 +32,9 @@ public sealed record SeasonChanged(string SeasonId, string Name, int Day) : IGam
 /// <summary>Prisioneiros de guerra (PrisonerSystem): homens que mudaram de mãos sem morrer.</summary>
 public sealed record PrisonersTaken(int CaptorId, int FromCountryId, int Men, int RegionId) : IGameEvent;
 public sealed record PrisonersReturned(int HolderId, int HomeCountryId, int Men) : IGameEvent;
+/// <summary>Troca negociada de prisioneiros (ExchangePrisonersCommand): Men homens de cada lado saíram
+/// dos campos e Home de cada lado chegaram a casa.</summary>
+public sealed record PrisonersExchanged(int CountryId, int OtherId, int Men, int Home) : IGameEvent;
 
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;

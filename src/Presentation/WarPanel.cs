@@ -63,6 +63,7 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => string.Join("-", x.Side(pid).Goals.OrderBy(g => g)) + "/" + x.Side(pid).Goals.Count(g => w.Regions.TryGetValue(g, out var gr) && gr.ControllerId == pid))) + "|" +
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
+                      string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -97,6 +98,9 @@ public partial class WarPanel : PanelContainer
 
                 // balança dos campos: uma guerra parada continua a render homens a quem aguenta melhor
                 if (PrisonerView.Balance(w, pid, foe) is VBoxContainer pris) card.AddChild(pris);
+                // e a mesa da troca: homem por homem sem esperar pela paz, se eles assinarem
+                int foeId = foe;
+                if (PrisonerView.Exchange(w, pid, foeId, () => Swap(pid, foeId)) is VBoxContainer swap) card.AddChild(swap);
 
                 Goals(w, card, war, pid, foe);
 
@@ -188,6 +192,17 @@ public partial class WarPanel : PanelContainer
         actions.AddChild(Ui.Btn("Paz branca", () => WhitePeace(pid, foe), 170));
         card.AddChild(actions);
     }
+
+    /// <summary>Propõe a troca de prisioneiros a este inimigo. O veredicto já estava no cartão; aqui só
+    /// se despacha e se diz quantos homens voltaram.</summary>
+    private void Swap(int pid, int foe) => _game.RunWhenIdle(() =>
+    {
+        var offer = PrisonerExchange.Evaluate(_game.World, pid, foe);
+        var err = _game.Dispatch(new ExchangePrisonersCommand(pid, foe));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Troca feita: {PrisonerView.Short(offer.Home)} dos nossos a caminho de casa");
+        Fill();
+    });
 
     private void ToggleDeal(int foe) => _game.RunWhenIdle(() =>
     {

@@ -490,6 +490,13 @@ public partial class Hud : CanvasLayer
             if (Player(e.CaptorId)) Later($"⛓ {e.Men:N0} prisioneiros de {foe} nas nossas mãos");
             else if (Player(e.FromCountryId)) Later($"⛓ {e.Men:N0} dos nossos caem prisioneiros");
         }));
+        _subs.Add(w.Events.Subscribe<PrisonersExchanged>(e =>
+        {
+            if (!Player(e.CountryId) && !Player(e.OtherId)) return;
+            int otherId = Player(e.CountryId) ? e.OtherId : e.CountryId;
+            string other = w.Countries.TryGetValue(otherId, out var oc) ? oc.Name : "o inimigo";
+            Later($"🤝 Troca com {other}: {e.Home:N0} dos nossos voltam a casa");
+        }));
         _subs.Add(w.Events.Subscribe<PrisonersReturned>(e =>
         {
             if (Player(e.HomeCountryId)) Later($"⛓ {e.Men:N0} prisioneiros nossos voltam a casa");
@@ -764,8 +771,18 @@ public partial class Hud : CanvasLayer
             OnRegionTapped(rear.Id);                                    // painel da região inimiga, com o cartão novo
             OnRegionTapped(cap.Id);                                     // e de volta à capital: cartão da nossa retaguarda
         }
+        // campos cheios dos dois lados, para a mesa da troca ter números, veredicto e botão
+        int swap = 0;
+        if (w.Countries.Values.FirstOrDefault(x => x.Id != pid && w.AreAtWar(pid, x.Id)) is Country prey)
+        {
+            float full = w.Rule("prisoner_work_men", 400000f);
+            if (c.Prisoners.GetValueOrDefault(prey.Id) == 0) c.Prisoners[prey.Id] = (int)(full * 0.5f);
+            if (prey.Prisoners.GetValueOrDefault(pid) == 0) prey.Prisoners[pid] = (int)(full * 0.3f);
+            swap = PrisonerExchange.Evaluate(w, pid, prey.Id).Men;
+            _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();  // agora com guerra a sério: balança e troca desenhadas
+        }
         int pris = PrisonerView.Held(w, pid);                           // campos de prisioneiros do jogador
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

@@ -72,7 +72,7 @@ public sealed class PrisonerSystem : ISystem
             {
                 int gone = (int)MathF.Ceiling(c.Prisoners[from] * rate);
                 if (gone <= 0) continue;
-                Move(w, c, from, gone, 1f);
+                Release(w, c, from, gone, 1f);
             }
         }
     }
@@ -96,13 +96,15 @@ public sealed class PrisonerSystem : ISystem
         foreach (var (holder, from) in new[] { (a, b), (b, a) })
         {
             if (!w.Countries.TryGetValue(holder, out var c) || !c.Prisoners.TryGetValue(from, out var men) || men <= 0) continue;
-            Move(w, c, from, men, back);
+            Release(w, c, from, men, back);
             w.Events.Publish(new PrisonersReturned(holder, from, (int)(men * back)));
         }
     }
 
-    /// <summary>Tira homens do campo e devolve ao pool de quem os perdeu a fracção que sobreviveu.</summary>
-    private static void Move(World w, Country holder, int from, int men, float share)
+    /// <summary>Tira homens do campo e devolve ao pool de quem os perdeu a fracção que sobreviveu.
+    /// Público porque a troca negociada (ExchangePrisonersCommand) abre os campos pelo mesmo caminho da
+    /// fuga e da paz — a viagem para casa é sempre esta.</summary>
+    public static void Release(World w, Country holder, int from, int men, float share)
     {
         int left = holder.Prisoners.GetValueOrDefault(from) - men;
         if (left > 0) holder.Prisoners[from] = left; else holder.Prisoners.Remove(from);
