@@ -20,7 +20,11 @@ public partial class RegionPanel : PanelContainer
     private Label _title = null!, _info = null!;
     private TextureRect _flag = null!;
     private VBoxContainer _rows = null!;
+    /// <summary>O Hud liga isto ao ecrã de batalha (o painel não conhece os outros painéis todos).</summary>
+    public Action<int>? OnBattle;
+
     private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!, _auto = null!;
+    private Button _battle = null!;
     private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
     private VBoxContainer _sab = null!;       // sabotagem na retaguarda (operações spy_op de scope region)
     private string _sabKey = "";
@@ -68,6 +72,8 @@ public partial class RegionPanel : PanelContainer
         _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
         _fort = Ui.Btn("", () => _game.RunWhenIdle(OnFort)); actions.AddChild(_fort);
         _retreat = Ui.Btn("Retirar", () => _game.RunWhenIdle(OnRetreat)); actions.AddChild(_retreat);
+        _battle = Ui.Btn("⚔ Ver batalha", () => { int id = _regionId; Close(); OnBattle?.Invoke(id); }, 0f, Ui.Kind.Primary);
+        actions.AddChild(_battle);
         _auto = Ui.Btn("⚑ Avanço auto", () => _game.RunWhenIdle(OnAutoAdvance)); actions.AddChild(_auto);
         _nuke = Ui.Btn("☢ Ataque nuclear", () => _nukeDialog.PopupCentered()); actions.AddChild(_nuke);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
@@ -317,6 +323,7 @@ public partial class RegionPanel : PanelContainer
                             && r.Infrastructure < w.Rule("infra_max", 2f) - 1e-4f;
             _build.Visible = canBuild;
             if (canBuild) _build.Text = $"Melhorar infra ({w.Rule("infra_build_cost", 40f):0})";
+            _battle.Visible = battle is not null;     // o ecrã dos dois lados só faz sentido com batalha a decorrer
             _retreat.Visible = hasPlayer && battle is not null
                 && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid);
             _auto.Visible = hasPlayer && _selected.Count > 0;

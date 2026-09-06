@@ -165,6 +165,39 @@ public class AlertsTests
     }
 
     [Fact]
+    public void ALostFrontRaisesItsOwnAlert()
+    {
+        var w = Setup();
+        w.Rules["front_width_plain"] = 1f;                 // uma divisão de cada lado é o que a frente leva
+        var battle = new Battle { RegionId = 4, AttackerCountryId = 1 };
+        battle.Attackers.Add(TestWorld.AddDivision(w, 101, 1, TestWorld.Inf, 4).Id);
+        battle.Defenders.Add(TestWorld.AddDivision(w, 201, 2, TestWorld.Inf2, 4).Id);
+        w.ActiveBattles.Add(battle);
+        Assert.Null(Find(w, "battle"));                    // um contra um: nada a dizer
+
+        w.Rules["front_width_plain"] = 3f;
+        battle.Defenders.Add(TestWorld.AddDivision(w, 202, 2, TestWorld.Inf2, 4).Id);
+        var alert = Find(w, "battle");
+        Assert.NotNull(alert);
+        Assert.Equal(AlertLevel.Warn, alert!.Level);
+        Assert.Equal(4, alert.RegionId);
+        Assert.Contains("1 contra 2", alert.Text);
+    }
+
+    [Fact]
+    public void ABattleBetweenOthersIsNotOurProblem()
+    {
+        var w = Setup();
+        w.Countries[3] = new Country { Id = 3, Name = "Gama", Tag = "GAM" };
+        var battle = new Battle { RegionId = 4, AttackerCountryId = 3 };
+        battle.Attackers.Add(TestWorld.AddDivision(w, 301, 3, TestWorld.Inf, 4).Id);
+        battle.Defenders.Add(TestWorld.AddDivision(w, 201, 2, TestWorld.Inf2, 4).Id);
+        battle.Defenders.Add(TestWorld.AddDivision(w, 202, 2, TestWorld.Inf2, 4).Id);
+        w.ActiveBattles.Add(battle);
+        Assert.Null(Find(w, "battle"));
+    }
+
+    [Fact]
     public void ACapitulatedCountryHasNoStrip()
     {
         var w = Setup();

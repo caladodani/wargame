@@ -96,6 +96,22 @@ public static class Alerts
                                                 : $"{yards.FreeCivil} fábricas civis paradas", AlertLevel.Info));
 
         // 8. Propostas em cima da mesa: caem sozinhas se ninguém lhes tocar.
+        // 8. Batalhas: a frente só leva um número de divisões (Frontage). Estar em maioria não vale de nada se
+        // a montanha não deixar entrar mais do que três — e quem não souber disso empilha tropa a perder.
+        foreach (var b in w.ActiveBattles)
+        {
+            if (!w.Regions.TryGetValue(b.RegionId, out var br)) continue;
+            bool weAttack = b.AttackerCountryId == countryId, weDefend = br.ControllerId == countryId;
+            if (!weAttack && !weDefend) continue;
+            var ours = (weAttack ? b.Attackers : b.Defenders).Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>();
+            var theirs = (weAttack ? b.Defenders : b.Attackers).Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>();
+            int ourLine = Frontage.Split(w, br, ours).Line.Count, theirLine = Frontage.Split(w, br, theirs).Line.Count;
+            if (ourLine >= theirLine) continue;
+            list.Add(new Alert("battle", "⚔", $"em {br.Name} a linha é de {ourLine} contra {theirLine}",
+                               AlertLevel.Warn, br.Id));
+            break;
+        }
+
         int offers = w.Offers.Count(o => o.ToId == countryId);
         if (offers > 0)
             list.Add(new Alert("offers", "✉", offers == 1 ? "1 proposta à espera de resposta"

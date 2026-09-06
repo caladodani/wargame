@@ -45,6 +45,7 @@ public partial class Hud : CanvasLayer
     private EndScreen _end = null!;
     private MiniMap _mini = null!;
     private MapModeBar _modeBar = null!;
+    private BattlePanel _battle = null!;
     private AlertStrip _alerts = null!;
     private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
@@ -77,12 +78,18 @@ public partial class Hud : CanvasLayer
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
             _modeBar = new MapModeBar(); AddChild(_modeBar); _modeBar.Setup(_game, _map.Regions);
             _compare = new ComparePanel(); AddChild(_compare); _compare.Setup(_game);
+            _battle = new BattlePanel(); AddChild(_battle); _battle.Setup(_game);
+            _region.OnBattle = id => _battle.Open(id);
             _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
             _alerts.OnGoTo = ShowRegion;
             _alerts.OnOpen = id =>
             {
                 if (id == "offers") OpenWar();
                 else if (id == "research" || id == "queue") OpenCountry();
+                else if (id == "battle" && _game.World.ActiveBattles.FirstOrDefault(b =>
+                             b.AttackerCountryId == _game.PlayerId
+                             || _game.World.Regions.GetValueOrDefault(b.RegionId)?.ControllerId == _game.PlayerId) is Battle mine)
+                    _battle.Open(mine.RegionId);
             };
 
             _map.RegionTapped += OnRegionTapped;
@@ -744,8 +751,10 @@ public partial class Hud : CanvasLayer
             _armyPanel.Refresh();
             // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
             _alerts.Refresh();
+            _battle.Refresh();
             bool covered = _compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
-                           || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible;
+                           || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible
+                           || _battle.Visible;
             _mini.SetCovered(covered);
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
@@ -970,7 +979,8 @@ public partial class Hud : CanvasLayer
         var ind = Industry.Of(w, pid);                                   // fábricas: os mostradores e a bancada
         _production.Open(); _production.Close();
         int modes = _modeBar.Smoke();                                    // modos de mapa: pinta o mundo por cada conta e volta ao político
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode})");
+        int fight = _battle.Smoke(cap.Id);                               // ecrã de batalha: os dois lados, linha e reserva
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

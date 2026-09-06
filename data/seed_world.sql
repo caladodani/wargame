@@ -140,6 +140,20 @@ INSERT INTO rule (key,value,note) VALUES
  ('fort_build_days',20,'dias de obra por nível'),
  ('fort_defense_per_level',0.15,'bónus de força dos defensores por nível');
 
+-- Largura de frente (Frontage + CombatSystem): quantas divisões de cada lado tocam no inimigo por dia. O que
+-- não cabe fica em reserva, sem bater nem apanhar, e rende a linha quando ela se parte. Terreno sem regra
+-- própria usa front_width.
+INSERT INTO rule (key,value,note) VALUES
+ ('front_width',4,'largura de frente por omissão'),
+ ('front_width_plain',6,'planície: campo aberto, cabe muita gente'),
+ ('front_width_desert',6,'deserto: sem obstáculos, frente larga'),
+ ('front_width_tundra',5,'tundra: aberta mas dura'),
+ ('front_width_forest',4,'floresta: a mata parte a frente'),
+ ('front_width_urban',3,'cidade: combate rua a rua'),
+ ('front_width_mountain',3,'montanha: passa-se pelos desfiladeiros'),
+ ('front_width_river',1,'quanto o rio aperta a frente de quem o atravessa'),
+ ('front_width_min',1,'nunca menos do que isto');
+
 -- Apoio financeiro entre aliados de facção (TransferMoneyCommand).
 INSERT INTO rule (key,value,note) VALUES
  ('ai_aid_reserve',300,'a IA só envia apoio com dinheiro acima disto'),

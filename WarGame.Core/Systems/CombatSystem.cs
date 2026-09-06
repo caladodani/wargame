@@ -4,12 +4,14 @@ using WarGame.Core.Stats;
 
 namespace WarGame.Core.Systems;
 
-/// <summary>Port directo de combat_sim.py. Só corre nas regiões em World.ActiveBattles.</summary>
+/// <summary>Port directo de combat_sim.py. Só corre nas regiões em World.ActiveBattles.
+///
+/// Desde a largura de frente (Frontage), cada lado entra no dia com uma linha e uma reserva: só a linha bate e
+/// só a linha apanha. A batalha continua enquanto houver alguém de pé — as reservas contam para isso.</summary>
 public sealed class CombatSystem : ISystem
 {
     public string Name => "Combat";
     public float DamageScale { get; init; } = 0.45f;
-    public int FrontWidth { get; init; } = 4;
 
     public void Tick(World w)
     {
@@ -24,7 +26,10 @@ public sealed class CombatSystem : ISystem
             var ctxA = BuildContext(w, region, b.AttackerCountryId);
             var ctxD = BuildContext(w, region, region.ControllerId);
 
-            ResolveTick(w, att, def, ctxA, ctxD, 1f + region.Fort * w.Rule("fort_defense_per_level", 0.15f), region);
+            // Largura de frente: só a linha se bate; o resto fica em reserva e entra quando estes caírem.
+            var (lineA, _) = Frontage.Split(w, region, att);
+            var (lineD, _) = Frontage.Split(w, region, def);
+            ResolveTick(w, lineA, lineD, ctxA, ctxD, 1f + region.Fort * w.Rule("fort_defense_per_level", 0.15f), region);
             b.Days++;
             foreach (var d in att.Concat(def)) if (d.Hp <= 0f) dead.Add(d.Id);
 
@@ -124,7 +129,6 @@ public sealed class CombatSystem : ISystem
     private float[] SideStrength(World w, List<Division> divs, ModContext ctx, bool attacking, Region? battleRegion = null)
     {
         var out_ = new float[divs.Count];
-        int excess = Math.Max(0, divs.Count - FrontWidth);
         for (int i = 0; i < divs.Count; i++)
         {
             var d = divs[i]; var st = w.Stats.Get(d.TemplateId);
@@ -134,7 +138,7 @@ public sealed class CombatSystem : ISystem
             float supply = 0.4f + 0.6f * MathF.Min(1f, d.Supply);
             float morale = 0.5f + d.Org / 200f;
             var (cf, cm) = w.Modifiers.Evaluate("command", st, ctx);
-            float command = cm + cf - 0.15f * excess;
+            float command = cm + cf;
             float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f)
                               + MedalSystem.Bonus(w, d);   // condecorações: veteranos batem-se melhor
             // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
