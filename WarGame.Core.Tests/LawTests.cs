@@ -46,7 +46,7 @@ public class LawTests
         var c = w.Countries[2]; c.Money = 500f;
         w.StartWar(1, 2);
         TestWorld.Days(w, 1);   // a IA corre no dia 0 (0 % ai_period_days == 0)
-        Assert.Equal(1, w.ActiveLaw(c, "conscription")!.Sort + w.ActiveLaw(c, "economy")!.Sort);   // subiu exactamente um degrau num grupo
+        Assert.Equal(1, w.ActiveLaw(c, "conscription")!.Sort + w.ActiveLaw(c, "economy")!.Sort + w.ActiveLaw(c, "security")!.Sort);   // subiu exactamente um degrau num grupo
     }
 
     [Fact]

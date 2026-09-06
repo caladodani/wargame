@@ -77,6 +77,20 @@ public class EspionageTests
     }
 
     [Fact]
+    public void CounterIntel_Law_SlowsEnemyOps()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        var t = w.Countries[2];
+        t.Laws["security"] = "seg_policial"; w.ApplyTechs(t);
+        var c = w.Countries[1]; c.Money = 500f;
+        var op = w.SpyOps["roubo_fundos"];
+        var cmd = new StartSpyOpCommand(1, 2, op.Id);
+        Assert.Null(cmd.Validate(w)); cmd.Execute(w);
+        Assert.Equal(op.Days * 2f, w.ActiveSpyOps[0].DaysLeft, 0.01f);
+    }
+
+    [Fact]
     public void Intel_GrantsVisibility_UntilExpiry()
     {
         var (w, _) = TestWorld.Build();

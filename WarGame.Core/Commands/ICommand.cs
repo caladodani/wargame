@@ -526,7 +526,9 @@ public sealed record StartSpyOpCommand(int CountryId, int TargetCountryId, strin
     {
         var op = w.SpyOps[OpId];
         w.Countries[CountryId].Money -= op.Cost;
-        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = CountryId, TargetCountryId = TargetCountryId, OpId = OpId, DaysLeft = op.Days });
+        // contra-espionagem do alvo (lei de segurança): a operação demora × counter_intel
+        float days = op.Days * w.Countries[TargetCountryId].Stat("counter_intel");
+        w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = CountryId, TargetCountryId = TargetCountryId, OpId = OpId, DaysLeft = days });
         w.Events.Publish(new SpyOpStarted(CountryId, TargetCountryId, OpId));
     }
 }

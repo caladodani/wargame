@@ -164,3 +164,13 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO rule VALUES ('resistance_growth', 0.02, 'subida diária da resistência numa região ocupada sem guarnição');
 INSERT INTO rule VALUES ('resistance_suppress', 0.04, 'descida diária com divisão do ocupante presente (ou ocupação terminada)');
 INSERT INTO rule VALUES ('resistance_output_hit', 0.5, 'corte máximo do rendimento da região ocupada (a resistência 1.0)');
+
+-- Leis de segurança interna (grupo security): contra-espionagem — operações inimigas
+-- demoram × counter_intel do alvo (StartSpyOpCommand), à custa de indústria.
+INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
+ ('seg_liberdades','security','Liberdades civis','Sem vigilância interna: espiões estrangeiros circulam à vontade.',0,1),
+ ('seg_vigilancia','security','Vigilância interna','Contra-espionagem activa: operações inimigas demoram mais.',1,0),
+ ('seg_policial','security','Estado policial','Repressão total: espiar-nos é quase impossível, a economia sofre.',2,0);
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('seg_vigilancia','counter_intel',1.5),('seg_vigilancia','industry',0.97),
+ ('seg_policial','counter_intel',2.0),('seg_policial','industry',0.92),('seg_policial','org_regain',0.97);
