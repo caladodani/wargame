@@ -818,3 +818,43 @@ public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) :
         w.Events.Publish(new DecisionActivated(CountryId, DecisionId));
     }
 }
+
+/// <summary>Contrata um comandante (tabela general): paga o custo único e ganha o multiplicador dele
+/// enquanto servir. Limitado a general_slots comandantes por país, sem repetir arquétipos.</summary>
+public sealed record HireGeneralCommand(int CountryId, string GeneralId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.GeneralDefs.TryGetValue(GeneralId, out var def)) return "comandante desconhecido";
+        if (c.Generals.Contains(GeneralId)) return "já serve neste exército";
+        if (c.Generals.Count >= (int)w.Rule("general_slots", 3f)) return "estado-maior completo";
+        if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Money -= w.GeneralDefs[GeneralId].Cost;
+        c.Generals.Add(GeneralId);
+        World.ApplyGenerals(w, c);
+        w.Events.Publish(new GeneralHired(CountryId, GeneralId));
+    }
+}
+
+/// <summary>Dispensa um comandante: o multiplicador cai de imediato e o custo não volta.</summary>
+public sealed record DismissGeneralCommand(int CountryId, string GeneralId) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Countries.TryGetValue(CountryId, out var c) ? "país inválido"
+        : !c.Generals.Contains(GeneralId) ? "não serve neste exército" : null;
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Generals.Remove(GeneralId);
+        World.ApplyGenerals(w, c);
+        w.Events.Publish(new GeneralDismissed(CountryId, GeneralId));
+    }
+}

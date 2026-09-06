@@ -45,7 +45,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|gen{c.Generals.Count}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -102,6 +102,24 @@ public partial class CountryPanel : PanelContainer
             }
             if (mine && c.AtWarWith.Count > 0)
                 _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
+
+            // estado-maior: comandantes ao serviço e os que se podem contratar
+            if (mine && w.GeneralDefs.Count > 0)
+            {
+                int slots = (int)w.Rule("general_slots", 3f);
+                Header($"Estado-maior ({c.Generals.Count}/{slots})");
+                foreach (var def in w.GeneralDefs.Values.OrderBy(g => g.Id))
+                {
+                    bool serving = c.Generals.Contains(def.Id);
+                    string eff = $"{StatName(def.StatKey)} ×{def.Mult:0.00}";
+                    var row = new HBoxContainer(); _body.AddChild(row);
+                    row.AddChild(Ui.Grow(Ui.Lbl($"{(serving ? "★ " : "")}{def.Name} — {eff}", 16)));
+                    if (serving)
+                        row.AddChild(Ui.Btn("Dispensar", () => Faction(new DismissGeneralCommand(c.Id, def.Id)), 160));
+                    else if (c.Generals.Count < slots)
+                        row.AddChild(Ui.Btn($"Contratar ({def.Cost:0})", () => Faction(new HireGeneralCommand(c.Id, def.Id)), 160));
+                }
+            }
 
             // decisões nacionais (só o jogador decide)
             if (mine && w.DecisionDefs.Count > 0)

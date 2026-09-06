@@ -92,6 +92,9 @@ public sealed record BuildingDef(string Id, string Name, float Cost, float Days,
 /// depois Cooldown dias de espera.</summary>
 public sealed record DecisionDef(string Id, string Name, float Cost, int Days, int Cooldown, string StatKey, float Mult);
 
+/// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
+public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
+
 /// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
 public sealed class ActiveDecision
 {
@@ -150,12 +153,15 @@ public sealed class Country
     public Dictionary<string, float> BuildingMult { get; } = new();
     /// <summary>Multiplicadores das decisões nacionais activas (DecisionSystem recalcula todos os dias).</summary>
     public Dictionary<string, float> DecisionMult { get; } = new();
+    /// <summary>Comandantes contratados (tabela general; HireGeneralCommand) e o que somam aos stats.</summary>
+    public List<string> Generals { get; } = new();
+    public Dictionary<string, float> GeneralMult { get; } = new();
     /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
     public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
-        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f);
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f);
     public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
     public float ResearchProgress { get; set; }   // dias acumulados × research_speed
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)

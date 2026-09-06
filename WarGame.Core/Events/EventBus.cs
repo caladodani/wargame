@@ -62,6 +62,10 @@ public sealed record NewsFired(string EventId) : IGameEvent;
 public sealed record InfrastructureRepaired(int RegionId) : IGameEvent;
 /// <summary>Região ocupada integrada no país do controlador (IntegrationSystem): OwnerId mudou.</summary>
 public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
+/// <summary>Comandante contratado (HireGeneralCommand).</summary>
+public sealed record GeneralHired(int CountryId, string GeneralId) : IGameEvent;
+/// <summary>Comandante dispensado (DismissGeneralCommand).</summary>
+public sealed record GeneralDismissed(int CountryId, string GeneralId) : IGameEvent;
 /// <summary>Decisão nacional activada (ActivateDecisionCommand).</summary>
 public sealed record DecisionActivated(int CountryId, string DecisionId) : IGameEvent;
 /// <summary>Decisão nacional expirou (DecisionSystem).</summary>

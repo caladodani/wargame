@@ -76,6 +76,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]));
+        foreach (var r in _static.Query("SELECT id,name,stat_key,mult,cost FROM general"))
+            w.GeneralDefs[(string)r["id"]!] = new GeneralDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["stat_key"]!, Convert.ToSingle(r["mult"]), Convert.ToSingle(r["cost"]));
         foreach (var r in _static.Query("SELECT id,name,cost,days,cooldown,stat_key,mult FROM decision"))
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), Convert.ToInt32(r["cooldown"]),
@@ -269,6 +272,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
+        foreach (var r in save.Query("SELECT country_id,general FROM s_general"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var gc)) gc.Generals.Add((string)r["general"]!);
+        foreach (var c in w.Countries.Values) World.ApplyGenerals(w, c);
         foreach (var r in save.Query("SELECT country_id,decision,until_day,cooldown_until FROM s_decision"))
         {
             int cid = Convert.ToInt32(r["country_id"]); string did = (string)r["decision"]!;
@@ -342,12 +348,15 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+        foreach (var c in w.Countries.Values)
+            foreach (var g in c.Generals)
+                save.Execute("INSERT INTO s_general (country_id,general) VALUES (?,?)", c.Id, g);
         foreach (var c in w.Countries.Values)
             foreach (var (did, cd) in c.DecisionCooldownUntil)
                 save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until) VALUES (?,?,?,?)",

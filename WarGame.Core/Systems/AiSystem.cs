@@ -47,6 +47,7 @@ public sealed class AiSystem : ISystem
             Produce(w, c, divs?.Count ?? 0);
             Build(w, c, regionsByController.GetValueOrDefault(c.Id));
             Laws(w, c);
+            Generals(w, c);
             Aid(w, c);
             Spy(w, c, divsByCountry);
             Naps(w, c, regionsByController.GetValueOrDefault(c.Id), divsByCountry);
@@ -189,6 +190,21 @@ public sealed class AiSystem : ISystem
 
     /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
     /// (o próximo sort do grupo). Em paz não mexe — voltar atrás não compensa o custo.</summary>
+    /// <summary>Preenche o estado-maior enquanto sobrar dinheiro acima de ai_general_reserve: em guerra
+    /// procura primeiro ataque/defesa, em paz o mais barato. Um comandante por ronda.</summary>
+    private static void Generals(World w, Country c)
+    {
+        if (c.Generals.Count >= (int)w.Rule("general_slots", 3f)) return;
+        float reserve = w.Rule("ai_general_reserve", 200f);
+        bool atWar = c.AtWarWith.Count > 0;
+        var pick = w.GeneralDefs.Values
+            .Where(g => !c.Generals.Contains(g.Id) && c.Money >= g.Cost + reserve)
+            .OrderByDescending(g => atWar && (g.StatKey == "attack" || g.StatKey == "defense"))
+            .ThenBy(g => g.Cost)
+            .FirstOrDefault();
+        if (pick is not null) new HireGeneralCommand(c.Id, pick.Id).Execute(w);
+    }
+
     private static void Laws(World w, Country c)
     {
         if (c.AtWarWith.Count == 0 || c.Money < w.Rule("ai_law_escalate_money", 120f)) return;

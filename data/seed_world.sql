@@ -309,3 +309,14 @@ INSERT INTO rule VALUES ('coastal_income_bonus', 1.1, 'porto/costa: comércio ma
 -- Reparação natural da infraestrutura (InfrastructureRepairSystem)
 INSERT INTO rule VALUES ('infra_repair_per_day', 0.002, 'infraestrutura reposta por dia numa região calma');
 INSERT INTO rule VALUES ('infra_repair_max_resist', 0.3, 'resistência acima da qual a ocupação não repara');
+
+-- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)
+CREATE TABLE IF NOT EXISTS general (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL, cost REAL NOT NULL);
+INSERT INTO general VALUES ('gen_ofensiva','Mestre da ofensiva','attack',1.10,120);
+INSERT INTO general VALUES ('gen_defesa','Muralha','defense',1.10,120);
+INSERT INTO general VALUES ('gen_logistica','Logístico','org_regain',1.10,100);
+INSERT INTO general VALUES ('gen_manobra','Manobrador','move_speed',1.15,110);
+INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',1.08,140);
+INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
+INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');

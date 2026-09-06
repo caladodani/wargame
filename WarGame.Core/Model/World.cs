@@ -38,6 +38,8 @@ public sealed class World
     public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
     /// <summary>Decisões nacionais (tabela decision) e as activas.</summary>
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
+    /// <summary>Comandantes contratáveis (tabela general).</summary>
+    public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
@@ -116,6 +118,16 @@ public sealed class World
         Easy,
         Normal,
         Hard
+    }
+
+    /// <summary>Recalcula Country.GeneralMult a partir dos comandantes contratados (após contratar,
+    /// dispensar ou carregar um jogo).</summary>
+    public static void ApplyGenerals(World w, Country c)
+    {
+        c.GeneralMult.Clear();
+        foreach (var id in c.Generals)
+            if (w.GeneralDefs.TryGetValue(id, out var g))
+                c.GeneralMult[g.StatKey] = c.GeneralMult.GetValueOrDefault(g.StatKey, 1f) * g.Mult;
     }
 
     /// <summary>Recalcula Country.TechMult a partir das tecnologias concluídas (chamar após LoadSave e ao concluir uma).</summary>

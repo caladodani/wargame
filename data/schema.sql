@@ -222,3 +222,5 @@ CREATE TABLE IF NOT EXISTS s_region_building (   -- níveis de edifícios por re
 CREATE TABLE IF NOT EXISTS s_decision (          -- decisões nacionais (DecisionSystem): activa se until_day>=dia
   country_id INTEGER NOT NULL, decision TEXT NOT NULL, until_day INTEGER NOT NULL, cooldown_until INTEGER NOT NULL,
   PRIMARY KEY (country_id, decision));
+CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (HireGeneralCommand)
+  country_id INTEGER NOT NULL, general TEXT NOT NULL, PRIMARY KEY (country_id, general));
