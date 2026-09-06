@@ -41,6 +41,7 @@ public partial class Hud : CanvasLayer
     private ArmyPanel _armyPanel = null!;
     private EndScreen _end = null!;
     private MiniMap _mini = null!;
+    private AlertStrip _alerts = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
@@ -69,6 +70,13 @@ public partial class Hud : CanvasLayer
             _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
+            _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
+            _alerts.OnGoTo = ShowRegion;
+            _alerts.OnOpen = id =>
+            {
+                if (id == "offers") OpenWar();
+                else if (id == "research" || id == "queue") OpenCountry();
+            };
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
@@ -713,6 +721,7 @@ public partial class Hud : CanvasLayer
             _warPanel.Refresh();
             _armyPanel.Refresh();
             // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
+            _alerts.Refresh();
             _mini.SetCovered(_region.Visible || _production.Visible || _countryPanel.Visible
                              || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible);
             if (!_mini.Visible) return;
@@ -918,7 +927,8 @@ public partial class Hud : CanvasLayer
         int fogged = 0; string fogWhy = "mapa aberto";
         foreach (var fr in w.Regions.Values.Where(x => x.ControllerId != pid).OrderBy(x => x.Id))
             if (!Vision.Sees(w, pid, fr)) { if (fogged++ == 0) { fogWhy = Vision.Why(w, pid, fr); _region.Open(fr.Id); _region.Close(); } }
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy})");
+        int alarms = _alerts.Smoke();                                   // faixa de alarmes desenhada
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

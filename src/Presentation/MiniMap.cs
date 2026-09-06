@@ -36,7 +36,7 @@ public partial class MiniMap : PanelContainer
 
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); AddChild(v);
         var head = new HBoxContainer();
-        head.AddChild(Ui.Grow(Ui.Lbl("Mapa", 15)));
+        head.AddChild(Ui.Grow(Ui.Head("Mapa", 13)));
         _toggle = Ui.Btn("–", Toggle, 44); head.AddChild(_toggle);
         v.AddChild(head);
 

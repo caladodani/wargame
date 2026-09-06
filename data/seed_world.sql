@@ -578,3 +578,10 @@ INSERT INTO rule (key,value,note) VALUES ('production_queue_max',30,'encomendas 
 INSERT INTO rule (key,value,note) VALUES
  ('ai_naval_ratio',3,'vantagem em divisões que a IA exige para assaltar uma praia defendida'),
  ('ai_naval_org_margin',20,'organização acima do mínimo legal que a IA guarda para a travessia');
+
+-- Faixa de avisos (Alerts): limiares a partir dos quais o jogo levanta a mão sozinho.
+INSERT INTO rule (key,value,note) VALUES
+ ('alert_money_days',15,'dias de reserva no cofre abaixo dos quais se avisa que ele seca'),
+ ('alert_supply',0.6,'abastecimento de uma divisão abaixo do qual ela conta como a beber areia'),
+ ('alert_resistance',0.5,'resistência numa região ocupada a partir da qual se avisa que ferve'),
+ ('alert_idle_money',150,'dinheiro no cofre a partir do qual a fila de produção vazia é desperdício');

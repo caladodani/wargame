@@ -92,6 +92,19 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>Título de secção à maneira das folhas de estado-maior: versaletes (o Godot não tem a
+    /// variante tipográfica, faz-se por maiúsculas com espaço entre letras) em latão, com o risco por
+    /// baixo. Dá hierarquia aos painéis sem gastar altura nem tamanho de letra.</summary>
+    public static VBoxContainer Head(string text, int size = 14)
+    {
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 2);
+        var l = Lbl(string.Join(" ", text.ToUpperInvariant().ToCharArray()), size);
+        l.AddThemeColorOverride("font_color", Accent);
+        v.AddChild(l);
+        v.AddChild(Rule());
+        return v;
+    }
+
     /// <summary>Risco de latão a toda a largura: separa secções sem gastar altura.</summary>
     public static ColorRect Rule(float height = 1f) => new()
     {
