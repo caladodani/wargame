@@ -43,6 +43,8 @@ public sealed class World
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>
     public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
+    /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
+    public List<GeneralRank> GeneralRanks { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
@@ -296,8 +298,33 @@ public sealed class World
         if (ArmyGroups.Count == 0 || d.GroupId is not int gid) return 1f;
         if (!ArmyGroups.TryGetValue(gid, out var g) || g.GeneralId is not string gen) return 1f;
         if (!GeneralDefs.TryGetValue(gen, out var def) || def.StatKey != key) return 1f;
-        return 1f + (def.Mult - 1f) * Rule("general_command_bonus", 2f);
+        return 1f + (def.Mult - 1f) * (Rule("general_command_bonus", 2f) + RankBonus(g.CountryId, gen));
     }
+
+    /// <summary>Posto actual de um comandante contratado: o mais alto cuja experiência ele já passou.
+    /// Sem tabela de postos (ou sem experiência nenhuma) devolve null — o comando vale o de sempre.</summary>
+    public GeneralRank? RankOf(int countryId, string generalId)
+    {
+        if (GeneralRanks.Count == 0 || !Countries.TryGetValue(countryId, out var c)) return null;
+        float xp = c.GeneralXp.GetValueOrDefault(generalId);
+        GeneralRank? best = null;
+        foreach (var r in GeneralRanks)
+            if (xp >= r.Xp && (best is null || r.Xp > best.Xp)) best = r;
+        return best;
+    }
+
+    /// <summary>Posto seguinte, para a UI mostrar quanto falta para a promoção (null = já é o topo).</summary>
+    public GeneralRank? NextRank(int countryId, string generalId)
+    {
+        float xp = Countries.TryGetValue(countryId, out var c) ? c.GeneralXp.GetValueOrDefault(generalId) : 0f;
+        GeneralRank? next = null;
+        foreach (var r in GeneralRanks)
+            if (r.Xp > xp && (next is null || r.Xp < next.Xp)) next = r;
+        return next;
+    }
+
+    /// <summary>Quanto o posto acrescenta ao multiplicador de destacamento deste comandante.</summary>
+    public float RankBonus(int countryId, string generalId) => RankOf(countryId, generalId)?.Bonus ?? 0f;
 
     public int NewDivisionId()
     {

@@ -345,6 +345,23 @@ INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país'
 INSERT INTO rule VALUES ('general_command_bonus', 2, 'quanto vale o bónus de um comandante quando é destacado para um grupo de exércitos em vez de servir o país todo');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
 
+-- Postos de comandante (tabela general_rank; GeneralXpSystem). O comandante destacado num grupo de
+-- exércitos ganha experiência com as batalhas do grupo e sobe de posto; bonus soma-se ao
+-- general_command_bonus, por isso um marechal veterano vale muito mais do que o mesmo homem no dia
+-- em que foi contratado.
+CREATE TABLE IF NOT EXISTS general_rank (
+  level INTEGER PRIMARY KEY, name TEXT NOT NULL, xp REAL NOT NULL, bonus REAL NOT NULL);
+INSERT INTO general_rank VALUES (1,'Brigadeiro',0,0);
+INSERT INTO general_rank VALUES (2,'General de Divisão',40,0.5);
+INSERT INTO general_rank VALUES (3,'General de Exército',110,1.0);
+INSERT INTO general_rank VALUES (4,'Marechal',220,1.75);
+INSERT INTO general_rank VALUES (5,'Marechal do Reino',360,2.5);
+INSERT INTO rule (key,value,note) VALUES
+ ('general_xp_battle',2,'experiência do comandante por batalha travada pelo grupo'),
+ ('general_xp_win',3,'experiência extra do comandante por batalha ganha pelo grupo'),
+ ('general_xp_capture',4,'experiência do comandante por região tomada por divisões do grupo'),
+ ('general_xp_max',400,'tecto da experiência de campanha de um comandante');
+
 -- Grupos de exércitos com frente atribuída (ArmyGroupSystem)
 INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
 INSERT INTO rule VALUES ('army_group_min_org', 35, 'organização mínima para uma divisão do grupo marchar');

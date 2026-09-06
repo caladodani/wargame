@@ -78,6 +78,8 @@ public sealed record InfrastructureRepaired(int RegionId) : IGameEvent;
 public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
 /// <summary>Comandante contratado (HireGeneralCommand).</summary>
 public sealed record GeneralHired(int CountryId, string GeneralId) : IGameEvent;
+/// <summary>Comandante promovido pelas batalhas do grupo que comanda (GeneralXpSystem).</summary>
+public sealed record GeneralPromoted(int CountryId, string GeneralId, int Level, string RankName) : IGameEvent;
 /// <summary>Comandante dispensado (DismissGeneralCommand).</summary>
 public sealed record GeneralDismissed(int CountryId, string GeneralId) : IGameEvent;
 /// <summary>Decisão nacional activada (ActivateDecisionCommand).</summary>

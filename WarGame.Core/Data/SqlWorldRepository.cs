@@ -89,6 +89,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,stat_key,mult,cost FROM general"))
             w.GeneralDefs[(string)r["id"]!] = new GeneralDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["mult"]), Convert.ToSingle(r["cost"]));
+        w.GeneralRanks.Clear();
+        foreach (var r in _static.Query("SELECT level,name,xp,bonus FROM general_rank ORDER BY xp"))
+            w.GeneralRanks.Add(new GeneralRank(Convert.ToInt32(r["level"]), (string)r["name"]!,
+                Convert.ToSingle(r["xp"]), Convert.ToSingle(r["bonus"])));
         foreach (var r in _static.Query("SELECT id,name,cost,days,cooldown,stat_key,mult FROM decision"))
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), Convert.ToInt32(r["cooldown"]),
@@ -240,6 +244,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "captures", "INTEGER NOT NULL DEFAULT 0"),
         ("s_army_group", "stance", "INTEGER NOT NULL DEFAULT 0"),
         ("s_army_group", "general", "TEXT"),
+        ("s_general", "xp", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -297,8 +302,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
-        foreach (var r in save.Query("SELECT country_id,general FROM s_general"))
-            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var gc)) gc.Generals.Add((string)r["general"]!);
+        foreach (var r in save.Query("SELECT country_id,general,xp FROM s_general"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var gc))
+            {
+                string gid = (string)r["general"]!;
+                gc.Generals.Add(gid);
+                gc.GeneralXp[gid] = Convert.ToSingle(r["xp"]);
+            }
         foreach (var c in w.Countries.Values) World.ApplyGenerals(w, c);
         foreach (var r in save.Query("SELECT country_id,decision,until_day,cooldown_until FROM s_decision"))
         {
@@ -420,7 +430,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
         foreach (var c in w.Countries.Values)
             foreach (var g in c.Generals)
-                save.Execute("INSERT INTO s_general (country_id,general) VALUES (?,?)", c.Id, g);
+                save.Execute("INSERT INTO s_general (country_id,general,xp) VALUES (?,?,?)", c.Id, g, c.GeneralXp.GetValueOrDefault(g));
         foreach (var c in w.Countries.Values)
             foreach (var (did, cd) in c.DecisionCooldownUntil)
                 save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until) VALUES (?,?,?,?)",

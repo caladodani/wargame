@@ -83,6 +83,7 @@ public partial class Game : Node
         World.Register(new FocusSystem());
         World.Register(new NewsSystem());
         World.Register(new WarStatsSystem());   // antes do combate: liga-se aos eventos que vai contar
+        World.Register(new GeneralXpSystem());  // idem: ouve as batalhas para dar posto aos comandantes
         World.Register(new WarGoalSystem());
         World.Register(new MovementSystem());
         World.Register(new CombatSystem());

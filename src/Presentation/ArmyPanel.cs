@@ -59,12 +59,18 @@ public partial class ArmyPanel : PanelContainer
             _game.Dispatch(new SetArmyGroupFrontCommand(pid, g.Id, war.EnemyOf(pid)));
             _game.Dispatch(new SetArmyGroupStanceCommand(pid, g.Id, GroupStance.Advance));
         }
+        // sem comandante ao serviço o cartão de comando nunca era desenhado: contrata-se um só para o teste
+        string? hired = null;
+        if (w.Countries[pid].Generals.Count == 0
+            && w.GeneralDefs.Values.OrderBy(x => x.Cost).FirstOrDefault() is GeneralDef cheap
+            && _game.Dispatch(new HireGeneralCommand(pid, cheap.Id)) is null) hired = cheap.Id;
         if (w.Countries[pid].Generals.FirstOrDefault() is string gen)
             _game.Dispatch(new AssignGeneralCommand(pid, g.Id, gen));
         _fronts = g.Id; _generals = g.Id;
         _lastKey = ""; Fill();
         _fronts = null; _generals = null;
         _game.Dispatch(new DisbandArmyGroupCommand(pid, g.Id));
+        if (hired is not null) _game.Dispatch(new DismissGeneralCommand(pid, hired));
         _lastKey = "";
     }
 
@@ -168,14 +174,21 @@ public partial class ArmyPanel : PanelContainer
         note.AddThemeColorOverride("font_color", g.NeedsFront && g.FrontCountryId is null ? Ui.Danger : Ui.TextDim);
         v.AddChild(note);
 
-        // comandante destacado: o bónus dele sai do país e vem para aqui multiplicado
+        // comandante destacado: o bónus dele sai do país e vem para aqui multiplicado, e cresce com o posto
         var genRow = new HBoxContainer();
         var gdef = g.GeneralId is string gid && w.GeneralDefs.TryGetValue(gid, out var found) ? found : null;
-        var genLbl = Ui.Lbl(gdef is null ? "Comandante: nenhum (o estado-maior serve o país todo)"
-            : $"Comandante: {gdef.Name} — {StatName(gdef.StatKey)} ×{1f + (gdef.Mult - 1f) * w.Rule("general_command_bonus", 2f):0.00} neste exército", 16);
-        if (gdef is not null) genLbl.AddThemeColorOverride("font_color", new Color(1f, 0.82f, 0.25f));
-        genRow.AddChild(Ui.Grow(genLbl));
-        genRow.AddChild(Ui.Btn(_generals == g.Id ? "Fechar" : "Comando", () => ToggleGenerals(g.Id), 170));
+        if (gdef is null)
+        {
+            genRow.AddChild(Ui.Grow(Ui.Lbl("Comandante: nenhum (o estado-maior serve o país todo)", 16)));
+        }
+        else
+        {
+            float mult = 1f + (gdef.Mult - 1f) * (w.Rule("general_command_bonus", 2f) + w.RankBonus(pid, gdef.Id));
+            genRow.AddChild(Ui.Grow(CommanderView.Card(w, pid, gdef, $"{StatName(gdef.StatKey)} ×{mult:0.00} neste exército")));
+        }
+        var toggle = new VBoxContainer();
+        toggle.AddChild(Ui.Btn(_generals == g.Id ? "Fechar" : "Comando", () => ToggleGenerals(g.Id), 170));
+        genRow.AddChild(toggle);
         v.AddChild(genRow);
 
         if (_generals == g.Id)
@@ -189,7 +202,9 @@ public partial class ArmyPanel : PanelContainer
                 {
                     if (!w.GeneralDefs.TryGetValue(id, out var def)) continue;
                     var busy = w.ArmyGroups.Values.FirstOrDefault(x => x.Id != g.Id && x.GeneralId == id);
-                    flow.AddChild(Ui.Btn(busy is null ? $"{def.Name} ({StatName(def.StatKey)})" : $"{def.Name} — {busy.Name}",
+                    // a divisa vai no botão: escolhe-se o comandante pelo posto que ele já ganhou, não só pelo stat
+                    string mark = CommanderView.Insignia(w.RankOf(pid, id)?.Level ?? 1);
+                    flow.AddChild(Ui.Btn(busy is null ? $"{mark} {def.Name} ({StatName(def.StatKey)})" : $"{mark} {def.Name} — {busy.Name}",
                         () => SetGeneral(pid, g.Id, id), 0, g.GeneralId == id ? Ui.Kind.Primary : Ui.Kind.Normal));
                 }
                 if (g.GeneralId is not null) flow.AddChild(Ui.Btn("Chamar de volta", () => SetGeneral(pid, g.Id, null), 0));

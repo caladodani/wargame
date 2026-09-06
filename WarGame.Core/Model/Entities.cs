@@ -105,6 +105,11 @@ public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<
 /// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
 public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
 
+/// <summary>Posto de comandante (tabela general_rank): a partir de Xp de experiência de campanha o
+/// comandante sobe a este posto e soma Bonus ao que o destacamento já amplifica. Os nomes e os
+/// limiares são dados, não código — mudar a progressão é mexer na tabela.</summary>
+public sealed record GeneralRank(int Level, string Name, float Xp, float Bonus);
+
 /// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
 public sealed class ActiveDecision
 {
@@ -202,6 +207,9 @@ public sealed class Country
     /// <summary>Comandantes contratados (tabela general; HireGeneralCommand) e o que somam aos stats.</summary>
     public List<string> Generals { get; } = new();
     public Dictionary<string, float> GeneralMult { get; } = new();
+    /// <summary>Experiência de campanha de cada comandante contratado (GeneralXpSystem): sobe com as
+    /// batalhas do grupo que ele comanda e nunca desce. Manda no posto — ver World.RankOf.</summary>
+    public Dictionary<string, float> GeneralXp { get; } = new();
     /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
     public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>

@@ -450,6 +450,12 @@ public partial class Hud : CanvasLayer
             if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz");
             else if (Player(e.TargetCountryId)) Later($"⚠ {Country(e.CountryId)} já tem o que veio buscar");
         }));
+        // Promoção de comandante: acontece poucas vezes por campanha, por isso vai toda para as notícias.
+        _subs.Add(w.Events.Subscribe<GeneralPromoted>(e =>
+        {
+            if (!Player(e.CountryId) || !w.GeneralDefs.TryGetValue(e.GeneralId, out var gdef)) return;
+            Later($"🎖 {gdef.Name} promovido a {e.RankName}");
+        }));
         // Condecoração: só as do jogador, e só as de peso (as primeiras chegam às centenas num exército grande).
         _subs.Add(w.Events.Subscribe<MedalAwarded>(e =>
         {

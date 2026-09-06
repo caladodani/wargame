@@ -115,15 +115,20 @@ public partial class CountryPanel : PanelContainer
                     var posted = w.ArmyGroups.Values.FirstOrDefault(g => g.CountryId == c.Id && g.GeneralId == def.Id);
                     string eff = posted is null
                         ? $"{StatName(def.StatKey)} ×{def.Mult:0.00}"
-                        : $"{StatName(def.StatKey)} ×{1f + (def.Mult - 1f) * w.Rule("general_command_bonus", 2f):0.00} no {posted.Name}";
+                        : $"{StatName(def.StatKey)} ×{1f + (def.Mult - 1f) * (w.Rule("general_command_bonus", 2f) + w.RankBonus(c.Id, def.Id)):0.00} no {posted.Name}";
                     var row = new HBoxContainer(); _body.AddChild(row);
-                    var lbl = Ui.Lbl($"{(posted is not null ? "⚔ " : serving ? "★ " : "")}{def.Name} — {eff}", 16);
-                    if (posted is not null) lbl.AddThemeColorOverride("font_color", new Color(1f, 0.82f, 0.25f));
+                    // a divisa do posto só faz sentido em quem serve: um comandante por contratar não tem folha
+                    string mark = posted is not null ? "⚔ " : serving ? CommanderView.Insignia(w.RankOf(c.Id, def.Id)?.Level ?? 1) + " " : "";
+                    string rank = serving && CommanderView.RankName(w, c.Id, def.Id) is string rn && rn.Length > 0 ? $" · {rn}" : "";
+                    var lbl = Ui.Lbl($"{mark}{def.Name}{rank} — {eff}", 16);
+                    if (serving) lbl.AddThemeColorOverride("font_color", CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w)));
                     row.AddChild(Ui.Grow(lbl));
                     if (serving)
                         row.AddChild(Ui.Btn("Dispensar", () => Faction(new DismissGeneralCommand(c.Id, def.Id)), 160));
                     else if (c.Generals.Count < slots)
                         row.AddChild(Ui.Btn($"Contratar ({def.Cost:0})", () => Faction(new HireGeneralCommand(c.Id, def.Id)), 160));
+                    // barra de carreira: mostra o que a guerra lhe deu e quanto falta para a promoção
+                    if (serving) _body.AddChild(CommanderView.Progress(w, c.Id, def.Id, CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w))));
                 }
             }
 
