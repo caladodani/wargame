@@ -75,6 +75,7 @@ def main():
     ap.add_argument('--target', type=int, default=3000)
     ap.add_argument('--min-per-country', type=int, default=3, help='regiões mínimas por país (se o NE tiver admin-1 que chegue)')
     ap.add_argument('--world-width', type=float, default=8000.0, help='largura do mapa em unidades Godot')
+    ap.add_argument('--sea-max-km', type=float, default=3200.0, help='alcance máximo de uma ligação marítima')
     ap.add_argument('--preview', default=str(HERE / 'data' / 'map_preview.png'))
     a = ap.parse_args()
     t0 = time.time()
@@ -187,6 +188,52 @@ def main():
         for j in tree.query(gb, predicate='intersects'):
             if j != i: neigh[i].add(int(j)); neigh[int(j)].add(i)
 
+    # ---- 6b. mar: regiões costeiras + ligações marítimas (sea_link)
+    # Costeira = fronteira da região toca a linha de costa (fronteira da união de toda a terra —
+    # buracos da união são lagos, também contam). Ligação = par de costeiras a ≤ sea-max-km cujo
+    # segmento centróide→centróide (amostrado de 40 em 40 km, pontas excluídas) é maioritariamente
+    # água — assim Hamburgo→Veneza morre em terra mas Gibraltar, Báltico e até Suez/Panamá passam.
+    t0 = time.time()
+    import shapely
+    land = shapely.union_all([g.buffer(0) for g in geoms])
+    coastline = land.boundary
+    shapely.prepare(coastline); shapely.prepare(land)
+    coastal = [bool(coastline.intersects(g.buffer(0.01))) for g in geoms]
+    cidx = [i for i, c in enumerate(coastal) if c]
+    lonlat = np.array([[g.centroid.x, g.centroid.y] for g in geoms])
+
+    def haversine_km(p, q):
+        la1, la2 = math.radians(p[1]), math.radians(q[1])
+        dla, dlo = la2 - la1, math.radians(q[0] - p[0])
+        h = math.sin(dla / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin(dlo / 2) ** 2
+        return 2 * 6371 * math.asin(min(1, math.sqrt(h)))
+
+    pairs, pts, owner = [], [], []   # owner[k] = índice do par a que o ponto k pertence
+    for ai in range(len(cidx)):
+        for bi in range(ai + 1, len(cidx)):
+            i, j = cidx[ai], cidx[bi]
+            if j in neigh[i]: continue
+            p, q = lonlat[i], lonlat[j]
+            dlon = q[0] - p[0]
+            if dlon > 180: dlon -= 360   # antimeridiano (Bering): caminho curto dá a volta
+            elif dlon < -180: dlon += 360
+            km = haversine_km(p, (p[0] + dlon, q[1]))
+            if km > a.sea_max_km or km < 1: continue
+            n = max(5, int(km / 40))
+            for t in np.linspace(0.15, 0.85, n):   # pontas fora: os centróides estão em terra
+                lon = p[0] + dlon * t
+                if lon > 180: lon -= 360
+                elif lon < -180: lon += 360
+                pts.append((lon, p[1] + (q[1] - p[1]) * t)); owner.append(len(pairs))
+            pairs.append((i, j, km))
+    on_land = shapely.contains_xy(land, np.array([p[0] for p in pts]), np.array([p[1] for p in pts]))
+    landfrac = defaultdict(lambda: [0, 0])
+    for k, o in enumerate(owner):
+        landfrac[o][0] += int(on_land[k]); landfrac[o][1] += 1
+    sea_links = [(i, j, km) for k, (i, j, km) in enumerate(pairs)
+                 if landfrac[k][0] / landfrac[k][1] <= 0.45]
+    print(f'mar: {len(cidx)} costeiras, {len(pairs)} pares testados, {len(sea_links)} ligações | {time.time() - t0:.0f}s')
+
     # ---- 2b. projecção Robinson → unidades Godot (y para baixo)
     tf = Transformer.from_crs('EPSG:4326', 'ESRI:54030', always_xy=True)
     xmax = tf.transform(180, 0)[0]; scale = a.world_width / (2 * xmax)
@@ -218,14 +265,18 @@ def main():
 
     for rid, r in enumerate(regions, start=1):
         r['id'] = rid
-        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y) VALUES (?,?,?,?,?,?,?,?,?)',
-                   (rid, r['name'], country_ids[r['country']], r['terrain'], r['river'], r['pop'], 1.0, r['cx'], r['cy']))
+        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                   (rid, r['name'], country_ids[r['country']], r['terrain'], r['river'], r['pop'], 1.0, r['cx'], r['cy'],
+                    int(coastal[rid - 1])))
         for k, ring in enumerate(r['rings']):
             blob = struct.pack(f'<{2 * len(ring)}f', *[v for pt in ring for v in pt])
             db.execute('INSERT INTO region_polygon(region_id,ring_index,points) VALUES (?,?,?)', (rid, k, blob))
     for i, ns in neigh.items():
         for j in ns:
             db.execute('INSERT OR IGNORE INTO region_neighbour VALUES (?,?)', (regions[i]['id'], regions[j]['id']))
+    for i, j, km in sea_links:
+        db.execute('INSERT OR IGNORE INTO sea_link(region_id,neighbour_id,km) VALUES (?,?,?)',
+                   (regions[i]['id'], regions[j]['id'], round(km)))
     db.commit()
 
     # ---- 8. países: industry automática por PIB per capita (√ da razão para a média mundial, 0.4..2.5),

@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS region (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner_id INTEGER REFERENCES country(id),
   terrain TEXT NOT NULL REFERENCES terrain(id), river INTEGER NOT NULL DEFAULT 0,
   population INTEGER NOT NULL DEFAULT 0, infrastructure REAL NOT NULL DEFAULT 1,
-  centroid_x REAL, centroid_y REAL
+  centroid_x REAL, centroid_y REAL, coastal INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS region_polygon (   -- anéis exteriores, float32 x,y já projectados (Robinson, y para baixo)
   region_id INTEGER NOT NULL REFERENCES region(id), ring_index INTEGER NOT NULL, points BLOB NOT NULL,
@@ -73,6 +73,11 @@ CREATE TABLE IF NOT EXISTS region_polygon (   -- anéis exteriores, float32 x,y 
 );
 CREATE TABLE IF NOT EXISTS region_neighbour (
   region_id INTEGER NOT NULL REFERENCES region(id), neighbour_id INTEGER NOT NULL REFERENCES region(id),
+  PRIMARY KEY (region_id, neighbour_id)
+);
+CREATE TABLE IF NOT EXISTS sea_link (         -- ligação marítima entre costeiras (uma linha por par, km reais)
+  region_id INTEGER NOT NULL REFERENCES region(id), neighbour_id INTEGER NOT NULL REFERENCES region(id),
+  km REAL NOT NULL,
   PRIMARY KEY (region_id, neighbour_id)
 );
 CREATE TABLE IF NOT EXISTS region_resource (

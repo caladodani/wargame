@@ -63,7 +63,7 @@ public sealed class AiSystem : ISystem
         float ratio = w.Rule("ai_war_ratio", 2f);
         Country? target = null; int targetDivs = int.MaxValue;
         foreach (var r in owned)
-            foreach (var n in r.Neighbours)
+            foreach (var n in r.SeaNeighbours.Count == 0 ? r.Neighbours : r.Neighbours.Concat(r.SeaNeighbours.Keys))
             {
                 int other = w.Regions[n].ControllerId;
                 if (other == c.Id || !w.Countries.TryGetValue(other, out var o) || o.Capitulated) continue;
@@ -124,7 +124,10 @@ public sealed class AiSystem : ISystem
     {
         if (owned is null) return;
         var front = owned.Where(r => r.Neighbours.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
-        if (front.Count == 0) return;   // inimigo além-mar: sem naval não há nada a fazer
+        // Sem frente terrestre (ilha, ultramar): as costeiras com inimigo ao alcance do mar são a frente.
+        if (front.Count == 0)
+            front = owned.Where(r => r.SeaNeighbours.Keys.Any(n => w.IsHostile(c.Id, w.Regions[n]))).ToList();
+        if (front.Count == 0) return;
 
         float minOrg = w.Rule("ai_min_org", 50), ratio = w.Rule("ai_attack_ratio", 1.5f);
         var groups = new Dictionary<int, List<Division>>();   // região → divisões disponíveis
@@ -141,7 +144,7 @@ public sealed class AiSystem : ISystem
         {
             if (!groups.TryGetValue(f.Id, out var g)) continue;
             Region? target = null; int best = int.MaxValue, total = 0;
-            foreach (var n in f.Neighbours)
+            foreach (var n in f.SeaNeighbours.Count == 0 ? f.Neighbours : f.Neighbours.Concat(f.SeaNeighbours.Keys))
             {
                 var r = w.Regions[n];
                 if (!w.IsHostile(c.Id, r)) continue;

@@ -17,13 +17,20 @@ public sealed class MovementSystem : ISystem
         Retreat(w, inBattle);
 
         float baseDays = w.Rule("move_base_days", 80f), infraFloor = w.Rule("move_infra_floor", 0.5f);
+        float seaSpeed = w.Rule("sea_speed_kmd", 400f), seaMin = w.Rule("sea_min_days", 2f);
         foreach (var d in w.Divisions.Values)
         {
             if (d.Path.Count == 0 || inBattle.Contains(d.Id)) continue;
             var target = w.Regions[d.Path[0]];
-            // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
-            float days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
-                         / MathF.Max(infraFloor, target.Infrastructure) / w.Countries[d.CountryId].Stat("move_speed");
+            var origin = w.Regions[d.RegionId];
+            float days;
+            if (origin.SeaNeighbours.TryGetValue(target.Id, out float km) && !origin.Neighbours.Contains(target.Id))
+                // travessia marítima: dias pela distância, terreno e infraestrutura não contam
+                days = MathF.Max(seaMin, km / seaSpeed);
+            else
+                // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
+                days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
+                       / MathF.Max(infraFloor, target.Infrastructure) / w.Countries[d.CountryId].Stat("move_speed");
             d.MoveProgress += 1f / days;
             if (d.MoveProgress < 1f) continue;
 

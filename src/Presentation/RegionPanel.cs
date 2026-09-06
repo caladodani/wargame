@@ -144,7 +144,7 @@ public partial class RegionPanel : PanelContainer
             int? pid = _game.PlayerId;
             var ctrl = w.Countries.GetValueOrDefault(r.ControllerId);
 
-            _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}";
+            _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
             var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.";
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);
             if (battle is not null) info += $"  ·  {RegionRenderer.BattleMark}batalha ({battle.Days} dias)";

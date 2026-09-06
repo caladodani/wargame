@@ -68,7 +68,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c) && w.Techs.ContainsKey((string)r["tech_id"]!)) c.Techs.Add((string)r["tech_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
 
-        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y FROM region"))
+        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal FROM region"))
         {
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
             w.Regions[id] = new Region
@@ -78,10 +78,17 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Population = Convert.ToInt32(r["population"]), Infrastructure = Convert.ToSingle(r["infrastructure"]),
                 CenterX = r["centroid_x"] is null ? 0f : Convert.ToSingle(r["centroid_x"]),
                 CenterY = r["centroid_y"] is null ? 0f : Convert.ToSingle(r["centroid_y"]),
+                Coastal = Convert.ToInt32(r["coastal"]) == 1,
             };
         }
         foreach (var r in _static.Query("SELECT region_id,neighbour_id FROM region_neighbour"))
             w.Regions[Convert.ToInt32(r["region_id"])].Neighbours.Add(Convert.ToInt32(r["neighbour_id"]));
+        foreach (var r in _static.Query("SELECT region_id,neighbour_id,km FROM sea_link"))
+        {
+            int p = Convert.ToInt32(r["region_id"]), q = Convert.ToInt32(r["neighbour_id"]);
+            float km = Convert.ToSingle(r["km"]);
+            w.Regions[p].SeaNeighbours[q] = km; w.Regions[q].SeaNeighbours[p] = km;
+        }
     }
 
     public void LoadStartArmies(World w)

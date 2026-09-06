@@ -38,6 +38,9 @@ public sealed class Region
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }
     public List<int> Neighbours { get; init; } = new();
+    /// <summary>Ligações marítimas (sea_link): região costeira → km da travessia. Vazio = interior.</summary>
+    public Dictionary<int, float> SeaNeighbours { get; init; } = new();
+    public bool Coastal { get; init; }
     public List<int> DivisionIds { get; } = new();
 }
 

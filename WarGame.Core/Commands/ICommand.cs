@@ -66,14 +66,14 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
         if (!w.Regions.ContainsKey(TargetRegionId)) return "Região inexistente";
         if (d.RegionId == TargetRegionId) return "Já está lá";
         if (w.InBattle(DivisionId)) return "Em combate";
-        if (FindPath(w, d.RegionId, TargetRegionId, CountryId) is null) return "Sem caminho: só por território próprio ou inimigo";
+        if (FindPath(w, d.RegionId, TargetRegionId, CountryId) is null) return "Sem caminho por terra ou mar: só por território próprio ou inimigo";
         return null;
     }
 
     public void Execute(World w) => w.Divisions[DivisionId].SetPath(FindPath(w, w.Divisions[DivisionId].RegionId, TargetRegionId, CountryId)!);
 
-    /// <summary>BFS. Devolve os saltos (sem a origem, com o destino) ou null. Transitável = controlada por
-    /// `countryId` ou por país com quem está em guerra.</summary>
+    /// <summary>BFS por terra e mar (sea_link conta como um salto). Devolve os saltos (sem a origem, com o
+    /// destino) ou null. Transitável = controlada por `countryId` ou por país com quem está em guerra.</summary>
     public static List<int>? FindPath(World w, int from, int to, int countryId, int maxHops = 80)
     {
         if (from == to) return new List<int>();
@@ -83,7 +83,8 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
         {
             var (cur, depth) = queue.Dequeue();
             if (depth >= maxHops) continue;
-            foreach (var n in w.Regions[cur].Neighbours)
+            var reg = w.Regions[cur];
+            foreach (var n in reg.SeaNeighbours.Count == 0 ? reg.Neighbours : reg.Neighbours.Concat(reg.SeaNeighbours.Keys))
             {
                 if (prev.ContainsKey(n)) continue;
                 var r = w.Regions[n];

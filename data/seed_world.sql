@@ -74,3 +74,8 @@ INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
  ('USA','aggression',0.2), ('SAU','aggression',0.2), ('AZE','aggression',0.4), ('ETH','aggression',0.4),
  ('RWA','aggression',0.4), ('VEN','aggression',0.3), ('SDN','aggression',0.3), ('MLI','aggression',0.2),
  ('BLR','aggression',0.2), ('EGY','aggression',0.2), ('MAR','aggression',0.2), ('DZA','aggression',0.2);
+
+-- Mar: travessias marítimas entre regiões costeiras (sea_link na static.db).
+INSERT INTO rule (key,value,note) VALUES
+ ('sea_speed_kmd',400,'km por dia de uma divisão embarcada (Atlântico ≈ 8 dias)'),
+ ('sea_min_days',2,'dias mínimos de qualquer travessia marítima (embarque + desembarque)');
