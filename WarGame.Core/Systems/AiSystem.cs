@@ -38,6 +38,7 @@ public sealed class AiSystem : ISystem
         foreach (var c in w.Countries.Values)
         {
             if (c.IsPlayer) continue;   // o jogador nunca é mexido pela IA
+            if (c.Capitulated) continue;   // capitulou: sem regiões nem exército, nada a fazer
             var divs = divsByCountry.GetValueOrDefault(c.Id);
             Research(w, c);
             if (divs is null && c.Money <= 0f) continue;
@@ -65,7 +66,7 @@ public sealed class AiSystem : ISystem
             foreach (var n in r.Neighbours)
             {
                 int other = w.Regions[n].ControllerId;
-                if (other == c.Id || !w.Countries.TryGetValue(other, out var o)) continue;
+                if (other == c.Id || !w.Countries.TryGetValue(other, out var o) || o.Capitulated) continue;
                 if (o.IsPlayer && w.Clock.Day < w.Rule("ai_war_player_min_day", 90f)) continue;
                 int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
                 foreach (var ally in w.Allies(other)) theirs += divsByCountry.GetValueOrDefault(ally)?.Count ?? 0;

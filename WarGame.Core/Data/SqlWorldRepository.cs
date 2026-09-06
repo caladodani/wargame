@@ -52,7 +52,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
             w.Regions[id] = new Region
             {
-                Id = id, Name = (string)r["name"]!, OwnerId = owner, ControllerId = owner,
+                Id = id, Name = (string)r["name"]!, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner,
                 Terrain = (string)r["terrain"]!, River = Convert.ToInt32(r["river"]) == 1,
                 Population = Convert.ToInt32(r["population"]), Infrastructure = Convert.ToSingle(r["infrastructure"]),
                 CenterX = r["centroid_x"] is null ? 0f : Convert.ToSingle(r["centroid_x"]),
@@ -127,6 +127,9 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         ("s_country", "research_tech", "TEXT"),
         ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
+        ("s_country", "capitulated", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_country", "capitulated_day", "INTEGER"),
+        ("s_region", "owner_id", "INTEGER"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -137,17 +140,23 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         foreach (var r in save.Query("SELECT key,value FROM save_meta"))
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
             c.ResearchTech = r["research_tech"] as string; c.ResearchProgress = Convert.ToSingle(r["research_progress"]);
+            c.Capitulated = r["capitulated"] is not null && Convert.ToInt32(r["capitulated"]) == 1;
+            c.CapitulatedDay = r["capitulated_day"] is null ? null : Convert.ToInt32(r["capitulated_day"]);
         }
         foreach (var r in save.Query("SELECT country_id,tech_id FROM s_country_tech"))
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
-        foreach (var r in save.Query("SELECT id,controller_id,infrastructure FROM s_region"))
-        { var reg = w.Regions[Convert.ToInt32(r["id"])]; reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]); }
+        foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id FROM s_region"))
+        {
+            var reg = w.Regions[Convert.ToInt32(r["id"])];
+            reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]);
+            if (r["owner_id"] is not null && Convert.ToInt32(r["owner_id"]) > 0) reg.OwnerId = Convert.ToInt32(r["owner_id"]);   // NULL = dono da static
+        }
         foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name FROM s_division ORDER BY id"))
         {
             var d = new Division
@@ -182,15 +191,17 @@ public sealed class SqlWorldRepository : IWorldRepository
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         foreach (var c in w.Countries.Values)
         {
-            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress) VALUES (?,?,?,?,?)", c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress);
+            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated)
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day) VALUES (?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress) VALUES (?,?,?)", c.Id, o.TemplateId, o.Progress);
             foreach (var e in c.AtWarWith) if (c.Id < e) save.Execute("INSERT INTO s_war VALUES (?,?,?)", c.Id, e, w.Clock.Day);
         }
         foreach (var r in w.Regions.Values)
-            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f)
-                save.Execute("INSERT INTO s_region VALUES (?,?,?)", r.Id, r.ControllerId, r.Infrastructure);
+            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId)
+                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id) VALUES (?,?,?,?)",
+                    r.Id, r.ControllerId, r.Infrastructure, r.OwnerId == r.InitialOwnerId ? null : r.OwnerId);
         foreach (var d in w.Divisions.Values)
             save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name);

@@ -24,6 +24,8 @@ public sealed class Region
     public int Id { get; init; }
     public string Name { get; init; } = "";
     public int OwnerId { get; set; }
+    /// <summary>Dono na static.db; se OwnerId difere (capitulação), o save tem de guardar o novo dono.</summary>
+    public int InitialOwnerId { get; init; }
     public int ControllerId { get; set; }
     public string Terrain { get; init; } = "plain";
     public bool River { get; init; }
@@ -62,6 +64,9 @@ public sealed class Country
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
     public HashSet<int> AtWarWith { get; } = new();
+    /// <summary>Capitulou (PeaceSystem): sem regiões nem exército; a IA ignora-o. Persistido em s_country.</summary>
+    public bool Capitulated { get; set; }
+    public int? CapitulatedDay { get; set; }
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>

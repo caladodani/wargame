@@ -11,6 +11,9 @@ public sealed record BattleStarted(int RegionId) : IGameEvent;
 public sealed record BattleEnded(int RegionId, bool AttackerWon) : IGameEvent;
 public sealed record DivisionDestroyed(int DivisionId) : IGameEvent;
 public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
+/// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
+public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
+public sealed record WarEnded(int A, int B) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

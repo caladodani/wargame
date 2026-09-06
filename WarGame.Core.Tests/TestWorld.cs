@@ -37,7 +37,7 @@ public static class TestWorld
         for (int i = 1; i <= n; i++)
         {
             int owner = i <= split ? 1 : 2;
-            var r = new Region { Id = i, Name = "R" + i, OwnerId = owner, ControllerId = owner, Terrain = terrain, Population = population, CenterX = i * 100, CenterY = 0 };
+            var r = new Region { Id = i, Name = "R" + i, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner, Terrain = terrain, Population = population, CenterX = i * 100, CenterY = 0 };
             if (i > 1) r.Neighbours.Add(i - 1);
             if (i < n) r.Neighbours.Add(i + 1);
             w.Regions[i] = r;

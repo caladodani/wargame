@@ -105,12 +105,14 @@ CREATE TABLE IF NOT EXISTS event_def (
 CREATE TABLE IF NOT EXISTS save_meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS s_country (
   id INTEGER PRIMARY KEY, is_player INTEGER NOT NULL DEFAULT 0, money REAL NOT NULL DEFAULT 0,
-  stability REAL NOT NULL DEFAULT 50, research_tech TEXT, research_progress REAL NOT NULL DEFAULT 0
+  stability REAL NOT NULL DEFAULT 50, research_tech TEXT, research_progress REAL NOT NULL DEFAULT 0,
+  capitulated INTEGER NOT NULL DEFAULT 0, capitulated_day INTEGER
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, PRIMARY KEY (a, b));
 CREATE TABLE IF NOT EXISTS s_region (
-  id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL
+  id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
+  owner_id INTEGER          -- NULL = dono da static.db (só muda com capitulações)
 );
 CREATE TABLE IF NOT EXISTS template (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL

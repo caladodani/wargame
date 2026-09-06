@@ -31,6 +31,11 @@ INSERT INTO faction_member (faction_id,country_tag) VALUES
  ('cn_prk','CHN'),('cn_prk','PRK'),
  ('ru_prk','RUS'),('ru_prk','PRK');
 
+-- rules: peace (PeaceSystem — capitulação estilo HoI4)
+INSERT INTO rule (key,value,note) VALUES
+ ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção da população das suas regiões'),
+ ('capitulate_share_capital',0.5,'fracção que chega quando a capital está controlada por um inimigo');
+
 -- aggression: 0 (omisso) = nunca começa guerras. Só os países que na realidade as ameaçam.
 INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
  ('RUS','aggression',1.0), ('PRK','aggression',0.6), ('CHN','aggression',0.4), ('IRN','aggression',0.5),
