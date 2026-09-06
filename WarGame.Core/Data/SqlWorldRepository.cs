@@ -80,6 +80,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort FROM medal ORDER BY sort"))
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
+            w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
+                (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,sort FROM difficulty ORDER BY sort"))
             w.DifficultyDefs[(string)r["id"]!] = new DifficultyDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToInt32(r["sort"]), new Dictionary<string, float>());
@@ -250,6 +253,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_general", "xp", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "power_rank", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "power_rank_prev", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_division", "honour", "TEXT"),
+        ("s_division", "honour_name", "TEXT"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -357,7 +362,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -369,6 +374,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["auto_advance"] is not null) d.AutoAdvance = Convert.ToInt32(r["auto_advance"]) != 0;
             if (r["battles"] is not null) d.Battles = Convert.ToInt32(r["battles"]);
             if (r["captures"] is not null) d.Captures = Convert.ToInt32(r["captures"]);
+            if (r["honour"] is string hon && hon.Length > 0) { d.Honour = hon; d.HonourName = r["honour_name"] as string; }
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
@@ -507,9 +513,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var d in w.Divisions.Values)
         {
-            save.Execute("INSERT INTO s_division VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+            // colunas nomeadas: a tabela cresce por migração e um INSERT posicional partia-se à coluna seguinte
+            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
-                d.Battles, d.Captures);
+                d.Battles, d.Captures, d.Honour, d.HonourName);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
         }

@@ -471,6 +471,14 @@ public partial class Hud : CanvasLayer
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
             Later($"🎖 {unit}: {m.Name}");
         }));
+        // Nome de guerra: uma divisão só ganha honra umas poucas vezes por campanha — vai toda para as notícias.
+        _subs.Add(w.Events.Subscribe<DivisionHonoured>(e =>
+        {
+            if (!Player(e.CountryId)) return;
+            string unit = w.Divisions.TryGetValue(e.DivisionId, out var d)
+                ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
+            Later($"▮ {unit} passa a chamar-se «{e.Title}»");
+        }));
         // Saldo da guerra que acabou: sai como notícia e fica no painel Guerra para consulta.
         _subs.Add(w.Events.Subscribe<WarSummary>(e =>
         {
@@ -632,7 +640,14 @@ public partial class Hud : CanvasLayer
         _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
         _end.Show(CampaignReport.Ongoing); _end.Close();               // ecrã de fim de campanha, com o relatório todo
         int world = _worldPanel.Smoke();                               // painel Mundo: tabela de potências desenhada
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo");
+        // uma divisão nossa condecorada e com nome próprio, para a folha de serviço ter cartões a desenhar
+        if (w.Divisions.Values.FirstOrDefault(d => d.CountryId == pid) is Division hero)
+        {
+            hero.Battles = Math.Max(hero.Battles, 12); hero.Captures = Math.Max(hero.Captures, 6); hero.Xp = MathF.Max(hero.Xp, 95f);
+            new MedalSystem().Tick(w); new DivisionHonourSystem().Tick(w);
+        }
+        int served = _countryPanel.Smoke(pid); _countryPanel.Close();   // painel País: folha de serviço com os cartões
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

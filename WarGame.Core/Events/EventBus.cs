@@ -24,6 +24,8 @@ public sealed record WarGoalAchieved(int CountryId, int TargetCountryId) : IGame
 public sealed record WarSummary(WarGame.Core.Model.WarRecord Record) : IGameEvent;
 /// <summary>Divisão condecorada (MedalSystem): id da divisão, do seu país e da medalha.</summary>
 public sealed record MedalAwarded(int DivisionId, int CountryId, string MedalId) : IGameEvent;
+/// <summary>Uma divisão passou a ter nome próprio: ganhou (ou subiu de) honra de batalha.</summary>
+public sealed record DivisionHonoured(int DivisionId, int CountryId, string HonourId, string Title) : IGameEvent;
 /// <summary>Paz branca por estagnação (TruceSystem); sai sempre antes do WarEnded da mesma guerra.</summary>
 public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 /// <summary>Paz negociada: o vencedor ficou com Regions regiões do derrotado.</summary>

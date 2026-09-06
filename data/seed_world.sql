@@ -261,6 +261,21 @@ INSERT INTO rule (key,value,note) VALUES
  ('medal_bonus_max',0.12,'tecto do bónus de força somado das condecorações'),
  ('medal_check_days',2,'de quantos em quantos dias se atribuem condecorações');
 
+-- Honras de batalha (tabela division_honour; DivisionHonourSystem). Só UMA por divisão — a mais alta
+-- merecida — e ela passa a fazer parte do nome. {r} é o nome da região onde a honra foi ganha.
+-- metric: xp | battles | captures | medals. bonus = quanto mais depressa se recompõe fora de combate.
+CREATE TABLE IF NOT EXISTS division_honour (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL,
+  metric TEXT NOT NULL, threshold REAL NOT NULL, bonus REAL NOT NULL, sort INTEGER NOT NULL);
+INSERT INTO division_honour VALUES ('ferro','Punhos de Ferro de {r}','Três batalhas travadas e ganhas de pé.','battles',3,0.10,1);
+INSERT INTO division_honour VALUES ('lanceiros','Lanceiros de {r}','Cinco regiões tomadas ao inimigo.','captures',5,0.15,2);
+INSERT INTO division_honour VALUES ('muralha','Muralha de {r}','Oito batalhas: a linha nunca cedeu onde ela estava.','battles',8,0.20,3);
+INSERT INTO division_honour VALUES ('leoes','Leões de {r}','Sessenta pontos de experiência de guerra.','xp',60,0.30,4);
+INSERT INTO division_honour VALUES ('imortal','Imortais de {r}','Quatro condecorações e a veterania quase no tecto.','medals',4,0.45,5);
+INSERT INTO rule (key,value,note) VALUES
+ ('honour_check_days',3,'de quantos em quantos dias se conferem honras de batalha'),
+ ('honour_bonus_max',0.5,'tecto do bónus de recomposição dado pela honra');
+
 -- Edifícios regionais (tabela building; ConstructionSystem/BuildBuildingCommand)
 CREATE TABLE IF NOT EXISTS building (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days REAL NOT NULL,

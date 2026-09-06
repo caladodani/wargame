@@ -39,6 +39,8 @@ public sealed class World
     /// <summary>Edifícios construíveis (tabela building).</summary>
     public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
     public Dictionary<string, MedalDef> MedalDefs { get; } = new();
+    /// <summary>Honras de batalha (tabela division_honour), o nome próprio que uma divisão ganha em campanha.</summary>
+    public Dictionary<string, HonourDef> HonourDefs { get; } = new();
     /// <summary>Decisões nacionais (tabela decision) e as activas.</summary>
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>

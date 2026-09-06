@@ -36,6 +36,16 @@ public partial class CountryPanel : PanelContainer
 
     public void Open(int countryId) { _countryId = countryId; _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
+
+    /// <summary>--smoke: enche o painel do país sem esperar pelo RunWhenIdle e devolve quantas divisões
+    /// entraram na folha de serviço, para o arranque provar que os cartões se desenham mesmo.</summary>
+    public int Smoke(int countryId)
+    {
+        _countryId = countryId; _lastKey = "";
+        Visible = true; Fill();
+        var w = _game.World;
+        return w.Divisions.Values.Count(d => d.CountryId == countryId && (d.Honour is not null || d.Medals.Count > 0));
+    }
     public void Close() => Visible = false;
 
     private void Fill()
@@ -45,7 +55,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -386,63 +396,21 @@ public partial class CountryPanel : PanelContainer
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }
     }
 
-    /// <summary>Quadro de honra: as divisões mais condecoradas do país, com a experiência em barra e uma
-    /// fita por medalha. Uma divisão veterana vale mais em combate (MedalSystem.Bonus) e até aqui só se via
-    /// um número de XP escondido na lista da região — agora tem cara.</summary>
+    /// <summary>Folha de serviço: as divisões que mais mereceram do país — primeiro as que já têm nome
+    /// próprio (honra de batalha), depois as mais condecoradas. Cada uma leva o cartão completo do
+    /// DivisionView, o mesmo que aparece na lista da região, para a tropa se reconhecer nos dois sítios.</summary>
     private void Honours(World w, Country c)
     {
-        var top = w.Divisions.Values.Where(d => d.CountryId == c.Id && d.Medals.Count > 0)
-            .OrderByDescending(d => MedalSystem.Bonus(w, d)).ThenByDescending(d => d.Xp).ThenBy(d => d.Id)
+        var top = w.Divisions.Values.Where(d => d.CountryId == c.Id && (d.Honour is not null || d.Medals.Count > 0))
+            .OrderByDescending(d => d.Honour is string h ? w.HonourDefs.GetValueOrDefault(h)?.Sort ?? 0 : 0)
+            .ThenByDescending(d => MedalSystem.Bonus(w, d)).ThenByDescending(d => d.Xp).ThenBy(d => d.Id)
             .Take(8).ToList();
         if (top.Count == 0) return;
 
-        Header("Condecorações");
-        float xpMax = MathF.Max(1f, w.Rule("xp_max", 100f));
-        foreach (var d in top)
-        {
-            var card = new PanelContainer();
-            card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface with { A = 0.85f }, 8));
-            var body = new VBoxContainer(); card.AddChild(body);
-
-            string name; try { name = d.Name ?? w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "Divisão " + d.Id; }
-            var head = new HBoxContainer();
-            head.AddChild(Ui.Grow(Ui.Lbl($"{name}  ·  {(w.Regions.TryGetValue(d.RegionId, out var r) ? r.Name : "?")}", 18)));
-            var bonus = Ui.Lbl($"+{MedalSystem.Bonus(w, d):P0} força", 16);
-            bonus.AddThemeColorOverride("font_color", Ui.Good);
-            head.AddChild(bonus);
-            body.AddChild(head);
-
-            var xp = new HBoxContainer(); xp.AddThemeConstantOverride("separation", 8);
-            xp.AddChild(Ui.Lbl($"XP {d.Xp:0}", 15));
-            xp.AddChild(Ui.Bar(d.Xp / xpMax, new Color(1f, 0.82f, 0.25f), 160f));
-            xp.AddChild(Ui.Lbl($"{d.Battles} batalhas  ·  {d.Captures} regiões tomadas", 15));
-            body.AddChild(xp);
-
-            var ribbons = new HFlowContainer();
-            foreach (var m in d.Medals.Select(id => w.MedalDefs.GetValueOrDefault(id)).OfType<MedalDef>().OrderBy(m => m.Sort))
-            {
-                var chip = new PanelContainer();
-                chip.AddThemeStyleboxOverride("panel", Ui.Box(RibbonColor(m.Sort), 6));
-                var l = Ui.Lbl($"🎖 {m.Name}", 15);
-                l.TooltipText = m.Description;
-                chip.AddChild(l);
-                chip.TooltipText = m.Description;
-                ribbons.AddChild(chip);
-            }
-            body.AddChild(ribbons);
-            _body.AddChild(card);
-        }
+        int named = top.Count(d => d.Honour is not null);
+        Header(named > 0 ? $"Folha de serviço · {named} com nome próprio" : "Folha de serviço");
+        foreach (var d in top) _body.AddChild(DivisionView.Card(w, d));
     }
-
-    /// <summary>Cor da fita: quanto mais alta a condecoração, mais quente.</summary>
-    private static Color RibbonColor(int sort) => (sort % 5) switch
-    {
-        1 => new Color(0.35f, 0.45f, 0.60f, 0.75f),
-        2 => new Color(0.30f, 0.55f, 0.40f, 0.75f),
-        3 => new Color(0.55f, 0.45f, 0.25f, 0.75f),
-        4 => new Color(0.60f, 0.35f, 0.25f, 0.75f),
-        _ => new Color(0.62f, 0.28f, 0.42f, 0.80f),
-    };
 
     /// <summary>Guarnecer fronteiras: despacha DefendBordersCommand (plano de batalha simplificado).</summary>
     private void GarrisonFronts() => _game.RunWhenIdle(() =>

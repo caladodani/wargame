@@ -92,6 +92,12 @@ public sealed class Region
 /// o limiar a divisão ganha-a para sempre e Bonus soma-se à sua força (tecto medal_bonus_max).</summary>
 public sealed record MedalDef(string Id, string Name, string Description, string Metric, float Threshold, float Bonus, int Sort);
 
+/// <summary>Honra de batalha (tabela division_honour). Ao contrário das condecorações, que se acumulam,
+/// uma divisão só carrega UMA honra — a mais alta que mereceu — e ela passa a fazer parte do nome:
+/// "3.ª de Infantaria «Leões de Braga»". Title é um molde onde {r} é o nome da região onde a honra foi
+/// ganha, e Bonus é o que a tropa ganha em recomposição de organização (moral, não força bruta).</summary>
+public sealed record HonourDef(string Id, string Title, string Description, string Metric, float Threshold, float Bonus, int Sort);
+
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
     bool Coastal = false, float SupplyRange = 0f);
 
@@ -299,6 +305,14 @@ public sealed class Division
     public int Captures { get; set; }
     /// <summary>Condecorações ganhas (ids da tabela medal); MedalSystem só acrescenta.</summary>
     public HashSet<string> Medals { get; } = new();
+    /// <summary>Honra de batalha em vigor (id da tabela division_honour) ou null. Só há uma de cada vez:
+    /// uma honra maior substitui a anterior (DivisionHonourSystem).</summary>
+    public string? Honour { get; set; }
+    /// <summary>Nome de guerra já resolvido ("Leões de Braga"): guarda-se feito porque a região que lhe deu
+    /// o nome pode mudar de mãos ou desaparecer do mapa e a honra é da divisão, não da região.</summary>
+    public string? HonourName { get; set; }
+    /// <summary>Nome que a tropa usa: o nome próprio ganho em campanha, se houver.</summary>
+    public string? WarName => HonourName is null ? Name : $"{Name} «{HonourName}»";
     public float MoveProgress { get; set; }        // 0..1 dentro do salto actual (MovementSystem)
     /// <summary>Ordem permanente de avanço (AutoFrontSystem): parada e sem combate, a divisão ataca
     /// sozinha a região inimiga vizinha mais fraca. Desliga-se ao dar uma ordem manual.</summary>

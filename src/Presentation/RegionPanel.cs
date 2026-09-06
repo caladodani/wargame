@@ -316,7 +316,7 @@ public partial class RegionPanel : PanelContainer
 
     private static string Line(World w, Division d)
     {
-        string name; try { name = w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "T" + d.TemplateId; }
+        string name = DivisionView.Title(w, d);      // com o nome de guerra, se já o ganhou
         var tag = w.Countries.TryGetValue(d.CountryId, out var c) ? c.Tag : "?";
         var s = $"{tag} {name}   HP {d.Hp:0}  Org {d.Org:0}  Sup {d.Supply:0.0}";
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
@@ -324,6 +324,7 @@ public partial class RegionPanel : PanelContainer
         if (d.TargetRegionId is int hop && w.IsSeaHop(d.RegionId, hop)) s += "   🌊";
         if (d.Xp >= 1f) s += $"   XP {d.Xp:0}";
         if (d.Medals.Count > 0) s += "   🎖" + (d.Medals.Count > 1 ? "×" + d.Medals.Count : "");
+        if (d.Honour is string hon && w.HonourDefs.TryGetValue(hon, out var hd)) s += "   " + DivisionView.Chevrons(hd.Sort);
         if (w.GroupOf(d.Id) is ArmyGroup g)   // às ordens de um grupo de exércitos: o símbolo diz a postura
             s += (g.Stance switch
             {

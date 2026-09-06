@@ -216,7 +216,9 @@ CREATE TABLE IF NOT EXISTS s_division (
   xp REAL NOT NULL DEFAULT 0,
   auto_advance INTEGER NOT NULL DEFAULT 0,
   battles INTEGER NOT NULL DEFAULT 0,       -- batalhas travadas e sobrevividas (MedalSystem)
-  captures INTEGER NOT NULL DEFAULT 0       -- regiões tomadas ao inimigo por esta divisão
+  captures INTEGER NOT NULL DEFAULT 0,      -- regiões tomadas ao inimigo por esta divisão
+  honour TEXT,                              -- honra de batalha em vigor (division_honour.id)
+  honour_name TEXT                          -- nome de guerra já resolvido ("Leões de Braga")
 );
 CREATE TABLE IF NOT EXISTS s_division_medal (    -- condecorações ganhas (MedalSystem)
   division_id INTEGER NOT NULL, medal TEXT NOT NULL, PRIMARY KEY (division_id, medal));
