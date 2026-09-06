@@ -176,6 +176,36 @@ public partial class Hud : CanvasLayer
             string name; try { name = w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "divisão"; }
             Later($"{name} destruída em {RegionName(d.RegionId)}");
         }));
+        _subs.Add(w.Events.Subscribe<FactionJoinedWar>(e =>
+        {
+            if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))
+                Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)");
+        }));
+        _subs.Add(w.Events.Subscribe<WarEnded>(e =>
+        {
+            if (Player(e.A) || Player(e.B)) Later($"Paz entre {Country(e.A)} e {Country(e.B)}");
+        }));
+        _subs.Add(w.Events.Subscribe<CountryCapitulated>(e =>
+        {
+            if (Player(e.CountryId)) Callable.From(ShowDefeat).CallDeferred();
+            else if (Player(e.WinnerId)) Later($"Vitória! {Country(e.CountryId)} capitulou — as regiões dele são tuas");
+            else Later($"{Country(e.CountryId)} capitulou! Regiões passam para {Country(e.WinnerId)}");
+        }));
+    }
+
+    /// <summary>Fim de jogo do jogador: capitulou. Diálogo com novo jogo ou continuar a ver o mundo.</summary>
+    private void ShowDefeat()
+    {
+        var dlg = new AcceptDialog
+        {
+            Title = "Derrota",
+            DialogText = "O teu país capitulou. As tuas regiões foram ocupadas e o exército dissolvido.",
+            OkButtonText = "Novo jogo",
+        };
+        dlg.AddButton("Continuar a ver", true, "watch");
+        dlg.Confirmed += () => _game.NewGame();
+        AddChild(dlg);
+        dlg.PopupCentered();
     }
 
     private void Later(string msg) => Callable.From(() => Toast(msg)).CallDeferred();
