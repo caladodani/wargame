@@ -19,6 +19,7 @@ public partial class Hud : CanvasLayer
     private PanelContainer _toastBox = null!;
     private Timer _toastTimer = null!;
     private ConfirmationDialog _confirmNew = null!;
+    private AcceptDialog _slots = null!;
     private RegionPanel _region = null!;
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
@@ -107,6 +108,7 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         row.AddChild(Ui.Btn("Jornal", () => _journal.Open()));
         row.AddChild(Ui.Btn("Guardar", () => { _game.Save(); Toast("Jogo guardado"); }));
+        row.AddChild(Ui.Btn("Jogos", OpenSlots));
         row.AddChild(Ui.Btn("Novo jogo", () => _confirmNew.PopupCentered()));
     }
 
@@ -155,6 +157,30 @@ public partial class Hud : CanvasLayer
     }
 
     /// <summary>Mensagem breve ao jogador (4 s). Seguro chamar de sinais; de outra thread usar CallDeferred.</summary>
+    private void OpenSlots()
+    {
+        if (_slots is null)
+        {
+            _slots = new AcceptDialog { Title = "Jogos guardados" };
+            _slots.GetOkButton().Text = "Fechar";
+            AddChild(_slots);
+        }
+        foreach (var c in _slots.GetChildren()) if (c is VBoxContainer old) { _slots.RemoveChild(old); old.QueueFree(); }
+        var v = new VBoxContainer { CustomMinimumSize = new Vector2(360, 0) };
+        for (int i = 1; i <= Game.SlotCount; i++)
+        {
+            int slot = i;
+            var day = _game.SlotDay(slot);
+            string txt = $"Slot {slot} — " + (slot == _game.Slot ? $"actual (dia {_game.World.Clock.Day})"
+                        : day is int d ? $"dia {d}" : "vazio");
+            var b = Ui.Btn(txt, () => { _slots.Hide(); _game.SwitchSlot(slot); });
+            b.Disabled = slot == _game.Slot;
+            v.AddChild(b);
+        }
+        _slots.AddChild(v);
+        _slots.PopupCentered();
+    }
+
     public void Toast(string msg)
     {
         try

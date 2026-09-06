@@ -27,7 +27,10 @@ public partial class Game : Node
     /// <summary>País com IsPlayer, ou null enquanto não há jogador. Cache refeita após cada comando e no load.</summary>
     public int? PlayerId { get; private set; }
 
-    private const string SavePath = "user://save.db";
+    /// <summary>Slot de gravação actual (1..3); o 1 usa o save.db histórico.</summary>
+    public int Slot { get; private set; } = 1;
+    private string SavePath => Slot <= 1 ? "user://save.db" : $"user://save{Slot}.db";
+    public const int SlotCount = 3;
     private const int AutoSaveDays = 30;
     private static readonly double[] SpeedSeconds = { 0, 2.0, 1.0, 0.5, 0.25 };
 
@@ -157,6 +160,37 @@ public partial class Game : Node
             GetTree().ReloadCurrentScene();
         }
         catch (Exception ex) { GD.PushError("NewGame: " + ex); }
+    }
+
+    /// <summary>Muda de slot: guarda o actual, aponta para o novo e reconstrói o mundo
+    /// (slot vazio cai na escolha de país). Recarrega a cena como o NewGame.</summary>
+    public void SwitchSlot(int slot)
+    {
+        if (slot == Slot || slot < 1 || slot > SlotCount) return;
+        try
+        {
+            Save();
+            WaitTick();
+            _save?.Dispose(); _save = null;
+            Slot = slot;
+            BuildWorld();
+            GetTree().ReloadCurrentScene();
+        }
+        catch (Exception ex) { GD.PushError("SwitchSlot: " + ex); }
+    }
+
+    /// <summary>Dia guardado num slot, ou null se vazio/ilegível. Não mexe no slot actual.</summary>
+    public int? SlotDay(int slot)
+    {
+        string path = slot <= 1 ? "user://save.db" : $"user://save{slot}.db";
+        if (!FileAccess.FileExists(path)) return null;
+        try
+        {
+            using var db = new GdSqliteDatabase(ProjectSettings.GlobalizePath(path), readOnly: true);
+            var rows = db.Query("SELECT value FROM save_meta WHERE key='day'");
+            return rows.Count > 0 ? Convert.ToInt32(rows[0]["value"]) : null;
+        }
+        catch { return null; }
     }
 
     public override void _Notification(int what)
