@@ -280,3 +280,9 @@ CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGr
   general TEXT);                                  -- comandante destacado (tabela general), ou NULL
 CREATE TABLE IF NOT EXISTS s_army_group_member (
   group_id INTEGER NOT NULL, division_id INTEGER NOT NULL, PRIMARY KEY (group_id, division_id));
+
+CREATE TABLE IF NOT EXISTS s_research (        -- ranhuras de investigação ocupadas (ResearchSystem)
+  country_id INTEGER NOT NULL,
+  tech_id TEXT NOT NULL,                        -- tecnologia nesta ranhura
+  progress REAL NOT NULL DEFAULT 0,             -- dias acumulados × research_speed
+  PRIMARY KEY (country_id, tech_id));

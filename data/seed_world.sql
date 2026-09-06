@@ -585,3 +585,7 @@ INSERT INTO rule (key,value,note) VALUES
  ('alert_supply',0.6,'abastecimento de uma divisão abaixo do qual ela conta como a beber areia'),
  ('alert_resistance',0.5,'resistência numa região ocupada a partir da qual se avisa que ferve'),
  ('alert_idle_money',150,'dinheiro no cofre a partir do qual a fila de produção vazia é desperdício');
+
+-- Ranhuras de investigação (ResearchSystem): quantas linhas um país aguenta ao mesmo tempo.
+INSERT INTO rule (key,value,note) VALUES
+ ('research_slots',2,'linhas de investigação em paralelo por país, antes do stat research_slots');

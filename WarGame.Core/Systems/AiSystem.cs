@@ -460,16 +460,22 @@ public sealed class AiSystem : ISystem
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
-    /// <summary>Sem investigação em curso → a tecnologia disponível mais barata (HoI4: a IA nunca deixa um slot vazio).</summary>
+    /// <summary>Ranhuras livres → as tecnologias disponíveis mais baratas (a IA nunca deixa um slot vazio).</summary>
     private static void Research(World w, Country c)
     {
-        if (c.ResearchTech is not null || w.Techs.Count == 0) return;
-        Tech? best = null;
-        foreach (var t in w.Techs.Values)
-            if (w.CanResearch(c, t.Id) && (best is null || t.Cost < best.Cost || (t.Cost == best.Cost && string.CompareOrdinal(t.Id, best.Id) < 0))) best = t;
-        if (best is null) return;
-        var cmd = new ResearchTechCommand(c.Id, best.Id);
-        if (cmd.Validate(w) is null) cmd.Execute(w);
+        if (w.Techs.Count == 0) return;
+        // enche as ranhuras que tiver: a IA nunca deixa um laboratório parado
+        for (int free = ResearchSystem.FreeSlots(w, c); free > 0; free--)
+        {
+            Tech? best = null;
+            foreach (var t in w.Techs.Values)
+                if (w.CanResearch(c, t.Id) && !c.Research.ContainsKey(t.Id)
+                    && (best is null || t.Cost < best.Cost || (t.Cost == best.Cost && string.CompareOrdinal(t.Id, best.Id) < 0))) best = t;
+            if (best is null) return;
+            var cmd = new ResearchTechCommand(c.Id, best.Id);
+            if (cmd.Validate(w) is not null) return;
+            cmd.Execute(w);
+        }
     }
 
     /// <summary>Mantém ai_max_queue encomendas: normalmente o template mais barato; cada ai_heavy_every-ésima

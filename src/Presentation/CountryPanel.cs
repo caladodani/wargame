@@ -69,7 +69,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{c.ResearchTech}|{(int)c.ResearchProgress}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -414,16 +414,49 @@ public partial class CountryPanel : PanelContainer
 
             // investigação
             Header("Investigação");
-            if (c.ResearchTech is not null && w.Techs.TryGetValue(c.ResearchTech, out var cur))
-                Line($"Em curso: {cur.Name}   {(int)(100 * c.ResearchProgress / MathF.Max(1f, cur.Cost))}%  ({(int)MathF.Ceiling((cur.Cost - c.ResearchProgress) / MathF.Max(0.01f, c.Stat("research_speed")))} dias)");
-            else Line(mine ? "Nada em investigação — escolhe uma tecnologia:" : "Nada em investigação");
+            // Ranhuras: uma chapa por linha de investigação, cheia ou vazia, como a fila de slots do HoI4.
+            // Vê-se num relance quantos laboratórios há, o que está em cada um e quanto falta.
+            int labs = ResearchSystem.Slots(w, c);
+            var rack = new HBoxContainer(); rack.AddThemeConstantOverride("separation", 6); _body.AddChild(rack);
+            float speed = MathF.Max(0.01f, c.Stat("research_speed"));
+            var busy = c.Research.ToList();
+            for (int i = 0; i < labs; i++)
+            {
+                var plate = new PanelContainer();
+                var cell = new VBoxContainer(); cell.AddThemeConstantOverride("separation", 2); plate.AddChild(cell);
+                if (i < busy.Count && w.Techs.TryGetValue(busy[i].Key, out var t))
+                {
+                    plate.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface, 6));
+                    float done = busy[i].Value / MathF.Max(1f, t.Cost);
+                    var name = Ui.Lbl(t.Name, 16); name.AddThemeColorOverride("font_color", Ui.Text); cell.AddChild(name);
+                    cell.AddChild(Ui.Bar(done, Ui.Accent, 190));
+                    var left = Ui.Lbl($"{(int)(100 * done)}%  ·  {(int)MathF.Ceiling((t.Cost - busy[i].Value) / speed)} dias", 14);
+                    left.AddThemeColorOverride("font_color", Ui.TextDim); cell.AddChild(left);
+                    if (mine)
+                    {
+                        string id = busy[i].Key;
+                        cell.AddChild(Ui.Btn("Largar", () => Cancel(id), 190, Ui.Kind.Danger));
+                    }
+                }
+                else
+                {
+                    // ranhura vazia: chapa apagada, para o buraco na fila dar nas vistas
+                    plate.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink, 6));
+                    var name = Ui.Lbl("ranhura livre", 16); name.AddThemeColorOverride("font_color", Ui.TextDim); cell.AddChild(name);
+                    cell.AddChild(Ui.Bar(0f, Ui.TextDim, 190));
+                    var hint = Ui.Lbl(mine ? "escolhe abaixo" : "sem investigação", 14);
+                    hint.AddThemeColorOverride("font_color", Ui.TextDim); cell.AddChild(hint);
+                }
+                rack.AddChild(plate);
+            }
+            if (mine && ResearchSystem.FreeSlots(w, c) == 0) Line("Laboratórios cheios: larga uma linha para abrir outra.", 15);
             foreach (var group in w.Techs.Values.Where(t => w.CanResearch(c, t.Id)).GroupBy(t => t.Branch).OrderBy(g => g.Key))
                 foreach (var t in group.OrderBy(t => t.Cost))
                 {
                     string id = t.Id;
                     var row = new HBoxContainer();
                     row.AddChild(Ui.Grow(Ui.Lbl($"{t.Branch}: {t.Name}   {t.Cost:0} dias" + (t.Description is { Length: > 0 } ? "\n   " + t.Description : ""), 16)));
-                    if (mine && c.ResearchTech != id) row.AddChild(Ui.Btn("Investigar", () => Research(id), 150));
+                    if (mine && !c.Research.ContainsKey(id)) row.AddChild(Ui.Btn("Investigar", () => Research(id), 150));
                     _body.AddChild(row);
                 }
             var known = c.Techs.Where(w.Techs.ContainsKey).Select(id => w.Techs[id].Name).OrderBy(n => n).ToList();
@@ -493,7 +526,19 @@ public partial class CountryPanel : PanelContainer
         if (err is not null) GetParent<Hud>().Toast(err);
     }
 
-    private void Header(string text) { var l = Ui.Lbl(text, 20); l.Modulate = new Color(1f, 0.85f, 0.4f); _body.AddChild(l); }
+    /// <summary>Larga a linha de investigação e liberta a ranhura (o progresso perde-se).</summary>
+    private void Cancel(string techId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new CancelResearchCommand(pid, techId));
+        if (err is not null) GetParent<Hud>().Toast(err);
+    }
+
+    private void Header(string text)
+    {
+        // título de secção em versaletes de latão, como na faixa de alarmes e no mini-mapa
+        _body.AddChild(Ui.Head(text, 15));
+    }
     private static string StatName(string key) => key switch
     {
         "production_speed" => "produção", "industry" => "indústria", "research_speed" => "investigação",

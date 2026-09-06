@@ -82,8 +82,12 @@ public static class Alerts
         if (c.Queue.Count == 0 && c.Money >= w.Rule("alert_idle_money", 150f))
             list.Add(new Alert("queue", "⚙", $"fila de produção vazia com {c.Money:0} no cofre", AlertLevel.Warn));
 
-        // 6. Laboratórios parados: o mesmo, do lado da ciência.
-        if (c.ResearchTech is null) list.Add(new Alert("research", "⚗", "ninguém está a investigar nada", AlertLevel.Info));
+        // 6. Ranhuras de investigação por ocupar: o mesmo desperdício, do lado da ciência.
+        int free = ResearchSystem.FreeSlots(w, c);
+        if (free > 0)
+            list.Add(new Alert("research", "⚗", c.Research.Count == 0 ? "ninguém está a investigar nada"
+                                              : free == 1 ? "1 ranhura de investigação livre"
+                                                          : $"{free} ranhuras de investigação livres", AlertLevel.Info));
 
         // 7. Propostas em cima da mesa: caem sozinhas se ninguém lhes tocar.
         int offers = w.Offers.Count(o => o.ToId == countryId);

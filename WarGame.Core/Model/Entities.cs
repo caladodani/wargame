@@ -277,8 +277,24 @@ public sealed class Country
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
         * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f) * (PrisonerMult.TryGetValue(key, out var pm) ? pm : 1f);
-    public string? ResearchTech { get; set; }     // tecnologia em investigação (null = nenhuma)
-    public float ResearchProgress { get; set; }   // dias acumulados × research_speed
+    /// <summary>Ranhuras de investigação ocupadas: tecnologia → dias acumulados (× research_speed). Quantas
+    /// cabem é do ResearchSystem.Slots (regra research_slots × stat do país). Antes era uma só linha; um
+    /// país industrial que investigasse infantaria não podia estar ao mesmo tempo a tratar de blindados,
+    /// o que obrigava a escolhas que nenhum estado-maior faz — os laboratórios são vários.</summary>
+    public Dictionary<string, float> Research { get; } = new();
+    /// <summary>A primeira linha de investigação. Fachada sobre Research para o código antigo (espionagem,
+    /// save legado, UI curta) continuar a falar de "a" investigação; escrever null larga tudo.</summary>
+    public string? ResearchTech
+    {
+        get => Research.Keys.FirstOrDefault();
+        set { if (value is null) Research.Clear(); else if (!Research.ContainsKey(value)) Research[value] = 0f; }
+    }
+    /// <summary>Dias acumulados na primeira linha.</summary>
+    public float ResearchProgress
+    {
+        get => ResearchTech is string t ? Research[t] : 0f;
+        set { if (ResearchTech is string t) Research[t] = value; }
+    }
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro

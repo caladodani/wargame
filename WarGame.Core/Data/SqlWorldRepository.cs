@@ -456,6 +456,14 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.WarHistory.Add(new WarRecord(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]), Convert.ToInt32(r["start_day"]), Convert.ToInt32(r["end_day"]),
                 Convert.ToInt32(r["a_regions"]), Convert.ToInt32(r["b_regions"]), Convert.ToInt32(r["a_losses"]), Convert.ToInt32(r["b_losses"]),
                 Convert.ToInt32(r["a_battles"]), Convert.ToInt32(r["b_battles"])));
+        // ranhuras de investigação: a tabela própria manda sobre as colunas antigas de s_country, que só
+        // seguram a primeira linha (saves anteriores às ranhuras entram por lá e ficam com uma)
+        var lines = save.Query("SELECT country_id,tech_id,progress FROM s_research ORDER BY country_id,tech_id");
+        foreach (var cid in lines.Select(r => Convert.ToInt32(r["country_id"])).Distinct())
+            if (w.Countries.TryGetValue(cid, out var rc)) rc.Research.Clear();
+        foreach (var r in lines)
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var rc))
+                rc.Research[(string)r["tech_id"]!] = Convert.ToSingle(r["progress"]);
         foreach (var r in save.Query("SELECT country_id,template_id,progress,repeat_order FROM s_production_queue ORDER BY id"))
             w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]), Repeat = Convert.ToInt32(r["repeat_order"]) != 0 });
         foreach (var r in save.Query("SELECT region_id,attacker_country_id,days FROM s_battle"))
@@ -470,7 +478,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -531,6 +539,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null)
                 save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Nukes, c.PowerRank, c.PowerRankPrev);
+            // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a
+            // primeira, para um save novo ainda abrir num binário anterior às ranhuras
+            foreach (var (techId, progress) in c.Research)
+                save.Execute("INSERT INTO s_research (country_id,tech_id,progress) VALUES (?,?,?)", c.Id, techId, progress);
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);

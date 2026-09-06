@@ -14,8 +14,17 @@ public class AlertsTests
         TestWorld.LinearMap(w);
         w.Countries[1].IsPlayer = true;
         w.Countries[1].Money = 1000f;
-        w.Countries[1].ResearchTech = "infantry";   // laboratório ocupado: um aviso a menos no caminho
+        Fill(w);                                    // laboratórios cheios: um aviso a menos no caminho
         return w;
+    }
+
+    /// <summary>Ocupa todas as ranhuras de investigação do jogador (o aviso das ranhuras livres é Info e
+    /// aparecia em todos os testes se ficasse alguma por preencher).</summary>
+    private static void Fill(World w)
+    {
+        var c = w.Countries[1];
+        c.Research.Clear();
+        for (int i = 0; i < ResearchSystem.Slots(w, c); i++) c.Research["tech_" + i] = 0f;
     }
 
     private static Alert? Find(World w, string id) => Alerts.For(w, 1).FirstOrDefault(a => a.Id == id);
@@ -112,9 +121,15 @@ public class AlertsTests
     public void IdleLaboratoriesAreJustANote()
     {
         var w = Setup();
-        Assert.Null(Find(w, "research"));
-        w.Countries[1].ResearchTech = null;
+        Assert.Null(Find(w, "research"));                    // ranhuras cheias: nada a dizer
+
+        var c = w.Countries[1];
+        c.Research.Remove(c.Research.Keys.First());          // uma linha largada
+        Assert.Equal("1 ranhura de investigação livre", Find(w, "research")!.Text);
         Assert.Equal(AlertLevel.Info, Find(w, "research")!.Level);
+
+        c.Research.Clear();
+        Assert.Equal("ninguém está a investigar nada", Find(w, "research")!.Text);
     }
 
     [Fact]
@@ -129,7 +144,7 @@ public class AlertsTests
     public void TheStripIsSortedByHowMuchItBurns()
     {
         var w = Setup();
-        w.Countries[1].ResearchTech = null;                   // Info
+        w.Countries[1].Research.Clear();                      // Info
         TestWorld.AddDivision(w, 10, 1, TestWorld.Inf, 2);
         w.Divisions[10].Supply = 0.1f;                        // Danger
 
@@ -145,7 +160,7 @@ public class AlertsTests
         string before = Alerts.Key(Alerts.For(w, 1));
         Assert.Equal(before, Alerts.Key(Alerts.For(w, 1)));
 
-        w.Countries[1].ResearchTech = null;
+        w.Countries[1].Research.Clear();
         Assert.NotEqual(before, Alerts.Key(Alerts.For(w, 1)));
     }
 

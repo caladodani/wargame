@@ -26,7 +26,8 @@ public sealed class CommandDispatcher
     }
 }
 
-/// <summary>Escolhe a tecnologia a investigar (uma de cada vez; trocar perde o progresso, como em HoI4 sem slots).</summary>
+/// <summary>Põe uma tecnologia numa ranhura de investigação livre (ResearchSystem.Slots). Com os
+/// laboratórios cheios é preciso largar uma linha primeiro — largar perde o progresso, como no HoI4.</summary>
 public sealed record ResearchTechCommand(int CountryId, string TechId) : ICommand
 {
     public string? Validate(World w)
@@ -35,10 +36,24 @@ public sealed record ResearchTechCommand(int CountryId, string TechId) : IComman
         if (!w.Techs.TryGetValue(TechId, out var t)) return "Tecnologia inexistente";
         if (c.Techs.Contains(TechId)) return "Já investigada";
         if (t.Requires is not null && !c.Techs.Contains(t.Requires)) return $"Precisa de {w.Techs[t.Requires].Name}";
-        if (c.ResearchTech == TechId) return "Já em investigação";
+        if (c.Research.ContainsKey(TechId)) return "Já em investigação";
+        if (ResearchSystem.FreeSlots(w, c) == 0) return "Laboratórios cheios: larga uma investigação primeiro";
         return null;
     }
-    public void Execute(World w) { var c = w.Countries[CountryId]; c.ResearchTech = TechId; c.ResearchProgress = 0f; }
+    public void Execute(World w) => w.Countries[CountryId].Research[TechId] = 0f;
+}
+
+/// <summary>Larga uma linha de investigação e liberta a ranhura. O progresso perde-se: é o preço de mudar
+/// de ideias a meio, e é o que torna a escolha das ranhuras uma decisão e não uma lista.</summary>
+public sealed record CancelResearchCommand(int CountryId, string TechId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País inexistente";
+        if (!c.Research.ContainsKey(TechId)) return "Essa tecnologia não está em investigação";
+        return null;
+    }
+    public void Execute(World w) => w.Countries[CountryId].Research.Remove(TechId);
 }
 
 /// <summary>Escolhe o foco nacional (um de cada vez; trocar perde o progresso, como em HoI4).</summary>
