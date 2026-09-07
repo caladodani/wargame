@@ -32,6 +32,7 @@ public sealed class PrisonerSystem : ISystem
     {
         _bound = w;
         w.Events.Subscribe<DivisionDestroyed>(e => OnDivisionLost(w, e));
+        w.Events.Subscribe<DivisionSurrendered>(e => OnSurrender(w, e));
         w.Events.Subscribe<PeaceSigned>(e => Repatriate(w, e.Winner, e.Loser));
         w.Events.Subscribe<WhitePeaceSigned>(e => Repatriate(w, e.A, e.B));
         w.Events.Subscribe<CountryCapitulated>(e => Repatriate(w, e.CountryId, e.WinnerId));
@@ -53,6 +54,23 @@ public sealed class PrisonerSystem : ISystem
         cap.Prisoners[d.CountryId] = cap.Prisoners.GetValueOrDefault(d.CountryId) + men;
         w.Events.Publish(new PrisonersTaken(captor, d.CountryId, men, r.Id));
     }
+
+    /// <summary>Divisão cercada que baixou as armas (PocketSystem): entrega-se inteira a quem fechou o
+    /// anel. Uma rendição não é uma divisão desfeita — ninguém se dispersou pelo mato a combater — por
+    /// isso os homens contam-se por pocket_prisoner_share, que é quase toda a gente.</summary>
+    private static void OnSurrender(World w, DivisionSurrendered e)
+    {
+        if (!w.Divisions.TryGetValue(e.DivisionId, out var d)) return;
+        if (!w.Countries.TryGetValue(e.CaptorId, out var cap)) return;
+        int men = MenSurrendered(w, d);
+        if (men <= 0) return;
+        cap.Prisoners[e.CountryId] = cap.Prisoners.GetValueOrDefault(e.CountryId) + men;
+        w.Events.Publish(new PrisonersTaken(e.CaptorId, e.CountryId, men, e.RegionId));
+    }
+
+    /// <summary>Homens que uma divisão rendida entrega: o efectivo dela vezes pocket_prisoner_share.</summary>
+    public static int MenSurrendered(World w, Division d) =>
+        (int)(w.TemplateCost(d.TemplateId) * w.Rule("manpower_per_cost", 500f) * w.Rule("pocket_prisoner_share", 0.9f));
 
     /// <summary>Homens que uma divisão desfeita entrega vivos: o efectivo dela (custo × manpower_per_cost)
     /// vezes prisoner_share.</summary>

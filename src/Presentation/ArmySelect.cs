@@ -29,12 +29,16 @@ public partial class ArmySelect : PanelContainer
         _game = game; _map = map;
         Visible = false;
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop);
-        OffsetTop = 128;   // por baixo das duas linhas da barra de topo
+        OffsetTop = 128;   // altura de partida; o Hud acerta-a pela altura real da barra de topo
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.16f, 0.14f, 0.04f, 0.92f)));
         var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 12); AddChild(h);
         _label = Ui.Lbl("", 18); h.AddChild(_label);
         h.AddChild(Ui.Btn("Limpar", () => _game.RunWhenIdle(Clear)));
     }
+
+    /// <summary>A barra de topo cresceu (mostradores dobrados numa linha nova): a chapa da selecção
+    /// acompanha, senão nasce por trás dela.</summary>
+    public void PlaceUnder(float y) => OffsetTop = y;
 
     /// <summary>Toque longo: marca/desmarca uma região com divisões minhas.</summary>
     public void LongPress(int regionId) => _game.RunWhenIdle(() =>

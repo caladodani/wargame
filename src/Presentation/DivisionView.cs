@@ -95,6 +95,17 @@ public static class DivisionView
         var sup = Ui.Lbl($"Sup {d.Supply:0.0}", 15);
         if (d.Supply < 1f) sup.AddThemeColorOverride("font_color", Ui.Danger);
         h.AddChild(sup);
+        // cerco: "Sup 0,5" dizia que se comia mal, nunca que não havia por onde sair. Isto diz.
+        if (d.Cut)
+        {
+            int? left = PocketSystem.DaysToSurrender(w, d);
+            var ring = Ui.Lbl($"⛓ cercada há {d.PocketDays} d", 15);
+            ring.AddThemeColorOverride("font_color", Ui.Danger.Lightened(0.2f));
+            ring.TooltipText = "sem cadeia por terra até casa: perde "
+                + $"{w.Rule("pocket_attrition", 4f):0.#} de efectivo e {w.Rule("pocket_org", 8f):0.#} de organização por dia"
+                + (left is int n ? $"\nbolsa fechada: rende-se dentro de {n} dias" : "\nainda há vizinha nossa por onde romper");
+            h.AddChild(ring);
+        }
         // trincheira: o que os dias de mãos quietas neste chão já valem a defender (EntrenchSystem)
         if (d.Entrench > 0f)
         {

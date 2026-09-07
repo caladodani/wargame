@@ -51,6 +51,23 @@ public static class Alerts
                                              : $"{starving} divisões sem abastecimento",
                                AlertLevel.Danger, worst.RegionId));
 
+        // 2b. Cerco: pior do que ter fome é não ter por onde sair. Estas divisões perdem gente todos os
+        // dias e, com a bolsa fechada, acabam a render-se — é o aviso que dá tempo de romper para fora.
+        var pocketed = PocketSystem.Of(w, countryId);
+        if (pocketed.Count > 0)
+        {
+            var worstPocket = pocketed[0];
+            int? left = PocketSystem.DaysToSurrender(w, worstPocket);
+            string where = Name(w, worstPocket.RegionId);
+            string doom = left is int days
+                ? days <= 0 ? ", rende-se hoje" : days == 1 ? ", rende-se amanhã" : $", rende-se em {days} dias"
+                : "";
+            list.Add(new Alert("pocket", "⛓",
+                               pocketed.Count == 1 ? $"1 divisão cercada em {where}{doom}"
+                                                   : $"{pocketed.Count} divisões cercadas — a pior em {where}{doom}",
+                               AlertLevel.Danger, worstPocket.RegionId));
+        }
+
         // 3. Fronteira aberta: região nossa encostada a terreno de quem está em guerra connosco e sem
         // ninguém lá dentro. É por onde entram.
         Region? gap = null; int gaps = 0;

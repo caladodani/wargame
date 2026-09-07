@@ -299,7 +299,8 @@ CREATE TABLE IF NOT EXISTS s_division (
   captures INTEGER NOT NULL DEFAULT 0,      -- regiões tomadas ao inimigo por esta divisão
   honour TEXT,                              -- honra de batalha em vigor (division_honour.id)
   honour_name TEXT,                         -- nome de guerra já resolvido ("Leões de Braga")
-  entrench REAL NOT NULL DEFAULT 0          -- trincheira cavada nesta posição (EntrenchSystem)
+  entrench REAL NOT NULL DEFAULT 0,         -- trincheira cavada nesta posição (EntrenchSystem)
+  pocket_days INTEGER NOT NULL DEFAULT 0    -- dias seguidos em cerco (PocketSystem); o corte em si recalcula-se
 );
 CREATE TABLE IF NOT EXISTS s_division_medal (    -- condecorações ganhas (MedalSystem)
   division_id INTEGER NOT NULL, medal TEXT NOT NULL, PRIMARY KEY (division_id, medal));

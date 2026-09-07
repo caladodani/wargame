@@ -44,9 +44,12 @@ public sealed class SupplySystem : ISystem
             // ligada = controlada pelo país da divisão (ou aliado de facção) E com cadeia até território próprio
             var reg = w.Regions[d.RegionId];
             bool friendly = reg.ControllerId == d.CountryId || w.SameFaction(d.CountryId, reg.ControllerId);
-            float s = friendly && linked.Contains(d.RegionId)
-                ? (bySea.Contains(d.RegionId) ? seaFactor * strain.GetValueOrDefault(reg.ControllerId, 1f) : 1f)
-                : pocket;
+            // A mesma pergunta serve duas respostas: quanto se come hoje, e se aquilo é um cerco. Fica
+            // marcada na divisão para o PocketSystem não ter de refazer a travessia toda a seguir — e
+            // porque cortado tem de querer dizer exactamente o mesmo nos dois sítios.
+            d.Cut = !(friendly && linked.Contains(d.RegionId));
+            float s = d.Cut ? pocket
+                : (bySea.Contains(d.RegionId) ? seaFactor * strain.GetValueOrDefault(reg.ControllerId, 1f) : 1f);
             int n = stacked[(d.CountryId, d.RegionId)];
             if (n > stack) s *= stack / n;
             d.Supply = s;

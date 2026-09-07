@@ -12,6 +12,10 @@ public sealed record BattleStarted(int RegionId) : IGameEvent;
 /// adivinhar quem lá estava (a batalha já saiu de ActiveBattles quando isto é publicado).</summary>
 public sealed record BattleEnded(int RegionId, bool AttackerWon, int AttackerCountryId, int DefenderCountryId) : IGameEvent;
 public sealed record DivisionDestroyed(int DivisionId) : IGameEvent;
+/// <summary>Uma divisão cercada baixou as armas (PocketSystem). Traz quem fechou o cerco porque, ao
+/// contrário de uma divisão desfeita em combate, esta rende-se em terreno que ainda era do seu país: o
+/// captor não se descobre olhando para quem manda na região.</summary>
+public sealed record DivisionSurrendered(int DivisionId, int CaptorId, int CountryId, int RegionId) : IGameEvent;
 public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;

@@ -31,7 +31,7 @@ public partial class AlertStrip : PanelContainer
         _game = game;
         AnchorLeft = 1; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 0;
         GrowHorizontal = GrowDirection.Begin; GrowVertical = GrowDirection.End;
-        OffsetRight = -12; OffsetTop = 132;                  // a barra de topo tem duas linhas
+        OffsetRight = -12; OffsetTop = 132;                  // altura de partida; o Hud acerta-a pela barra real
         AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.9f }, 6));
         MouseFilter = MouseFilterEnum.Stop;                  // o toque na faixa não é pan do mapa
         Visible = false;
@@ -40,6 +40,10 @@ public partial class AlertStrip : PanelContainer
         v.AddChild(Ui.Head("Alarmes"));
         _list = new VBoxContainer(); _list.AddThemeConstantOverride("separation", 3); v.AddChild(_list);
     }
+
+    /// <summary>A barra de topo mudou de altura (os mostradores dobraram para outra linha): a faixa desce
+    /// com ela em vez de ficar meia escondida por trás.</summary>
+    public void PlaceUnder(float y) => OffsetTop = y;
 
     /// <summary>Redesenha se o conjunto de avisos mudou. Corre a cada tick da UI, por isso a chave é o
     /// que a defende: sem mudanças não se toca em nada.</summary>

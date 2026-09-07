@@ -111,6 +111,7 @@ public partial class Game : Node
         World.Register(new AirMissionSystem());  // antes do combate: a batalha do dia vê o céu deste dia
         World.Register(new CombatSystem());
         World.Register(new EntrenchSystem());    // depois do movimento e do combate: já se sabe quem marchou e quem assaltou hoje
+        World.Register(new PocketSystem());      // e o cerco cobra o dia a quem, depois de tudo isso, continua cortado
         World.Register(new MedalSystem());       // depois do combate: condecora com os contadores do dia
         World.Register(new DivisionHonourSystem());  // e logo a seguir dá nome próprio a quem já o merece
         World.Register(new PeaceSystem());

@@ -557,6 +557,12 @@ public sealed class Division
     /// <summary>Trincheira cavada nesta posição (0..entrench_max + fortes): sobe a cada dia parado, zera ao
     /// mudar de região e gasta-se a assaltar. Só conta a defender (EntrenchSystem).</summary>
     public float Entrench { get; set; }
+    /// <summary>Cortada da retaguarda: não há cadeia de terra (nem cais) que a ligue a casa. Estado
+    /// derivado — quem o escreve é o SupplySystem, todos os dias, e por isso não entra no save.</summary>
+    public bool Cut { get; set; }
+    /// <summary>Dias seguidos em cerco (PocketSystem). Zera assim que a ligação a casa volta; passado
+    /// pocket_surrender dias fechada, a divisão rende-se.</summary>
+    public int PocketDays { get; set; }
     /// <summary>Batalhas em que esteve e de que saiu viva (CombatSystem, ao fechar a batalha).</summary>
     public int Battles { get; set; }
     /// <summary>Regiões inimigas que tomou, por assalto ou entrando em região vazia.</summary>

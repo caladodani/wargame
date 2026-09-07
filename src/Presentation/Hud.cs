@@ -19,8 +19,13 @@ public partial class Hud : CanvasLayer
     // Fábricas civis, militares e estaleiros: a fila de mostradores industriais do HoI4.
     private Label _civ = null!, _civNote = null!, _mil = null!, _milNote = null!, _yard = null!, _yardNote = null!;
     private Label _xp = null!, _xpNote = null!, _airXp = null!, _airXpNote = null!, _seaXp = null!, _seaXpNote = null!;
-    private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!;
+    private Label _pocket = null!, _pocketNote = null!;
+    private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!, _pocketPlate = null!;
     private PanelContainer _season = null!;
+    private PanelContainer _top = null!;                    // a barra inteira: quem está por baixo mede-se por ela
+    private HFlowContainer _plates = null!, _nav = null!;   // mostradores e chapas de painel: filas que dobram
+    private CenterContainer _toastRow = null!, _hintRow = null!;
+    private int _worstPocketRegion;                         // a bolsa que a chapa ⛓ mostra (0 = nenhuma)
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
     private SpeedRibbon _speed = null!;
@@ -115,6 +120,7 @@ public partial class Hud : CanvasLayer
             // Caixilharia de metal: todos os painéis flutuantes ganham cantoneiras e rebites de uma vez. Fica
             // de fora a barra de topo (o texto encosta às arestas) e a tira de avisos, que é fina de propósito.
             _frames = PanelFrame.DressAll(this, _alerts, GetNode<PanelContainer>("Top"));
+            LayoutUnderTop();   // agora que a faixa de alarmes e a chapa da selecção existem, descem com a barra
 
             // Depois da caixilharia: o cartaz do klaxon é de alarme e não leva cantoneiras de painel.
             _klaxon = new DefeatKlaxon(); AddChild(_klaxon); _klaxon.Setup();
@@ -178,66 +184,77 @@ public partial class Hud : CanvasLayer
         bar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
         bar.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.043f, 0.051f, 0.059f, 0.96f), 6));
         AddChild(bar);
+        _top = bar;
+        bar.Resized += LayoutUnderTop;      // a barra cresce com o número de linhas: o resto segue-a
         // A barra leva uma tira fina por baixo, pintada com a cor do país do jogador: dá identidade
         // ao ecrã inteiro e fica vermelha quando o país está em guerra.
         var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 6); bar.AddChild(stack);
 
-        // Primeira linha: o estado do jogo (data, velocidade, país, exército). Num telemóvel isto sozinho
-        // já enche a largura — por isso a navegação desceu para a linha de baixo.
-        var deck = new ScrollContainer
-        {
-            Name = "Deck",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
-        };
+        // Primeira linha: o relógio do jogo (bandeira, país, data, andamento, estação). É curta de
+        // propósito — cabe num telemóvel em pé sem empurrar nada para fora.
+        var deck = new VBoxContainer { Name = "Deck", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        deck.AddThemeConstantOverride("separation", 6);
         stack.AddChild(deck);
-        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        row.AddThemeConstantOverride("separation", 10); deck.AddChild(row);
+        // Também dobra: num telemóvel em pé a fita das cinco velocidades e a data já não cabem lado a lado
+        // com a bandeira e a estação, e o que sobrava saía pela direita do ecrã.
+        var row = new HFlowContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("h_separation", 10);
+        row.AddThemeConstantOverride("v_separation", 4);
+        deck.AddChild(row);
         _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
         _country = Ui.Lbl("", 20); _country.AddThemeColorOverride("font_color", Ui.Accent); row.AddChild(_country);
         _date = Ui.Lbl("2030-01-01", 22); row.AddChild(_date);
         _speed = new SpeedRibbon(); row.AddChild(_speed); _speed.Setup(_game);
         _season = SeasonView.Badge(_game.World); row.AddChild(_season);
-        row.AddChild(Ui.Grow(new Control()));
-        // Fila de mostradores à direita, à maneira dos jogos de grande estratégia: dinheiro, homens e
-        // divisões, cada um com a sua nota (rendimento, reserva por chegar, fila de produção). Antes isto
-        // eram duas frases de texto corrido — "Divisões 12 · Fila 3 · Homens 1.2M" — que ninguém lia de
-        // relance nem encontrava outra vez quando queria.
-        row.AddChild(Ui.Counter("₵", out _money, out _moneyNote, Ui.Accent));
-        row.AddChild(Ui.Counter("♟", out _men, out _menNote, Ui.Text));
-        row.AddChild(Ui.Counter("⚔", out _divs, out _divsNote, Ui.Danger.Lightened(0.25f)));
+        // Fila de mostradores, à maneira dos jogos de grande estratégia: dinheiro, homens e divisões, cada
+        // um com a sua nota (rendimento, reserva por chegar, fila de produção). Antes isto eram duas frases
+        // de texto corrido — "Divisões 12 · Fila 3 · Homens 1.2M" — que ninguém lia de relance.
+        //
+        // Os mostradores viviam num deslizador horizontal, e num telemóvel isso queria dizer que metade do
+        // estado do país estava fora do ecrã, escondido atrás de um arrasto que ninguém adivinha: via-se o
+        // cofre e os homens, e as fábricas, os estaleiros e as medalhas só apareciam a quem soubesse
+        // puxar. Agora é uma fila que dobra — HFlowContainer — e desce para a linha de baixo o que não
+        // couber. A barra fica mais alta no telemóvel, e é isso mesmo que se quer: o estado todo à vista.
+        var plates = _plates = new HFlowContainer { Name = "Plates", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        plates.AddThemeConstantOverride("h_separation", 10);
+        plates.AddThemeConstantOverride("v_separation", 6);
+        deck.AddChild(plates);
+        plates.AddChild(Ui.Counter("₵", out _money, out _moneyNote, Ui.Accent));
+        plates.AddChild(Ui.Counter("♟", out _men, out _menNote, Ui.Text));
+        plates.AddChild(Ui.Counter("⚔", out _divs, out _divsNote, Ui.Danger.Lightened(0.25f)));
         // Indústria: quantas fábricas estão ao serviço e quantas há. Sem isto o jogador só descobria o
         // tecto da economia quando uma obra ou uma encomenda era recusada.
-        row.AddChild(Ui.Counter("🏭", out _civ, out _civNote, Ui.Good.Lightened(0.2f)));
-        row.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
+        plates.AddChild(Ui.Counter("🏭", out _civ, out _civNote, Ui.Good.Lightened(0.2f)));
+        plates.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
         _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
-        row.AddChild(_yardPlate);
+        plates.AddChild(_yardPlate);
         // Experiência: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a mesma pergunta —
         // o que é que hoje já dá para comprar. São três medalhas, uma por arma, como o HoI4 as tem lado a
         // lado na barra de cima: o exército aprende a combater, o ar a voar, o mar a navegar, e cada bolso
         // é seu. Carregar numa abre a árvore de escolas daquela arma — na barra nada é só enfeite.
         _xpPlate = Ui.Click(Ui.Counter("🎖", out _xp, out _xpNote, Ui.Good.Lightened(0.2f)),
                             () => Schools(World.Land), "escolas de guerra do exército");
-        row.AddChild(_xpPlate);
+        plates.AddChild(_xpPlate);
         _airXpPlate = Ui.Click(Ui.Counter("✈", out _airXp, out _airXpNote, Ui.Text),
                                () => Schools(World.Air), "escolas de guerra do ar");
-        row.AddChild(_airXpPlate);
+        plates.AddChild(_airXpPlate);
         _seaXpPlate = Ui.Click(Ui.Counter("🚢", out _seaXp, out _seaXpNote, Ui.Text),
                                () => Schools(World.Sea), "escolas de guerra do mar");
-        row.AddChild(_seaXpPlate);
+        plates.AddChild(_seaXpPlate);
+        // Cerco: só aparece quando há tropa nossa cortada, e é a chapa mais cara de ignorar da barra —
+        // dias de bolsa e o prazo até as armas baixarem. Carregar leva o mapa à pior das bolsas.
+        _pocketPlate = Ui.Click(Ui.Counter("⛓", out _pocket, out _pocketNote, Ui.Danger.Lightened(0.15f)),
+                                ShowWorstPocket, "divisões cercadas");
+        _pocketPlate.Visible = false;
+        plates.AddChild(_pocketPlate);
 
-        // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
-        // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
-        var nav = new ScrollContainer
-        {
-            Name = "Nav",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
-        };
-        stack.AddChild(nav);
-        var tabs = new HBoxContainer(); tabs.AddThemeConstantOverride("separation", 8); nav.AddChild(tabs);
+        // Segunda linha: os painéis. Também estavam num deslizador horizontal, e um botão que só aparece
+        // depois de se arrastar a fila é um botão que não existe — foi assim que a fila de produção passou
+        // meses escondida. Agora dobram de linha como os mostradores: vê-se o jogo todo de uma vez.
+        var tabs = _nav = new HFlowContainer { Name = "Nav", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        tabs.AddThemeConstantOverride("h_separation", 8);
+        tabs.AddThemeConstantOverride("v_separation", 6);
+        stack.AddChild(tabs);
         tabs.AddChild(Ui.Btn("Frente", DefendBorders));
         tabs.AddChild(Ui.Btn("País", OpenCountry));
         // A produção só se alcançava por dentro do painel de uma região, no botão "Produzir": quem não
@@ -306,8 +323,8 @@ public partial class Hud : CanvasLayer
         // Toast: caixa centrada por baixo da barra; Ignore no wrapper para o toque passar ao mapa.
         var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
-        center.OffsetTop = 132; center.OffsetBottom = 192;   // a barra de topo tem duas linhas
         AddChild(center);
+        _toastRow = center;
         _toastBox = new PanelContainer { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
         _toastSkin = Ui.Box(Ui.Ink with { A = 0.94f }, 12);
         _toastSkin.SetBorderWidthAll(2);
@@ -339,9 +356,25 @@ public partial class Hud : CanvasLayer
         // Instrução enquanto não há jogador.
         var center2 = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         center2.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopWide);
-        center2.OffsetTop = 202; center2.OffsetBottom = 262;
         AddChild(center2);
+        _hintRow = center2;
         _hint = Ui.Lbl("Toca num país e escolhe-o", 26); _hint.Visible = false; center2.AddChild(_hint);
+        LayoutUnderTop();
+    }
+
+    /// <summary>Põe tudo o que vive logo abaixo da barra de topo à altura a que ela ficou. A barra deixou
+    /// de ter um número fixo de linhas — os mostradores dobram para a linha de baixo quando o ecrã é
+    /// estreito — e as posições cravadas a 132 px passaram a esconder-se por trás dela num telemóvel.
+    /// Sem uma passagem de layout ainda não há Size: nesse caso vale o tamanho mínimo da barra, que é o
+    /// mesmo número sem esperar por ecrã nenhum (é assim que o --smoke a mede).</summary>
+    private void LayoutUnderTop()
+    {
+        if (_top is null) return;
+        float y = MathF.Max(_top.Size.Y, _top.GetCombinedMinimumSize().Y) + 8f;
+        if (_toastRow is not null) { _toastRow.OffsetTop = y; _toastRow.OffsetBottom = y + 60f; }
+        if (_hintRow is not null) { _hintRow.OffsetTop = y + 70f; _hintRow.OffsetBottom = y + 130f; }
+        _alerts?.PlaceUnder(y);
+        _multiSel?.PlaceUnder(y - 4f);
     }
 
     /// <summary>Mensagem breve ao jogador (4 s). Seguro chamar de sinais; de outra thread usar CallDeferred.</summary>
@@ -933,6 +966,7 @@ public partial class Hud : CanvasLayer
             Medal(w, p, World.Land, _xpPlate, _xp, _xpNote);
             Medal(w, p, World.Air, _airXpPlate, _airXp, _airXpNote);
             Medal(w, p, World.Sea, _seaXpPlate, _seaXp, _seaXpNote);
+            Encircled(w, pid);
             _hint.Visible = false;
             int posted = OfferView.Count(w, pid);
             if (posted != _offersShown)
@@ -951,7 +985,7 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _pocketPlate.Visible = false; _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     /// <summary>Uma das três medalhas da barra: o que esta arma tem no bolso e o que isso já dá para
@@ -966,6 +1000,66 @@ public partial class Hud : CanvasLayer
         note.Text = next is string id && w.ArmyDoctrines.TryGetValue(id, out var nd)
             ? "dá para " + nd.Name.ToLowerInvariant()
             : domain switch { World.Air => "experiência do ar", World.Sea => "experiência do mar", _ => "experiência" };
+    }
+
+    /// <summary>--smoke: a barra de topo medida — quantos mostradores estão à vista, quanta largura pedem
+    /// e em quantas linhas isso cai no ecrã de agora. Sem passagem de layout o Size é 0, por isso mede-se
+    /// pelo tamanho mínimo das chapas contra a largura do viewport.</summary>
+    private string SmokeTopBar()
+    {
+        float wide = MathF.Max(1f, _top.GetViewportRect().Size.X);
+        float tall = MathF.Max(_top.Size.Y, _top.GetCombinedMinimumSize().Y);
+        return $"{Rows(_plates, "mostradores", wide)}, {Rows(_nav, "chapas", wide)}"
+             + $", barra de {tall:0}px (faixa de alarmes a {_alerts.OffsetTop:0})";
+    }
+
+    /// <summary>Quantas linhas é que uma fila que dobra ocupa na largura de agora (o layout headless não a
+    /// mediu ainda, por isso soma-se o tamanho mínimo de cada chapa mais a separação entre elas).</summary>
+    private static string Rows(HFlowContainer flow, string what, float wide)
+    {
+        var shown = flow.GetChildren().OfType<Control>().Where(c => c.Visible).ToList();
+        float sep = flow.GetThemeConstant("h_separation");
+        float need = shown.Sum(c => c.GetCombinedMinimumSize().X) + sep * Math.Max(0, shown.Count - 1);
+        int rows = (int)MathF.Ceiling(need / wide);
+        return $"{shown.Count} {what} em {rows} linha{(rows == 1 ? "" : "s")} de {need:0}px por {wide:0}px";
+    }
+
+    /// <summary>--smoke: força uma bolsa numa divisão nossa para a chapa ⛓ e o aviso do cerco serem
+    /// desenhados mesmo num mundo em paz, e repõe tudo como estava.</summary>
+    private string SmokePocket(int pid)
+    {
+        var w = _game.World;
+        var d = w.Divisions.Values.FirstOrDefault(x => x.CountryId == pid);
+        if (d is null) return "sem divisões";
+        bool cut = d.Cut; int had = d.PocketDays;
+        d.Cut = true; d.PocketDays = (int)w.Rule("pocket_grace", 3f) + 1;
+        RefreshTop();
+        string plate = _pocketPlate.Visible ? $"{_pocket.Text} ({_pocketNote.Text})" : "chapa escondida";
+        int warned = Alerts.For(w, pid).Count(a => a.Id == "pocket");
+        d.Cut = cut; d.PocketDays = had;
+        RefreshTop();
+        return $"{plate}, {warned} aviso na faixa, chapa depois de desfeito o cerco: {(_pocketPlate.Visible ? "à vista" : "escondida")}";
+    }
+
+    /// <summary>A chapa do cerco: quantas divisões nossas estão em bolsa e quanto tempo falta à pior delas.
+    /// Some-se quando não há nenhuma — a barra não guarda espaço para desgraças que não existem.</summary>
+    private void Encircled(World w, int pid)
+    {
+        var pocketed = PocketSystem.Of(w, pid);
+        _pocketPlate.Visible = pocketed.Count > 0;
+        if (pocketed.Count == 0) { _worstPocketRegion = 0; return; }
+        var worst = pocketed[0];
+        _worstPocketRegion = worst.RegionId;
+        _pocket.Text = pocketed.Count.ToString();
+        _pocketNote.Text = PocketSystem.DaysToSurrender(w, worst) is int days
+            ? days <= 0 ? "rende-se hoje" : days == 1 ? "rende-se amanhã" : $"rende-se em {days} d"
+            : pocketed.Count == 1 ? "cercada" : "cercadas";
+    }
+
+    /// <summary>Toque na chapa do cerco: o mapa vai à bolsa pior e abre-lhe a ficha.</summary>
+    private void ShowWorstPocket()
+    {
+        if (_worstPocketRegion > 0) ShowRegion(_worstPocketRegion);
     }
 
     /// <summary>Carregar numa medalha abre a árvore de escolas daquela arma, já na aba certa.</summary>
@@ -1398,7 +1492,9 @@ public partial class Hud : CanvasLayer
         ToggleSound(); bool hushed = _sfx.Muted; ToggleSound();
         string sound = $"{bank}, cartão com a chapa {plate}, "
                      + $"altifalante {(hushed && !_sfx.Muted ? "cala e volta" : "preso")}";
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
+        string bar = SmokeTopBar();                                       // barra de topo medida, chapa a chapa
+        string pocket = SmokePocket(pid);                                 // e o cerco: chapa ⛓ e aviso, com bolsa fingida
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, cerco: {pocket}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
