@@ -87,7 +87,7 @@ public partial class ArmyPanel : PanelContainer
             var foes = w.Wars.Values.Where(x => x.Involves(pid)).Select(x => x.EnemyOf(pid)).Distinct().ToList();
 
             var key = $"{w.Clock.Day}|{_fronts}|{_generals}|{_select.RegionCount}|{string.Join(",", w.Countries[pid].Generals)}|{string.Join(",", w.Countries[pid].GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|" + string.Join(",", foes) + "|" +
-                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}:{(int)(g.Planning * 100f)}"));
+                      string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{g.FrontRegionId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}:{(int)(g.Planning * 100f)}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.CrestInto(_crest, w.Countries[pid].Tag, "Exércitos",
@@ -111,13 +111,14 @@ public partial class ArmyPanel : PanelContainer
                 return;
             }
 
-            foreach (var g in groups) Card(w, g, pid, foes);
+            var theatres = TheatreSystem.Of(w, pid);
+            foreach (var g in groups) Card(w, g, pid, foes, theatres);
         }
         catch (Exception ex) { GD.PushError("ArmyPanel: " + ex); }
     }
 
     /// <summary>Um cartão por grupo: identidade, saúde das tropas, frente, postura e ordens.</summary>
-    private void Card(World w, ArmyGroup g, int pid, List<int> foes)
+    private void Card(World w, ArmyGroup g, int pid, List<int> foes, List<Theatre> theatres)
     {
         var card = new PanelContainer();
         bool active = g.NeedsFront && g.FrontCountryId is not null;
@@ -144,9 +145,15 @@ public partial class ArmyPanel : PanelContainer
             v.AddChild(Meters(("Organização", org, Tint(org)), ("Efectivos", hp, Tint(hp)), ("Abastecimento", sup, Tint(sup))));
         }
 
-        // frente atribuída: uma etiqueta por inimigo em guerra, a que está atribuída fica azul
+        // frente atribuída: uma etiqueta por inimigo em guerra, a que está atribuída fica azul. Um país em
+        // guerra grande tem vários troços (Theatre) — com um atribuído o grupo dedica-se só a esse, sem
+        // RegionId marcha para o mais perto em toda a fronteira com o país.
         var frontRow = new HBoxContainer();
-        string frontName = g.FrontCountryId is int f ? Name(w, f) : "sem frente";
+        string? theatreName = g.FrontCountryId is int tf && g.FrontRegionId is int trid
+            ? theatres.Where(t => t.FoeId == tf && t.FacingId == trid).Select(t => t.Name).FirstOrDefault() : null;
+        string frontName = g.FrontCountryId is int f
+            ? (theatreName is not null ? $"{Name(w, f)} — {theatreName}" : Name(w, f))
+            : "sem frente";
         frontRow.AddChild(Ui.Grow(Ui.Lbl("Frente: " + frontName, 16)));
         frontRow.AddChild(Ui.Btn(_fronts == g.Id ? "Fechar" : "Mudar frente", () => ToggleFronts(g.Id), 180));
         v.AddChild(frontRow);
@@ -158,9 +165,25 @@ public partial class ArmyPanel : PanelContainer
             {
                 var flow = new HFlowContainer();
                 foreach (int foe in foes)
-                    flow.AddChild(Ui.Btn(Name(w, foe), () => SetFront(pid, g.Id, foe), 0,
-                        g.FrontCountryId == foe ? Ui.Kind.Primary : Ui.Kind.Normal));
-                if (g.FrontCountryId is not null) flow.AddChild(Ui.Btn("Sem frente", () => SetFront(pid, g.Id, null), 0));
+                {
+                    var foeTheatres = theatres.Where(t => t.FoeId == foe).ToList();
+                    if (foeTheatres.Count <= 1)
+                    {
+                        // só um troço (ou nenhum ainda calculado): o país inteiro É a frente, como sempre foi
+                        flow.AddChild(Ui.Btn(Name(w, foe), () => SetFront(pid, g.Id, foe, null), 0,
+                            g.FrontCountryId == foe && g.FrontRegionId is null ? Ui.Kind.Primary : Ui.Kind.Normal));
+                    }
+                    else
+                    {
+                        // vários troços: um botão por teatro, mais "toda a frente" p/ quem não quer escolher
+                        flow.AddChild(Ui.Btn($"{Name(w, foe)} — toda a frente", () => SetFront(pid, g.Id, foe, null), 0,
+                            g.FrontCountryId == foe && g.FrontRegionId is null ? Ui.Kind.Primary : Ui.Kind.Normal));
+                        foreach (var t in foeTheatres)
+                            flow.AddChild(Ui.Btn(t.Name, () => SetFront(pid, g.Id, foe, t.FacingId), 0,
+                                g.FrontCountryId == foe && g.FrontRegionId == t.FacingId ? Ui.Kind.Primary : Ui.Kind.Normal));
+                    }
+                }
+                if (g.FrontCountryId is not null) flow.AddChild(Ui.Btn("Sem frente", () => SetFront(pid, g.Id, null, null), 0));
                 v.AddChild(flow);
             }
         }
@@ -351,9 +374,9 @@ public partial class ArmyPanel : PanelContainer
         _generals = null; _lastKey = ""; Fill();
     });
 
-    private void SetFront(int pid, int groupId, int? foe) => _game.RunWhenIdle(() =>
+    private void SetFront(int pid, int groupId, int? foe, int? anchor) => _game.RunWhenIdle(() =>
     {
-        var err = _game.Dispatch(new SetArmyGroupFrontCommand(pid, groupId, foe));
+        var err = _game.Dispatch(new SetArmyGroupFrontCommand(pid, groupId, foe, anchor));
         if (err is not null) { _game.Notify(err); return; }
         _fronts = null; Fill();
     });

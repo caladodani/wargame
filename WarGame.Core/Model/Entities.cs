@@ -536,6 +536,11 @@ public sealed class ArmyGroup
     public string Name { get; set; } = "";
     /// <summary>País inimigo atribuído como frente; null = grupo sem missão (fica onde está).</summary>
     public int? FrontCountryId { get; set; }
+    /// <summary>Troço da frente a que o grupo se dedica: uma região do inimigo (o Theatre.FacingId de um
+    /// teatro escolhido no painel), ou null para a fronteira inteira com FrontCountryId. Uma guerra grande
+    /// tem sempre mais do que um troço — sem isto o grupo espalhava-se por todos ao mesmo tempo, e nunca
+    /// dava para mandar um exército inteiro reforçar só o troço que estava a ceder.</summary>
+    public int? FrontRegionId { get; set; }
     /// <summary>O que o grupo faz com a frente que lhe deram (ArmyGroupSystem).</summary>
     public GroupStance Stance { get; set; } = GroupStance.Hold;
     public bool Advancing => Stance == GroupStance.Advance;

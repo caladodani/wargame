@@ -1265,7 +1265,11 @@ public sealed record DisbandArmyGroupCommand(int CountryId, int GroupId) : IComm
 }
 
 /// <summary>Atribui (ou tira) a frente do grupo: o país inimigo para onde ele marcha.</summary>
-public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? FrontCountryId) : ICommand
+/// <summary>Atribui a frente de um grupo: o país inimigo, e opcionalmente um troço específico dela
+/// (RegionId — uma região do inimigo, o Theatre.FacingId de um teatro do painel Exércitos). Sem RegionId o
+/// grupo marcha para onde lhe ficar mais perto em toda a fronteira com esse país, como sempre fez; com ele,
+/// dedica-se só àquele troço — é a diferença entre "defende a Ucrânia" e "defende o Norte da Ucrânia".</summary>
+public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? FrontCountryId, int? RegionId = null) : ICommand
 {
     public string? Validate(World w)
     {
@@ -1274,6 +1278,8 @@ public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? F
         if (FrontCountryId is not int foe) return null;
         if (!w.Countries.ContainsKey(foe)) return "país inexistente";
         if (!w.AreAtWar(CountryId, foe)) return "só se atribui uma frente contra quem estás em guerra";
+        if (RegionId is int rid && (!w.Regions.TryGetValue(rid, out var r) || r.ControllerId != foe))
+            return "esse troço já não é do inimigo";
         return null;
     }
 
@@ -1281,6 +1287,7 @@ public sealed record SetArmyGroupFrontCommand(int CountryId, int GroupId, int? F
     {
         var g = w.ArmyGroups[GroupId];
         g.FrontCountryId = FrontCountryId;
+        g.FrontRegionId = FrontCountryId is null ? null : RegionId;
         if (FrontCountryId is null) g.Stance = GroupStance.Hold;   // sem frente não há ordem que se cumpra
     }
 }

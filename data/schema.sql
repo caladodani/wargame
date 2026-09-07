@@ -371,7 +371,8 @@ CREATE TABLE IF NOT EXISTS s_offer (           -- propostas à espera de respost
 
 CREATE TABLE IF NOT EXISTS s_army_group (        -- grupos de exércitos (ArmyGroupSystem)
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL,
-  front_country_id INTEGER, advancing INTEGER NOT NULL DEFAULT 0,
+  front_country_id INTEGER, front_region_id INTEGER,   -- troço da frente (Theatre.FacingId); NULL = fronteira inteira
+  advancing INTEGER NOT NULL DEFAULT 0,
   stance INTEGER NOT NULL DEFAULT 0,              -- 0 parado, 1 avançar, 2 defender
   planning REAL NOT NULL DEFAULT 0,               -- preparação do plano de batalha 0..planning_max (BattlePlanSystem)
   general TEXT);                                  -- comandante destacado (tabela general), ou NULL

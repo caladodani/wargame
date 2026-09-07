@@ -109,8 +109,11 @@ public sealed class TheatreSystem : ISystem
                 int holes = ids.Count(id => garrison.GetValueOrDefault((id, countryId)) == 0);
                 float want = ids.Count * need;
 
+                // identidade do teatro p/ um grupo se ancorar nele: uma região inimiga representativa deste
+                // troço (a de id mais baixo, estável entre chamadas enquanto o território não muda de mão).
+                int facingId = facing.Count > 0 ? facing.Min() : ids[0];
                 list.Add(new Theatre(foe, Title(group), ids, mine, theirs, want,
-                                     want <= 0f ? 1f : MathF.Min(1f, mine / want), progress, holes));
+                                     want <= 0f ? 1f : MathF.Min(1f, mine / want), progress, holes, facingId));
             }
         }
         return list.OrderByDescending(t => t.RegionIds.Count).ThenBy(t => t.FoeId).ThenBy(t => t.RegionIds[0]).ToList();
@@ -125,6 +128,8 @@ public sealed class TheatreSystem : ISystem
 }
 
 /// <summary>Um troço de frente contra um inimigo: as regiões de contacto, quem lá está de cada lado, quanto a
-/// frente pede, quanto está guarnecida, quanto já avançámos contra aquele país e quantos buracos tem.</summary>
+/// frente pede, quanto está guarnecida, quanto já avançámos contra aquele país e quantos buracos tem.
+/// FacingId identifica o troço p/ um grupo se ancorar nele (SetArmyGroupFrontCommand.RegionId).</summary>
 public readonly record struct Theatre(int FoeId, string Name, IReadOnlyList<int> RegionIds, int Divisions,
-                                      int FoeDivisions, float Need, float Coverage, float Progress, int Holes);
+                                      int FoeDivisions, float Need, float Coverage, float Progress, int Holes,
+                                      int FacingId);

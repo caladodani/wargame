@@ -38,7 +38,7 @@ public sealed class ArmyGroupSystem : ISystem
             if (!w.Countries.TryGetValue(g.CountryId, out var c) || c.Capitulated) continue;
             if (!w.AreAtWar(g.CountryId, foe)) continue;
 
-            var dist = FrontDistance(w, g.CountryId, foe, range);
+            var dist = FrontDistance(w, g.CountryId, foe, range, g.FrontRegionId);
             if (dist.Count == 0) continue;
             defenders ??= Defenders(w);
 
@@ -54,14 +54,21 @@ public sealed class ArmyGroupSystem : ISystem
     }
 
     /// <summary>Distância em saltos de cada região à frente do inimigo (0 = região controlada por ele).
-    /// Travessia em largura a partir de todas as regiões dele ao mesmo tempo, limitada a `range` saltos:
-    /// uma passagem serve o grupo inteiro, por muitas divisões que tenha.</summary>
-    private static Dictionary<int, int> FrontDistance(World w, int countryId, int foe, int range)
+    /// Sem âncora, a travessia em largura arranca de TODAS as regiões dele ao mesmo tempo — o grupo vai
+    /// para o troço mais perto, seja ele qual for. Com âncora (Theatre.FacingId, uma região do inimigo
+    /// escolhida no painel), arranca só dali: o grupo dedica-se àquele troço, mesmo que outro esteja
+    /// mais perto. É a diferença entre "defende a Ucrânia" e "defende o Norte da Ucrânia".</summary>
+    private static Dictionary<int, int> FrontDistance(World w, int countryId, int foe, int range, int? anchor = null)
     {
         var dist = new Dictionary<int, int>();
         var queue = new Queue<int>();
-        foreach (var r in w.Regions.Values)
-            if (r.ControllerId == foe) { dist[r.Id] = 0; queue.Enqueue(r.Id); }
+        if (anchor is int a && w.Regions.TryGetValue(a, out var ar) && ar.ControllerId == foe)
+        {
+            dist[a] = 0; queue.Enqueue(a);
+        }
+        else
+            foreach (var r in w.Regions.Values)
+                if (r.ControllerId == foe) { dist[r.Id] = 0; queue.Enqueue(r.Id); }
 
         while (queue.Count > 0)
         {
