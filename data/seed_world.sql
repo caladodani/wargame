@@ -187,10 +187,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('army_xp_per_day',0.1,'manobras: experiência por dia a quem tem exército no terreno'),
  ('army_xp_max',600,'tecto da experiência por gastar');
 
-INSERT INTO army_doctrine_branch (id,name,icon,sort) VALUES
- ('movimento','Guerra de Movimento','⚡',1),
- ('fogo','Superioridade de Fogo','🎯',2),
- ('massa','Assalto em Massa','♟',3);
+INSERT INTO army_doctrine_branch (id,name,icon,sort,domain) VALUES
+ ('movimento','Guerra de Movimento','⚡',1,'exercito'),
+ ('fogo','Superioridade de Fogo','🎯',2,'exercito'),
+ ('massa','Assalto em Massa','♟',3,'exercito');
 
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort) VALUES
  ('mov_1','movimento','Escola de Movimento','Colunas que andam mais do que combatem: quem chega primeiro escolhe o terreno.',40,NULL,1),
@@ -219,6 +219,52 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('mas_2','org_regain',1.06),('mas_2','conscription',1.05),
  ('mas_3','defense',1.05),('mas_3','org_regain',1.05),
  ('mas_4','conscription',1.15),('mas_4','industry',1.03);
+
+-- Escolas do ar e do mar (army_doctrine_branch.domain). Até aqui a aviação e a marinha eram números que se
+-- compravam: dois países com o mesmo número de asas tinham exactamente a mesma força aérea. Agora cada arma
+-- tem a sua árvore, a sua experiência (Country.AirXp/NavyXp, ganha a voar e a navegar, e muito mais depressa
+-- onde se perde material) e a sua escolha — e a escolha de uma arma não fecha portas às outras.
+INSERT INTO rule (key,value,note) VALUES
+ ('air_xp_per_wing_day',0.05,'experiência aérea por asa destacada, por dia'),
+ ('air_xp_per_loss',3,'experiência aérea por asa abatida: o combate ensina o que a patrulha não ensina'),
+ ('air_xp_max',400,'tecto da experiência aérea por gastar'),
+ ('navy_xp_per_ship_day',0.05,'experiência naval por navio no mar, por dia'),
+ ('navy_xp_per_loss',3,'experiência naval por navio ao fundo'),
+ ('navy_xp_max',400,'tecto da experiência naval por gastar');
+
+INSERT INTO army_doctrine_branch (id,name,icon,sort,domain) VALUES
+ ('ceu','Superioridade Aérea','✈',4,'ar'),
+ ('bomba','Guerra Estratégica','💣',5,'ar'),
+ ('frota','Batalha de Esquadra','⚓',6,'mar'),
+ ('corso','Guerra ao Comércio','🏴',7,'mar');
+
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort) VALUES
+ ('ceu_1','ceu','Escola de Caça','Primeiro limpa-se o céu; o resto da guerra aérea vem depois disso.',40,NULL,1),
+ ('ceu_2','ceu','Intercepção Coordenada','Vigias no chão a dizer à caça onde estar antes de o inimigo lá chegar.',90,'ceu_1',2),
+ ('ceu_3','ceu','Domínio do Céu','Quem manda no ar escolhe todos os dias onde é que o outro pode voar.',160,'ceu_2',3),
+ ('bom_1','bomba','Escola de Bombardeamento','A guerra ganha-se atrás da frente: pontes, gares, fábricas.',40,NULL,1),
+ ('bom_2','bomba','Formação Cerrada','Bombardeiros em caixa, fogo cruzado — mais carga em cima do alvo, mais gente que não volta.',90,'bom_1',2),
+ ('bom_3','bomba','Campanha de Interdição','Uma região fica sem estradas nem carris até deixar de servir para a guerra.',160,'bom_2',3),
+ ('fro_1','frota','Escola de Esquadra','Navios que navegam juntos e combatem juntos.',40,NULL,1),
+ ('fro_2','frota','Linha de Batalha','Artilharia pesada em linha e escolta cerrada aos comboios de casa.',90,'fro_1',2),
+ ('fro_3','frota','Combate Decisivo','Procura-se a esquadra inimiga para acabar a guerra no mar num dia.',160,'fro_2',3),
+ ('cor_1','corso','Escola de Corso','Não se afunda a esquadra dele: afunda-se o que lhe dá de comer.',40,NULL,1),
+ ('cor_2','corso','Matilha','Vários navios sobre a mesma rota, avisados uns pelos outros.',90,'cor_1',2),
+ ('cor_3','corso','Guerra de Tonelagem','Conta-se o aço afundado, não as batalhas ganhas.',160,'cor_2',3);
+
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ceu_1','air_losses',0.92),
+ ('ceu_2','air_losses',0.90),('ceu_2','air_upkeep',0.97),
+ ('ceu_3','air_losses',0.88),('ceu_3','air_bombing',1.05),
+ ('bom_1','air_bombing',1.12),
+ ('bom_2','air_bombing',1.15),('bom_2','air_losses',1.05),
+ ('bom_3','air_bombing',1.20),('bom_3','air_upkeep',1.05),
+ ('fro_1','naval_losses',0.92),
+ ('fro_2','naval_escort',1.15),('fro_2','naval_losses',0.90),
+ ('fro_3','naval_losses',0.85),('fro_3','naval_escort',1.10),
+ ('cor_1','naval_blockade',1.12),
+ ('cor_2','naval_blockade',1.15),('cor_2','naval_upkeep',0.92),
+ ('cor_3','naval_blockade',1.20),('cor_3','naval_upkeep',0.88);
 
 -- Adidos militares (AttacheSystem + SendAttacheCommand): observar a guerra dos outros custa dinheiro por
 -- dia e traz experiência de exército, que é o que paga as escolas de guerra a quem vive em paz.

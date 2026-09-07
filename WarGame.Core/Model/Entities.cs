@@ -68,8 +68,11 @@ public sealed record CountryInfo(string CountryTag, string Government, string Le
 /// um país se forma. Escolhida uma, as outras fecham-se — um exército não se treina em duas maneiras
 /// contrárias de fazer a guerra ao mesmo tempo.</summary>
 /// <summary>Ramo da árvore de doutrinas. Com CountryTag é a escola nacional desse país — a maneira própria
-/// de fazer a guerra que mais ninguém pode aprender.</summary>
-public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sort, string? CountryTag = null);
+/// de fazer a guerra que mais ninguém pode aprender. Domain diz a que arma pertence a escola
+/// (World.Land "exercito", World.Air "ar", World.Sea "mar"): cada arma tem a sua experiência e a sua
+/// escolha, e escolher a escola do ar não fecha nenhuma escola de terra.</summary>
+public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sort, string? CountryTag = null,
+                                    string Domain = "exercito");
 
 /// <summary>Doutrina de exército (tabela army_doctrine): degrau de uma escola militar, pago com a
 /// experiência de campanha que o país juntou (Country.ArmyXp). Efeitos em army_doctrine_effect, aplicados
@@ -452,6 +455,12 @@ public sealed class Country
     /// <summary>Experiência de exército por gastar (ArmyXpSystem): junta-se em campanha e em manobras,
     /// paga-se com ela cada degrau de doutrina. Tecto na regra army_xp_max.</summary>
     public float ArmyXp { get; set; }
+    /// <summary>Experiência de aviação por gastar (AirMissionSystem): junta-se com asas destacadas em missão
+    /// e ganha-se depressa em céu disputado. Paga as escolas do ar. Tecto na regra air_xp_max.</summary>
+    public float AirXp { get; set; }
+    /// <summary>Experiência de marinha por gastar (NavalMissionSystem): junta-se com esquadras no mar e
+    /// ganha-se depressa onde se afunda aço. Paga as escolas do mar. Tecto na regra navy_xp_max.</summary>
+    public float NavyXp { get; set; }
     public string? CurrentFocus { get; set; }      // foco nacional em curso (FocusSystem)
     public float FocusProgress { get; set; }
     public HashSet<string> FocusesDone { get; } = new();

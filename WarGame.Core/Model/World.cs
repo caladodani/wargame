@@ -88,11 +88,50 @@ public sealed class World
     public Dictionary<string, ArmyDoctrine> ArmyDoctrines { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> DoctrineEffects { get; } = new();
 
-    /// <summary>O ramo em que este país se formou (a primeira doutrina que adoptou manda), ou null.</summary>
-    public string? DoctrineBranchOf(Country c)
+    /// <summary>As três armas. Cada uma tem a sua árvore de escolas, a sua experiência e a sua escolha:
+    /// um país pode ser da Guerra de Movimento em terra, do Bombardeamento no ar e do Corso no mar ao mesmo
+    /// tempo — o que não pode é ser de duas escolas da mesma arma.</summary>
+    public const string Land = "exercito", Air = "ar", Sea = "mar";
+    public static readonly string[] Domains = { Land, Air, Sea };
+
+    /// <summary>A arma de uma escola (o ramo manda) e a arma de um degrau.</summary>
+    public string DomainOfBranch(string branchId) =>
+        DoctrineBranches.TryGetValue(branchId, out var b) ? b.Domain : Land;
+    public string DomainOf(ArmyDoctrine d) => DomainOfBranch(d.Branch);
+
+    /// <summary>A experiência com que se paga uma escola desta arma, e a maneira de a gastar. São três
+    /// bolsos separados: quem só faz guerra em terra nunca compra uma escola do mar.</summary>
+    public static float Xp(Country c, string domain) => domain switch
+    {
+        Air => c.AirXp,
+        Sea => c.NavyXp,
+        _ => c.ArmyXp,
+    };
+
+    public static void SpendXp(Country c, string domain, float cost)
+    {
+        switch (domain)
+        {
+            case Air: c.AirXp = MathF.Max(0f, c.AirXp - cost); break;
+            case Sea: c.NavyXp = MathF.Max(0f, c.NavyXp - cost); break;
+            default: c.ArmyXp = MathF.Max(0f, c.ArmyXp - cost); break;
+        }
+    }
+
+    /// <summary>Nome da experiência desta arma, para os avisos e o painel dizerem a mesma coisa.</summary>
+    public static string XpName(string domain) => domain switch
+    {
+        Air => "experiência aérea",
+        Sea => "experiência naval",
+        _ => "experiência de exército",
+    };
+
+    /// <summary>O ramo em que este país se formou nesta arma (a primeira doutrina que adoptou manda), ou
+    /// null. Por omissão fala-se do exército, que é a arma que existia antes de haver armas.</summary>
+    public string? DoctrineBranchOf(Country c, string domain = Land)
     {
         foreach (var id in c.Doctrines.OrderBy(x => x))
-            if (ArmyDoctrines.TryGetValue(id, out var d)) return d.Branch;
+            if (ArmyDoctrines.TryGetValue(id, out var d) && DomainOf(d) == domain) return d.Branch;
         return null;
     }
 
@@ -103,8 +142,8 @@ public sealed class World
 
     /// <summary>As escolas que este país pode abrir, pela ordem em que a árvore as desenha: as comuns por
     /// sort e, no fim, a nacional (que o seed põe em sort alto).</summary>
-    public List<DoctrineBranch> Branches(Country c) =>
-        DoctrineBranches.Values.Where(b => BranchIsFor(b, c))
+    public List<DoctrineBranch> Branches(Country c, string domain = Land) =>
+        DoctrineBranches.Values.Where(b => b.Domain == domain && BranchIsFor(b, c))
                         .OrderBy(b => b.CountryTag is null ? 0 : 1).ThenBy(b => b.Sort).ThenBy(b => b.Id).ToList();
 
     /// <summary>Os degraus de uma escola, de baixo para cima, já sem o que é de outro país.</summary>
@@ -121,14 +160,17 @@ public sealed class World
         if (!ArmyDoctrines.TryGetValue(doctrineId, out var d) || c.Doctrines.Contains(doctrineId)) return doctrineId;
         if (!DoctrineIsFor(d, c)) return doctrineId;              // escola de outro povo: nem se abre
         if (d.Requires is string req && !c.Doctrines.Contains(req)) return req;
+        string domain = DomainOf(d);
         foreach (var id in c.Doctrines.OrderBy(x => x))
-            if (ArmyDoctrines.TryGetValue(id, out var have) && have.Branch != d.Branch) return "!" + id;
+            if (ArmyDoctrines.TryGetValue(id, out var have) && have.Branch != d.Branch && DomainOf(have) == domain)
+                return "!" + id;                                  // só a mesma arma fecha portas
         return null;
     }
 
     /// <summary>Doutrina à mão e já paga: o que a IA adopta e o que o botão do painel aceita.</summary>
     public bool CanAdopt(Country c, string doctrineId) =>
-        DoctrineBlock(c, doctrineId) is null && ArmyDoctrines.TryGetValue(doctrineId, out var d) && c.ArmyXp >= d.Cost;
+        DoctrineBlock(c, doctrineId) is null && ArmyDoctrines.TryGetValue(doctrineId, out var d)
+        && Xp(c, DomainOf(d)) >= d.Cost;
 
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();

@@ -23,7 +23,7 @@ public class NationalDoctrineTests
         var w = FactionTests.BuildReal();
         var own = w.DoctrineBranches.Values.Where(b => b.CountryTag is not null).ToList();
         Assert.Equal(28, own.Count);
-        Assert.Equal(3, w.DoctrineBranches.Values.Count(b => b.CountryTag is null));   // as comuns continuam lá
+        Assert.Equal(3, w.DoctrineBranches.Values.Count(b => b.CountryTag is null && b.Domain == World.Land));
 
         foreach (var b in own)
         {

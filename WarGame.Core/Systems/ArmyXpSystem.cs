@@ -74,7 +74,7 @@ public sealed class ArmyXpSystem : ISystem
     public static void Adopt(World w, Country c, string doctrineId)
     {
         if (!w.ArmyDoctrines.TryGetValue(doctrineId, out var d) || !c.Doctrines.Add(doctrineId)) return;
-        c.ArmyXp = MathF.Max(0f, c.ArmyXp - d.Cost);
+        World.SpendXp(c, w.DomainOf(d), d.Cost);        // cada arma paga do seu bolso
         w.ApplyTechs(c);
     }
 }

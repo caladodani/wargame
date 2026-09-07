@@ -31,9 +31,10 @@ public sealed class AirMissionSystem : ISystem
                 || !w.AirMissionDefs.ContainsKey(m.MissionId))
             { w.AirMissions.Remove(m); continue; }
 
-            float bill = m.Wings * upkeep;
+            float bill = m.Wings * upkeep * c.Stat("air_upkeep", 1f);
             if (c.Money < bill) { w.AirMissions.Remove(m); continue; }
             c.Money -= bill;
+            Learn(w, c, m.Wings * w.Rule("air_xp_per_wing_day", 0.05f));   // voar todos os dias ensina alguma coisa
         }
 
         Dogfight(w);
@@ -44,7 +45,8 @@ public sealed class AirMissionSystem : ISystem
             if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || def.Effect != "bombing") continue;
             var r = w.Regions[m.RegionId];
             if (r.ControllerId == m.CountryId) continue;              // não se bombardeia a própria casa
-            r.Infrastructure = MathF.Max(floor, r.Infrastructure - m.Wings * def.Value);
+            float punch = w.Countries.TryGetValue(m.CountryId, out var bomber) ? bomber.Stat("air_bombing", 1f) : 1f;
+            r.Infrastructure = MathF.Max(floor, r.Infrastructure - m.Wings * def.Value * punch);
         }
 
         Ai(w);
@@ -65,18 +67,32 @@ public sealed class AirMissionSystem : ISystem
                 {
                     if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
                     float hit = MathF.Min(a.Wings, b.Wings) * loss;
-                    Shoot(w, a, hit); Shoot(w, b, hit);
+                    // cada lado leva o que a sua escola do ar lhe deixa levar: air_losses < 1 é caça melhor
+                    Shoot(w, a, hit * Mult(w, a.CountryId)); Shoot(w, b, hit * Mult(w, b.CountryId));
                 }
         }
         w.AirMissions.RemoveAll(m => m.Wings <= 0.001f);
     }
 
-    /// <summary>Aviões abatidos: saem da missão e do pool nacional — não voltam.</summary>
+    private static float Mult(World w, int countryId) =>
+        w.Countries.TryGetValue(countryId, out var c) ? c.Stat("air_losses", 1f) : 1f;
+
+    /// <summary>Aviões abatidos: saem da missão e do pool nacional — não voltam. O que a aviação aprende com
+    /// isso fica: um combate aéreo ensina muito mais num dia do que um mês de patrulha em céu vazio.</summary>
     private static void Shoot(World w, AirMission m, float wings)
     {
         float gone = MathF.Min(m.Wings, wings);
         m.Wings -= gone;
-        if (w.Countries.TryGetValue(m.CountryId, out var c)) c.AirPower = MathF.Max(0f, c.AirPower - gone);
+        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return;
+        c.AirPower = MathF.Max(0f, c.AirPower - gone);
+        Learn(w, c, gone * w.Rule("air_xp_per_loss", 3f));
+    }
+
+    /// <summary>Experiência aérea, com o tecto da regra — é a moeda das escolas do ar.</summary>
+    public static void Learn(World w, Country c, float xp)
+    {
+        if (xp <= 0f) return;
+        c.AirXp = MathF.Min(w.Rule("air_xp_max", 400f), c.AirXp + xp);
     }
 
     /// <summary>A IA em guerra manda o que tem de sobra para o céu da frente: superioridade sobre a região

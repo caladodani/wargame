@@ -211,9 +211,10 @@ CREATE TABLE IF NOT EXISTS law_group (        -- cabeçalho de cada escada de le
 CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
   law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (law_id, stat_key));
-CREATE TABLE IF NOT EXISTS army_doctrine_branch (  -- escolas de doutrina de exército (ramos da árvore)
+CREATE TABLE IF NOT EXISTS army_doctrine_branch (  -- escolas de doutrina (ramos da árvore), por arma
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0,
-  country_tag TEXT REFERENCES country(tag));  -- NULL = escola de toda a gente; com tag, escola nacional
+  country_tag TEXT REFERENCES country(tag),   -- NULL = escola de toda a gente; com tag, escola nacional
+  domain TEXT NOT NULL DEFAULT 'exercito');   -- a arma: exercito | ar | mar (cada uma com a sua experiência)
 CREATE TABLE IF NOT EXISTS army_doctrine (    -- doutrinas de exército, pagas com experiência de campanha
   id TEXT PRIMARY KEY, branch TEXT NOT NULL REFERENCES army_doctrine_branch(id),
   name TEXT NOT NULL, description TEXT,

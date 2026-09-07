@@ -5,9 +5,14 @@ using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
-/// <summary>As escolas de guerra do exército, desenhadas em árvore como as doutrinas de terra do HoI4: os
-/// ramos lado a lado — Guerra de Movimento, Superioridade de Fogo, Assalto em Massa — cada um com os seus
-/// degraus ligados por traços, e a experiência de campanha em cima a dizer o que se pode pagar.
+/// <summary>As escolas de guerra, desenhadas em árvore como as doutrinas do HoI4: os ramos lado a lado —
+/// Guerra de Movimento, Superioridade de Fogo, Assalto em Massa — cada um com os seus degraus ligados por
+/// traços, e a experiência em cima a dizer o que se pode pagar.
+///
+/// Agora com as três armas em abas de metal, como o HoI4 as tem: Exército, Ar e Mar. Cada aba é uma árvore
+/// sua, com a sua experiência (que se ganha a combater, a voar e a navegar) e a sua escolha — escolher a
+/// escola de caça não fecha escola nenhuma de terra. Um país pode ser da Guerra de Movimento, do
+/// Bombardeamento e do Corso ao mesmo tempo; o que não pode é ser de duas escolas da mesma arma.
 ///
 /// O ponto do desenho é mostrar a escolha antes de ela ser feita: enquanto não se adopta nada, os ramos estão
 /// todos acesos; ao pagar o primeiro degrau os outros apagam-se de vez, e vê-se logo porquê. Um painel de
@@ -26,6 +31,8 @@ public partial class DoctrinePanel : PanelContainer
 
     private Game _game = null!;
     private Label _title = null!, _sub = null!;
+    private MetalTabs _tabs = null!;
+    private string _domain = World.Land;
     private Control _canvas = null!;
     private FocusLinks _links = null!;
     private int _countryId;
@@ -44,6 +51,9 @@ public partial class DoctrinePanel : PanelContainer
         _title = Ui.Lbl("", 22); head.AddChild(Ui.Grow(_title));
         head.AddChild(Ui.Btn("Fechar", Close));
         _sub = Ui.Lbl("", 16); _sub.AddThemeColorOverride("font_color", Ui.TextDim); v.AddChild(_sub);
+        _tabs = new MetalTabs();
+        _tabs.Set(TabNames, 0, Pick);
+        v.AddChild(_tabs);
         v.AddChild(Ui.Rule());
 
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -52,6 +62,17 @@ public partial class DoctrinePanel : PanelContainer
         scroll.AddChild(_canvas);
         _links = new FocusLinks { MouseFilter = MouseFilterEnum.Ignore };
         _canvas.AddChild(_links);
+    }
+
+    /// <summary>As três abas, pela ordem do World.Domains.</summary>
+    private static readonly string[] TabNames = { "⚔ Exército", "✈ Ar", "⚓ Mar" };
+
+    /// <summary>Troca de arma: outra árvore, outra experiência, outra escolha.</summary>
+    private void Pick(int i)
+    {
+        _domain = World.Domains[Math.Clamp(i, 0, World.Domains.Length - 1)];
+        _tabs.Set(TabNames, i, Pick);
+        _lastKey = ""; Fill();
     }
 
     /// <summary>Abre a árvore de doutrinas deste país (por omissão, a do jogador).</summary>
@@ -71,23 +92,25 @@ public partial class DoctrinePanel : PanelContainer
         if (!w.Countries.TryGetValue(_countryId, out var c) || w.ArmyDoctrines.Count == 0) return;
 
         // a experiência entra na chave em passos de 1: o painel tem de acender o botão no dia em que dá
-        string key = $"{c.Id}|{(int)c.ArmyXp}|{string.Join(",", c.Doctrines.OrderBy(x => x))}";
+        float xp = World.Xp(c, _domain);
+        string key = $"{c.Id}|{_domain}|{(int)xp}|{string.Join(",", c.Doctrines.OrderBy(x => x))}";
         if (key == _lastKey) return;
         _lastKey = key;
 
-        var branch = w.DoctrineBranchOf(c);
-        _title.Text = $"⚔ Escolas de guerra de {c.Name}";
-        int open = w.Branches(c).Count;
-        _sub.Text = $"experiência de exército: {c.ArmyXp:0} (tecto {w.Rule("army_xp_max", 600f):0})   ·   "
+        var branch = w.DoctrineBranchOf(c, _domain);
+        _title.Text = $"{TabNames[Array.IndexOf(World.Domains, _domain)].Split(' ')[0]} Escolas de guerra de {c.Name}";
+        int open = w.Branches(c, _domain).Count;
+        int mine = c.Doctrines.Count(id => w.ArmyDoctrines.TryGetValue(id, out var d) && w.DomainOf(d) == _domain);
+        _sub.Text = $"{World.XpName(_domain)}: {xp:0} (tecto {w.Rule(XpMaxRule(_domain), 600f):0})   ·   "
                   + (branch is null
-                        ? $"{open} escolas abertas — o primeiro degrau fecha as outras"
+                        ? $"{open} escolas abertas — o primeiro degrau fecha as outras desta arma"
                         : $"ramo: {(w.DoctrineBranches[branch].CountryTag == c.Tag ? "⚜ " : "")}{w.DoctrineBranches[branch].Name}"
-                          + $" ({c.Doctrines.Count} degrau{(c.Doctrines.Count == 1 ? "" : "s")})");
+                          + $" ({mine} degrau{(mine == 1 ? "" : "s")})");
 
         foreach (var child in _canvas.GetChildren()) if (child != _links) child.QueueFree();
         var lines = new List<(Vector2, Vector2, Color, bool)>();
 
-        var branches = w.Branches(c);
+        var branches = w.Branches(c, _domain);
         int cols = 0, rows = 0;
         foreach (var b in branches)
         {
@@ -187,7 +210,8 @@ public partial class DoctrinePanel : PanelContainer
         bool known = c.Doctrines.Contains(d.Id);
         string? block = w.DoctrineBlock(c, d.Id);
         bool open = block is null;
-        bool rich = open && c.ArmyXp >= d.Cost;
+        float xp = World.Xp(c, w.DomainOf(d));
+        bool rich = open && xp >= d.Cost;
         var bg = known ? Ui.Good.Darkened(0.55f) : rich ? Ui.SurfaceHi : Ui.Ink;
 
         var card = new PanelContainer();
@@ -215,9 +239,9 @@ public partial class DoctrinePanel : PanelContainer
         {
             string id = d.Id;
             if (rich) v.AddChild(Ui.Btn($"Adoptar ({d.Cost:0} xp)", () => Adopt(id), NodeW - 20f, Ui.Kind.Primary));
-            else v.AddChild(Dim($"faltam {d.Cost - c.ArmyXp:0} de experiência"));
+            else v.AddChild(Dim($"faltam {d.Cost - xp:0} de {World.XpName(w.DomainOf(d))}"));
         }
-        else v.AddChild(Dim($"{d.Cost:0} de experiência"));
+        else v.AddChild(Dim($"{d.Cost:0} de {World.XpName(w.DomainOf(d))}"));
 
         card.TooltipText = d.Description;
         return card;
@@ -241,7 +265,27 @@ public partial class DoctrinePanel : PanelContainer
         "industry" => "indústria",
         "production_speed" => "produção",
         "conscription" => "recrutamento",
+        "air_losses" => "aviões perdidos",
+        "air_bombing" => "bombardeamento",
+        "air_upkeep" => "custo de esquadrão",
+        "naval_losses" => "navios perdidos",
+        "naval_upkeep" => "custo de esquadra",
+        "naval_blockade" => "bloqueio",
+        "naval_escort" => "escolta",
+        "naval_patrol" => "patrulha",
         _ => key,
+    };
+
+    /// <summary>Cartões desenhados agora: os filhos da tela menos a camada dos traços e menos os que já
+    /// estão marcados para morrer — o QueueFree só se cumpre no fim do frame, e o --smoke não tem frames.</summary>
+    private int Drawn() => _canvas.GetChildren().Count(n => n != _links && !n.IsQueuedForDeletion());
+
+    /// <summary>A regra do tecto da experiência desta arma.</summary>
+    private static string XpMaxRule(string domain) => domain switch
+    {
+        World.Air => "air_xp_max",
+        World.Sea => "navy_xp_max",
+        _ => "army_xp_max",
     };
 
     private static string Named(World w, string doctrineId) =>
@@ -270,7 +314,7 @@ public partial class DoctrinePanel : PanelContainer
         var w = _game.World;
         var c = w.Countries[pid];
         Open(pid); Refresh();
-        int nodes = _canvas.GetChildCount() - 1;    // menos a camada dos traços
+        int nodes = Drawn();
         Close();
 
         var own = w.Branches(c).FirstOrDefault(b => b.CountryTag == c.Tag);
@@ -279,8 +323,25 @@ public partial class DoctrinePanel : PanelContainer
             : $"⚜ {own.Name} com {w.DoctrineSteps(c, own.Id).Count} degraus "
               + $"({w.DoctrineSteps(c, own.Id).Count(d => c.Doctrines.Contains(d.Id))} aprendido"
               + $"{(w.DoctrineSteps(c, own.Id).Count(d => c.Doctrines.Contains(d.Id)) == 1 ? "" : "s")})";
+
+        // as três armas: passa-se por cada aba, para nenhuma árvore ficar por desenhar, e diz-se o que
+        // cada uma tem de escolas, de escolha feita e de experiência no bolso
+        var arms = new List<string>();
+        for (int i = 0; i < World.Domains.Length; i++)
+        {
+            Pick(i);
+            Open(pid); Refresh();
+            int cards = Drawn();
+            Close();
+            string dom = World.Domains[i];
+            arms.Add($"{TabNames[i]}: {cards} cartões em {w.Branches(c, dom).Count} escolas, "
+                   + $"{(w.DoctrineBranchOf(c, dom) is string b ? w.DoctrineBranches[b].Name : "sem ramo")}, "
+                   + $"{World.Xp(c, dom):0} xp");
+        }
+        Pick(0);
+
         return $"{nodes} cartões em {w.Branches(c).Count} escolas, {mine}, ramo "
              + $"{(w.DoctrineBranchOf(c) is string br ? w.DoctrineBranches[br].Name : "por escolher")}, "
-             + $"{c.ArmyXp:0} de experiência";
+             + $"{c.ArmyXp:0} de experiência; abas — {string.Join(" | ", arms)}";
     }
 }

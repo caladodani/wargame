@@ -30,9 +30,10 @@ public sealed class NavalMissionSystem : ISystem
                 || !w.NavalMissionDefs.ContainsKey(m.MissionId))
             { w.NavalMissions.Remove(m); continue; }
 
-            float bill = m.Ships * upkeep;
+            float bill = m.Ships * upkeep * c.Stat("naval_upkeep", 1f);
             if (c.Money < bill) { w.NavalMissions.Remove(m); continue; }
             c.Money -= bill;
+            Learn(w, c, m.Ships * w.Rule("navy_xp_per_ship_day", 0.05f));  // o mar ensina a quem anda nele
         }
 
         SeaBattle(w);
@@ -54,18 +55,32 @@ public sealed class NavalMissionSystem : ISystem
                 {
                     if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
                     float hit = MathF.Min(a.Ships, b.Ships) * loss;
-                    Sink(w, a, hit); Sink(w, b, hit);
+                    // naval_losses < 1 é couraça e pontaria: leva-se menos aço ao fundo pelo mesmo combate
+                    Sink(w, a, hit * Mult(w, a.CountryId)); Sink(w, b, hit * Mult(w, b.CountryId));
                 }
         }
         w.NavalMissions.RemoveAll(m => m.Ships <= 0.001f);
     }
 
-    /// <summary>Navios ao fundo: saem da missão e do pool nacional — não voltam.</summary>
+    private static float Mult(World w, int countryId) =>
+        w.Countries.TryGetValue(countryId, out var c) ? c.Stat("naval_losses", 1f) : 1f;
+
+    /// <summary>Navios ao fundo: saem da missão e do pool nacional — não voltam. A marinha que os perdeu
+    /// aprende com o combate: é assim que se pagam as escolas do mar.</summary>
     private static void Sink(World w, NavalMission m, float ships)
     {
         float gone = MathF.Min(m.Ships, ships);
         m.Ships -= gone;
-        if (w.Countries.TryGetValue(m.CountryId, out var c)) c.Warships = MathF.Max(0f, c.Warships - gone);
+        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return;
+        c.Warships = MathF.Max(0f, c.Warships - gone);
+        Learn(w, c, gone * w.Rule("navy_xp_per_loss", 3f));
+    }
+
+    /// <summary>Experiência naval, com o tecto da regra — é a moeda das escolas do mar.</summary>
+    public static void Learn(World w, Country c, float xp)
+    {
+        if (xp <= 0f) return;
+        c.NavyXp = MathF.Min(w.Rule("navy_xp_max", 400f), c.NavyXp + xp);
     }
 
     /// <summary>A IA em guerra manda o que tem de sobra para bloquear a costa inimiga que lhe fica ao
@@ -140,11 +155,18 @@ public sealed class NavalMissionSystem : ISystem
         MathF.Max(0f, (w.Countries.TryGetValue(countryId, out var c) ? c.Warships : 0f) - Assigned(w, countryId));
 
     /// <summary>Peso de uma tarefa neste mar, somando os navios de um país (e dos aliados dele, que escoltam
-    /// os mesmos comboios) que lá estão a fazê-la.</summary>
+    /// os mesmos comboios) que lá estão a fazê-la. A escola do mar de cada um pesa aqui: uma marinha de corso
+    /// aperta mais o bloqueio com os mesmos navios, uma marinha de esquadra escolta melhor.</summary>
     private static float Weight(World w, int regionId, string effect, Func<int, bool> side) =>
         w.NavalMissions.Where(m => m.RegionId == regionId && side(m.CountryId)
                                    && w.NavalMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == effect)
-            .Sum(m => m.Ships * w.NavalMissionDefs[m.MissionId].Value);
+            .Sum(m => m.Ships * w.NavalMissionDefs[m.MissionId].Value * School(w, m.CountryId, effect));
+
+    /// <summary>Quanto a escola do mar deste país acrescenta a esta tarefa (1 = marinha sem escola).</summary>
+    private static float School(World w, int countryId, string effect) =>
+        w.Countries.TryGetValue(countryId, out var c)
+            ? c.Stat(effect switch { "blockade" => "naval_blockade", "escort" => "naval_escort", _ => "naval_patrol" }, 1f)
+            : 1f;
 
     /// <summary>Esta costa está bloqueada? Há mais bloqueio inimigo do que escolta de quem manda na região
     /// (a escolta dos aliados dele conta). Enquanto a escolta igualar, o mar continua aberto.</summary>

@@ -1309,7 +1309,9 @@ public sealed record AdoptDoctrineCommand(int CountryId, string DoctrineId) : IC
             return block.StartsWith('!')
                 ? $"Escola fechada por {w.ArmyDoctrines[block[1..]].Name}"
                 : $"Precisa de {(w.ArmyDoctrines.TryGetValue(block, out var need) ? need.Name : block)}";
-        if (c.ArmyXp < d.Cost) return $"faltam {d.Cost - c.ArmyXp:0} de experiência";
+        string domain = w.DomainOf(d);
+        float have = World.Xp(c, domain);
+        if (have < d.Cost) return $"faltam {d.Cost - have:0} de {World.XpName(domain)}";
         return null;
     }
 

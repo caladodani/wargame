@@ -22,8 +22,8 @@ public class ArmyDoctrineTests
     public void TheSchoolsAndTheirPriceComeFromTheDatabase()
     {
         var (w, _) = TestWorld.Build();
-        Assert.Equal(3, w.DoctrineBranches.Count);
-        Assert.Equal(12, w.ArmyDoctrines.Count);
+        Assert.Equal(3, w.DoctrineBranches.Values.Count(b => b.Domain == World.Land));
+        Assert.Equal(12, w.ArmyDoctrines.Values.Count(d => w.DomainOf(d) == World.Land));
         Assert.Equal(0.4f, w.Rule("army_xp_per_battle_day"), 3);
         Assert.Equal(0.1f, w.Rule("army_xp_per_day"), 3);
         Assert.Equal(600f, w.Rule("army_xp_max"), 3);
