@@ -52,12 +52,21 @@ public partial class RegionRenderer : Node2D
     private Game _game = null!;
     private float _markerScale = 1f;
 
+    /// <summary>Meia largura do mundo em unidades Godot — o mesmo --world-width com que o import_map.py
+    /// projectou as regiões (Robinson, centrado em 0). As imagens de fundo são cozidas para cobrir
+    /// exactamente isto, por isso é daqui que sai a escala delas.</summary>
+    public const float MapHalfWidth = 4000f;
+
     public void Build(SqlWorldRepository repo, IDatabase staticDb, Game game)
     {
         _game = game;
         foreach (var r in staticDb.Query("SELECT id,color FROM country"))
             _countryColor[Convert.ToInt32(r["id"])] = new Color((string?)r["color"] ?? "#cccccc");
         SeparateNeighbourColours(game.World);
+
+        // O mar antes de tudo: é o único nó por baixo dos polígonos. Sem ele, o que se via à volta da
+        // terra era o fundo vazio do Godot — havia mapa político, não havia mundo.
+        if (Backdrop("res://assets/map/ocean.png", multiplicar: false) is Sprite2D mar) AddChild(mar);
 
         foreach (var (regionId, pts) in repo.ReadPolygons())
         {
@@ -76,6 +85,11 @@ public partial class RegionRenderer : Node2D
             if (!_rings.TryGetValue(regionId, out var rlist)) _rings[regionId] = rlist = new();
             list.Add(poly); blist.Add(border); rlist.Add(v);
         }
+        // O relevo entra aqui, entre a cor do dono e tudo o resto: escurece a serra e deixa a planície
+        // como está, sem tocar na leitura política nem nas fronteiras, nomes e contadores que vêm a
+        // seguir (esses ficam por cima e não levam multiplicação).
+        if (Backdrop("res://assets/map/relief.png", multiplicar: true) is Sprite2D relevo) AddChild(relevo);
+
         // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
         _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
         MapEdges(game.World);
@@ -91,6 +105,42 @@ public partial class RegionRenderer : Node2D
         game.World.Events.Subscribe<CountryCapitulated>(_ => Callable.From(RecolorAll).CallDeferred());
         game.World.Events.Subscribe<WhitePeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
         game.World.Events.Subscribe<PeaceSigned>(_ => Callable.From(RecolorAll).CallDeferred());
+    }
+
+    /// <summary>Camada de fundo cozida pelo tools/make_map_art.py (relevo do Natural Earth, domínio
+    /// público; oceano gerado). Ambas cobrem exactamente o mundo, logo basta a largura para as escalar.
+    ///
+    /// O relevo vai em multiplicação: branco não mexe em nada e a sombra escurece o que estiver por
+    /// baixo. É por isso que o oceano da imagem do relevo é branco — de outra forma a multiplicação
+    /// sujava a água toda, e o mar deixava de ser mar.
+    ///
+    /// Devolve null se as imagens não estiverem na árvore: quem clonar o repositório sem as cozer fica
+    /// com o mapa liso de antes, não com o jogo em baixo.</summary>
+    private static Sprite2D? Backdrop(string path, bool multiplicar)
+    {
+        if (!ResourceLoader.Exists(path)) return null;
+        if (GD.Load<Texture2D>(path) is not Texture2D tex || tex.GetWidth() == 0) return null;
+        var s = new Sprite2D
+        {
+            Name = multiplicar ? "Relief" : "Ocean",
+            Texture = tex,
+            Scale = Vector2.One * (2f * MapHalfWidth / tex.GetWidth()),
+            // Sem mipmaps, o mapa visto de longe fica a fervilhar: são 8192 px de textura a caber em
+            // menos de mil no ecrã.
+            TextureFilter = TextureFilterEnum.LinearWithMipmaps,
+        };
+        if (multiplicar) s.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Mul };
+        return s;
+    }
+
+    /// <summary>O que está por baixo e por cima da cor política, dito em voz alta para a prova. Sem
+    /// isto o smoke passava igual com o mapa a flutuar no vazio: as camadas de fundo não mexem em
+    /// nenhuma regra, e uma imagem que deixasse de carregar não dava erro nenhum.</summary>
+    public string BackdropReport()
+    {
+        string Um(string nome) => GetNodeOrNull<Sprite2D>(nome) is Sprite2D s && s.Texture is Texture2D t
+            ? $"{t.GetWidth()}×{t.GetHeight()} a {s.Scale.X:0.00}×" : "em falta";
+        return $"oceano {Um("Ocean")}, relevo {Um("Relief")}";
     }
 
     /// <summary>Forma de cada região (um par por anel): o mini-mapa desenha as mesmas em ponto pequeno.</summary>

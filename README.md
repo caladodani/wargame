@@ -24,6 +24,7 @@ wargame/
 │  ├─ import_map.py           # Natural Earth → data/static.db (regiões, países, seeds, exércitos)
 │  ├─ seed_armies.py          # exército inicial por país (templates + divisões nomeadas/geradas)
 │  ├─ check_countries.py      # valida data/countries/*.sql (ids, gamas, referências, tags)
+│  ├─ make_map_art.py         # coze assets/map/{ocean,relief}.png (fundo do mapa, ver "Mapa")
 │  └─ combat_sim.py           # calibração do combate (CombatSystem é port directo)
 └─ data/
    ├─ schema.sql              # static.db + estrutura de save (s_*)
@@ -60,6 +61,24 @@ Smoke headless (escolhe PRT, joga 6 dias, grava): `XDG_DATA_HOME=/tmp/x timeout 
 
 ## Mapa
 **2988 regiões, 247 países, ~65k vértices, 7026 adjacências**, projecção Robinson (8000 unidades de largura), gerado do Natural Earth 10m/50m (mirror `nvkelso/natural-earth-vector`, em `~/ne`). Orçamento por país ∝ √(área × população), tecto = admin-1; Portugal e Brasil com todos os distritos/estados (`FULL_DETAIL`). Terreno por cobertura de polígonos físicos (montanha/deserto/tundra), cintura de floresta por latitude, urbano por densidade; população por lugares povoados (10m) + resto por área/cidade.
+
+**Fundo do mapa** (`assets/map/`, cozido por `tools/make_map_art.py`): `ocean.png` por baixo dos
+polígonos (azul de mar alto, plataforma mais clara junto às costas com massa de terra, transparente
+fora do contorno de Robinson) e `relief.png` por cima deles em multiplicação (branco não mexe, sombra
+escurece — a cor do dono continua a ler-se e a serra aparece por baixo). O relevo vem do **Natural
+Earth "Shaded Relief" 1:50m (SR_50M), domínio público**; não está no repositório, descarrega-se à
+parte:
+
+```
+curl -fL -o /tmp/SR_50M.zip https://naciscdn.org/naturalearth/50m/raster/SR_50M.zip && unzip -o /tmp/SR_50M.zip -d /tmp
+~/.venvs/wargame-tools/bin/python tools/make_map_art.py --sr /tmp/SR_50M.tif
+godot --headless --path . --import        # regenera os .ctex
+```
+
+Refazer só é preciso se o `--world-width` do `import_map.py` mudar ou se as regiões mudarem de forma:
+a máscara de terra sai do `static.db`, não do Natural Earth, para o fundo casar com o que o jogo
+desenha. Os `.import` das duas imagens estão em `compress/mode=2` (VRAM) e `mipmaps/generate=true`
+de propósito: sem compressão o relevo eram 136 MB de VRAM e sem mipmaps o mapa fervilha de longe.
 Limitações (tudo em dados): sem regiões marítimas (naval), floresta heurística.
 
 ## Próximos passos (HoI4)
