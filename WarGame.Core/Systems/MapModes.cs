@@ -62,10 +62,13 @@ public static class MapModes
                 "resistance" => "terra do próprio dono: sem resistência",
                 _ => "",
             };
+        // {v*100:0}% em vez de {v:P0}: o formato P depende da cultura do sistema (o padrão invariant, o que
+        // corre num runner de CI sem locale definida, mete um espaço antes do "%" que a en-US não mete) —
+        // sem casas decimais o "0" é só dígitos, sem separador nenhum a variar.
         return metric switch
         {
-            "supply" => $"abastecimento {v:P0}",
-            "resistance" => $"resistência {v:P0}",
+            "supply" => $"abastecimento {v * 100:0}%",
+            "resistance" => $"resistência {v * 100:0}%",
             "industry" => $"indústria {v:0.00} (edifícios + infra)",
             "population" => $"{v:0.0} M habitantes",
             _ => "",
