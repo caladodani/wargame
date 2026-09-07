@@ -8,7 +8,8 @@ public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadO
 
 /// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>
 /// <summary>Tecnologia (tabela tech). Cost = dias com research_speed 1; Requires = id da anterior no ramo.</summary>
-public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description);
+public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description,
+                          string? CountryTag = null);
 /// <summary>Evento noticioso com data marcada (tabela news_event); CountryId null = global.</summary>
 public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title, string Body);
 /// <summary>Escolha de um evento noticioso (news_event_option). A IA fica com a primeira (sort).</summary>

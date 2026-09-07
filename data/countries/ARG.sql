@@ -168,3 +168,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('ARG_mar_gen_atlantico_sul','Almirante do Atlântico Sul','naval_blockade',1.16,145,'ARG','🐋','Sabe onde o mar é largo de mais para o inimigo se esconder.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('ARG_tech_ar_pampa','Aviação','Ataque Leve Pampa',260,'air_1','Aviões de fabrico próprio a bater alvos de perto, muitas saídas por dia e peças na porta ao lado.','ARG'),
+ ('ARG_tech_mar_atlantico_sul','Marinha','Patrulha do Atlântico Sul',260,'nav_1','Corvetas a cobrir uma costa imensa e vazia: o que passa ao largo passa a ser sabido.','ARG');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('ARG_tech_ar_pampa','air_bombing',1.16),
+ ('ARG_tech_mar_atlantico_sul','naval_patrol',1.18);

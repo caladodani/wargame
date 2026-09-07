@@ -175,3 +175,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('EGY_mar_gen_canal','Comandante do Canal','naval_blockade',1.16,145,'EGY','⛵','Fecha o canal a quem paga e abre-o a quem convém.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('EGY_tech_ar_nilo','Aviação','Defesa Aérea do Nilo',260,'air_1','Rede de radares e mísseis do delta ao Assuão: quem entra neste céu paga a entrada.','EGY'),
+ ('EGY_tech_mar_suez','Marinha','Guarda do Canal',260,'nav_1','Quem manda no canal manda no comércio de metade do mundo — e pode fechá-lo.','EGY');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('EGY_tech_ar_nilo','air_losses',0.87),
+ ('EGY_tech_mar_suez','naval_blockade',1.18);

@@ -183,3 +183,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('GBR_mar_gen_escolta_gbr','Almirante da Escolta do Atlântico','naval_escort',1.16,145,'GBR','⚓','Conta os navios à chegada, que é a única conta que interessa.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('GBR_tech_ar_alerta_rapido','Aviação','Esquadra de Alerta Rápido',260,'air_1','Radar aerotransportado e caças de prontidão: vê-se primeiro, e quem vê primeiro volta a casa.','GBR'),
+ ('GBR_tech_mar_caca_submarino','Marinha','Caça ao Submarino',260,'nav_1','Fragatas silenciosas e aviões de patrulha: o que anda por baixo é encontrado antes de disparar.','GBR');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('GBR_tech_ar_alerta_rapido','air_losses',0.86),
+ ('GBR_tech_mar_caca_submarino','naval_losses',0.86);

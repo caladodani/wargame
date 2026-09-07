@@ -26,6 +26,8 @@ DOCTRINE_STATS = {'exercito': {'attack', 'conscription', 'defense', 'industry', 
 # chaves em que o número é uma conta a pagar (perdas, sustento): melhorar é descer, e um valor acima de 1
 # seria uma escola que piora quem a aprende — quase sempre um sinal trocado
 LOWER_IS_BETTER = {'air_losses', 'air_upkeep', 'naval_losses', 'naval_upkeep'}
+# ramos da árvore de investigação que pertencem a uma arma: é lá que vive o programa nacional de cada país
+TECH_BRANCHES = {'Aviação': 'ar', 'Marinha': 'mar'}
 LAW_STATS = {'attack', 'conscription', 'counter_intel', 'defense', 'export_price', 'export_share', 'industry',
              'integration_speed', 'occupied_yield', 'org_regain', 'production_speed', 'research_speed',
              'resistance_growth'}
@@ -53,7 +55,7 @@ def check(path, static):
         if not db.execute('SELECT 1 FROM st.country WHERE tag=?', (tag,)).fetchone():
             errs.append(f'tag {tag} não existe na tabela country')
     TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier',
-                  'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch')
+                  'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch', 'tech')
     base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
@@ -240,6 +242,50 @@ def check(path, static):
     if static and not errs:
         cid = db.execute('SELECT id FROM st.country WHERE tag=?', (tag,)).fetchone()
         if cid: region_names = {norm(r[0]) for r in db.execute('SELECT name FROM st.region WHERE owner_id=?', (cid[0],))}
+    # programas nacionais de aviação e de marinha (tech.country_tag): ramo da arma, apanhados a um degrau
+    # comum, mais caros do que qualquer degrau comum do ramo e com um efeito que vale mais do que o comum
+    # — um programa nacional que fosse mais barato ou mais fraco não seria investigado por ninguém
+    own_techs = db.execute('SELECT id,branch,cost,requires,description FROM tech WHERE country_tag=?', (tag,)).fetchall()
+    tech_by_branch = {}
+    for tid, branch, cost, req, desc in own_techs:
+        if not tid.startswith(tag + '_'): errs.append(f'tech {tid}: id deve começar por {tag}_')
+        tech_by_branch.setdefault(branch, []).append(tid)
+        arm = TECH_BRANCHES.get(branch)
+        if arm is None:
+            errs.append(f'tech {tid}: ramo {branch} não é de nenhuma arma (usa {sorted(TECH_BRANCHES)})')
+        if req is None:
+            errs.append(f'tech {tid}: sem requires — um programa nacional apanha um degrau comum da arma')
+        else:
+            owner = db.execute('SELECT country_tag FROM tech WHERE id=?', (req,)).fetchone()
+            if owner is None: errs.append(f'tech {tid}: requires {req} não existe')
+            elif owner[0] is not None: errs.append(f'tech {tid}: requires {req} é programa de {owner[0]} — ninguém o teria feito')
+        top = db.execute('SELECT MAX(cost) FROM tech WHERE branch=? AND country_tag IS NULL', (branch,)).fetchone()[0]
+        if top is not None and cost <= top:
+            errs.append(f'tech {tid}: custa {cost} e o degrau comum mais caro de {branch} custa {top} — o programa de casa é o topo do ramo')
+        if not desc: warns.append(f'tech {tid}: sem descrição (a ficha da investigação fica só com o nome)')
+        effs = db.execute('SELECT stat_key,value FROM tech_effect WHERE tech_id=?', (tid,)).fetchall()
+        if not effs: errs.append(f'tech {tid}: sem efeito (tech_effect) — um programa que não muda nada')
+        allowed = GENERAL_STATS.get(arm, set())
+        for k, v in effs:
+            if arm and k not in allowed:
+                errs.append(f'tech {tid}: stat_key {k} não é da arma {arm} (usa {sorted(allowed)})')
+            if k in LOWER_IS_BETTER and v >= 1:
+                errs.append(f'tech {tid}: {k}={v} — aqui menos é melhor, o valor tem de ser < 1')
+            if k not in LOWER_IS_BETTER and v <= 1:
+                errs.append(f'tech {tid}: {k}={v} — aqui mais é melhor, o valor tem de ser > 1')
+            common = [r[0] for r in db.execute(
+                'SELECT e.value FROM tech_effect e JOIN tech t ON t.id=e.tech_id'
+                ' WHERE e.stat_key=? AND t.country_tag IS NULL', (k,))]
+            if common:
+                best = min(common) if k in LOWER_IS_BETTER else max(common)
+                if (v >= best) if k in LOWER_IS_BETTER else (v <= best):
+                    errs.append(f'tech {tid}: {k}={v} não vale mais do que o degrau comum ({best})')
+    for branch, tids in tech_by_branch.items():
+        if len(tids) > 1:
+            errs.append(f'{branch}: {len(tids)} programas de casa ({", ".join(sorted(tids))}) — só cabe um por arma')
+    for branch in TECH_BRANCHES:
+        if branch not in tech_by_branch: warns.append(f'sem programa nacional de {branch}')
+
     n_units = 0
     for name, tname, rname in db.execute('SELECT name,template_name,region_name FROM country_unit WHERE country_tag=?', (tag,)):
         n_units += 1
@@ -251,7 +297,9 @@ def check(path, static):
     n_doc = db.execute('SELECT COUNT(*) FROM army_doctrine WHERE country_tag=?', (tag,)).fetchone()[0]
     arms = '+'.join(f'{d}:{len(by_domain.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     gen_arms = '+'.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
-    summary = (f'{tag}: {len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
+    tech_arms = '+'.join(f'{TECH_BRANCHES[b]}:{len(tech_by_branch.get(b, []))}' for b in sorted(TECH_BRANCHES))
+    summary = (f'{tag}: {len(own_techs)} programas nacionais [{tech_arms}], '
+               f'{len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
                f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
                f'{n_units} brigadas nomeadas, stats {dict(db.execute("SELECT key,value FROM country_stat WHERE country_tag=?", (tag,)).fetchall())}')

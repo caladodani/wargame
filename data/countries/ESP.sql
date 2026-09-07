@@ -187,3 +187,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('ESP_mar_gen_estreito','Almirante do Estreito','naval_patrol',1.15,145,'ESP','🦑','Vê passar o mundo inteiro por catorze quilómetros de água.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('ESP_tech_ar_tifon','Aviação','Ala de Combate Tifón',260,'air_1','Ataque a distância com designação própria: bate-se o alvo que dói sem entrar na defesa dele.','ESP'),
+ ('ESP_tech_mar_armada','Marinha','Grupo de Combate da Armada',260,'nav_1','Um navio de assalto no meio e tudo o resto à volta dele, que é como se leva gente ao outro lado.','ESP');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('ESP_tech_ar_tifon','air_bombing',1.16),
+ ('ESP_tech_mar_armada','naval_escort',1.18);

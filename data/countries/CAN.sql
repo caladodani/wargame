@@ -168,3 +168,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('CAN_mar_gen_escolta_norte','Comodoro da Escolta do Norte','naval_escort',1.16,145,'CAN','🐳','Trouxe comboios inteiros por entre o gelo e as matilhas.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('CAN_tech_ar_artico','Aviação','Patrulha do Ártico',260,'air_1','Bases no gelo e aviões que aguentam o frio: manter uma asa no ar ali passa a custar menos.','CAN'),
+ ('CAN_tech_mar_halifax','Marinha','Escolta de Halifax',260,'nav_1','A escola de comboios do Atlântico Norte, que este país nunca desaprendeu.','CAN');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('CAN_tech_ar_artico','air_upkeep',0.87),
+ ('CAN_tech_mar_halifax','naval_escort',1.18);

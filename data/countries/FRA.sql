@@ -176,3 +176,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('FRA_mar_gen_mediterraneo_fra','Almirante da Esquadra do Mediterrâneo','naval_escort',1.16,145,'FRA','🌊','Passa comboios entre duas costas inimigas e chega com todos.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('FRA_tech_ar_rafale','Aviação','Padrão Rafale',260,'air_1','Um só aparelho para tudo, e munição de precisão de fabrico próprio para pendurar nele.','FRA'),
+ ('FRA_tech_mar_grupo_aeronaval','Marinha','Grupo Aeronaval',260,'nav_1','Porta-aviões nuclear com escolta completa: leva-se o céu para cima do mar do inimigo.','FRA');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('FRA_tech_ar_rafale','air_bombing',1.18),
+ ('FRA_tech_mar_grupo_aeronaval','naval_blockade',1.18);

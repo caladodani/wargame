@@ -167,3 +167,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('MOZ_mar_gen_canal_moz','Comandante do Canal de Moçambique','naval_patrol',1.15,145,'MOZ','⛵','Guarda um corredor de mar por onde passa meio comércio do Índico.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('MOZ_tech_ar_rovuma','Aviação','Vigilância do Rovuma',260,'air_1','Aviões leves e drones a cobrir o gás do norte a partir de pistas de terra batida.','MOZ'),
+ ('MOZ_tech_mar_canal_mocambique','Marinha','Patrulha do Canal de Moçambique',260,'nav_1','Dois mil quilómetros de costa e um canal por onde passa o comércio do Índico.','MOZ');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('MOZ_tech_ar_rovuma','air_upkeep',0.86),
+ ('MOZ_tech_mar_canal_mocambique','naval_patrol',1.18);

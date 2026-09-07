@@ -199,3 +199,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('BRA_mar_gen_esquadra_sul','Almirante da Esquadra do Sul','naval_patrol',1.15,145,'BRA','🌊','Divide o mar em quadrados e não deixa um por olhar.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('BRA_tech_ar_caca_nacional','Aviação','Programa de Caça Nacional',260,'air_1','Montagem e manutenção em casa: os aparelhos voam mais e caem menos por falta de peça.','BRA'),
+ ('BRA_tech_mar_amazonia_azul','Marinha','Amazónia Azul',260,'nav_1','Vigilância da plataforma continental inteira, do pré-sal à foz: o mar é território.','BRA');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('BRA_tech_ar_caca_nacional','air_losses',0.87),
+ ('BRA_tech_mar_amazonia_azul','naval_patrol',1.18);

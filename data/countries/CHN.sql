@@ -172,3 +172,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('CHN_mar_gen_litoral','Almirante da Frota do Litoral','naval_patrol',1.15,145,'CHN','🌊','Guarda uma costa comprida com navios pequenos e olhos em terra.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('CHN_tech_ar_quinta_geracao','Aviação','Caça de Quinta Geração',260,'air_1','Furtividade e ligação de dados feitas em casa, aos milhares: o céu disputado fica mais barato.','CHN'),
+ ('CHN_tech_mar_mar_do_sul','Marinha','Frota do Mar do Sul',260,'nav_1','Ilhas artificiais, mísseis costeiros e navios aos molhos: fecha-se um mar inteiro a quem lá passa.','CHN');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('CHN_tech_ar_quinta_geracao','air_losses',0.86),
+ ('CHN_tech_mar_mar_do_sul','naval_blockade',1.18);

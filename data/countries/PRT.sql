@@ -194,3 +194,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('PRT_mar_gen_costa_prt','Almirante da Costa Atlântica','naval_escort',1.16,145,'PRT','🌊','Leva o comboio ao porto com a mesma conta com que o levava a Goa.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('PRT_tech_ar_lajes','Aviação','Ponte Aérea das Lajes',260,'air_1','Uma base no meio do Atlântico transforma a travessia numa escala: a asa destacada custa menos.','PRT'),
+ ('PRT_tech_mar_fragatas_zee','Marinha','Fragatas da Zona Económica',260,'nav_1','A maior zona económica da Europa vigiada por poucos navios que nunca estão no porto.','PRT');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('PRT_tech_ar_lajes','air_upkeep',0.86),
+ ('PRT_tech_mar_fragatas_zee','naval_patrol',1.18);

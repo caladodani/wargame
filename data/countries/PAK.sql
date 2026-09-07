@@ -179,3 +179,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('PAK_mar_gen_arabico','Almirante do Mar Arábico','naval_escort',1.16,145,'PAK','⚓','Um porto só e o país inteiro pendurado nele.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('PAK_tech_ar_caca_conjunto','Aviação','Caça Conjunto',260,'air_1','Aparelho barato montado em casa: peças a preço de casa e oficinas em todas as bases.','PAK'),
+ ('PAK_tech_mar_makran','Marinha','Patrulha do Makran',260,'nav_1','A costa seca do sul e a boca do Golfo: quem entra e quem sai passa por aqui.','PAK');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('PAK_tech_ar_caca_conjunto','air_upkeep',0.86),
+ ('PAK_tech_mar_makran','naval_patrol',1.17);

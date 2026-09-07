@@ -178,3 +178,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('DEU_mar_gen_matilha_deu','Chefe da Matilha','naval_blockade',1.16,145,'DEU','🦈','Encontra o comboio pelo rasto de fumo e chama os outros.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('DEU_tech_ar_intercepcao','Aviação','Ala de Intercepção',260,'air_1','Prontidão permanente sobre a Europa central: sobe-se em minutos e volta-se com todos.','DEU'),
+ ('DEU_tech_mar_baltico','Marinha','Flotilha do Báltico',260,'nav_1','Mar raso, estreito e cheio de cabos: vigiá-lo é outro ofício, e este é o país que o tem.','DEU');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('DEU_tech_ar_intercepcao','air_losses',0.86),
+ ('DEU_tech_mar_baltico','naval_patrol',1.17);

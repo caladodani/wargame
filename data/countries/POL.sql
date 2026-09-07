@@ -180,3 +180,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('POL_mar_gen_baltico','Comandante da Costa do Báltico','naval_patrol',1.15,145,'POL','⚓','Costa curta e mar fechado: nada passa sem ele saber.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('POL_tech_ar_vistula','Aviação','Defesa Aérea do Vístula',260,'air_1','Camadas de mísseis sobre o corredor por onde qualquer invasão do leste tem de passar.','POL'),
+ ('POL_tech_mar_flotilha_gdansk','Marinha','Flotilha de Gdansk',260,'nav_1','Minas, lanchas e vigilância num mar raso: uma marinha pequena que sabe o mar dela de cor.','POL');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('POL_tech_ar_vistula','air_losses',0.87),
+ ('POL_tech_mar_flotilha_gdansk','naval_patrol',1.17);

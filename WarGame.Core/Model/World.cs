@@ -319,8 +319,8 @@ public sealed class World
     public void ApplyTechs(Country c)
     {
         c.TechMult.Clear();
-        foreach (var t in c.Techs)
-            if (TechEffects.TryGetValue(t, out var effs))
+        foreach (var t in c.Techs)                // um programa nacional de outro país na lista não vale nada
+            if (Techs.TryGetValue(t, out var def) && TechIsFor(def, c) && TechEffects.TryGetValue(t, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var f in c.FocusesDone)
             if (FocusEffects.TryGetValue(f, out var effs))
@@ -362,8 +362,13 @@ public sealed class World
     }
 
     /// <summary>Pode investigar: existe, não a tem, tem a anterior.</summary>
+    /// <summary>Este programa é para este país? Os comuns (sem country_tag) são de toda a gente; um programa
+    /// nacional é só do dono — não aparece na lista de mais ninguém, e o comando recusa-o a quem o pedir.</summary>
+    public static bool TechIsFor(Tech t, Country c) => t.CountryTag is null || t.CountryTag == c.Tag;
+
     public bool CanResearch(Country c, string techId) =>
-        Techs.TryGetValue(techId, out var t) && !c.Techs.Contains(techId) && (t.Requires is null || c.Techs.Contains(t.Requires));
+        Techs.TryGetValue(techId, out var t) && TechIsFor(t, c) && !c.Techs.Contains(techId)
+        && (t.Requires is null || c.Techs.Contains(t.Requires));
     public float MoveCost(string terrain) => Rule("move_cost:" + terrain, 1f);
 
     /// <summary>Estação em que o calendário anda, ou null se a tabela não estiver carregada (então nada muda).</summary>

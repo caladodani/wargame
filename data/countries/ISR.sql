@@ -171,3 +171,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('ISR_mar_gen_flotilha_isr','Comodoro da Flotilha','naval_escort',1.16,145,'ISR','⚓','Costa curta e mar aberto: leva tudo o que entra e sai.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('ISR_tech_ar_escudo_camadas','Aviação','Escudo Aéreo em Camadas',260,'air_1','Três camadas de intercepção sobre um país pequeno: perde-se muito pouco no céu de casa.','ISR'),
+ ('ISR_tech_mar_corvetas_costeiras','Marinha','Corvetas de Vigilância Costeira',260,'nav_1','Navios pequenos com sensores grandes a cobrir uma costa curta e muito disputada.','ISR');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('ISR_tech_ar_escudo_camadas','air_losses',0.85),
+ ('ISR_tech_mar_corvetas_costeiras','naval_patrol',1.18);

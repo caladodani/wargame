@@ -181,3 +181,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('TUR_mar_gen_estreitos_tur','Almirante dos Estreitos','naval_blockade',1.16,145,'TUR','⚓','Tem a chave de duas portas de água e sabe quando as fechar.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('TUR_tech_ar_drones_combate','Aviação','Drones de Combate',260,'air_1','Drones armados de fabrico próprio, baratos e aos milhares: mudaram a guerra e são daqui.','TUR'),
+ ('TUR_tech_mar_bosforo','Marinha','Guarda do Bósforo',260,'nav_1','Quem tem os estreitos decide quem entra e quem sai do Mar Negro.','TUR');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('TUR_tech_ar_drones_combate','air_bombing',1.18),
+ ('TUR_tech_mar_bosforo','naval_blockade',1.18);

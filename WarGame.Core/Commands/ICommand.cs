@@ -34,6 +34,7 @@ public sealed record ResearchTechCommand(int CountryId, string TechId) : IComman
     {
         if (!w.Countries.TryGetValue(CountryId, out var c)) return "País inexistente";
         if (!w.Techs.TryGetValue(TechId, out var t)) return "Tecnologia inexistente";
+        if (!World.TechIsFor(t, c)) return "essa tecnologia é de outro país";
         if (c.Techs.Contains(TechId)) return "Já investigada";
         if (t.Requires is not null && !c.Techs.Contains(t.Requires)) return $"Precisa de {w.Techs[t.Requires].Name}";
         if (c.Research.ContainsKey(TechId)) return "Já em investigação";

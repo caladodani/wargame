@@ -171,3 +171,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('IND_mar_gen_indico','Almirante do Índico','naval_patrol',1.15,145,'IND','🌊','Um oceano só dele para patrulhar e um caderno com todas as rotas.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('IND_tech_ar_caca_ligeiro','Aviação','Caça Ligeiro Nacional',260,'air_1','Aparelho pequeno e barato feito em casa, e uma linha de montagem que não pára por sanções.','IND'),
+ ('IND_tech_mar_indico','Marinha','Frota do Índico',260,'nav_1','Escolta do petróleo que atravessa o oceano de ponta a ponta, que é a artéria deste país.','IND');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('IND_tech_ar_caca_ligeiro','air_losses',0.87),
+ ('IND_tech_mar_indico','naval_escort',1.17);

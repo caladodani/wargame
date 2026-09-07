@@ -178,3 +178,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('IDN_mar_gen_estreitos_idn','Almirante dos Estreitos','naval_blockade',1.16,145,'IDN','⛵','Quem tem os estreitos tem o comércio de meio mundo.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('IDN_tech_ar_arquipelago','Aviação','Ponte Aérea do Arquipélago',260,'air_1','Dezassete mil ilhas obrigam a voar barato: pistas curtas, aviões simples, oficinas em toda a parte.','IDN'),
+ ('IDN_tech_mar_estreitos','Marinha','Guarda dos Estreitos',260,'nav_1','Malaca, Sonda, Lombok: por aqui passa o mundo, e daqui vê-se tudo o que passa.','IDN');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('IDN_tech_ar_arquipelago','air_upkeep',0.86),
+ ('IDN_tech_mar_estreitos','naval_patrol',1.18);

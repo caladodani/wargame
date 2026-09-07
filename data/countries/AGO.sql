@@ -171,3 +171,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('AGO_mar_gen_namibe','Comandante da Costa do Namibe','naval_patrol',1.15,145,'AGO','🐚','Conhece cada enseada da costa e sabe onde um navio se esconde.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('AGO_tech_ar_cabinda','Aviação','Vigilância Aérea de Cabinda',260,'air_1','Caças e drones sobre o enclave do petróleo: quem voa ali todos os dias conhece cada nuvem.','AGO'),
+ ('AGO_tech_mar_golfo_guine','Marinha','Patrulha do Golfo da Guiné',260,'nav_1','Corvetas e lanchas a varrer a pirataria do golfo: o mar de casa deixa de ter zonas cegas.','AGO');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('AGO_tech_ar_cabinda','air_losses',0.87),
+ ('AGO_tech_mar_golfo_guine','naval_patrol',1.18);

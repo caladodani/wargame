@@ -174,3 +174,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('AUS_mar_gen_coral','Comodoro do Mar de Coral','naval_escort',1.16,145,'AUS','🐬','Leva comboios por mares onde o socorro fica a três dias.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('AUS_tech_ar_mar_de_coral','Aviação','Vigilância do Mar de Coral',260,'air_1','Alerta aéreo a milhares de quilómetros de tudo: ninguém entra sem ser visto primeiro.','AUS'),
+ ('AUS_tech_mar_anzac','Marinha','Fragatas Anzac',260,'nav_1','Escolta de comboios entre continentes, que é a única maneira de abastecer uma ilha grande.','AUS');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('AUS_tech_ar_mar_de_coral','air_losses',0.87),
+ ('AUS_tech_mar_anzac','naval_escort',1.18);

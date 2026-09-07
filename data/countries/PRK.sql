@@ -180,3 +180,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('PRK_mar_gen_lanchas_prk','Chefe das Lanchas do Litoral','naval_blockade',1.16,145,'PRK','🐟','Barcos pequenos, muitos, e um mar estreito para os usar.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('PRK_tech_ar_bases_tunel','Aviação','Bases Aéreas em Túnel',260,'air_1','Aviões guardados dentro da montanha: o sustento é pouco e o inimigo não os apanha no chão.','PRK'),
+ ('PRK_tech_mar_mini_submarinos','Marinha','Frota de Mini-Submarinos',260,'nav_1','Dezenas de submarinos pequenos em água rasa: fecham um mar por medo, não por número.','PRK');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('PRK_tech_ar_bases_tunel','air_upkeep',0.85),
+ ('PRK_tech_mar_mini_submarinos','naval_blockade',1.18);

@@ -178,3 +178,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('RUS_mar_gen_norte_rus','Almirante da Frota do Norte','naval_escort',1.16,145,'RUS','⚓','Traz comboios pelo gelo, que é meio caminho para os perder.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('RUS_tech_ar_assalto','Aviação','Aviação de Assalto',260,'air_1','Aparelhos blindados a bater a linha da frente de muito baixo, como sempre se fez aqui.','RUS'),
+ ('RUS_tech_mar_frota_norte','Marinha','Frota do Norte',260,'nav_1','Submarinos e cruzadores a sair do Ártico: fecha-se o Atlântico Norte a partir de cima.','RUS');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('RUS_tech_ar_assalto','air_bombing',1.18),
+ ('RUS_tech_mar_frota_norte','naval_blockade',1.18);

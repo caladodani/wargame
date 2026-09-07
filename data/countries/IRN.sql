@@ -181,3 +181,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('IRN_mar_gen_lanchas_irn','Chefe das Lanchas do Golfo','naval_blockade',1.16,145,'IRN','🐟','Com barcos pequenos fecha um golfo a petroleiros grandes.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('IRN_tech_ar_enxame_ar','Aviação','Enxame de Drones de Ataque',260,'air_1','Centenas de aparelhos baratos ao mesmo tempo: a defesa aérea do inimigo não chega para todos.','IRN'),
+ ('IRN_tech_mar_lanchas_rapidas','Marinha','Enxame de Lanchas Rápidas',260,'nav_1','Dezenas de lanchas a sair de todos os portos ao mesmo tempo: um estreito fecha-se assim.','IRN');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('IRN_tech_ar_enxame_ar','air_bombing',1.18),
+ ('IRN_tech_mar_lanchas_rapidas','naval_blockade',1.18);

@@ -583,15 +583,7 @@ public partial class CountryPanel : PanelContainer
                     rack.AddChild(plate);
                 }
                 if (mine && ResearchSystem.FreeSlots(w, c) == 0) Line("Laboratórios cheios: larga uma linha para abrir outra.", 15);
-                foreach (var group in w.Techs.Values.Where(t => w.CanResearch(c, t.Id)).GroupBy(t => t.Branch).OrderBy(g => g.Key))
-                    foreach (var t in group.OrderBy(t => t.Cost))
-                    {
-                        string id = t.Id;
-                        var row = new HBoxContainer();
-                        row.AddChild(Ui.Grow(Ui.Lbl($"{t.Branch}: {t.Name}   {t.Cost:0} dias" + (t.Description is { Length: > 0 } ? "\n   " + t.Description : ""), 16)));
-                        if (mine && !c.Research.ContainsKey(id)) row.AddChild(Ui.Btn("Investigar", () => Research(id), 150));
-                        _body.AddChild(row);
-                    }
+                _body.AddChild(TechView.Tree(w, c, mine, Research));
                 var known = c.Techs.Where(w.Techs.ContainsKey).Select(id => w.Techs[id].Name).OrderBy(n => n).ToList();
                 Line($"Concluídas ({known.Count}): " + (known.Count == 0 ? "nenhuma" : string.Join(", ", known)), 16);
             }

@@ -179,3 +179,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('ITA_mar_gen_assalto_ita','Chefe dos Assaltadores','naval_blockade',1.16,145,'ITA','🐙','Entra no porto do inimigo com meia dúzia de homens.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('ITA_tech_ar_mediterraneo','Aviação','Vigilância do Mediterrâneo',260,'air_1','Bases em toda a bota e no meio do mar: as asas ficam perto do trabalho e gastam menos.','ITA'),
+ ('ITA_tech_mar_porta_avioes_leve','Marinha','Grupo do Porta-Aviões Ligeiro',260,'nav_1','Um navio com convés corrido e as fragatas à volta: escolta com cobertura aérea própria.','ITA');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('ITA_tech_ar_mediterraneo','air_upkeep',0.87),
+ ('ITA_tech_mar_porta_avioes_leve','naval_escort',1.18);

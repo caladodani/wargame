@@ -102,7 +102,10 @@ CREATE TABLE IF NOT EXISTS start_division (
   template_id INTEGER NOT NULL, region_id INTEGER NOT NULL REFERENCES region(id), name TEXT
 );
 CREATE TABLE IF NOT EXISTS tech (                -- investigação (HoI4): cost = dias com research_speed 1; requires = id da anterior
-  id TEXT PRIMARY KEY, branch TEXT NOT NULL, name TEXT NOT NULL, cost REAL NOT NULL, requires TEXT, description TEXT
+  -- country_tag NULL = programa que qualquer país pode investigar; com tag = programa nacional, só daquele
+  -- país (o comando recusa-o a quem não é dele e a IA nem o vê) — ver World.TechIsFor
+  id TEXT PRIMARY KEY, branch TEXT NOT NULL, name TEXT NOT NULL, cost REAL NOT NULL, requires TEXT, description TEXT,
+  country_tag TEXT
 );
 CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir: Country.Stat(stat_key) × value (combate vai por modifier tech:<id>)
   tech_id TEXT NOT NULL REFERENCES tech(id), stat_key TEXT NOT NULL, value REAL NOT NULL, PRIMARY KEY (tech_id, stat_key)

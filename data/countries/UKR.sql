@@ -183,3 +183,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('UKR_mar_gen_flotilha_ukr','Comandante da Flotilha do Mar Negro','naval_blockade',1.16,145,'UKR','⚓','Sem esquadra, corta a rota do inimigo com o que tem.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('UKR_tech_ar_aviacao_drones','Aviação','Aviação de Drones',260,'air_1','Unidades inteiras só de drones, com pilotos que aprenderam a fazê-lo debaixo de fogo.','UKR'),
+ ('UKR_tech_mar_negacao_mar_negro','Marinha','Negação do Mar Negro',260,'nav_1','Mísseis costeiros e drones de superfície: afasta-se uma frota inteira sem ter marinha.','UKR');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('UKR_tech_ar_aviacao_drones','air_bombing',1.17),
+ ('UKR_tech_mar_negacao_mar_negro','naval_blockade',1.18);

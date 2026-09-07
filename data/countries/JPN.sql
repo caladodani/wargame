@@ -182,3 +182,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('JPN_mar_gen_combinada','Almirante da Frota Combinada','naval_patrol',1.15,145,'JPN','🐟','Junta a esquadra toda num ponto do mapa à hora certa.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('JPN_tech_ar_intercepcao_insular','Aviação','Intercepção Insular',260,'air_1','Alerta permanente sobre milhares de ilhas: sobe-se muitas vezes ao dia e não se perde ninguém.','JPN'),
+ ('JPN_tech_mar_escolta_izumo','Marinha','Esquadra de Escolta',260,'nav_1','Uma marinha feita de raiz para acompanhar comboios e caçar submarinos, e nada mais.','JPN');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('JPN_tech_ar_intercepcao_insular','air_losses',0.86),
+ ('JPN_tech_mar_escolta_izumo','naval_escort',1.18);

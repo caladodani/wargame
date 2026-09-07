@@ -184,3 +184,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('KOR_mar_gen_escolta_kor','Comodoro da Escolta do Sul','naval_escort',1.16,145,'KOR','⚓','Um país que vive do que entra por mar não perde comboios com ele.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('KOR_tech_ar_caca_kf','Aviação','Caça Nacional KF',260,'air_1','Programa próprio de caça com electrónica de casa: manutenção rápida e muitos aparelhos prontos.','KOR'),
+ ('KOR_tech_mar_destroyers_aegis','Marinha','Destroyers de Defesa Antimíssil',260,'nav_1','Navios que se defendem a si e ao que está ao lado: o combate custa menos aço nosso.','KOR');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('KOR_tech_ar_caca_kf','air_losses',0.86),
+ ('KOR_tech_mar_destroyers_aegis','naval_losses',0.87);

@@ -22,7 +22,16 @@ INSERT INTO tech (id,branch,name,cost,requires,description) VALUES
  ('doc_1',   'Doutrina',   'Armas combinadas',                  110, NULL,     'Infantaria, blindados, artilharia e drones a operar juntos: +5 % comando.'),
  ('doc_2',   'Doutrina',   'Guerra de manobra',                 170, 'doc_1',  'Penetrar e envolver em vez de empurrar: +8 % ao atacar.'),
  ('doc_3',   'Doutrina',   'Defesa em profundidade',            170, 'doc_1',  'Linhas sucessivas e reservas móveis: +8 % em defesa.'),
- ('res_1',   'Ciência',    'Investigação em rede',              120, NULL,     'Universidades e indústria a trabalhar com as Forças Armadas: investigação 15 % mais rápida.');
+ ('res_1',   'Ciência',    'Investigação em rede',              120, NULL,     'Universidades e indústria a trabalhar com as Forças Armadas: investigação 15 % mais rápida.'),
+ -- Aviação e Marinha: a árvore era toda de terra e de fábrica, e quem comprava esquadrões e navios não
+ -- tinha uma única linha de investigação onde os melhorar. Os efeitos são de país (tech_effect) porque é
+ -- assim que o AirMissionSystem e o NavalMissionSystem perguntam pelo que a arma vale.
+ ('air_1',   'Aviação',    'Caça de superioridade aérea',       110, NULL,     'Caças de nova geração e ligação de dados entre esquadras: perde-se menos gente no céu disputado.'),
+ ('air_2',   'Aviação',    'Munições de precisão a distância',  170, 'air_1',  'Bate-se o alvo de fora do alcance da defesa antiaérea: bombardeamento 12 % mais fundo.'),
+ ('air_3',   'Aviação',    'Manutenção expedicionária',         230, 'air_2',  'Oficina que vai com as asas para onde elas forem: 10 % menos de sustento por asa destacada.'),
+ ('nav_1',   'Marinha',    'Guerra anti-submarina',             110, NULL,     'Sonares rebocados, helicópteros e drones de superfície: afunda-se menos aço nosso em cada combate.'),
+ ('nav_2',   'Marinha',    'Mísseis anti-navio de longo alcance',170,'nav_1',  'Fecha-se um mar de muito mais longe: bloqueio 12 % mais apertado.'),
+ ('nav_3',   'Marinha',    'Reabastecimento no mar',            230, 'nav_2',  'A esquadra deixa de voltar ao porto para comer: 10 % menos de sustento por navio no mar.');
 
 INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
  (901,'tech','tech:inf_1',   'true','str',         'infantry','add',0.05),
@@ -43,7 +52,9 @@ INSERT INTO modifier (id,source_kind,condition_key,condition_value,stat_key,requ
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('log_1','org_regain',1.10), ('log_2','move_speed',1.15), ('log_3','org_regain',1.10),
  ('ind_1','production_speed',1.10), ('ind_2','industry',1.10), ('ind_3','production_speed',1.15),
- ('res_1','research_speed',1.15);
+ ('res_1','research_speed',1.15),
+ ('air_1','air_losses',0.92), ('air_2','air_bombing',1.12), ('air_3','air_upkeep',0.90),
+ ('nav_1','naval_losses',0.92), ('nav_2','naval_blockade',1.12), ('nav_3','naval_upkeep',0.90);
 
 -- Tecnologias iniciais: NATO/aliados avançados começam à frente; o resto começa do zero.
 INSERT OR IGNORE INTO country_tech (country_tag,tech_id) VALUES
@@ -73,6 +84,16 @@ INSERT OR IGNORE INTO country_tech (country_tag,tech_id) VALUES
  ('PAK','inf_1'),('PAK','drones_1'),
  ('IDN','inf_1'),
  ('ARG','inf_1');
+
+-- Quem já chega a 2030 com força aérea e marinha a sério começa com o primeiro degrau da arma feito: sem
+-- isto o mundo abria com toda a gente ao mesmo nível no ar e no mar, que é o contrário do que se vê.
+INSERT OR IGNORE INTO country_tech (country_tag,tech_id) VALUES
+ ('USA','air_1'),('USA','air_2'),('USA','nav_1'),('USA','nav_2'),
+ ('GBR','air_1'),('GBR','nav_1'),('FRA','air_1'),('FRA','nav_1'),
+ ('RUS','air_1'),('RUS','nav_1'),('CHN','air_1'),('CHN','nav_1'),
+ ('JPN','nav_1'),('KOR','air_1'),('IND','nav_1'),('ISR','air_1'),
+ ('TUR','air_1'),('ITA','nav_1'),('ESP','nav_1'),('AUS','nav_1'),
+ ('PRT','nav_1'),('CAN','nav_1'),('BRA','nav_1');
 
 -- Programa nuclear (appended): 2 patamares; nuc_2 dá o multiplicador "nuclear" que desbloqueia
 -- BuildNukeCommand (Stat("nuclear") > 1). Só investigação — as ogivas compram-se depois.

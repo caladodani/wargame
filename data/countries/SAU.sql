@@ -171,3 +171,11 @@ INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp)
 -- ===== comandante nacional de esquadra (general.domain=mar) =====
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
  ('SAU_mar_gen_vermelho','Comandante do Mar Vermelho','naval_blockade',1.16,145,'SAU','⛵','Um mar estreito e comprido: fechá-lo é fechar uma porta.','mar',45);
+
+-- ===== programas nacionais de aviação e de marinha (tech.country_tag) =====
+INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
+ ('SAU_tech_ar_ala_deserto','Aviação','Ala de Ataque do Deserto',260,'air_1','Aviões modernos e reabastecimento no ar: bate-se longe e volta-se sem pousar no meio.','SAU'),
+ ('SAU_tech_mar_mar_vermelho','Marinha','Guarda do Mar Vermelho',260,'nav_1','Acompanhar petroleiros por um mar estreito com as duas margens em guerra.','SAU');
+INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
+ ('SAU_tech_ar_ala_deserto','air_bombing',1.17),
+ ('SAU_tech_mar_mar_vermelho','naval_escort',1.17);

@@ -35,8 +35,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f) && byTag.TryGetValue((string)r["country_tag"]!, out var c))
                 f.Members.Add(c.Id);
 
-        foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description FROM tech"))
-            w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string);
+        foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description,country_tag FROM tech"))
+            w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string,
+                                                 r["country_tag"] as string);
         foreach (var r in _static.Query("SELECT id,day,country_tag,title,body FROM news_event"))
         {
             int? cid = r["country_tag"] is string tag && byTag.TryGetValue(tag, out var nc) ? nc.Id : null;
