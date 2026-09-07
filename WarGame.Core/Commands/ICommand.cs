@@ -955,6 +955,58 @@ public sealed record CancelTradeDealCommand(int CountryId, int OtherId, string R
 }
 
 
+/// <summary>Abre (ou revê) um empréstimo de material a outro país: Share do rendimento diário passa a sair
+/// todos os dias do cofre de quem assina e a entrar no de quem recebe, com as perdas de caminho pelo meio
+/// (LendLeaseSystem). Assinar duas vezes ao mesmo país não faz dois acordos — muda a fatia do que já lá
+/// está, que é o que a barra da interface faz quando se arrasta.
+///
+/// Um país só pode prometer até lend_lease_max_share do que ganha, somando todos os empréstimos: emprestar
+/// tudo era ficar sem exército por generosidade. Nada a inimigos — material entregue a quem nos combate é
+/// material que volta apontado a nós.</summary>
+public sealed record LendLeaseCommand(int CountryId, int ToId, float Share) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var from) || from.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(ToId, out var to) || to.Capitulated) return "destinatário inválido";
+        if (CountryId == ToId) return "não podes emprestar a ti próprio";
+        if (w.AreAtWar(CountryId, ToId)) return "estão em guerra";
+        float min = w.Rule("lend_lease_min_share", 0.05f), max = w.Rule("lend_lease_max_share", 0.35f);
+        if (Share < min - 1e-4f) return $"a fatia mínima é de {min * 100f:0}% do rendimento";
+        if (Share > max + 1e-4f) return $"a fatia máxima é de {max * 100f:0}% do rendimento";
+        float mine = LendLeaseSystem.Between(w, CountryId, ToId)?.Share ?? 0f;   // rever não soma: substitui
+        if (LendLeaseSystem.Given(w, CountryId) - mine + Share > max + 1e-4f)
+            return $"já tens {LendLeaseSystem.Given(w, CountryId) * 100f:0}% do rendimento prometido";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var l = LendLeaseSystem.Between(w, CountryId, ToId);
+        if (l is null) w.LendLeases.Add(new LendLease { FromId = CountryId, ToId = ToId, Share = Share, SinceDay = w.Clock.Day });
+        else l.Share = Share;
+        w.Events.Publish(new LendLeaseSigned(CountryId, ToId, Share));
+    }
+}
+
+/// <summary>Fecha um empréstimo de material em que o país participa (de qualquer um dos lados: quem dá
+/// cansa-se, quem recebe também pode dispensar).</summary>
+public sealed record CancelLendLeaseCommand(int CountryId, int OtherId) : ICommand
+{
+    public string? Validate(World w) => Find(w) is null ? "não há empréstimo com esse país" : null;
+
+    public void Execute(World w)
+    {
+        var l = Find(w)!;
+        w.LendLeases.Remove(l);
+        w.Events.Publish(new LendLeaseEnded(l.FromId, l.ToId, l.SentTotal));
+    }
+
+    private LendLease? Find(World w) =>
+        w.LendLeases.FirstOrDefault(l => (l.FromId == CountryId && l.ToId == OtherId)
+                                      || (l.ToId == CountryId && l.FromId == OtherId));
+}
+
 /// <summary>Começa a obra de um edifício da tabela building numa região própria e controlada.
 /// Ocupa uma fábrica civil (Industry) enquanto a obra durar.</summary>
 public sealed record BuildBuildingCommand(int CountryId, int RegionId, string BuildingId) : ICommand

@@ -323,6 +323,11 @@ CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recurso
   price_per_unit REAL NOT NULL DEFAULT 0,     -- preço travado à assinatura (0 = acordo velho, usa a regra)
   until_day INTEGER NOT NULL DEFAULT 0,       -- fim do contrato (0 = sem prazo)
   PRIMARY KEY (buyer_id, seller_id, resource));
+CREATE TABLE IF NOT EXISTS s_lend_lease (     -- empréstimos de material em vigor (LendLeaseSystem)
+  from_id INTEGER NOT NULL, to_id INTEGER NOT NULL,
+  share REAL NOT NULL,                        -- fatia do rendimento diário do benfeitor
+  since_day INTEGER NOT NULL DEFAULT 0, sent_total REAL NOT NULL DEFAULT 0,
+  PRIMARY KEY (from_id, to_id));
 CREATE TABLE IF NOT EXISTS s_history (        -- amostras dos gráficos de evolução (HistorySystem)
   day INTEGER NOT NULL, country_id INTEGER NOT NULL, money REAL NOT NULL, divisions INTEGER NOT NULL, regions INTEGER NOT NULL,
   power REAL NOT NULL DEFAULT 0,               -- nota do PowerIndex no dia da amostra

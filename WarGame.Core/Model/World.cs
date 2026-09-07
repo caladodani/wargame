@@ -180,6 +180,9 @@ public sealed class World
     public List<PendingOffer> Offers { get; } = new();
     /// <summary>Acordos de comércio de recursos em vigor (TradeSystem).</summary>
     public List<TradeDeal> TradeDeals { get; } = new();
+    /// <summary>Empréstimos de material em vigor (LendLeaseSystem): uma fatia do rendimento do benfeitor
+    /// entra todos os dias no cofre de quem recebe. Um por par ordenado (quem dá, quem recebe).</summary>
+    public List<LendLease> LendLeases { get; } = new();
     /// <summary>Amostras dos gráficos (HistorySystem): jogador + maiores potências, de history_sample_days em history_sample_days.</summary>
     public List<HistorySample> History { get; } = new();
     /// <summary>Rede de informação activa: (autor, alvo) → último dia com visibilidade (efeito intel).</summary>

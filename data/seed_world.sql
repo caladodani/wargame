@@ -360,6 +360,14 @@ INSERT INTO rule (key,value,note) VALUES
  ('trade_deal_days',180,'prazo de um tratado longo, em dias'),
  ('trade_deal_deposit_days',10,'dias de contrato que o cofre tem de cobrir à assinatura');
 
+-- Empréstimo de material (LendLeaseSystem): uma fatia do rendimento diário passa para um aliado, todos os
+-- dias, com perdas de caminho. Não é uma venda — não há contrapartida nenhuma.
+INSERT INTO rule (key,value,note) VALUES
+ ('lend_lease_max_share',0.35,'fatia máxima do rendimento que um país pode ter emprestada ao todo'),
+ ('lend_lease_min_share',0.05,'fatia mínima de um empréstimo de material'),
+ ('lend_lease_waste',0.2,'fatia do envio que se perde nos cais e nos comboios'),
+ ('lend_lease_ai_share',0.15,'fatia que a IA empresta a um aliado de facção em guerra');
+
 -- Reserva de dinheiro abaixo da qual a IA não propõe pactos de não-agressão.
 INSERT INTO rule (key,value,note) VALUES
  ('ai_nap_reserve',100,'em guerra, a IA propõe NAP a vizinhos neutros se tiver dinheiro acima disto');

@@ -49,6 +49,7 @@ public sealed class AiSystem : ISystem
             Laws(w, c);
             Generals(w, c);
             Aid(w, c);
+            Lend(w, c);
             Spy(w, c, divsByCountry);
             Naps(w, c, regionsByController.GetValueOrDefault(c.Id), divsByCountry);
             Air(w, c);
@@ -344,6 +345,34 @@ public sealed class AiSystem : ISystem
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
+    /// <summary>Empréstimo de material: quem está em paz e tem um aliado de facção a arder abre-lhe uma
+    /// torneira de lend_lease_ai_share do rendimento, e fecha-a quando a guerra dele acabar (ou quando a
+    /// sua própria começar — em guerra o material faz falta em casa). Um empréstimo de cada vez.
+    ///
+    /// É o Aid visto ao contrário: aquele manda o excedente do cofre de uma vez, este promete uma fatia do
+    /// que ainda não ganhou. Um aliado sustentado assim aguenta uma frente muito para lá do que o cofre
+    /// dele dava, que é exactamente o que o empréstimo de material fez na guerra que este jogo conta.</summary>
+    private static void Lend(World w, Country c)
+    {
+        // fechar primeiro: um acordo que já não serve não deve ocupar a fatia que outro aliado precisa hoje
+        foreach (var l in w.LendLeases.Where(x => x.FromId == c.Id).ToList())
+            if (c.AtWarWith.Count > 0 || !w.Countries.TryGetValue(l.ToId, out var had) || had.Capitulated || had.AtWarWith.Count == 0)
+            {
+                var stop = new CancelLendLeaseCommand(c.Id, l.ToId);
+                if (stop.Validate(w) is null) stop.Execute(w);
+            }
+        if (c.AtWarWith.Count > 0 || w.LendLeases.Any(l => l.FromId == c.Id)) return;
+
+        Country? worst = null;      // o aliado com mais inimigos em cima, desempate pelo mais pobre
+        foreach (var a in w.Allies(c.Id))
+            if (w.Countries.TryGetValue(a, out var ac) && !ac.Capitulated && ac.AtWarWith.Count > 0
+                && (worst is null || ac.AtWarWith.Count > worst.AtWarWith.Count
+                    || (ac.AtWarWith.Count == worst.AtWarWith.Count && ac.Money < worst.Money))) worst = ac;
+        if (worst is null) return;
+        var cmd = new LendLeaseCommand(c.Id, worst.Id, w.Rule("lend_lease_ai_share", 0.15f));
+        if (cmd.Validate(w) is null) cmd.Execute(w);
+    }
+
     /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
     /// (o próximo sort do grupo). Em paz não mexe — voltar atrás não compensa o custo.</summary>
     /// <summary>Preenche o estado-maior enquanto sobrar dinheiro acima de ai_general_reserve: em guerra
@@ -455,6 +484,8 @@ public sealed class AiSystem : ISystem
                 if (o.IsPlayer && w.Clock.Day < w.Rule("ai_war_player_min_day", 90f)) continue;
                 // dissuasão: sem ogivas próprias, a IA não ataca uma potência nuclear
                 if (o.Nukes > 0 && c.Nukes == 0) continue;
+                // e não se morde a mão que nos manda material todos os dias
+                if (LendLeaseSystem.Benefactor(w, other, c.Id)) continue;
                 int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
                 foreach (var ally in w.Allies(other)) theirs += divsByCountry.GetValueOrDefault(ally)?.Count ?? 0;
                 if (theirs * ratio > myDivs) continue;

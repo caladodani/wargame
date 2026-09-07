@@ -107,6 +107,11 @@ public sealed record RegionRevolted(int RegionId, int OldController) : IGameEven
 public sealed record TradeDealCreated(int BuyerId, int SellerId, string ResourceId, float Units) : IGameEvent;
 /// <summary>Acordo de comércio terminado (cancelado ou caiu: guerra, depósitos, dinheiro).</summary>
 public sealed record TradeDealEnded(int BuyerId, int SellerId, string ResourceId) : IGameEvent;
+/// <summary>Empréstimo de material assinado ou revisto (LendLeaseCommand): Share é a fatia nova.</summary>
+public sealed record LendLeaseSigned(int FromCountryId, int ToCountryId, float Share) : IGameEvent;
+/// <summary>Empréstimo de material fechado: por ordem, por guerra entre os dois ou por capitulação.
+/// SentTotal é o que chegou a entrar no cofre do destinatário durante toda a vida do acordo.</summary>
+public sealed record LendLeaseEnded(int FromCountryId, int ToCountryId, float SentTotal) : IGameEvent;
 public sealed record SpyOpStarted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 public sealed record SpyOpCompleted(int CountryId, int TargetCountryId, string OpId) : IGameEvent;
 /// <summary>Sabotagem consumada numa região do inimigo: o quê, onde e o estrago em texto curto.</summary>

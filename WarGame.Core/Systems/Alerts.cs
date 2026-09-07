@@ -153,6 +153,22 @@ public static class Alerts
                                c.DefeatStreak >= need ? AlertLevel.Danger : AlertLevel.Warn, c.LastDefeatRegion));
         }
 
+        // 11. Empréstimo de material: o que entra de fora conta-se como rendimento, mas não é nosso — pode
+        // fechar num dia. Quem tem uma frente sustentada por material emprestado deve sabê-lo antes de
+        // encomendar a pensar no total.
+        float lent = LendLeaseSystem.In(w, countryId), given = LendLeaseSystem.Out(w, countryId);
+        if (lent > 0f)
+        {
+            int from = w.LendLeases.Count(l => l.ToId == countryId);
+            list.Add(new Alert("lend_in", "⚓",
+                               from == 1 ? $"+{lent:0.0}/dia de material emprestado por {Name2(w, w.LendLeases.First(l => l.ToId == countryId).FromId)}"
+                                         : $"+{lent:0.0}/dia de material emprestado por {from} países",
+                               AlertLevel.Info));
+        }
+        if (given > 0f)
+            list.Add(new Alert("lend_out", "⚓", $"−{given:0.0}/dia do nosso rendimento emprestado lá fora",
+                               income - given < 0f ? AlertLevel.Warn : AlertLevel.Info));
+
         int offers = w.Offers.Count(o => o.ToId == countryId);
         if (offers > 0)
             list.Add(new Alert("offers", "✉", offers == 1 ? "1 proposta à espera de resposta"
@@ -166,4 +182,7 @@ public static class Alerts
 
     private static string Name(World w, int regionId) =>
         w.Regions.TryGetValue(regionId, out var r) ? r.Name : "campo aberto";
+
+    private static string Name2(World w, int countryId) =>
+        w.Countries.TryGetValue(countryId, out var c) ? c.Name : "um aliado";
 }

@@ -268,6 +268,22 @@ public sealed class TradeDeal
     public int UntilDay { get; init; }
 }
 
+/// <summary>Empréstimo de material em vigor: uma fatia do rendimento diário de quem empresta passa para
+/// quem recebe, todos os dias, sem contrapartida (LendLeaseSystem). Não é uma transferência única como o
+/// TransferMoneyCommand — é uma torneira aberta que só fecha por ordem, por guerra entre os dois ou por
+/// capitulação.</summary>
+public sealed class LendLease
+{
+    /// <summary>Quem paga: sai-lhe do cofre Share do rendimento do dia.</summary>
+    public int FromId { get; init; }
+    public int ToId { get; init; }
+    /// <summary>Fatia do rendimento diário do benfeitor (0..lend_lease_max_share).</summary>
+    public float Share { get; set; }
+    public int SinceDay { get; init; }
+    /// <summary>Total já entregue ao destinatário desde a assinatura (o que se perdeu no caminho não conta).</summary>
+    public float SentTotal { get; set; }
+}
+
 /// <summary>Tipo de recurso estratégico (tabela resource): cada unidade controlada multiplica
 /// StatKey por (1+PerUnit), até Cap unidades (ResourceSystem).</summary>
 public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap);

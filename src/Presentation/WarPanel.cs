@@ -12,7 +12,7 @@ namespace WarGame.Presentation;
 public partial class WarPanel : PanelContainer
 {
     /// <summary>As secções do painel, pela ordem em que aparecem na fila de abas.</summary>
-    private static readonly string[] Sections = { "Frentes", "Ar", "Mar", "Adidos", "Arquivo" };
+    private static readonly string[] Sections = { "Frentes", "Ar", "Mar", "Adidos", "Material", "Arquivo" };
 
     private Game _game = null!;
     private VBoxContainer _body = null!;
@@ -89,6 +89,8 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
                       AttacheKey(w, pid) + "|" + AirKey(w, pid) + "|" + SeaKey(w, pid) + "|" +
+                      "ll" + string.Join(",", w.LendLeases.Where(l => l.FromId == pid || l.ToId == pid)
+                                               .Select(l => $"{l.FromId}>{l.ToId}:{l.Share:0.00}")) + "|" +
                       "th" + string.Join(",", TheatreSystem.Of(w, pid).Select(t => $"{t.FoeId}:{t.RegionIds.Count}:{t.Divisions}:{t.FoeDivisions}:{t.Holes}:{(int)(t.Progress * 100f)}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
@@ -149,8 +151,9 @@ public partial class WarPanel : PanelContainer
             if (_tab == 1) AirWar(w, pid);
             if (_tab == 2) SeaWar(w, pid);
             if (_tab == 3) Attaches(w, pid);
+            if (_tab == 4) LendLease(w, pid);
 
-            if (_tab == 4 && past.Count > 0)
+            if (_tab == 5 && past.Count > 0)
             {
                 Header("Guerras terminadas");
                 foreach (var r in past)
@@ -168,7 +171,7 @@ public partial class WarPanel : PanelContainer
                     _body.AddChild(box);
                 }
             }
-            else if (_tab == 4) Header("Arquivo vazio: ainda não acabou guerra nenhuma");
+            else if (_tab == 5) Header("Arquivo vazio: ainda não acabou guerra nenhuma");
         }
         catch (Exception ex) { GD.PushError("WarPanel.Fill: " + ex); }
     }
@@ -471,6 +474,168 @@ public partial class WarPanel : PanelContainer
         _game.Notify($"Adido a caminho de {Name(_game.World, hostId)}");
         _lastKey = ""; Fill();
     });
+
+    /// <summary>Empréstimo de material: a torneira que se abre a um aliado a arder. Uma fatia do nosso
+    /// rendimento diário sai daqui todos os dias e entra no cofre dele, com as perdas do caminho pelo meio
+    /// (LendLeaseSystem). É a única coisa do jogo que se pede numa gama e não num sim/não — por isso é aqui
+    /// que a régua de latão (BrassSlider) aparece: arrasta-se a fatia e vê-se, na legenda, o que sai e o
+    /// que chega antes de largar. A ordem só parte quando o dedo se levanta.
+    ///
+    /// Três blocos: a conta do país (o que ganhamos, o que já prometemos, o tecto), os acordos em vigor de
+    /// cada lado, e a lista de quem se pode ajudar — aliados de facção primeiro, que são quem costuma
+    /// precisar.</summary>
+    private void LendLease(World w, int pid)
+    {
+        var me = w.Countries[pid];
+        float income = EconomySystem.Income(w, pid);
+        float max = w.Rule("lend_lease_max_share", 0.35f), min = w.Rule("lend_lease_min_share", 0.05f);
+        float waste = w.Rule("lend_lease_waste", 0.2f);
+        float given = LendLeaseSystem.Given(w, pid);
+
+        Header("Empréstimo de material");
+        var (sumBox, sum) = Card();
+        var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 10);
+        line.AddChild(Ui.Grow(Ui.Lbl($"Rendimento {income:0.0}/dia   ·   prometido {given:P0} de {max:P0}", 18)));
+        line.AddChild(Ui.Bar(max <= 0f ? 0f : given / max, Ui.Accent, 120f));
+        sum.AddChild(line);
+        sum.AddChild(Ui.Lbl($"Sai {LendLeaseSystem.Out(w, pid):0.0}/dia   ·   entra {LendLeaseSystem.In(w, pid):0.0}/dia   ·   " +
+                            $"perde-se {waste:P0} no caminho   ·   cofre {me.Money:0}", 15));
+        _body.AddChild(sumBox);
+
+        var out_ = w.LendLeases.Where(l => l.FromId == pid).OrderBy(l => l.ToId).ToList();
+        var in_ = w.LendLeases.Where(l => l.ToId == pid).OrderBy(l => l.FromId).ToList();
+
+        if (out_.Count > 0) Header("A sair");
+        foreach (var l in out_)
+        {
+            int to = l.ToId;
+            var (box, card) = Card();
+            var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 8);
+            var fl = Flags.Rect(22);
+            if (w.Countries.TryGetValue(to, out var tc)) { fl.Texture = Flags.Of(tc.Tag); fl.Visible = fl.Texture is not null; }
+            title.AddChild(fl);
+            title.AddChild(Ui.Grow(Ui.Lbl($"⚓ a {Name(w, to)}", 20)));
+            title.AddChild(Ui.Lbl($"{w.Clock.Day - l.SinceDay} dias   ·   {l.SentTotal:0} entregues", 15));
+            card.AddChild(title);
+            var rule = new BrassSlider();
+            rule.Set(min, MathF.Min(max, l.Share + LendLeaseSystem.FreeShare(w, pid)), 0.05f, l.Share,
+                     v => Cut(income, v, waste), null, v => Sign(pid, to, v));
+            card.AddChild(rule);
+            card.AddChild(Ui.Btn("Fechar a torneira", () => Stop(pid, to), 220, Ui.Kind.Danger));
+            _body.AddChild(box);
+        }
+
+        if (in_.Count > 0) Header("A entrar");
+        foreach (var l in in_)
+        {
+            int from = l.FromId;
+            var (box, card) = Card();
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+            var fl = Flags.Rect(22);
+            if (w.Countries.TryGetValue(from, out var fc2)) { fl.Texture = Flags.Of(fc2.Tag); fl.Visible = fl.Texture is not null; }
+            row.AddChild(fl);
+            row.AddChild(Ui.Grow(Ui.Lbl($"{Name(w, from)} manda +{LendLeaseSystem.Landed(w, l):0.0}/dia", 19)));
+            row.AddChild(Ui.Btn("Dispensar", () => Stop(pid, from), 150));
+            card.AddChild(row);
+            card.AddChild(Ui.Lbl($"{l.SentTotal:0} pontos entregues em {w.Clock.Day - l.SinceDay} dias", 15));
+            _body.AddChild(box);
+        }
+
+        // candidatos: aliados de facção primeiro (é quem costuma precisar), depois qualquer país em guerra
+        // com quem não estejamos em guerra. Oito chegam para um ecrã — a lista inteira eram 250 filas.
+        var allies = new HashSet<int>(w.Allies(pid));
+        var pool = w.Countries.Values
+            .Where(x => x.Id != pid && !x.Capitulated && !w.AreAtWar(pid, x.Id)
+                        && !out_.Any(l => l.ToId == x.Id) && (allies.Contains(x.Id) || x.AtWarWith.Count > 0))
+            .OrderByDescending(x => allies.Contains(x.Id)).ThenByDescending(x => x.AtWarWith.Count).ThenBy(x => x.Id)
+            .Take(8).ToList();
+        float free = LendLeaseSystem.FreeShare(w, pid);
+        if (pool.Count == 0 || free < min - 1e-4f)
+        {
+            var (box, card) = Card();
+            card.AddChild(Ui.Lbl(free < min - 1e-4f
+                ? $"Já temos {given:P0} do rendimento prometido: o tecto são {max:P0}."
+                : "Ninguém a quem mandar material: não há aliado nem guerra alheia onde ele faça falta.", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        Header("Abrir uma torneira nova");
+        foreach (var cand in pool)
+        {
+            int to = cand.Id;
+            var (box, card) = Card();
+            var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 8);
+            var fl = Flags.Rect(20); fl.Texture = Flags.Of(cand.Tag); fl.Visible = fl.Texture is not null;
+            title.AddChild(fl);
+            title.AddChild(Ui.Grow(Ui.Lbl(cand.Name, 19)));
+            title.AddChild(Ui.Lbl(cand.AtWarWith.Count == 0 ? "em paz"
+                                  : $"em guerra com {string.Join(", ", cand.AtWarWith.OrderBy(x => x).Select(x => Name(w, x)))}", 15));
+            card.AddChild(title);
+            var rule = new BrassSlider();
+            float start = Math.Clamp(_share.GetValueOrDefault(to, min), min, MathF.Min(max, free));
+            _share[to] = start;
+            rule.Set(min, MathF.Min(max, free), 0.05f, start, v => Cut(income, v, waste), v => _share[to] = v);
+            card.AddChild(rule);
+            card.AddChild(Ui.Btn("Assinar o empréstimo", () => Sign(pid, to, _share.GetValueOrDefault(to, min)), 240, Ui.Kind.Primary));
+            _body.AddChild(box);
+        }
+    }
+
+    /// <summary>Legenda da régua: a fatia, o que sai do nosso cofre e o que chega ao aliado.</summary>
+    private static string Cut(float income, float share, float waste) =>
+        $"{share:P0} do rendimento   ·   −{income * share:0.0}/dia daqui, +{income * share * (1f - waste):0.0}/dia lá";
+
+    /// <summary>Fatias escolhidas na régua e ainda por assinar, por país. Sem isto o valor voltava ao
+    /// mínimo cada vez que o painel se redesenhasse (e ele redesenha-se todos os dias de jogo).</summary>
+    private readonly Dictionary<int, float> _share = new();
+
+    private void Sign(int pid, int toId, float share) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new LendLeaseCommand(pid, toId, share));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Material a caminho de {Name(_game.World, toId)} ({share:P0} do rendimento)");
+        _lastKey = ""; Fill();
+    });
+
+    private void Stop(int pid, int otherId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new CancelLendLeaseCommand(pid, otherId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify("Empréstimo de material fechado");
+        _lastKey = ""; Fill();
+    });
+
+    /// <summary>--smoke: abre a secção do material, arrasta a régua até meio e assina o empréstimo ao
+    /// primeiro candidato. Devolve o que ficou assinado, em texto.</summary>
+    public string SmokeMaterial()
+    {
+        if (_game.PlayerId is not int pid) return "sem país";
+        var w = _game.World;
+        _tab = 4; _lastKey = ""; Fill();
+        var rule = Rules(_body).FirstOrDefault();
+        float share = rule?.SmokeDrag(0.5f) ?? 0f;
+        var cand = w.Countries.Values.FirstOrDefault(x => x.Id != pid && !x.Capitulated && !w.AreAtWar(pid, x.Id));
+        string done = "sem candidatos";
+        if (cand is not null && share > 0f)
+            done = _game.Dispatch(new LendLeaseCommand(pid, cand.Id, share))
+                ?? $"{share:P0} a {cand.Name} (−{LendLeaseSystem.Out(w, pid):0.0}/dia daqui, +{LendLeaseSystem.In(w, cand.Id):0.0}/dia lá)";
+        _lastKey = ""; Fill();                       // a secção redesenhada já com o acordo em vigor
+        int rules = Rules(_body).Count;
+        _tab = 0; _lastKey = "";
+        return $"{done}, {rules} régua{(rules == 1 ? "" : "s")} de latão";
+    }
+
+    private static List<BrassSlider> Rules(Node n)
+    {
+        var found = new List<BrassSlider>();
+        foreach (var c in n.GetChildren())
+        {
+            if (c is BrassSlider s) found.Add(s);
+            found.AddRange(Rules(c));
+        }
+        return found;
+    }
 
     /// <summary>--smoke: desenha a secção do adido com a lista de anfitriões cheia e diz quantos ficaram.</summary>
     public int SmokeAttache()
