@@ -406,6 +406,14 @@ public sealed class Country
     public float PortCapacity { get; set; }        // divisões que os nossos cais aguentam (SupplySystem, derivado)
     public int SeaSupplied { get; set; }           // divisões que hoje só bebem por mar (SupplySystem, derivado)
     public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
+    /// <summary>Batalhas perdidas seguidas (DefeatAlarmSystem). Ganhar uma põe-na a zero; a partir da regra
+    /// defeat_streak_alarm o país entra em alarme e o desgaste de guerra sobe.</summary>
+    public int DefeatStreak { get; set; }
+    /// <summary>Dia da última batalha perdida (-1 = ainda não perdeu nenhuma), para a faixa de avisos saber
+    /// se a derrota ainda é fresca.</summary>
+    public int LastDefeatDay { get; set; } = -1;
+    /// <summary>Região onde se perdeu a última batalha: é para lá que o aviso leva o mapa.</summary>
+    public int LastDefeatRegion { get; set; }
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
     public float Warships { get; set; }            // navios de guerra (BuyWarshipCommand); destacam-se por NavalMissionSystem
     public float Convoys { get; set; }             // saldo de mercantes por cima da marinha de partida (ConvoySystem)

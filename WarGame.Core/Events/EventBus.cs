@@ -135,6 +135,10 @@ public sealed record BuildingBuilt(int RegionId, string BuildingId, int Level) :
 public sealed record NukeBuilt(int CountryId, int Total) : IGameEvent;
 /// <summary>Ataque nuclear a uma região: divisões e infra-estrutura arrasadas, estabilidade dos dois lados sofre.</summary>
 public sealed record NukeStruck(int AttackerId, int RegionId, int TargetCountryId, int DivisionsHit) : IGameEvent;
+/// <summary>Batalha perdida (DefeatAlarmSystem), com a conta das derrotas seguidas em que ela entra.
+/// GroundLost = a região mudou de mãos; Alarm = a série chegou à regra defeat_streak_alarm e o país
+/// pagou-a em desgaste de guerra. A UI toca o klaxon e acende a faixa; a crónica só escreve as de alarme.</summary>
+public sealed record BattleLost(int CountryId, int RegionId, int Streak, bool GroundLost, bool Alarm) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

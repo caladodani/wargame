@@ -76,6 +76,12 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "alianca", $"{Who(w, e.CountryId)} funda a aliança {FactionName(w, e.FactionId)}.", e.CountryId));
         w.Events.Subscribe<FactionJoined>(e =>
             Write(w, "alianca", $"{Who(w, e.CountryId)} entra na aliança {FactionName(w, e.FactionId)}.", e.CountryId));
+        w.Events.Subscribe<BattleLost>(e =>
+        {
+            if (e.Alarm)
+                Write(w, "reves", $"{Who(w, e.CountryId)} perde a {e.Streak}.ª batalha seguida, em {Place(w, e.RegionId)}"
+                                + (e.GroundLost ? " — e o terreno com ela." : "."), e.CountryId, e.RegionId);
+        });
         w.Events.Subscribe<SeasonChanged>(e =>
             Write(w, "estacao", $"Entrou o {e.Name}.", 0));
         // Capturas há às centenas numa guerra grande: só a queda de uma capital entra na crónica.

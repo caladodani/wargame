@@ -828,3 +828,11 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 
 -- Uma lei nova aprovada é acontecimento de campanha: o parlamento muda o país sem um tiro.
 INSERT INTO chronicle_kind VALUES ('lei','Lei nacional','⚖',2);
+
+-- Alarme de derrota (DefeatAlarmSystem): perder uma batalha conta, perder três seguidas custa. O klaxon da
+-- UI toca no alarme; a faixa de avisos guarda a derrota enquanto ela é fresca.
+INSERT INTO rule (key,value,note) VALUES
+ ('defeat_streak_alarm',3,'batalhas perdidas seguidas a partir das quais o país entra em alarme'),
+ ('defeat_exhaustion',1.5,'desgaste de guerra que cada derrota em alarme acrescenta'),
+ ('alert_defeat_days',7,'dias durante os quais uma batalha perdida continua na faixa de avisos');
+INSERT INTO chronicle_kind VALUES ('reves','Revés','☠',2);

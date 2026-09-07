@@ -50,6 +50,7 @@ public partial class Hud : CanvasLayer
     private FocusPanel _focusTree = null!;
     private DoctrinePanel _doctrines = null!;
     private AlertStrip _alerts = null!;
+    private DefeatKlaxon _klaxon = null!;
     private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
@@ -103,6 +104,9 @@ public partial class Hud : CanvasLayer
             // Caixilharia de metal: todos os painéis flutuantes ganham cantoneiras e rebites de uma vez. Fica
             // de fora a barra de topo (o texto encosta às arestas) e a tira de avisos, que é fina de propósito.
             _frames = PanelFrame.DressAll(this, _alerts, GetNode<PanelContainer>("Top"));
+
+            // Depois da caixilharia: o cartaz do klaxon é de alarme e não leva cantoneiras de painel.
+            _klaxon = new DefeatKlaxon(); AddChild(_klaxon); _klaxon.Setup();
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
@@ -349,6 +353,13 @@ public partial class Hud : CanvasLayer
         _subs.Add(w.Events.Subscribe<BattleEnded>(e =>
         {
             if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}: {(e.AttackerWon ? "atacante venceu" : "defesa aguentou")}");
+        }));
+        _subs.Add(w.Events.Subscribe<BattleLost>(e =>
+        {
+            if (!Player(e.CountryId)) return;
+            string place = RegionName(e.RegionId);
+            int streak = e.Streak; bool ground = e.GroundLost, alarm = e.Alarm;
+            Callable.From(() => _klaxon.Raise(place, streak, ground, alarm)).CallDeferred();
         }));
         _subs.Add(w.Events.Subscribe<TechResearched>(e =>
         {
@@ -1153,10 +1164,20 @@ public partial class Hud : CanvasLayer
             laws = $"{ladders.Count} escadas de leis ({string.Join(", ", ladders.Select(g => w.ActiveLaw(c, g)?.Name ?? "—"))}), "
                  + $"exporta até {c.Stat("export_share", 1f):P0} dos depósitos";
         }
+        // alarme de derrota: perdem-se de propósito as batalhas seguidas que a regra exige, para a série
+        // subir, o desgaste de guerra pagar a conta, a faixa acender o aviso e o klaxon tocar
+        int need = (int)w.Rule("defeat_streak_alarm", 3f);
+        int beater = w.Countries.Values.Where(x => x.Id != pid).OrderByDescending(x => w.AreAtWar(pid, x.Id)).First().Id;
+        float worn = c.WarExhaustion;
+        for (int i = 0; i < need; i++) w.Events.Publish(new BattleEnded(cap.Id, true, beater, pid));
+        string klaxon = _klaxon.Smoke(cap.Name, c.DefeatStreak, true, true)
+                      + $", desgaste de guerra {worn:0.0}→{c.WarExhaustion:0.0}, faixa: "
+                      + (Alerts.For(w, pid).FirstOrDefault(a => a.Id == "defeat")?.Text ?? "sem aviso");
+        _alerts.Smoke();                                                  // a faixa redesenhada já com a derrota
         var lanes = _map.Convoys.Smoke();                                 // rotas de comboio tracejadas no mapa
         var line = _map.Fronts.Smoke();                                   // e a linha da frente, com dentes e buracos
         var theatres = TheatreSystem.Of(w, pid);                          // os teatros que o painel da Guerra mostra
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

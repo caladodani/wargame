@@ -123,6 +123,19 @@ public static class Alerts
             break;
         }
 
+        // 10. Batalha perdida há pouco: enquanto a derrota é fresca (alert_defeat_days) fica na faixa, e a
+        // série de derrotas seguidas diz se aquilo foi um empurrão ou a frente a ceder.
+        if (DefeatAlarmSystem.Fresh(w, c) && c.DefeatStreak > 0)
+        {
+            int need = Math.Max(1, (int)w.Rule("defeat_streak_alarm", 3f));
+            int ago = w.Clock.Day - c.LastDefeatDay;
+            string when = ago == 0 ? "hoje" : ago == 1 ? "ontem" : $"há {ago} dias";
+            list.Add(new Alert("defeat", "☠",
+                               c.DefeatStreak == 1 ? $"batalha perdida em {Name(w, c.LastDefeatRegion)} {when}"
+                                                  : $"{c.DefeatStreak} batalhas perdidas seguidas — a última em {Name(w, c.LastDefeatRegion)} {when}",
+                               c.DefeatStreak >= need ? AlertLevel.Danger : AlertLevel.Warn, c.LastDefeatRegion));
+        }
+
         int offers = w.Offers.Count(o => o.ToId == countryId);
         if (offers > 0)
             list.Add(new Alert("offers", "✉", offers == 1 ? "1 proposta à espera de resposta"
