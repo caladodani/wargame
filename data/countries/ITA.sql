@@ -171,3 +171,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ITA_mar_maiale','naval_blockade',1.11),
  ('ITA_mar_sicilia','naval_patrol',1.09),
  ('ITA_mar_fincantieri','naval_upkeep',0.91);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ITA_ar_gen_mediterraneo_ita','Chefe da Asa do Mediterrâneo','air_bombing',1.14,145,'ITA','🦅','Aprendeu a bombardear navios em movimento, que é outro ofício.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ITA_mar_gen_assalto_ita','Chefe dos Assaltadores','naval_blockade',1.16,145,'ITA','🐙','Entra no porto do inimigo com meia dúzia de homens.','mar',45);

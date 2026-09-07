@@ -174,3 +174,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('JPN_mar_kantai','naval_losses',0.91),
  ('JPN_mar_long_lance','naval_blockade',1.1),
  ('JPN_mar_asw_jpn','naval_escort',1.11);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('JPN_ar_gen_embarcada','Chefe da Asa Embarcada','air_losses',0.88,145,'JPN','✈','Levanta de um convés a balançar e volta a pousar nele.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('JPN_mar_gen_combinada','Almirante da Frota Combinada','naval_patrol',1.15,145,'JPN','🐟','Junta a esquadra toda num ponto do mapa à hora certa.','mar',45);

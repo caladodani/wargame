@@ -167,3 +167,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('EGY_mar_canal_mar','naval_blockade',1.11),
  ('EGY_mar_mar_vermelho','naval_patrol',1.09),
  ('EGY_mar_mina','naval_losses',0.94);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('EGY_ar_gen_delta','Chefe da Asa do Delta','air_bombing',1.14,145,'EGY','🦅','Bombardeia a barragem e o canal, não a aldeia ao lado.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('EGY_mar_gen_canal','Comandante do Canal','naval_blockade',1.16,145,'EGY','⛵','Fecha o canal a quem paga e abre-o a quem convém.','mar',45);

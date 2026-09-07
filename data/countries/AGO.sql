@@ -163,3 +163,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('AGO_mar_barra','naval_patrol',1.08),
  ('AGO_mar_lancha','naval_upkeep',0.92),
  ('AGO_mar_petroleo','naval_escort',1.1);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('AGO_ar_gen_kwanza','Chefe da Asa do Kwanza','air_upkeep',0.88,145,'AGO','🪶','Mantém no ar aparelhos com peças que já ninguém fabrica.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('AGO_mar_gen_namibe','Comandante da Costa do Namibe','naval_patrol',1.15,145,'AGO','🐚','Conhece cada enseada da costa e sabe onde um navio se esconde.','mar',45);

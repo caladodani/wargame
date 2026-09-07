@@ -173,3 +173,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('TUR_mar_estreitos_tur','naval_blockade',1.12),
  ('TUR_mar_milgem','naval_upkeep',0.9),
  ('TUR_mar_egeu','naval_patrol',1.09);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('TUR_ar_gen_anatolia','Chefe da Asa da Anatólia','air_losses',0.88,145,'TUR','🦅','Um céu entre três mares e ele conhece o vento dos três.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('TUR_mar_gen_estreitos_tur','Almirante dos Estreitos','naval_blockade',1.16,145,'TUR','⚓','Tem a chave de duas portas de água e sabe quando as fechar.','mar',45);

@@ -159,3 +159,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('MOZ_mar_canal_moz','naval_patrol',1.1),
  ('MOZ_mar_barco_pequeno','naval_upkeep',0.89),
  ('MOZ_mar_delgado','naval_escort',1.08);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('MOZ_ar_gen_zambeze','Chefe da Asa do Zambeze','air_upkeep',0.88,145,'MOZ','🦩','Faz um aparelho voar com peças de três aparelhos.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('MOZ_mar_gen_canal_moz','Comandante do Canal de Moçambique','naval_patrol',1.15,145,'MOZ','⛵','Guarda um corredor de mar por onde passa meio comércio do Índico.','mar',45);

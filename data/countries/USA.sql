@@ -161,3 +161,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('USA_mar_carrier','naval_escort',1.11),
  ('USA_mar_logistica_mar','naval_upkeep',0.9),
  ('USA_mar_silent','naval_blockade',1.11);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('USA_ar_gen_bombardeamento_usa','Chefe do Comando de Bombardeamento','air_bombing',1.14,145,'USA','✈','Manda centenas de aparelhos ao mesmo alvo no mesmo minuto.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('USA_mar_gen_porta_avioes','Almirante da Força de Porta-Aviões','naval_patrol',1.15,145,'USA','🚢','Leva o aeródromo consigo e o mar deixa de ter distâncias.','mar',45);

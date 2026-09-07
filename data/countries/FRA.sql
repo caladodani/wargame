@@ -168,3 +168,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('FRA_mar_porta_avioes','naval_escort',1.1),
  ('FRA_mar_ssbn','naval_blockade',1.09),
  ('FRA_mar_outremer_mar','naval_patrol',1.09);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('FRA_ar_gen_lorena','Chefe da Asa de Lorena','air_bombing',1.14,145,'FRA','🪂','Escolhe o alvo pelo mapa dos caminhos-de-ferro, não pelo comunicado.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('FRA_mar_gen_mediterraneo_fra','Almirante da Esquadra do Mediterrâneo','naval_escort',1.16,145,'FRA','🌊','Passa comboios entre duas costas inimigas e chega com todos.','mar',45);

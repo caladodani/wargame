@@ -133,10 +133,23 @@ def check(path, static):
             if k not in LAW_STATS: errs.append(f'law {lid}: stat_key {k} desconhecido (usa {sorted(LAW_STATS)})')
             if not (0.5 <= v <= 1.6): warns.append(f'law {lid}: {k}={v} fora de 0.5..1.6')
 
+    # a experiência que o comandante comum mais caro de cada arma pede: o de casa tem de valer mais do que
+    # ele, senão o país nunca teria motivo para chamar o seu
+    merc_xp = {d: x for d, x in db.execute(
+        'SELECT domain, MAX(xp) FROM general WHERE country_tag IS NULL GROUP BY domain')}
     # comandantes de casa: id prefixado, stat que o motor conheça e força dentro da gama dos mercenários
+    by_arm, icons = {}, {}
     for gid, gname, gstat, gmult, gcost, gicon, gdom, gxp in db.execute(
             'SELECT id,name,stat_key,mult,cost,icon,domain,xp FROM general WHERE country_tag=?', (tag,)):
         if not gid.startswith(tag + '_'): errs.append(f'general {gid}: id deve começar por {tag}_')
+        by_arm.setdefault(gdom, []).append(gid)
+        # duas chapas iguais no mesmo estado-maior e os dois retratos passam a ser o mesmo homem
+        if gicon and gicon in icons:
+            errs.append(f'general {gid}: chapa {gicon} já é a de {icons[gicon]} — o retrato tem de ser dele')
+        icons[gicon] = gid
+        if gdom != 'exercito' and gxp <= merc_xp.get(gdom, 0):
+            errs.append(f'general {gid}: xp {gxp} não passa a do comandante comum de {gdom} '
+                        f'({merc_xp.get(gdom, 0)}) — o de casa tem de ser mais exigente')
         if gdom not in GENERAL_STATS:
             errs.append(f'general {gid}: arma {gdom} desconhecida (usa {sorted(GENERAL_STATS)})')
         elif gstat not in GENERAL_STATS[gdom]:
@@ -147,8 +160,19 @@ def check(path, static):
         elif not (1.05 <= gmult <= 1.20): warns.append(f'general {gid}: mult {gmult} fora de 1.05..1.20')
         if gdom != 'exercito' and gxp <= 0:
             warns.append(f'general {gid}: comandante de {gdom} sem experiência a pagar (general.xp)')
-        if not (100 <= gcost <= 160): warns.append(f'general {gid}: custo {gcost} fora de 100..160')
+        if not (100 <= gcost <= 160): warns.append(f"general {gid}: custo {gcost} fora de 100..160")
         if not gicon: warns.append(f'general {gid}: sem chapa (o retrato do estado-maior fica vazio)')
+
+    # um comandante de casa por arma: dois na mesma arma disputavam a mesma cadeira e o segundo nunca era
+    # chamado; nenhum numa arma é um país sem cara própria nessa arma
+    for domain in GENERAL_STATS:
+        men = by_arm.get(domain, [])
+        if domain == 'exercito':
+            if not men: warns.append('sem comandantes de casa do exército')
+        elif len(men) > 1:
+            errs.append(f'{len(men)} comandantes de casa de {domain} ({", ".join(sorted(men))}) — só cabe um')
+        elif not men:
+            warns.append(f'sem comandante de casa de {domain}')
 
     # escola nacional de guerra: ramo do país, degraus encadeados, preço a subir e efeitos conhecidos
     own_branches = {r[0]: r[1] for r in db.execute('SELECT id,domain FROM army_doctrine_branch WHERE country_tag=?', (tag,))}
@@ -226,7 +250,8 @@ def check(path, static):
     n_gen = db.execute('SELECT COUNT(*) FROM general WHERE country_tag=?', (tag,)).fetchone()[0]
     n_doc = db.execute('SELECT COUNT(*) FROM army_doctrine WHERE country_tag=?', (tag,)).fetchone()[0]
     arms = '+'.join(f'{d}:{len(by_domain.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
-    summary = (f'{tag}: {len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes, '
+    gen_arms = '+'.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
+    summary = (f'{tag}: {len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
                f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
                f'{n_units} brigadas nomeadas, stats {dict(db.execute("SELECT key,value FROM country_stat WHERE country_tag=?", (tag,)).fetchall())}')

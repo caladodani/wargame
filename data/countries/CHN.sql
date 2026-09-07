@@ -164,3 +164,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('CHN_mar_negacao_mar','naval_blockade',1.1),
  ('CHN_mar_estaleiro_chn','naval_upkeep',0.89),
  ('CHN_mar_milicia','naval_patrol',1.1);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('CHN_ar_gen_popular','Chefe da Asa Popular','air_bombing',1.14,145,'CHN','🪁','Manda muitos aparelhos ao mesmo alvo até o alvo deixar de existir.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('CHN_mar_gen_litoral','Almirante da Frota do Litoral','naval_patrol',1.15,145,'CHN','🌊','Guarda uma costa comprida com navios pequenos e olhos em terra.','mar',45);

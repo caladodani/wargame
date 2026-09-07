@@ -179,3 +179,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ESP_mar_estreito_mar','naval_blockade',1.1),
  ('ESP_mar_lhd','naval_escort',1.08),
  ('ESP_mar_bazan','naval_upkeep',0.92);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ESP_ar_gen_levante','Chefe do Ar de Levante','air_losses',0.88,145,'ESP','🕊','Aprendeu a caçar num céu onde toda a gente foi treinar primeiro.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ESP_mar_gen_estreito','Almirante do Estreito','naval_patrol',1.15,145,'ESP','🦑','Vê passar o mundo inteiro por catorze quilómetros de água.','mar',45);

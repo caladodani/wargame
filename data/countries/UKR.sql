@@ -175,3 +175,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('UKR_mar_neptune','naval_blockade',1.12),
  ('UKR_mar_drone_mar','naval_losses',0.9),
  ('UKR_mar_corredor','naval_escort',1.1);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('UKR_ar_gen_estepe','Chefe da Asa da Estepe','air_losses',0.88,145,'UKR','🪁','Voa baixo sobre campo aberto e volta com o aparelho furado mas inteiro.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('UKR_mar_gen_flotilha_ukr','Comandante da Flotilha do Mar Negro','naval_blockade',1.16,145,'UKR','⚓','Sem esquadra, corta a rota do inimigo com o que tem.','mar',45);

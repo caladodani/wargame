@@ -171,3 +171,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PAK_mar_karachi','naval_patrol',1.09),
  ('PAK_mar_agosta','naval_blockade',1.1),
  ('PAK_mar_gwadar','naval_upkeep',0.92);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PAK_ar_gen_indo','Chefe da Asa do Indo','air_losses',0.88,145,'PAK','🦅','Menos aparelhos do que o vizinho e mais horas de voo por piloto.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PAK_mar_gen_arabico','Almirante do Mar Arábico','naval_escort',1.16,145,'PAK','⚓','Um porto só e o país inteiro pendurado nele.','mar',45);

@@ -170,3 +170,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('RUS_mar_bastiao','naval_blockade',1.1),
  ('RUS_mar_quebra_gelo','naval_patrol',1.1),
  ('RUS_mar_missil_rus','naval_losses',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('RUS_ar_gen_frontal_rus','Chefe da Aviação de Frente','air_bombing',1.14,145,'RUS','🪂','O avião dele trabalha para a artilharia, não para o comunicado.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('RUS_mar_gen_norte_rus','Almirante da Frota do Norte','naval_escort',1.16,145,'RUS','⚓','Traz comboios pelo gelo, que é meio caminho para os perder.','mar',45);

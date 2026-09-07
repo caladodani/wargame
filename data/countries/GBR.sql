@@ -175,3 +175,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('GBR_mar_comboio_gbr','naval_escort',1.12),
  ('GBR_mar_bloqueio_gbr','naval_blockade',1.1),
  ('GBR_mar_nelson','naval_losses',0.92);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('GBR_ar_gen_caca_gbr','Chefe do Comando de Caça','air_losses',0.88,145,'GBR','🌩','Poucos aviões, bem postos, e o céu deixa de ser deles.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('GBR_mar_gen_escolta_gbr','Almirante da Escolta do Atlântico','naval_escort',1.16,145,'GBR','⚓','Conta os navios à chegada, que é a única conta que interessa.','mar',45);

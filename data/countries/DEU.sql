@@ -170,3 +170,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('DEU_mar_alcateia','naval_blockade',1.12),
  ('DEU_mar_u_boot','naval_losses',0.92),
  ('DEU_mar_bunker','naval_upkeep',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('DEU_ar_gen_caca_deu','Chefe do Comando de Caça','air_losses',0.88,145,'DEU','🎯','Manda subir tarde e a caça chega em cima do bombardeiro.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('DEU_mar_gen_matilha_deu','Chefe da Matilha','naval_blockade',1.16,145,'DEU','🦈','Encontra o comboio pelo rasto de fumo e chama os outros.','mar',45);

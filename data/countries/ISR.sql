@@ -163,3 +163,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ISR_mar_missil_isr','naval_blockade',1.1),
  ('ISR_mar_flotilha13','naval_losses',0.91),
  ('ISR_mar_dolphin','naval_patrol',1.09);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ISR_ar_gen_comando_isr','Chefe do Comando Aéreo','air_bombing',1.14,145,'ISR','🪶','Bate no aeródromo antes de o inimigo levantar voo.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ISR_mar_gen_flotilha_isr','Comodoro da Flotilha','naval_escort',1.16,145,'ISR','⚓','Costa curta e mar aberto: leva tudo o que entra e sai.','mar',45);

@@ -186,3 +186,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PRT_mar_descobrimentos','naval_patrol',1.1),
  ('PRT_mar_zee','naval_escort',1.1),
  ('PRT_mar_acores','naval_losses',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PRT_ar_gen_patrulha_prt','Chefe da Patrulha Atlântica','air_losses',0.88,145,'PRT','🕊','Voa horas sobre água sem terra à vista e traz todos de volta.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PRT_mar_gen_costa_prt','Almirante da Costa Atlântica','naval_escort',1.16,145,'PRT','🌊','Leva o comboio ao porto com a mesma conta com que o levava a Goa.','mar',45);

@@ -160,3 +160,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ARG_mar_atlantico_sul','naval_patrol',1.09),
  ('ARG_mar_submarino_arg','naval_blockade',1.09),
  ('ARG_mar_austral','naval_losses',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ARG_ar_gen_austral','Chefe do Grupo Austral','air_losses',0.88,145,'ARG','🦉','Voar no vento do sul ensina-se poucas vezes e aprende-se de uma vez.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('ARG_mar_gen_atlantico_sul','Almirante do Atlântico Sul','naval_blockade',1.16,145,'ARG','🐋','Sabe onde o mar é largo de mais para o inimigo se esconder.','mar',45);

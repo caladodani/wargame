@@ -173,3 +173,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IRN_mar_enxame','naval_blockade',1.12),
  ('IRN_mar_ormuz','naval_patrol',1.1),
  ('IRN_mar_mini_sub','naval_upkeep',0.9);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IRN_ar_gen_golfo_irn','Chefe da Asa do Golfo','air_losses',0.88,145,'IRN','🦅','Sai do sol e volta antes de a defesa perceber de onde veio.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IRN_mar_gen_lanchas_irn','Chefe das Lanchas do Golfo','naval_blockade',1.16,145,'IRN','🐟','Com barcos pequenos fecha um golfo a petroleiros grandes.','mar',45);

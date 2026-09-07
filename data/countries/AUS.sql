@@ -166,3 +166,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('AUS_mar_coral','naval_losses',0.93),
  ('AUS_mar_fragata','naval_upkeep',0.91),
  ('AUS_mar_sea_lanes','naval_escort',1.1);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('AUS_ar_gen_norte','Chefe do Comando do Norte','air_bombing',1.14,145,'AUS','🪁','Chega onde ninguém julga que se chega e volta com o depósito seco.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('AUS_mar_gen_coral','Comodoro do Mar de Coral','naval_escort',1.16,145,'AUS','🐬','Leva comboios por mares onde o socorro fica a três dias.','mar',45);

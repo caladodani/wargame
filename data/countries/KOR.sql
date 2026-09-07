@@ -176,3 +176,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('KOR_mar_yi_sun_sin','naval_losses',0.9),
  ('KOR_mar_estaleiro_kor','naval_upkeep',0.9),
  ('KOR_mar_costa_kor','naval_patrol',1.08);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('KOR_ar_gen_paralelo','Chefe da Asa do Paralelo','air_losses',0.88,145,'KOR','🕊','Está no ar antes de o alarme acabar de tocar.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('KOR_mar_gen_escolta_kor','Comodoro da Escolta do Sul','naval_escort',1.16,145,'KOR','⚓','Um país que vive do que entra por mar não perde comboios com ele.','mar',45);

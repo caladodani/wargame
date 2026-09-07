@@ -26,9 +26,9 @@ public class NationalGeneralTests
         Assert.Equal(6, w.GeneralDefs.Values.Count(g => g.CountryTag is null && g.Domain != World.Land));
         Assert.All(mercs, g => Assert.NotEqual("", g.Icon));
 
-        var home = w.GeneralDefs.Values.Where(g => g.CountryTag is not null).ToList();
-        Assert.Equal(56, home.Count);                       // 28 países × 2, todos de terra
-        Assert.All(home, g => Assert.Equal(World.Land, g.Domain));
+        var home = w.GeneralDefs.Values.Where(g => g.CountryTag is not null && g.Domain == World.Land).ToList();
+        Assert.Equal(56, home.Count);                       // 28 países × 2 de terra
+        Assert.Equal(56, w.GeneralDefs.Values.Count(g => g.CountryTag is not null && g.Domain != World.Land));
         foreach (var g in home)
         {
             Assert.StartsWith(g.CountryTag + "_", g.Id);
@@ -47,7 +47,7 @@ public class NationalGeneralTests
         var pool = w.GeneralPool(prt);
         var land = pool.Where(g => g.Domain == World.Land).ToList();
 
-        Assert.Equal(13, pool.Count);                       // as três armas: 7 de terra + 3 de asa + 3 de esquadra
+        Assert.Equal(15, pool.Count);                       // as três armas: 7 de terra + 4 de asa + 4 de esquadra
         Assert.Equal(7, land.Count);                        // 2 de casa + 5 mercenários
         Assert.All(land.Take(2), g => Assert.Equal("PRT", g.CountryTag));
         Assert.All(land.Skip(2), g => Assert.Null(g.CountryTag));
@@ -123,7 +123,10 @@ public class NationalGeneralTests
         {
             var merc = w.GeneralDefs.Values.FirstOrDefault(m => m.CountryTag is null && m.StatKey == g.StatKey);
             if (merc is null) continue;
-            Assert.True(g.Mult >= merc.Mult, $"{g.Id} ({g.Mult}) não vale mais do que {merc.Id} ({merc.Mult})");
+            // em perdas e sustento valer mais é o número descer: um chefe de material de casa gasta menos
+            bool cheaper = g.StatKey.EndsWith("_losses") || g.StatKey.EndsWith("_upkeep");
+            Assert.True(cheaper ? g.Mult <= merc.Mult : g.Mult >= merc.Mult,
+                        $"{g.Id} ({g.Mult}) não vale mais do que {merc.Id} ({merc.Mult})");
         }
     }
 }

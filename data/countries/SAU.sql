@@ -163,3 +163,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('SAU_mar_jeddah','naval_patrol',1.09),
  ('SAU_mar_bab','naval_blockade',1.1),
  ('SAU_mar_contrato','naval_upkeep',0.92);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('SAU_ar_gen_deserto_sau','Chefe da Asa do Deserto','air_upkeep',0.88,145,'SAU','✈','A areia come motores e os dele continuam a pegar.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('SAU_mar_gen_vermelho','Comandante do Mar Vermelho','naval_blockade',1.16,145,'SAU','⛵','Um mar estreito e comprido: fechá-lo é fechar uma porta.','mar',45);

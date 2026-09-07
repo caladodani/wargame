@@ -170,3 +170,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IDN_mar_estreitos_idn','naval_blockade',1.11),
  ('IDN_mar_arquipelago_mar','naval_patrol',1.09),
  ('IDN_mar_pesca','naval_upkeep',0.91);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IDN_ar_gen_ilhas','Chefe da Asa das Ilhas','air_upkeep',0.88,145,'IDN','🦜','Faz um aparelho durar entre ilhas onde não há oficina nenhuma.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IDN_mar_gen_estreitos_idn','Almirante dos Estreitos','naval_blockade',1.16,145,'IDN','⛵','Quem tem os estreitos tem o comércio de meio mundo.','mar',45);

@@ -163,3 +163,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IND_mar_oceano','naval_patrol',1.1),
  ('IND_mar_vikrant','naval_escort',1.09),
  ('IND_mar_antipirata','naval_losses',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IND_ar_gen_himalaia','Chefe da Asa do Himalaia','air_upkeep',0.88,145,'IND','🦅','Voa alto de mais para o motor e mesmo assim traz os aparelhos.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('IND_mar_gen_indico','Almirante do Índico','naval_patrol',1.15,145,'IND','🌊','Um oceano só dele para patrulhar e um caderno com todas as rotas.','mar',45);

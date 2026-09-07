@@ -172,3 +172,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PRK_mar_tuneis_mar','naval_losses',0.9),
  ('PRK_mar_sang_o','naval_blockade',1.09),
  ('PRK_mar_lancha_prk','naval_upkeep',0.89);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PRK_ar_gen_povo_prk','Chefe da Asa do Povo','air_upkeep',0.88,145,'PRK','🚀','Esconde os aparelhos na montanha e tira-os de lá a voar.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('PRK_mar_gen_lanchas_prk','Chefe das Lanchas do Litoral','naval_blockade',1.16,145,'PRK','🐟','Barcos pequenos, muitos, e um mar estreito para os usar.','mar',45);

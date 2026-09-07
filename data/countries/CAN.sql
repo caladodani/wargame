@@ -160,3 +160,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('CAN_mar_corveta','naval_upkeep',0.9),
  ('CAN_mar_asdic','naval_escort',1.11),
  ('CAN_mar_gelo_mar','naval_losses',0.94);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('CAN_ar_gen_artico','Chefe do Ar do Ártico','air_upkeep',0.88,145,'CAN','🦢','A quarenta abaixo de zero, os motores dele pegam à primeira.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('CAN_mar_gen_escolta_norte','Comodoro da Escolta do Norte','naval_escort',1.16,145,'CAN','🐳','Trouxe comboios inteiros por entre o gelo e as matilhas.','mar',45);

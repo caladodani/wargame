@@ -214,21 +214,82 @@ public static class CommanderView
                 var label = Ui.Lbl(group ? $"      ⚜ de casa ({c.Name})" : "      mercenários, de qualquer lado", 13);
                 label.AddThemeColorOverride("font_color", group ? Ui.Accent : Ui.TextDim);
                 v.AddChild(label);
-                foreach (var g in men)
-                {
-                    string id = g.Id;
-                    var b = Ui.Btn($"{g.Icon} {g.Name}   —   {Ui.StatName(g.StatKey)} ×{g.Mult:0.00}   ·   {g.Cost:0} pp"
-                                   + (g.Xp > 0f ? $" + {g.Xp:0} xp" : ""),
-                                   () => onHire(id), 0, group ? Ui.Kind.Primary : Ui.Kind.Normal);
-                    string? why = new HireGeneralCommand(c.Id, id).Validate(w);
-                    b.Disabled = why is not null;
-                    b.TooltipText = why ?? g.Note;
-                    b.AddThemeFontSizeOverride("font_size", 14);
-                    v.AddChild(Ui.Grow(b));
-                }
+                var grid = Ui.Grow(new GridContainer { Columns = 2 });
+                grid.AddThemeConstantOverride("h_separation", 6);
+                grid.AddThemeConstantOverride("v_separation", 6);
+                foreach (var g in men) grid.AddChild(Candidate(w, c, g, onHire));
+                v.AddChild(grid);
             }
         }
         return card;
+    }
+
+    /// <summary>Ficha de recrutamento, à maneira das listas de comandantes do HoI4: retrato emoldurado,
+    /// nome, selo ⚜ de quem é de casa, o que multiplica, a linha da folha de serviço e as placas do preço
+    /// — pontos de produção e, para a asa e a esquadra, a experiência da arma. A ficha inteira é o botão.
+    ///
+    /// Substitui a linha de botão corrida que aqui estava: o jogador escolhia um comandante por um preço
+    /// escrito num sítio e uma promessa noutro, sem ver de relance quem era de casa nem o que já podia pagar.
+    /// Quando a nomeação não pode ser feita, a ficha apaga-se e a razão fica na legenda e por baixo do
+    /// preço — a mesma frase que o comando recusaria.</summary>
+    private static PanelContainer Candidate(World w, Country c, GeneralDef g, Action<string> onHire)
+    {
+        string? why = new HireGeneralCommand(c.Id, g.Id).Validate(w);
+        bool ok = why is null, home = g.CountryTag is not null;
+        var tint = home ? Ui.Accent : Ui.Text;
+        if (!ok) tint = tint.Darkened(0.35f);
+
+        var card = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        card.AddThemeStyleboxOverride("panel", Ui.Box(ok ? new Color(0.17f, 0.16f, 0.11f, 0.95f)
+                                                        : new Color(0.12f, 0.12f, 0.13f, 0.88f), 8));
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); card.AddChild(row);
+        row.AddChild(Portrait(g.Icon, tint, false));
+
+        var cell = Ui.Grow(new VBoxContainer()); cell.AddThemeConstantOverride("separation", 2);
+        var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 6);
+        var who = Ui.Lbl(g.Name, 16);
+        who.AddThemeColorOverride("font_color", tint);
+        title.AddChild(Ui.Grow(who));
+        if (home) title.AddChild(Seal(c));
+        cell.AddChild(title);
+
+        var eff = Ui.Lbl($"{Ui.StatName(g.StatKey)} ×{g.Mult:0.00}", 14);
+        eff.AddThemeColorOverride("font_color", ok ? Ui.Good : Ui.TextDim);
+        cell.AddChild(eff);
+        if (g.Note.Length > 0)
+        {
+            var note = Ui.Lbl(g.Note, 12);
+            note.AddThemeColorOverride("font_color", Ui.TextDim);
+            note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            cell.AddChild(note);
+        }
+
+        var price = new HBoxContainer(); price.AddThemeConstantOverride("separation", 6);
+        price.AddChild(Plate($"{g.Cost:0} pp", c.Money >= g.Cost));
+        if (g.Xp > 0f) price.AddChild(Plate($"{g.Xp:0} {World.XpName(g.Domain)}", World.Xp(c, g.Domain) >= g.Xp));
+        if (!ok)
+        {
+            var no = Ui.Lbl(why!, 12);
+            no.AddThemeColorOverride("font_color", Ui.Danger);
+            price.AddChild(Ui.Grow(no));
+        }
+        cell.AddChild(price);
+        row.AddChild(cell);
+
+        if (ok) { string id = g.Id; Ui.Click(card, () => onHire(id), $"nomear {g.Name}"); }
+        else card.TooltipText = why;
+        return card;
+    }
+
+    /// <summary>Placa de preço: verde quando o cofre (ou o bolso da arma) já chega, vermelha quando falta.</summary>
+    private static PanelContainer Plate(string text, bool afford)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box((afford ? Ui.Good : Ui.Danger) with { A = 0.16f }, 4));
+        var l = Ui.Lbl(text, 13);
+        l.AddThemeColorOverride("font_color", afford ? Ui.Good : Ui.Danger);
+        chip.AddChild(l);
+        return chip;
     }
 
     /// <summary>Retrato do comandante: a chapa dele numa placa emoldurada, apagada quando está no hospital.</summary>

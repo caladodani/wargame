@@ -156,8 +156,8 @@ public class AirNavalCommanderTests
     public void TheRealStaffHasCommandersForTheThreeArms()
     {
         var w = FactionTests.BuildReal();
-        Assert.Equal(3, w.GeneralDefs.Values.Count(g => g.Domain == World.Air));
-        Assert.Equal(3, w.GeneralDefs.Values.Count(g => g.Domain == World.Sea));
+        Assert.Equal(3, w.GeneralDefs.Values.Count(g => g.Domain == World.Air && g.CountryTag is null));
+        Assert.Equal(3, w.GeneralDefs.Values.Count(g => g.Domain == World.Sea && g.CountryTag is null));
         Assert.True(w.GeneralDefs.Values.Count(g => g.Domain == World.Land) > 20);
 
         Assert.Equal(3, w.GeneralSlots(World.Land));

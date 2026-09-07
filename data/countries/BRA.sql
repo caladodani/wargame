@@ -191,3 +191,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('BRA_mar_amazonia_azul','naval_patrol',1.1),
  ('BRA_mar_escolta_bra','naval_escort',1.09),
  ('BRA_mar_fluvial','naval_upkeep',0.93);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('BRA_ar_gen_atlantico_bra','Chefe da Asa do Atlântico','air_losses',0.88,145,'BRA','🕊','Patrulha um oceano com poucos aviões e não perde nenhum por descuido.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('BRA_mar_gen_esquadra_sul','Almirante da Esquadra do Sul','naval_patrol',1.15,145,'BRA','🌊','Divide o mar em quadrados e não deixa um por olhar.','mar',45);

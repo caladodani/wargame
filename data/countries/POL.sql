@@ -172,3 +172,11 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('POL_mar_baltico','naval_patrol',1.09),
  ('POL_mar_orzel','naval_losses',0.92),
  ('POL_mar_gdansk','naval_upkeep',0.92);
+
+-- ===== comandante nacional de asa (general.domain=ar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('POL_ar_gen_caca_pol','Chefe do Esquadrão de Caça','air_losses',0.88,145,'POL','🪂','Voou com aviões velhos contra aviões novos e ainda os trouxe.','ar',45);
+
+-- ===== comandante nacional de esquadra (general.domain=mar) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp) VALUES
+ ('POL_mar_gen_baltico','Comandante da Costa do Báltico','naval_patrol',1.15,145,'POL','⚓','Costa curta e mar fechado: nada passa sem ele saber.','mar',45);
