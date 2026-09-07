@@ -220,17 +220,45 @@ public partial class Game : Node
     }
 
     /// <summary>Dia guardado num slot, ou null se vazio/ilegível. Não mexe no slot actual.</summary>
-    public int? SlotDay(int slot)
+    public int? SlotDay(int slot) => SlotOf(slot).Day;
+
+    /// <summary>O que está guardado num slot, sem o abrir: dia, quem se joga lá, quando foi gravado e em que
+    /// dificuldade. Uma lista de slots que só diz "dia 214" obriga a entrar em cada um para se descobrir de
+    /// quem é a campanha — e entrar num slot grava por cima do que se estava a jogar.</summary>
+    public readonly record struct SlotInfo(int Slot, int? Day, int? PlayerId, DateTime? SavedAt, string? Difficulty)
+    {
+        public bool Empty => Day is null;
+    }
+
+    /// <summary>Lê a ficha de um slot. Nada aqui rebenta um slot velho: cada pedaço vai no seu try, porque um
+    /// save de uma versão anterior pode não ter a tabela que se procura.</summary>
+    public SlotInfo SlotOf(int slot)
     {
         string path = slot <= 1 ? "user://save.db" : $"user://save{slot}.db";
-        if (!FileAccess.FileExists(path)) return null;
+        if (!FileAccess.FileExists(path)) return new SlotInfo(slot, null, null, null, null);
         try
         {
             using var db = new GdSqliteDatabase(ProjectSettings.GlobalizePath(path), readOnly: true);
-            var rows = db.Query("SELECT value FROM save_meta WHERE key='day'");
-            return rows.Count > 0 ? Convert.ToInt32(rows[0]["value"]) : null;
+            int? day = null; DateTime? at = null; string? diff = null;
+            foreach (var r in db.Query("SELECT key,value FROM save_meta"))
+            {
+                string k = Convert.ToString(r["key"]) ?? "", v = Convert.ToString(r["value"]) ?? "";
+                if (k == "day" && int.TryParse(v, out int d)) day = d;
+                else if (k == "saved_at" && DateTime.TryParse(v, System.Globalization.CultureInfo.InvariantCulture,
+                                                             System.Globalization.DateTimeStyles.RoundtripKind, out var t))
+                    at = t.ToUniversalTime();
+                else if (k == "difficulty" && v.Length > 0) diff = v;
+            }
+            int? who = null;
+            try
+            {
+                var rows = db.Query("SELECT id FROM s_country WHERE is_player=1");
+                if (rows.Count > 0) who = Convert.ToInt32(rows[0]["id"]);
+            }
+            catch { /* save antigo sem a coluna: fica sem bandeira, o resto lê-se na mesma */ }
+            return new SlotInfo(slot, day, who, at, diff);
         }
-        catch { return null; }
+        catch { return new SlotInfo(slot, null, null, null, null); }
     }
 
     public override void _Notification(int what)

@@ -307,6 +307,37 @@ internal static class Ui
         t.TweenProperty(panel, "position:y", y, secs).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
     }
 
+    /// <summary>Etiqueta que dobra de linha dentro de uma largura dada. A largura não é enfeite: um Label com
+    /// autowrap e sem largura mínima é medido pelo Godot como se o texto tivesse de caber numa coluna de um
+    /// carácter, e o painel que o contém nasce com milhares de píxeis de altura (o menu de jogo media
+    /// 460×9033 por causa de duas notas destas). Dentro de um ScrollContainer isso só dá scroll a mais;
+    /// num painel centrado deforma o painel inteiro.</summary>
+    public static Label Wrapped(string text, float width, int size = Font)
+    {
+        var l = Lbl(text, size);
+        l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        l.CustomMinimumSize = new Vector2(width, 0);
+        return l;
+    }
+
+    /// <summary>Véu por trás de um painel modal: escurece o mapa e apanha o toque que passa ao lado. Um menu
+    /// aberto por cima de um mapa a mexer não se lê — e sem véu o dedo que falha o botão dá um pan no mundo
+    /// por trás, que é o pior sítio para se descobrir que o menu ainda estava aberto. Tocar fora fecha,
+    /// como em qualquer caixa modal.
+    ///
+    /// Nasce como irmão do painel, logo por trás dele, e acende-se e apaga-se com ele sozinho — quem o pede
+    /// não tem de se lembrar do véu em cada Open/Close.</summary>
+    public static ColorRect Scrim(Control panel, Action onOutside)
+    {
+        var veil = new ColorRect { Name = panel.Name + "Scrim", Color = Ink with { A = 0.62f }, Visible = panel.Visible };
+        veil.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        var host = panel.GetParent();
+        host.AddChild(veil);
+        host.MoveChild(veil, panel.GetIndex());       // por trás do painel, à frente de tudo o resto
+        panel.VisibilityChanged += () => veil.Visible = panel.Visible;
+        return Click(veil, onOutside);
+    }
+
     /// <summary>Remove e liberta todos os filhos já (QueueFree sozinho deixa-os no layout até ao fim do frame).</summary>
     /// <summary>Nome de painel de uma chave de stat. As chaves são as da base de dados (uma palavra em
     /// inglês, que é a chave de country_stat e dos efeitos); os painéis é que sabem como se diz cá. Estava

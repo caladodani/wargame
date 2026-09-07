@@ -33,7 +33,7 @@ public partial class Hud : CanvasLayer
     private ColorRect _accent = null!;
     private Timer _toastTimer = null!;
     private Tween? _toastTween;   // animação de entrada/saída do toast (morre e recomeça a cada mensagem)
-    private AcceptDialog _slots = null!;
+    private SlotsPanel _slots = null!;             // fichas dos jogos guardados (era um AcceptDialog do sistema)
     private ConfirmationDialog? _offerDialog;      // proposta do inimigo (troca ou paz)
     private int _offerFrom;
     private string _offerKind = "prisioneiros";
@@ -94,6 +94,7 @@ public partial class Hud : CanvasLayer
             _armyPanel = new ArmyPanel(); AddChild(_armyPanel); _armyPanel.Setup(_game, _map, _multiSel);
             _map.Routes.Watch(_region, _multiSel);   // o mapa nasce antes dos painéis: a selecção liga-se aqui
             _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
+            _slots = new SlotsPanel(); AddChild(_slots); _slots.Setup(_game);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
             _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
             _modeBar = new MapModeBar(); AddChild(_modeBar); _modeBar.Setup(_game, _map.Regions);
@@ -156,6 +157,7 @@ public partial class Hud : CanvasLayer
     {
         if (_game is null) return;
         if (_end.Visible) { _end.Close(); return; }
+        if (_slots.Visible) { _slots.Close(); return; }
         if (_menu.Visible) { _menu.Close(); return; }
         if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
@@ -377,31 +379,9 @@ public partial class Hud : CanvasLayer
         _multiSel?.PlaceUnder(y - 4f);
     }
 
-    /// <summary>Mensagem breve ao jogador (4 s). Seguro chamar de sinais; de outra thread usar CallDeferred.</summary>
-    private void OpenSlots()
-    {
-        if (_slots is null)
-        {
-            _slots = new AcceptDialog { Title = "Jogos guardados" };
-            _slots.GetOkButton().Text = "Fechar";
-            AddChild(_slots);
-        }
-        foreach (var c in _slots.GetChildren()) if (c is VBoxContainer old) { _slots.RemoveChild(old); old.QueueFree(); }
-        var v = new VBoxContainer { CustomMinimumSize = new Vector2(360, 0) };
-        for (int i = 1; i <= Game.SlotCount; i++)
-        {
-            int slot = i;
-            var day = _game.SlotDay(slot);
-            string txt = $"Slot {slot} — " + (slot == _game.Slot ? $"actual (dia {_game.World.Clock.Day})"
-                        : day is int d ? $"dia {d}" : "vazio");
-            var b = Ui.Btn(txt, () => { _slots.Hide(); _game.SwitchSlot(slot); });
-            b.Disabled = slot == _game.Slot;
-            v.AddChild(b);
-        }
-        _slots.AddChild(v);
-        _slots.PopupCentered();
-    }
+    private void OpenSlots() => _game.RunWhenIdle(_slots.Open);
 
+    /// <summary>Mensagem breve ao jogador (4 s). Seguro chamar de sinais; de outra thread usar CallDeferred.</summary>
     public void Toast(string msg) => Toast(msg, Sfx.Kind.Blip);
 
     /// <summary>Aviso no ecrã, com a voz que lhe pertence: a chapa, a cor da moldura e o som saem todos do
@@ -1506,7 +1486,9 @@ public partial class Hud : CanvasLayer
             GD.Print($"smoke: duplo toque → selecção {(_multiSel.Active ? "por usar" : "consumida")}");
         }
         _mini.Toggle(); _mini.Toggle(); _mini.Refresh();   // mini-mapa: encolher, abrir e pintar sem rebentar
-        _menu.Open(); _menu.Close();
-        GD.Print($"smoke: menu de jogo abre, dificuldade {(_game.World.Difficulty ?? "por escolher")}");
+        string menu = _menu.Smoke();                        // menu de jogo: secções, botões e filas de chapas medidas
+        int saves = _slots.Smoke();                          // e as fichas dos jogos guardados
+        GD.Print($"smoke: menu de jogo com {menu}, dificuldade {(_game.World.Difficulty ?? "por escolher")}, "
+               + $"{saves} fichas de jogo guardado (slot {_game.Slot} em curso)");
     }
 }
