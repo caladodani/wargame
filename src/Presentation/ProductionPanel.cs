@@ -40,7 +40,11 @@ public partial class ProductionPanel : PanelContainer
         mhead.AddChild(Ui.Grow(Ui.Lbl("Modelos", 20)));
         mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
         _templates = new VBoxContainer(); body.AddChild(_templates);
-        body.AddChild(Ui.Lbl("Fila", 20));
+        var qhead = new HBoxContainer(); body.AddChild(qhead);
+        qhead.AddChild(Ui.Grow(Ui.Lbl("Fila", 20)));
+        var hint = Ui.Lbl("arrasta uma encomenda para lhe dar prioridade", 14);
+        hint.AddThemeColorOverride("font_color", Ui.TextDim);
+        qhead.AddChild(hint);
         _queue = new VBoxContainer(); body.AddChild(_queue);
     }
 
@@ -84,20 +88,30 @@ public partial class ProductionPanel : PanelContainer
             {
                 var o = c.Queue[i]; int idx = i, tid = o.TemplateId;
                 string name; try { name = w.Units.GetTemplate(tid).Name; } catch { name = "T" + tid; }
-                var row = new HBoxContainer();
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
                 // a encomenda só anda se tiver linha: as que estão para lá das fábricas ficam à espera
                 bool waitingLine = !waitingMen && Working(w, c, i) >= y.Military;
                 bool rep = o.Repeat;
+
+                // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
+                var row = new QueueRow();
+                row.Bind(idx, name, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
+                var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8); row.AddChild(line);
+                var grip = Ui.Lbl("⣿", 18); grip.AddThemeColorOverride("font_color", Ui.TextDim); line.AddChild(grip);
+                var place = Ui.Lbl($"{idx + 1}º", 15);
+                place.AddThemeColorOverride("font_color", waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent);
+                line.AddChild(place);
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
-                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%" + (rep ? "   🔁" : "")
+                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, !waitingLine && !waitingMen)}" + (rep ? "   🔁" : "")
                                      + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : "")));
                 cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent)));
-                row.AddChild(cell);
-                row.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
-                row.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
+                line.AddChild(cell);
+                var up = Ui.Btn("▲", () => Move(idx, idx - 1), 56); up.Disabled = idx == 0; line.AddChild(up);
+                var down = Ui.Btn("▼", () => Move(idx, idx + 1), 56); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
+                line.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
+                line.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
                 _queue.AddChild(row);
             }
             if (c.Queue.Count == 0) _queue.AddChild(Ui.Lbl("Fila vazia"));
@@ -116,6 +130,63 @@ public partial class ProductionPanel : PanelContainer
             if (c.Queue[i].Progress < cost - 1e-3f) n++;
         }
         return n;
+    }
+
+    /// <summary>Quando é que esta encomenda sai da fábrica, ao ritmo de hoje. Uma encomenda sem linha de
+    /// montagem não tem data nenhuma: está parada, e dizer-lhe dias seria mentir.</summary>
+    private static string Eta(World w, Country c, ProductionOrder o, bool hasLine)
+    {
+        float cost; try { cost = w.TemplateCost(o.TemplateId); } catch { return "—"; }
+        float left = cost - o.Progress;
+        if (left <= 1e-3f) return "pronta";
+        if (!hasLine) return "à espera de vez";
+        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed");
+        if (perDay <= 0f) return "parada";
+        int days = Mathf.CeilToInt(left / perDay);
+        return days == 1 ? "amanhã" : $"~{days} dias";
+    }
+
+    /// <summary>Muda uma encomenda de lugar na fila (arrasto ou setas). Se a fila mexeu entretanto — uma
+    /// encomenda entregue, por exemplo — não se arrasta a errada: pede-se outra vez.</summary>
+    private void Move(int from, int to) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid || !_game.World.Countries.TryGetValue(pid, out var c)) return;
+        int n = c.Queue.Count;
+        if (from < 0 || to < 0 || from >= n || to >= n) { _game.Notify("A fila mudou, tenta outra vez"); Refresh(); return; }
+        var err = _game.Dispatch(new MoveProductionOrderCommand(pid, from, to));
+        if (err is not null) _game.Notify(err);
+        else { _lastKey = ""; Refresh(); }
+    });
+
+    /// <summary>--smoke: enche a fila com dois modelos e arrasta o último para a cabeça, para o caminho do
+    /// arrasto (pegar, validar o alvo, largar e despachar o comando) correr sem ecrã nem dedo.</summary>
+    public string Smoke()
+    {
+        var w = _game.World;
+        if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c)) return "sem fila de produção";
+        IReadOnlyList<DivisionTemplate> tmpls;
+        try { tmpls = w.Units.GetTemplates(pid); } catch { tmpls = Array.Empty<DivisionTemplate>(); }
+        foreach (var t in tmpls.Take(2)) _game.Dispatch(new BuildDivisionCommand(pid, t.Id));
+        _lastKey = ""; Fill();
+
+        string dragged = "nada para arrastar";
+        if (c.Queue.Count >= 2 && _queue.GetChildren().OfType<QueueRow>().FirstOrDefault() is QueueRow head)
+        {
+            string was = TemplateName(w, c.Queue[0].TemplateId);
+            // --smoke: o arrasto sem dedo — a última encomenda largada sobre a primeira
+            // o largar despacha o comando por si (RunWhenIdle corre já, com o mundo parado)
+            if (head.Smoke(c.Queue.Count - 1))
+            {
+                _lastKey = ""; Fill();
+                dragged = $"{TemplateName(w, c.Queue[0].TemplateId)} passou à frente de {was}";
+            }
+        }
+        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged})";
+    }
+
+    private static string TemplateName(World w, int templateId)
+    {
+        try { return w.Units.GetTemplate(templateId).Name; } catch { return "T" + templateId; }
     }
 
     private static int Pct(World w, ProductionOrder o)

@@ -326,6 +326,33 @@ public sealed record SetProductionRepeatCommand(int CountryId, int Index, bool O
     public void Execute(World w) => w.Countries[CountryId].Queue[Index].Repeat = On;
 }
 
+/// <summary>Muda uma encomenda de lugar na fila de produção (de `Index` para `ToIndex`).
+///
+/// A ordem da fila é a prioridade: o ProductionSystem gasta o cofre de cima para baixo e só as primeiras
+/// encomendas por acabar têm linha de montagem. Até aqui essa ordem era a de chegada e não havia maneira
+/// nenhuma de a mudar — quem encomendasse cinco divisões de infantaria antes da coluna blindada de que
+/// precisava esta semana tinha de cancelar tudo e voltar a encomendar, perdendo o lugar na fila e a
+/// papelada toda. Agora arrasta-se e o progresso vai com a encomenda.</summary>
+public sealed record MoveProductionOrderCommand(int CountryId, int Index, int ToIndex) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "país inválido";
+        if (Index < 0 || Index >= c.Queue.Count) return "Encomenda inexistente";
+        if (ToIndex < 0 || ToIndex >= c.Queue.Count) return "Lugar inexistente na fila";
+        if (ToIndex == Index) return "A encomenda já está nesse lugar";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var q = w.Countries[CountryId].Queue;
+        var order = q[Index];
+        q.RemoveAt(Index);
+        q.Insert(ToIndex, order);
+    }
+}
+
 /// <summary>Cancela a encomenda na posição `Index`; devolve os pontos já gastos.</summary>
 public sealed record CancelProductionCommand(int CountryId, int Index) : ICommand
 {
