@@ -285,6 +285,32 @@ internal static class Ui
     }
 
     /// <summary>Remove e liberta todos os filhos já (QueueFree sozinho deixa-os no layout até ao fim do frame).</summary>
+    /// <summary>Nome de painel de uma chave de stat. As chaves são as da base de dados (uma palavra em
+    /// inglês, que é a chave de country_stat e dos efeitos); os painéis é que sabem como se diz cá. Estava
+    /// espalhado por quem precisava — o gabinete tinha a sua tabela, as leis iam ter outra — e duas tabelas
+    /// da mesma coisa acabam sempre a discordar.</summary>
+    public static string StatName(string key) => key switch
+    {
+        "industry" => "indústria",
+        "production_speed" => "produção",
+        "research_speed" => "investigação",
+        "research_slots" => "ranhuras de investigação",
+        "conscription" => "recruta",
+        "counter_intel" => "contra-espionagem",
+        "org_regain" => "recomposição",
+        "move_speed" => "marcha",
+        "attack" => "ataque",
+        "defense" => "defesa",
+        "occupied_yield" => "rendimento ocupado",
+        "integration_speed" => "integração",
+        "resistance_growth" => "resistência",
+        "export_share" => "exportação",
+        "export_price" => "preço de exportação",
+        "port_capacity" => "cais",
+        "aggression" => "agressividade",
+        _ => key,
+    };
+
     public static void Clear(Node n)
     {
         foreach (var c in n.GetChildren()) { n.RemoveChild(c); c.QueueFree(); }

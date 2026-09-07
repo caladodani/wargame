@@ -806,3 +806,22 @@ INSERT INTO rule (key,value,note) VALUES
 -- Ranhuras de investigação (ResearchSystem): quantas linhas um país aguenta ao mesmo tempo.
 INSERT INTO rule (key,value,note) VALUES
  ('research_slots',2,'linhas de investigação em paralelo por país, antes do stat research_slots');
+
+-- Leis de comércio (grupo 'trade'): que fatia dos depósitos controlados pode sair do país em tratados de
+-- comércio, e a que preço. Fechar a economia guarda o aço em casa e engorda a indústria; abrir os portos
+-- enche os laboratórios com o que vem de fora e faz do país um fornecedor barato. A IA escala pela coluna
+-- sort, por isso um país em guerra caminha sozinho para a economia fechada — e os contratos que ficarem
+-- acima do novo tecto caem no dia seguinte (TradeSystem.ExportCap).
+INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
+ ('com_livre','trade','Comércio livre','Portos escancarados: vende-se tudo o que há e vende-se barato. Os laboratórios ganham com o mundo que entra.',0,0),
+ ('com_exportacao','trade','Foco na exportação','A maior parte dos depósitos pode ser vendida ao estrangeiro.',1,1),
+ ('com_limitado','trade','Exportações limitadas','Metade fica em casa: a indústria agradece, o mercado aperta e o preço sobe.',2,0),
+ ('com_fechado','trade','Economia fechada','Quase nada sai: a indústria rende ao máximo e a ciência definha.',3,0);
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('com_livre','export_share',1.0),('com_livre','research_speed',1.10),('com_livre','export_price',0.85),
+ ('com_exportacao','export_share',0.8),('com_exportacao','research_speed',1.05),('com_exportacao','export_price',0.95),
+ ('com_limitado','export_share',0.5),('com_limitado','industry',1.05),('com_limitado','export_price',1.10),
+ ('com_fechado','export_share',0.2),('com_fechado','industry',1.10),('com_fechado','research_speed',0.90),('com_fechado','export_price',1.30);
+
+-- Uma lei nova aprovada é acontecimento de campanha: o parlamento muda o país sem um tiro.
+INSERT INTO chronicle_kind VALUES ('lei','Lei nacional','⚖',2);

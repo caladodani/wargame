@@ -73,18 +73,6 @@ public static class CabinetView
         : string.Join(", ", a.Effects.OrderBy(kv => kv.Key)
             .Select(kv => $"{Pretty(kv.Key)} {(kv.Value >= 1f ? "+" : "")}{(kv.Value - 1f) * 100f:0}%"));
 
-    /// <summary>Nome de cozinha do stat em português de painel.</summary>
-    private static string Pretty(string key) => key switch
-    {
-        "industry" => "indústria",
-        "production_speed" => "produção",
-        "research_speed" => "investigação",
-        "conscription" => "recruta",
-        "counter_intel" => "contra-espionagem",
-        "org_regain" => "recomposição",
-        "move_speed" => "marcha",
-        "occupied_yield" => "rendimento ocupado",
-        "integration_speed" => "integração",
-        _ => key,
-    };
+    /// <summary>Nome de cozinha do stat em português de painel (a tabela vive no Ui, que é de todos).</summary>
+    private static string Pretty(string key) => Ui.StatName(key);
 }

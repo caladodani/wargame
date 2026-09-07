@@ -854,8 +854,11 @@ public sealed record CreateTradeDealCommand(int CountryId, int SellerId, string 
         if (w.AreAtWar(CountryId, SellerId)) return "estão em guerra";
         if (w.TradeDeals.Any(d => d.BuyerId == CountryId && d.SellerId == SellerId && d.ResourceId == ResourceId))
             return "já há contrato desse recurso com esse país";
-        float free = ResourceSystem.Controlled(w, SellerId, ResourceId) - TradeSystem.Sold(w, SellerId, ResourceId);
-        if (free < Units - 1e-3f) return "o vendedor não tem unidades livres";
+        float free = TradeSystem.Free(w, SellerId, ResourceId);
+        if (free < Units - 1e-3f)
+            return seller.Stat("export_share", 1f) < 0.999f
+                ? $"a lei de comércio dele só deixa vender {free:0.#} unidades"
+                : "o vendedor não tem unidades livres";
         float day = Units * TradeSystem.Price(w, SellerId, ResourceId);
         float need = day * (Days > 0 ? MathF.Min(Days, w.Rule("trade_deal_deposit_days", 10f)) : 1f);
         if (buyer.Money < need) return $"o contrato precisa de {need:0} no cofre ({day:0.0} por dia)";

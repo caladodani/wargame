@@ -42,6 +42,8 @@ public sealed class ChronicleSystem : ISystem
         {
             if (e.Quit) Write(w, "gabinete", $"{AdvisorName(w, e.AdvisorId)} deixa o gabinete de {Who(w, e.CountryId)}: não há com que lhe pagar.", e.CountryId);
         });
+        w.Events.Subscribe<LawChanged>(e =>
+            Write(w, "lei", $"{Who(w, e.CountryId)} aprova a lei: {LawName(w, e.LawId)}.", e.CountryId));
         w.Events.Subscribe<FrontAdvanced>(e =>
             Write(w, "frente", $"A frente de {Who(w, e.CountryId)} rompe: {e.Progress:P0} da terra de {Who(w, e.FoeId)} sob controlo, em {e.Theatres} teatro{(e.Theatres == 1 ? "" : "s")} de operações.", e.CountryId));
         w.Events.Subscribe<WorldDominated>(e =>
@@ -109,6 +111,8 @@ public sealed class ChronicleSystem : ISystem
 
     private static string AdvisorName(World w, string id) =>
         w.AdvisorDefs.TryGetValue(id, out var a) ? a.Name : id;
+    private static string LawName(World w, string id) =>
+        w.Laws.TryGetValue(id, out var l) ? l.Name : id;
     private static string FocusName(World w, string id) =>
         w.Focuses.TryGetValue(id, out var f) ? f.Name : id;
     private static string FactionName(World w, string id) =>

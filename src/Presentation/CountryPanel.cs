@@ -348,24 +348,12 @@ public partial class CountryPanel : PanelContainer
                 foreach (var s in spirits) { Line("• " + s.Name, 19); if (s.Description.Length > 0) Wrap("   " + s.Description, 16); }
             }
 
-            // leis nacionais (uma activa por grupo; mudar custa law_change_cost)
+            // leis nacionais: uma escada por grupo, com o degrau em vigor aceso (LawsView)
             if (tNation && w.Laws.Count > 0)
             {
                 Header("Leis");
-                foreach (var grp in w.Laws.Values.Select(l => l.Group).Distinct().OrderBy(g => g))
-                {
-                    var active = w.ActiveLaw(c, grp);
-                    Line($"{(grp == "conscription" ? "Conscrição" : grp == "economy" ? "Economia" : grp)}: {active?.Name ?? "—"}", 17);
-                    if (!mine) continue;
-                    foreach (var l in w.Laws.Values.Where(l => l.Group == grp && l.Id != active?.Id).OrderBy(l => l.Sort))
-                    {
-                        string lid = l.Id;
-                        var lrow = new HBoxContainer();
-                        lrow.AddChild(Ui.Grow(Ui.Lbl($"   {l.Name}" + (l.Description.Length > 0 ? $" — {l.Description}" : ""), 15)));
-                        lrow.AddChild(Ui.Btn($"Mudar ({w.Rule("law_change_cost", 30f):0})", () => Faction(new ChangeLawCommand(c.Id, lid)), 170));
-                        _body.AddChild(lrow);
-                    }
-                }
+                if (LawsView.Cards(w, c, mine, lid => Faction(new ChangeLawCommand(c.Id, lid))) is VBoxContainer ladders)
+                    _body.AddChild(Ui.Grow(ladders));
             }
 
             // facções, mesa de paz, mercado e espionagem: tudo o que se faz com os outros

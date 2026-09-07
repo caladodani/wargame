@@ -30,7 +30,7 @@ public sealed class TradeSystem : ISystem
                         || (d.UntilDay > 0 && w.Clock.Day >= d.UntilDay)     // prazo cumprido: o contrato acaba
                         || !w.Countries.TryGetValue(d.BuyerId, out var buyer) || buyer.Capitulated
                         || !w.Countries.TryGetValue(d.SellerId, out var seller) || seller.Capitulated
-                        || ResourceSystem.Controlled(w, d.SellerId, d.ResourceId) < Sold(w, d.SellerId, d.ResourceId) - 1e-3f
+                        || ExportCap(w, d.SellerId, d.ResourceId) < Sold(w, d.SellerId, d.ResourceId) - 1e-3f
                         || buyer.Money < cost;
             if (dead)
             {
@@ -62,8 +62,26 @@ public sealed class TradeSystem : ISystem
         float price = baseP * (1f + scarcity * w.Rule("trade_price_scarcity", 1.5f));
         if (w.Countries.TryGetValue(sellerId, out var s) && s.AtWarWith.Count > 0)
             price *= w.Rule("trade_war_premium", 1.4f);
+        if (s is not null) price *= s.Stat("export_price", 1f);   // lei de comércio: portos abertos vendem barato
         return Math.Clamp(price, w.Rule("trade_price_min", 1f), w.Rule("trade_price_max", 12f));
     }
+
+    /// <summary>Quanto deste recurso é que a lei de comércio do vendedor deixa sair do país: a fatia
+    /// export_share do que ele controla. Sem lei nenhuma (mundo de teste sem a tabela law) sai tudo.
+    ///
+    /// É o tecto das exportações todas somadas, e não de cada contrato: um país que aperte a lei vê os
+    /// contratos que ficaram acima do tecto cair no dia seguinte, exactamente como se tivesse perdido as
+    /// minas. Fechar a economia é uma decisão que se paga em tratados rasgados.</summary>
+    public static float ExportCap(World w, int sellerId, string resourceId)
+    {
+        float have = ResourceSystem.Controlled(w, sellerId, resourceId);
+        float share = w.Countries.TryGetValue(sellerId, out var s) ? s.Stat("export_share", 1f) : 1f;
+        return have * Math.Clamp(share, 0f, 1f);
+    }
+
+    /// <summary>Unidades que ainda se podem comprar a este vendedor: o tecto da lei menos o já prometido.</summary>
+    public static float Free(World w, int sellerId, string resourceId) =>
+        MathF.Max(0f, ExportCap(w, sellerId, resourceId) - Sold(w, sellerId, resourceId));
 
     /// <summary>Dias que faltam a um contrato (0 = sem prazo, para quem não quis marcar data).</summary>
     public static int DaysLeft(World w, TradeDeal d) => d.UntilDay <= 0 ? 0 : Math.Max(0, d.UntilDay - w.Clock.Day);
