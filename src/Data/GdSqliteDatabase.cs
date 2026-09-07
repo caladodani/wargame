@@ -11,7 +11,12 @@ public sealed class GdSqliteDatabase : IDatabase
 
     public GdSqliteDatabase(string path, bool readOnly = false)
     {
-        _db = ClassDB.Instantiate("SQLite").AsGodotObject();
+        // Sem o addon carregado o ClassDB não conhece "SQLite" e isto vinha null — daí saía uma
+        // NullReferenceException a cada quadro e ninguém percebia o que faltava. Diz-se o que é.
+        _db = ClassDB.Instantiate("SQLite").AsGodotObject()
+              ?? throw new InvalidOperationException(
+                  "addon godot-sqlite por carregar: faltam os binários em addons/godot-sqlite/bin/ "
+                  + "ou o projecto ainda não foi importado (godot --headless --import cria o .godot/extension_list.cfg)");
         _db.Set("path", path);
         _db.Set("read_only", readOnly);
         _db.Set("foreign_keys", true);

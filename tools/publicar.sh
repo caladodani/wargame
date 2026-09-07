@@ -29,7 +29,7 @@ URL_PAGINA=https://vilarongacalado.com/wargame/
 BUILD_TOOLS=$HOME/android-sdk/build-tools/34.0.0
 APK_LOCAL=$REPO/build/wargame.apk
 
-# Ficheiros que entram no APK. O resto (tools/, .github/, README.md, deploy.sh) pode estar por
+# Ficheiros que entram no APK. O resto (tools/, .github/, README.md) pode estar por
 # commitar sem mentir a ninguém: não muda um único byte do que o jogador instala.
 DO_JOGO=(project.godot export_presets.cfg icon.png icon.png.import WarGame.csproj WarGame.sln
          src scenes assets addons data WarGame.Core WarGame.Core.Tests)

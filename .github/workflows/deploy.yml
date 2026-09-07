@@ -63,6 +63,17 @@ jobs:
           mkdir -p addons/godot-sqlite/bin
           unzip -j -o /tmp/sqlite-bin.zip 'bin/libgdsqlite.linux.*' -d addons/godot-sqlite/bin
           ls -la addons/godot-sqlite/bin
+      - name: Import project
+        run: |
+          # Numa árvore acabada de clonar não há .godot/. O Godot só regista as GDExtensions depois de
+          # importar o projecto uma vez, e sem esse registo o ClassDB não conhece a classe "SQLite":
+          # vinha "Cannot get class 'SQLite'" e o jogo arrancava sem base de dados nenhuma.
+          timeout 600 godot --headless --path . --import
+          if ! grep -q godot-sqlite .godot/extension_list.cfg 2>/dev/null; then
+            echo "::error::a GDExtension do godot-sqlite não ficou registada na importação"
+            cat .godot/extension_list.cfg 2>/dev/null || echo "(sem extension_list.cfg)"
+            exit 1
+          fi
       - name: Run smoke test
         run: |
           set -o pipefail   # sem isto o tee tapava o código de saída do godot

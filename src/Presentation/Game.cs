@@ -58,11 +58,22 @@ public partial class Game : Node
 
     public override void _Ready()
     {
-        // static.db é só leitura; em Android o res:// não é acessível ao SQLite → copiar para user:// no 1º arranque.
-        var path = EnsureUserCopy("res://data/static.db", "user://static.db");
-        _static = new GdSqliteDatabase(path, readOnly: true);
         _smoke = OS.GetCmdlineUserArgs().Contains("--smoke");
-        BuildWorld();
+        try
+        {
+            // static.db é só leitura; em Android o res:// não é acessível ao SQLite → copiar para user:// no 1º arranque.
+            var path = EnsureUserCopy("res://data/static.db", "user://static.db");
+            _static = new GdSqliteDatabase(path, readOnly: true);
+            BuildWorld();
+        }
+        catch (Exception ex)
+        {
+            // Sem base não há jogo nenhum. Antes ficava tudo null e o motor cuspia uma
+            // NullReferenceException por quadro até alguém desistir; na prova isso era o timeout do CI.
+            GD.PushError("Arranque: " + ex);
+            if (_smoke) { GD.Print("smoke: arranque falhado, a sair — " + ex.Message); GetTree().Quit(1); }
+            return;
+        }
         if (_smoke) Smoke();
     }
 
@@ -273,6 +284,7 @@ public partial class Game : Node
 
     public override void _Process(double delta)
     {
+        if (World is null) return;   // arranque falhado: sem mundo não há tick que dar (ver _Ready)
         // Cinto da prova: nela o relógio não pode ficar parado. Quem quer que peça pausa (a fita das
         // velocidades, o menu) deixava o processo pendurado até ao timeout, e era o SIGTERM — não o jogo —
         // que desmontava o motor com o tick a correr: "Thread destroyed without completion" e sinal 11.
