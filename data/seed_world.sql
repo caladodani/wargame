@@ -615,6 +615,36 @@ INSERT INTO rule VALUES ('coastal_income_bonus', 1.1, 'porto/costa: comércio ma
 INSERT INTO rule VALUES ('infra_repair_per_day', 0.002, 'infraestrutura reposta por dia numa região calma');
 INSERT INTO rule VALUES ('infra_repair_max_resist', 0.3, 'resistência acima da qual a ocupação não repara');
 
+-- ===== Gabinete civil: pastas, conselheiros e o que cada um vale (CabinetSystem) =====
+INSERT INTO cabinet_slot VALUES ('economia','Economia','🏭',1);
+INSERT INTO cabinet_slot VALUES ('seguranca','Segurança','🕵',2);
+INSERT INTO cabinet_slot VALUES ('propaganda','Propaganda','📣',3);
+INSERT INTO cabinet_slot VALUES ('ciencia','Ciência','📚',4);
+
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('adv_industrial',NULL,'economia','Capitão de indústria','🏭',150,'As fábricas dele rendem mais do que as do Estado.'),
+ ('adv_planeador',NULL,'economia','Planeador de guerra','📐',130,'Encomendas despachadas antes do prazo.'),
+ ('adv_espiao',NULL,'seguranca','Chefe dos serviços','🕵',140,'A retaguarda deixa de ser terra de ninguém.'),
+ ('adv_marechal',NULL,'seguranca','Marechal do Estado','🎖',150,'Tropa descansada volta mais depressa à linha.'),
+ ('adv_orador',NULL,'propaganda','Orador do regime','📣',120,'Os cartazes dele enchem os quartéis.'),
+ ('adv_governador',NULL,'propaganda','Governador colonial','🏛',160,'Sabe governar terra que não é dele.'),
+ ('adv_teorico',NULL,'ciencia','Teórico militar','📚',150,'Os laboratórios andam ao ritmo dele.'),
+ ('adv_logistico',NULL,'ciencia','Mestre de logística','🚚',130,'Estradas melhores e encomendas mais rápidas.');
+
+INSERT INTO advisor_effect VALUES ('adv_industrial','industry',1.10);
+INSERT INTO advisor_effect VALUES ('adv_planeador','production_speed',1.15);
+INSERT INTO advisor_effect VALUES ('adv_espiao','counter_intel',1.25);
+INSERT INTO advisor_effect VALUES ('adv_marechal','org_regain',1.10);
+INSERT INTO advisor_effect VALUES ('adv_orador','conscription',1.15);
+INSERT INTO advisor_effect VALUES ('adv_governador','occupied_yield',1.20);
+INSERT INTO advisor_effect VALUES ('adv_governador','integration_speed',1.25);
+INSERT INTO advisor_effect VALUES ('adv_teorico','research_speed',1.20);
+INSERT INTO advisor_effect VALUES ('adv_logistico','move_speed',1.10);
+INSERT INTO advisor_effect VALUES ('adv_logistico','production_speed',1.05);
+
+INSERT INTO rule VALUES ('advisor_wage_share', 0.01, 'salário diário de um conselheiro, em fracção do que custou nomeá-lo');
+INSERT INTO chronicle_kind VALUES ('gabinete','Gabinete','🏛',2);
+
 -- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)
 CREATE TABLE IF NOT EXISTS general (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL, cost REAL NOT NULL);

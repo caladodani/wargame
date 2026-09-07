@@ -1276,6 +1276,49 @@ public sealed record HireGeneralCommand(int CountryId, string GeneralId) : IComm
     }
 }
 
+/// <summary>Nomeia um conselheiro civil para a pasta dele. Sentar alguém numa cadeira ocupada é demitir o
+/// que lá está — e a nomeação nova paga-se por inteiro, como no HoI4.</summary>
+public sealed record AppointAdvisorCommand(int CountryId, string AdvisorId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.AdvisorDefs.TryGetValue(AdvisorId, out var def)) return "conselheiro desconhecido";
+        if (def.CountryTag is string tag && tag != c.Tag) return "não serve este país";
+        if (c.Cabinet.GetValueOrDefault(def.Slot) == AdvisorId) return "já está no gabinete";
+        if (c.Money < def.Cost) return $"faltam {def.Cost - c.Money:0} pontos de produção";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        var def = w.AdvisorDefs[AdvisorId];
+        c.Money -= def.Cost;
+        c.Cabinet[def.Slot] = AdvisorId;
+        c.CabinetSince[def.Slot] = w.Clock.Day;
+        World.ApplyCabinet(w, c);
+        w.Events.Publish(new AdvisorAppointed(CountryId, AdvisorId, def.Slot));
+    }
+}
+
+/// <summary>Demite quem está numa pasta: o multiplicador cai no dia e a nomeação não se devolve.</summary>
+public sealed record DismissAdvisorCommand(int CountryId, string Slot) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Countries.TryGetValue(CountryId, out var c) ? "país inválido"
+        : !c.Cabinet.ContainsKey(Slot) ? "pasta vazia" : null;
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        string id = c.Cabinet[Slot];
+        c.Cabinet.Remove(Slot); c.CabinetSince.Remove(Slot);
+        World.ApplyCabinet(w, c);
+        w.Events.Publish(new AdvisorLeft(CountryId, id, Slot, false));
+    }
+}
+
 /// <summary>Dispensa um comandante: o multiplicador cai de imediato e o custo não volta.</summary>
 public sealed record DismissGeneralCommand(int CountryId, string GeneralId) : ICommand
 {

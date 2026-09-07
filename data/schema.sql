@@ -42,6 +42,18 @@ CREATE TABLE IF NOT EXISTS country_info (        -- texto para o painel do país
 CREATE TABLE IF NOT EXISTS national_spirit (     -- espíritos nacionais (HoI4); efeitos = linhas modifier com spirit_id
   id TEXT PRIMARY KEY, country_tag TEXT NOT NULL, name TEXT NOT NULL, description TEXT
 );
+-- ===== Gabinete civil (HoI4: political advisors); CabinetSystem/AppointAdvisorCommand =====
+CREATE TABLE IF NOT EXISTS cabinet_slot (        -- pastas do gabinete: uma cadeira por pasta e por país
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS advisor (             -- conselheiros; country_tag NULL = disponível a todos
+  id TEXT PRIMARY KEY, country_tag TEXT, slot TEXT NOT NULL REFERENCES cabinet_slot(id),
+  name TEXT NOT NULL, icon TEXT NOT NULL, cost REAL NOT NULL, note TEXT
+);
+CREATE TABLE IF NOT EXISTS advisor_effect (      -- o que o conselheiro multiplica nos stats do país
+  advisor_id TEXT NOT NULL REFERENCES advisor(id), stat_key TEXT NOT NULL, mult REAL NOT NULL,
+  PRIMARY KEY (advisor_id, stat_key)
+);
 CREATE TABLE IF NOT EXISTS faction (             -- aliança defensiva (HoI4: facção); World.Factions
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT
 );
@@ -309,6 +321,11 @@ CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (Hir
   xp REAL NOT NULL DEFAULT 0,                   -- experiência de campanha (GeneralXpSystem)
   wound_until INTEGER NOT NULL DEFAULT 0,       -- dia em que volta do hospital (CommandCasualtySystem)
   PRIMARY KEY (country_id, general));
+
+CREATE TABLE IF NOT EXISTS s_cabinet (           -- gabinete civil em funções (AppointAdvisorCommand)
+  country_id INTEGER NOT NULL, slot TEXT NOT NULL, advisor TEXT NOT NULL,
+  since_day INTEGER NOT NULL DEFAULT 0,         -- dia da nomeação, para o painel contar o tempo de casa
+  PRIMARY KEY (country_id, slot));
 
 CREATE TABLE IF NOT EXISTS s_prisoner (        -- prisioneiros de guerra (PrisonerSystem)
   country_id INTEGER NOT NULL,                  -- quem os guarda

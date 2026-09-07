@@ -166,6 +166,14 @@ public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<
 /// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
 public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
 
+/// <summary>Pasta do gabinete civil (tabela cabinet_slot): uma cadeira por pasta e por país.</summary>
+public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort);
+
+/// <summary>Conselheiro civil (tabelas advisor/advisor_effect): senta-se numa pasta, custa a nomeação e um
+/// salário por dia, e enquanto lá está multiplica os stats de Effects. CountryTag null = serve qualquer país.</summary>
+public sealed record AdvisorDef(string Id, string? CountryTag, string Slot, string Name, string Icon,
+                                float Cost, string Note, Dictionary<string, float> Effects);
+
 /// <summary>Patamar de potência mundial (tabela power_tier): a partir de MinShare da potência total do
 /// mundo, um país é chamado assim. Puro rótulo — quem faz a conta é o PowerIndex.</summary>
 public sealed record PowerTier(int Level, string Name, float MinShare);
@@ -351,6 +359,12 @@ public sealed class Country
     /// <summary>Comandantes contratados (tabela general; HireGeneralCommand) e o que somam aos stats.</summary>
     public List<string> Generals { get; } = new();
     public Dictionary<string, float> GeneralMult { get; } = new();
+    /// <summary>Gabinete civil em funções (AppointAdvisorCommand): pasta → conselheiro sentado nela.</summary>
+    public Dictionary<string, string> Cabinet { get; } = new();
+    /// <summary>Dia da nomeação de cada pasta, para o painel dizer há quanto tempo o homem lá está.</summary>
+    public Dictionary<string, int> CabinetSince { get; } = new();
+    /// <summary>Multiplicadores do gabinete civil (World.ApplyCabinet recalcula ao nomear, demitir ou carregar).</summary>
+    public Dictionary<string, float> CabinetMult { get; } = new();
     /// <summary>Experiência de campanha de cada comandante contratado (GeneralXpSystem): sobe com as
     /// batalhas do grupo que ele comanda e nunca desce. Manda no posto — ver World.RankOf.</summary>
     public Dictionary<string, float> GeneralXp { get; } = new();
@@ -362,7 +376,8 @@ public sealed class Country
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
-        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f) * (PrisonerMult.TryGetValue(key, out var pm) ? pm : 1f);
+        * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f) * (PrisonerMult.TryGetValue(key, out var pm) ? pm : 1f)
+        * (CabinetMult.TryGetValue(key, out var cm) ? cm : 1f);
     /// <summary>Ranhuras de investigação ocupadas: tecnologia → dias acumulados (× research_speed). Quantas
     /// cabem é do ResearchSystem.Slots (regra research_slots × stat do país). Antes era uma só linha; um
     /// país industrial que investigasse infantaria não podia estar ao mesmo tempo a tratar de blindados,

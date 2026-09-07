@@ -112,6 +112,11 @@ public sealed record NewsFired(string EventId) : IGameEvent;
 public sealed record InfrastructureRepaired(int RegionId) : IGameEvent;
 /// <summary>Região ocupada integrada no país do controlador (IntegrationSystem): OwnerId mudou.</summary>
 public sealed record RegionIntegrated(int RegionId, int OldOwner, int NewOwner) : IGameEvent;
+/// <summary>Conselheiro civil nomeado para uma pasta do gabinete (AppointAdvisorCommand).</summary>
+public sealed record AdvisorAppointed(int CountryId, string AdvisorId, string Slot) : IGameEvent;
+/// <summary>Conselheiro que deixou o gabinete: demitido pelo país ou saído por falta de pagamento
+/// (Quit=true, CabinetSystem).</summary>
+public sealed record AdvisorLeft(int CountryId, string AdvisorId, string Slot, bool Quit) : IGameEvent;
 /// <summary>Comandante contratado (HireGeneralCommand).</summary>
 public sealed record GeneralHired(int CountryId, string GeneralId) : IGameEvent;
 /// <summary>Um país mudou de lugar na tabela mundial de potências (PowerRankingSystem).

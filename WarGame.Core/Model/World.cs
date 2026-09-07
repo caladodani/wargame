@@ -66,6 +66,10 @@ public sealed class World
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>
     public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
+    /// <summary>Pastas do gabinete civil (tabela cabinet_slot), pela ordem em que se mostram.</summary>
+    public List<CabinetSlotDef> CabinetSlots { get; } = new();
+    /// <summary>Conselheiros civis contratáveis (tabelas advisor/advisor_effect).</summary>
+    public Dictionary<string, AdvisorDef> AdvisorDefs { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
@@ -221,6 +225,17 @@ public sealed class World
         foreach (var id in c.Generals)
             if (!detached.Contains(id) && !w.IsWounded(c.Id, id) && w.GeneralDefs.TryGetValue(id, out var g))   // destacado manda no grupo, ferido não manda em nada
                 c.GeneralMult[g.StatKey] = c.GeneralMult.GetValueOrDefault(g.StatKey, 1f) * g.Mult;
+    }
+
+    /// <summary>Recalcula Country.CabinetMult a partir do gabinete em funções (após nomear, demitir ou
+    /// carregar um jogo). Uma pasta com um conselheiro que já não existe na BD não conta.</summary>
+    public static void ApplyCabinet(World w, Country c)
+    {
+        c.CabinetMult.Clear();
+        foreach (var id in c.Cabinet.Values)
+            if (w.AdvisorDefs.TryGetValue(id, out var a))
+                foreach (var (key, mult) in a.Effects)
+                    c.CabinetMult[key] = c.CabinetMult.GetValueOrDefault(key, 1f) * mult;
     }
 
     /// <summary>Recalcula Country.TechMult a partir das tecnologias concluídas (chamar após LoadSave e ao concluir uma).</summary>

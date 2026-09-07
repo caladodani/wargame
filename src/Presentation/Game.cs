@@ -79,6 +79,7 @@ public partial class Game : Node
         World.Register(new ResourceSystem());
         World.Register(new OccupationSystem());   // antes do rendimento: a política de hoje é que paga o dia de hoje
         World.Register(new EconomySystem());
+        World.Register(new CabinetSystem());      // depois do rendimento: os salários do gabinete saem do dia
         World.Register(new StabilitySystem());
         World.Register(new ManpowerSystem());
         World.Register(new ProductionSystem());

@@ -8,9 +8,15 @@ namespace WarGame.Presentation;
 /// guerras activas e facções. Só leitura do World em Fill (mundo parado); tocar num país abre o CountryPanel.</summary>
 public partial class WorldPanel : PanelContainer
 {
+    /// <summary>Secções do painel, uma por aba de metal (as mesmas que antes eram um rolo só).</summary>
+    private static readonly string[] Sections = { "Potências", "Guerras", "Espionagem", "Facções" };
+
     private Game _game = null!;
     private CountryPanel _countryPanel = null!;
     private VBoxContainer _body = null!;
+    private HBoxContainer _tabs = null!;
+    /// <summary>Aba aberta (índice em Sections). Entra na chave do cache: sem isso trocar de aba não redesenha.</summary>
+    private int _tab;
     private string _lastKey = "";
     private HBoxContainer _crest = null!;
     /// <summary>Nota do primeiro classificado da última contagem: as barras são todas relativas a ela.</summary>
@@ -27,12 +33,25 @@ public partial class WorldPanel : PanelContainer
         var head = new HBoxContainer(); v.AddChild(head);
         _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
+        _tabs = new HBoxContainer(); v.AddChild(_tabs);          // abas de metal, enchidas no Fill
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
 
     public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+
+    /// <summary>Troca de secção: limpa a chave para o Fill não achar que já está desenhado.</summary>
+    private void Pick(int i) { _tab = i; _lastKey = ""; _game.RunWhenIdle(Fill); }
+
+    /// <summary>Só para o --smoke: percorre as abas todas, para nenhuma secção passar sem ser desenhada.</summary>
+    public int SmokeTabs()
+    {
+        Visible = true;
+        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); }
+        _tab = 0; _lastKey = ""; Visible = false;
+        return Sections.Length;
+    }
 
     /// <summary>Só para o --smoke: enche a tabela mundial sem esperar pelo idle e devolve quantas potências
     /// ficaram desenhadas, para o caminho novo do painel não passar despercebido se rebentar.</summary>
@@ -52,12 +71,15 @@ public partial class WorldPanel : PanelContainer
         try
         {
             var w = _game.World;
-            var key = w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count;
+            var key = _tab + "|" + w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count;
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.CrestInto(_crest, _game.PlayerId is int crestId && w.Countries.TryGetValue(crestId, out var mc) ? mc.Tag : "",
                 "Mundo", $"{w.Countries.Count} países · {w.Wars.Count} guerras abertas");
+            Ui.Clear(_tabs);
+            _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             Ui.Clear(_body);
+            bool tPower = _tab == 0, tWars = _tab == 1, tSpy = _tab == 2, tFactions = _tab == 3;
 
             var divs = new Dictionary<int, int>();
             foreach (var d in w.Divisions.Values) divs[d.CountryId] = divs.GetValueOrDefault(d.CountryId) + 1;
@@ -75,24 +97,27 @@ public partial class WorldPanel : PanelContainer
             // parcelas desenhadas por baixo — quem manda no mundo não é quem tem mais divisões cansadas.
             var standings = PowerIndex.Rankings(w);
             _best = standings.Count > 0 ? standings[0].Score : 1f;
-            Header("Potências mundiais");
-            int shown = 0;
-            foreach (var st in standings)
+            if (tPower)
             {
-                if (shown++ >= 15) break;
-                if (!w.Countries.TryGetValue(st.CountryId, out var c)) continue;
-                _body.AddChild(Standing(w, st, shown, divs, regions, pop, popTotal));
+                Header("Potências mundiais");
+                int shown = 0;
+                foreach (var st in standings)
+                {
+                    if (shown++ >= 15) break;
+                    if (!w.Countries.TryGetValue(st.CountryId, out var c)) continue;
+                    _body.AddChild(Standing(w, st, shown, divs, regions, pop, popTotal));
+                }
+                // o jogador vê-se sempre, mesmo lá do fundo da tabela
+                int mineIdx = _game.PlayerId is int me ? standings.FindIndex(x => x.CountryId == me) : -1;
+                if (mineIdx >= 15) _body.AddChild(Standing(w, standings[mineIdx], mineIdx + 1, divs, regions, pop, popTotal));
             }
-            // o jogador vê-se sempre, mesmo lá do fundo da tabela
-            int mineIdx = _game.PlayerId is int me ? standings.FindIndex(x => x.CountryId == me) : -1;
-            if (mineIdx >= 15) _body.AddChild(Standing(w, standings[mineIdx], mineIdx + 1, divs, regions, pop, popTotal));
 
-            Header("Guerras activas");
-            if (w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
+            if (tWars) Header("Guerras activas");
+            if (tWars && w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
             var orgSum = new Dictionary<int, float>();
             foreach (var d in w.Divisions.Values)
                 orgSum[d.CountryId] = orgSum.GetValueOrDefault(d.CountryId) + d.Org * d.Hp / 100f;
-            foreach (var ((a, bId), info) in w.Wars.OrderBy(kv => kv.Value.StartDay))
+            foreach (var ((a, bId), info) in tWars ? w.Wars.OrderBy(kv => kv.Value.StartDay) : Enumerable.Empty<KeyValuePair<(int A, int B), WarInfo>>())
             {
                 string na = w.Countries.TryGetValue(a, out var ca) ? ca.Name : "#" + a;
                 string nb = w.Countries.TryGetValue(bId, out var cb) ? cb.Name : "#" + bId;
@@ -106,7 +131,7 @@ public partial class WorldPanel : PanelContainer
                 }
             }
 
-            if (_game.PlayerId is int pid)
+            if (tSpy && _game.PlayerId is int pid)
             {
                 var mine = w.ActiveSpyOps.Where(o => o.CountryId == pid).ToList();
                 var against = w.ActiveSpyOps.Where(o => o.TargetCountryId == pid).ToList();
@@ -123,6 +148,7 @@ public partial class WorldPanel : PanelContainer
                 }
             }
 
+            if (!tFactions) return;
             Header("Facções");
             foreach (var f in w.Factions.Values.Where(f => f.Members.Count > 0).OrderByDescending(f => f.Members.Count))
             {

@@ -36,6 +36,12 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "capitulacao", $"{Who(w, e.CountryId)} capitula perante {Who(w, e.WinnerId)}.", e.CountryId));
         w.Events.Subscribe<SpoilsTaken>(e =>
             Write(w, "espolio", $"{Who(w, e.WinnerId)} leva {e.Regions} regiões de {Who(w, e.LoserId)} na conferência de paz ({e.Points:0} pontos de espólio).", e.WinnerId));
+        w.Events.Subscribe<AdvisorAppointed>(e =>
+            Write(w, "gabinete", $"{Who(w, e.CountryId)} chama {AdvisorName(w, e.AdvisorId)} para o gabinete.", e.CountryId));
+        w.Events.Subscribe<AdvisorLeft>(e =>
+        {
+            if (e.Quit) Write(w, "gabinete", $"{AdvisorName(w, e.AdvisorId)} deixa o gabinete de {Who(w, e.CountryId)}: não há com que lhe pagar.", e.CountryId);
+        });
         w.Events.Subscribe<FrontAdvanced>(e =>
             Write(w, "frente", $"A frente de {Who(w, e.CountryId)} rompe: {e.Progress:P0} da terra de {Who(w, e.FoeId)} sob controlo, em {e.Theatres} teatro{(e.Theatres == 1 ? "" : "s")} de operações.", e.CountryId));
         w.Events.Subscribe<WorldDominated>(e =>
@@ -100,6 +106,9 @@ public sealed class ChronicleSystem : ISystem
         w.Regions.TryGetValue(regionId, out var r) ? r.Name : "uma região";
     private static string GeneralName(World w, string id) =>
         w.GeneralDefs.TryGetValue(id, out var g) ? g.Name : id;
+
+    private static string AdvisorName(World w, string id) =>
+        w.AdvisorDefs.TryGetValue(id, out var a) ? a.Name : id;
     private static string FocusName(World w, string id) =>
         w.Focuses.TryGetValue(id, out var f) ? f.Name : id;
     private static string FactionName(World w, string id) =>
