@@ -130,7 +130,7 @@ public partial class GameMenu : PanelContainer
     /// <summary>O que uma regra de dificuldade quer dizer em português. As chaves são as do
     /// difficulty_effect; uma que ainda não esteja aqui sai com a chave e o valor, que é melhor do que
     /// desaparecer da nota.</summary>
-    private static string Effect(string key, float value) => key switch
+    internal static string Effect(string key, float value) => key switch
     {
         "build_min_days" => $"obras em {value:0} dias no mínimo",
         "new_division_org" => $"divisões novas com {value:0} de organização",
