@@ -19,6 +19,7 @@ public sealed class ResourceSystem : ISystem
                 totals[(r.ControllerId, res)] = totals.GetValueOrDefault((r.ControllerId, res)) + amount;
         foreach (var d in w.TradeDeals)   // comércio: unidades passam do vendedor para o comprador
         {
+            if (ConvoySystem.Grounded(w, d)) continue;   // sem comboio que o carregue, o depósito não sai do vendedor
             totals[(d.SellerId, d.ResourceId)] = totals.GetValueOrDefault((d.SellerId, d.ResourceId)) - d.Units;
             totals[(d.BuyerId, d.ResourceId)] = totals.GetValueOrDefault((d.BuyerId, d.ResourceId)) + d.Units;
         }

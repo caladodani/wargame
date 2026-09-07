@@ -981,6 +981,26 @@ public sealed record BuyWarshipCommand(int CountryId) : ICommand
     }
 }
 
+/// <summary>Mandar construir um comboio mercante. Não vai para o mar nem se destaca: engrossa a marinha
+/// mercante que carrega o abastecimento por mar e as importações, e que a guerra ao comércio vai afundando.</summary>
+public sealed record BuyConvoyCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        float cost = w.Rule("convoy_cost", 25f);
+        if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Money -= w.Rule("convoy_cost", 25f);
+        c.Convoys += 1f;
+    }
+}
+
 /// <summary>Destacar navios para o mar de uma costa com uma tarefa (bloqueio, escolta ou patrulha). Passa
 /// pelo NavalMissionSystem, que é quem sabe quantos navios há no porto e se o mar está ao alcance.</summary>
 public sealed record AssignNavalMissionCommand(int CountryId, int RegionId, string MissionId, float Ships) : ICommand

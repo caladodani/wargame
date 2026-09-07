@@ -374,6 +374,7 @@ public sealed class Country
     public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
     public float Warships { get; set; }            // navios de guerra (BuyWarshipCommand); destacam-se por NavalMissionSystem
+    public float Convoys { get; set; }             // saldo de mercantes por cima da marinha de partida (ConvoySystem)
     public int Nukes { get; set; }                 // ogivas prontas (BuildNukeCommand); NuclearStrikeCommand gasta uma
     /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
     public Dictionary<string, string> Laws { get; } = new();

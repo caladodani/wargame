@@ -11,10 +11,17 @@ namespace WarGame.Presentation;
 /// comandos — quem conta é o WarStatsSystem, quem paga o adido é o AttacheSystem.</summary>
 public partial class WarPanel : PanelContainer
 {
+    /// <summary>As secções do painel, pela ordem em que aparecem na fila de abas.</summary>
+    private static readonly string[] Sections = { "Frentes", "Ar", "Mar", "Adidos", "Arquivo" };
+
     private Game _game = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
     private HBoxContainer _crest = null!;
+    private HBoxContainer _tabs = null!;
+    /// <summary>Secção aberta (índice em Sections). Entra na chave do cache: sem isso trocar de aba não
+    /// redesenhava nada.</summary>
+    private int _tab;
     /// <summary>Levar o mapa a uma região (o Hud é que sabe mexer na câmara): usado pelo "Ver no mapa" das
     /// cedências, para ninguém assinar terra que não viu.</summary>
     public Action<int>? OnShowRegion;
@@ -39,10 +46,14 @@ public partial class WarPanel : PanelContainer
         var head = new HBoxContainer(); v.AddChild(head);
         _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
+        _tabs = new HBoxContainer(); v.AddChild(_tabs);   // a fila de abas de metal, enchida no Fill
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
+
+    /// <summary>Trocar de secção: guarda a aba e manda encher outra vez (o desenho é sempre no idle).</summary>
+    private void Pick(int i) { _tab = i; _lastKey = ""; _game.RunWhenIdle(Fill); }
 
     public void Open() { _lastKey = ""; _deal = null; _demand.Clear(); _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
@@ -57,6 +68,7 @@ public partial class WarPanel : PanelContainer
         if (war is null) return;
         _deal = war.EnemyOf(pid);
         foreach (int id in PeaceTerms.Suggest(_game.World, pid, _deal.Value)) _demand.Add(id);
+        _tab = 0;                                    // a mesa vive na aba das frentes
         _lastKey = "";
         Fill();
         _deal = null; _demand.Clear();
@@ -70,7 +82,7 @@ public partial class WarPanel : PanelContainer
             if (_game.PlayerId is not int pid) { Ui.Clear(_body); _body.AddChild(Ui.Lbl("Escolhe um país primeiro", 18)); return; }
             var mine = w.Wars.Values.Where(x => x.Involves(pid)).OrderBy(x => x.StartDay).ToList();
             var past = w.WarHistory.Where(r => r.Involves(pid)).ToList();
-            var key = w.Clock.Day + "|" + mine.Count + "|" + past.Count + "|" +
+            var key = _tab + "|" + w.Clock.Day + "|" + mine.Count + "|" + past.Count + "|" +
                       string.Join(",", mine.Select(x => string.Join("-", x.Side(pid).Goals.OrderBy(g => g)) + "/" + x.Side(pid).Goals.Count(g => w.Regions.TryGetValue(g, out var gr) && gr.ControllerId == pid))) + "|" +
                       $"deal{_deal}:{string.Join("-", _demand.OrderBy(x => x))}|" +
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
@@ -83,6 +95,8 @@ public partial class WarPanel : PanelContainer
             Ui.CrestInto(_crest, w.Countries[pid].Tag, "Guerra",
                 $"{mine.Count} em curso · {past.Count} no arquivo · {AirMissionSystem.Assigned(w, pid):0.#} asas no ar"
                 + $" · {NavalMissionSystem.Assigned(w, pid):0.#} navios no mar");
+            Ui.Clear(_tabs);
+            _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             Ui.Clear(_body);
 
             var front = new Dictionary<int, float>();   // força útil (org×HP) por país, para a balança
@@ -93,8 +107,8 @@ public partial class WarPanel : PanelContainer
                 divs[d.CountryId] = divs.GetValueOrDefault(d.CountryId) + 1;
             }
 
-            Header(mine.Count == 0 ? "Sem guerras em curso" : "Guerras em curso");
-            foreach (var war in mine)
+            if (_tab == 0) Header(mine.Count == 0 ? "Sem guerras em curso" : "Guerras em curso");
+            foreach (var war in _tab == 0 ? mine : new List<WarInfo>())
             {
                 int foe = war.EnemyOf(pid);
                 var (box, card) = Card();
@@ -130,11 +144,11 @@ public partial class WarPanel : PanelContainer
                 _body.AddChild(box);
             }
 
-            AirWar(w, pid);
-            SeaWar(w, pid);
-            Attaches(w, pid);
+            if (_tab == 1) AirWar(w, pid);
+            if (_tab == 2) SeaWar(w, pid);
+            if (_tab == 3) Attaches(w, pid);
 
-            if (past.Count > 0)
+            if (_tab == 4 && past.Count > 0)
             {
                 Header("Guerras terminadas");
                 foreach (var r in past)
@@ -152,6 +166,7 @@ public partial class WarPanel : PanelContainer
                     _body.AddChild(box);
                 }
             }
+            else if (_tab == 4) Header("Arquivo vazio: ainda não acabou guerra nenhuma");
         }
         catch (Exception ex) { GD.PushError("WarPanel.Fill: " + ex); }
     }
@@ -273,7 +288,8 @@ public partial class WarPanel : PanelContainer
         $"sea{NavalMissionSystem.Free(w, pid):0.0}:"
         + string.Join("-", w.NavalMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
             .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Ships:0.0}"))
-        + ":" + (NavalMissionSystem.Target(w, pid)?.ToString() ?? "-");
+        + ":" + (NavalMissionSystem.Target(w, pid)?.ToString() ?? "-")
+        + $":cv{ConvoySystem.Available(w, pid):0.#}/{ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0.#}/{ConvoySystem.GroundedCount(w, pid)}";
 
     /// <summary>Guerra naval: o mar era um cano de abastecimento que ninguém podia cortar. A secção mostra a
     /// frota (no porto / no mar / o que custa por dia), as esquadras destacadas com o mar que está disputado
@@ -291,6 +307,19 @@ public partial class WarPanel : PanelContainer
 
         card.AddChild(Ui.Lbl($"⚓ {me.Warships:0.#} navios — {free:0.#} no porto, {sailing:0.#} no mar   ·   " +
                              $"estadia {sailing * upkeep:0.0}/dia   ·   cofre {me.Money:0}", 16));
+
+        // a marinha mercante ao lado da de guerra: é ela que o bloqueio inimigo come, e é dela que vive o
+        // exército do outro lado do mar. Sem esta linha, a guerra ao comércio era um número invisível
+        float holds = ConvoySystem.Available(w, pid);
+        float busy = ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid);
+        int stuck = ConvoySystem.GroundedCount(w, pid);
+        var conv = Ui.Lbl($"⛵ {holds:0} comboios mercantes — {busy:0} ocupados"
+                          + (Raided(w, pid) is float sunk && sunk > 0f ? $"   ☠ {sunk:0.0} ao fundo por dia" : "")
+                          + (stuck > 0 ? $"   ⛔ {stuck} contrato{(stuck == 1 ? "" : "s")} parado{(stuck == 1 ? "" : "s")}" : ""), 16);
+        conv.TooltipText = "Os comboios carregam primeiro o abastecimento por mar do exército e só depois as "
+                           + "importações. O que não couber fica no cais: a frente come menos e o contrato não entrega.";
+        if (stuck > 0 || busy > holds) conv.AddThemeColorOverride("font_color", Ui.Danger);
+        card.AddChild(conv);
         if (me.Warships <= 0f)
         {
             card.AddChild(Ui.Lbl("Sem frota: os navios compram-se no painel do País, e só depois há mar para mandar.", 16));
@@ -348,6 +377,15 @@ public partial class WarPanel : PanelContainer
         }
         _body.AddChild(box);
     }
+
+    /// <summary>Mercantes nossos que o bloqueio inimigo afunda hoje: o que está em cima de costa nossa e a
+    /// escolta não conseguiu abrir.</summary>
+    private static float Raided(World w, int pid) =>
+        w.NavalMissions.Where(m => w.AreAtWar(pid, m.CountryId)
+                                   && w.NavalMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == "blockade"
+                                   && w.Regions.TryGetValue(m.RegionId, out var r) && r.ControllerId == pid
+                                   && NavalMissionSystem.Blockaded(w, m.RegionId))
+            .Sum(m => m.Ships) * w.Rule("convoy_raid_sink", 0.25f);
 
     private void SendSea(int pid, int regionId, string missionId, float ships) => _game.RunWhenIdle(() =>
     {
@@ -437,9 +475,19 @@ public partial class WarPanel : PanelContainer
         if (_game.PlayerId is not int pid) return 0;
         _smokeHosts = true;
         int hosts = Hosts(_game.World, pid).Count;
+        _tab = 3;                                    // a secção do adido é a quarta aba
         _lastKey = ""; Fill();
-        _smokeHosts = false; _lastKey = "";
+        _smokeHosts = false; _tab = 0; _lastKey = "";
         return hosts;
+    }
+
+    /// <summary>Só para o --smoke: passa por todas as abas, para o desenho de cada secção (frentes, ar,
+    /// mar, adidos, arquivo) correr sem ninguém tocar no ecrã. Devolve quantas abas desenhou.</summary>
+    public int SmokeTabs()
+    {
+        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); }
+        _tab = 0; _lastKey = "";
+        return Sections.Length;
     }
 
     private void Recall(int pid) => _game.RunWhenIdle(() =>

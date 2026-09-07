@@ -102,7 +102,9 @@ public sealed class SupplySystem : ISystem
 
     /// <summary>Estrangulamento de cais: as divisões que só bebem por mar contam-se ao controlador da
     /// cabeça-de-praia — é a rede dele que as carrega — e, se forem mais do que o porto aguenta, todas
-    /// perdem na mesma proporção. Um país sem excesso não aparece aqui e não perde nada.</summary>
+    /// perdem na mesma proporção. Por cima disso pesa a marinha mercante (ConvoySystem): um cais grande
+    /// sem comboios que o sirvam carrega tão pouco como um cais pequeno. Um país sem excesso e com
+    /// mercantes a rodos não aparece aqui e não perde nada.</summary>
     private static Dictionary<int, float> Strain(World w, HashSet<int> bySea, Dictionary<int, float> capacity)
     {
         var strain = new Dictionary<int, float>();
@@ -122,7 +124,10 @@ public sealed class SupplySystem : ISystem
         {
             if (w.Countries.TryGetValue(cid, out var c)) c.SeaSupplied = n;
             float cap = capacity.GetValueOrDefault(cid);
-            if (n > cap) strain[cid] = Math.Clamp(cap / n, floor, 1f);
+            // o cais só serve se houver mercantes que façam a travessia: a guerra ao comércio sente-se aqui,
+            // e o chão é o mesmo do cais entupido — nem o pior dos dois males afunda a travessia de vez
+            float s = Math.Clamp((n > cap ? cap / n : 1f) * ConvoySystem.Coverage(w, cid, n), floor, 1f);
+            if (s < 1f) strain[cid] = s;
         }
         return strain;
     }

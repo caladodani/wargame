@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS s_country (
   war_exhaustion REAL NOT NULL DEFAULT 0,
   air_power REAL NOT NULL DEFAULT 0,
   warships REAL NOT NULL DEFAULT 0,
+  convoys REAL NOT NULL DEFAULT 0,
   nukes INTEGER NOT NULL DEFAULT 0,
   power_rank INTEGER NOT NULL DEFAULT 0,        -- lugar na tabela mundial (PowerRankingSystem)
   power_rank_prev INTEGER NOT NULL DEFAULT 0    -- lugar anterior, para a seta de subida/descida

@@ -532,7 +532,12 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),
  ('naval_range_km',1500,'distância máxima, por rota marítima, entre a nossa costa e o mar da missão'),
  ('naval_mission_min_ships',1,'navios mínimos para destacar uma esquadra'),
- ('naval_ai_reserve',1,'navios que a IA guarda em casa antes de destacar esquadras');
+ ('naval_ai_reserve',1,'navios que a IA guarda em casa antes de destacar esquadras'),
+ ('convoy_base',20,'marinha mercante de partida de cada país'),
+ ('convoy_cost',25,'custo de um comboio mercante'),
+ ('convoy_per_sea_division',1,'mercantes presos por cada divisão abastecida por mar'),
+ ('convoy_per_trade_unit',2,'mercantes presos por cada unidade importada num tratado'),
+ ('convoy_raid_sink',0.25,'mercantes afundados por dia, por navio de um bloqueio que a escolta não desfaz');
 
 -- Integração de território ocupado (IntegrationSystem)
 INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');

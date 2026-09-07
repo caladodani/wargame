@@ -23,7 +23,9 @@ public sealed class TradeSystem : ISystem
         for (int i = w.TradeDeals.Count - 1; i >= 0; i--)
         {
             var d = w.TradeDeals[i];
-            float cost = d.Units * Paid(w, d);
+            // sem mercantes que o carreguem, o contrato fica de pé mas hoje não entrega nem se paga
+            bool grounded = ConvoySystem.Grounded(w, d);
+            float cost = grounded ? 0f : d.Units * Paid(w, d);
             bool dead = w.AreAtWar(d.BuyerId, d.SellerId)
                         || (d.UntilDay > 0 && w.Clock.Day >= d.UntilDay)     // prazo cumprido: o contrato acaba
                         || !w.Countries.TryGetValue(d.BuyerId, out var buyer) || buyer.Capitulated
@@ -36,6 +38,7 @@ public sealed class TradeSystem : ISystem
                 w.Events.Publish(new TradeDealEnded(d.BuyerId, d.SellerId, d.ResourceId));
                 continue;
             }
+            if (grounded) continue;
             w.Countries[d.BuyerId].Money -= cost;
             w.Countries[d.SellerId].Money += cost;
         }
@@ -69,12 +72,13 @@ public sealed class TradeSystem : ISystem
     public static float Sold(World w, int sellerId, string resourceId) =>
         w.TradeDeals.Where(d => d.SellerId == sellerId && d.ResourceId == resourceId).Sum(d => d.Units);
 
-    /// <summary>Unidades efectivas de um país: controladas − vendidas + compradas.</summary>
+    /// <summary>Unidades efectivas de um país: controladas − vendidas + compradas (as compras que os
+    /// comboios não conseguiram carregar hoje não entram — o aço está no cais do vendedor).</summary>
     public static float Effective(World w, int countryId, string resourceId)
     {
         float units = ResourceSystem.Controlled(w, countryId, resourceId) - Sold(w, countryId, resourceId);
         foreach (var d in w.TradeDeals)
-            if (d.BuyerId == countryId && d.ResourceId == resourceId) units += d.Units;
+            if (d.BuyerId == countryId && d.ResourceId == resourceId && !ConvoySystem.Grounded(w, d)) units += d.Units;
         return MathF.Max(0f, units);
     }
 }
