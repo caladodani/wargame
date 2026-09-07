@@ -56,6 +56,11 @@ public sealed class PeaceSystem : ISystem
             ? popByEnemy.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key).First().Key
             : c.AtWarWith.Min();
 
+        // Conferência de paz: quem fez a guerra reparte a terra por pontos de espólio (PeaceSpoils).
+        // Corre antes da regra velha e à frente dela: só o que ninguém reclamar é que cai lá abaixo.
+        foreach (var g in PeaceSpoils.Divide(w, c).GroupBy(x => x.WinnerId).OrderBy(g => g.Key))
+            w.Events.Publish(new SpoilsTaken(g.Key, c.Id, g.Count(), g.Sum(x => x.Cost)));
+
         // Regiões: o que ele ainda controlava vai para o vencedor; o resto fica de quem ocupa.
         foreach (var r in w.Regions.Values)
         {

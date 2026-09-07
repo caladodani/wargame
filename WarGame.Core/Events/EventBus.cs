@@ -15,6 +15,9 @@ public sealed record DivisionDestroyed(int DivisionId) : IGameEvent;
 public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
+/// <summary>Um vencedor levou a sua parte na conferência de paz (PeaceSpoils): quantas regiões do
+/// derrotado e quantos pontos de espólio pagou por elas.</summary>
+public sealed record SpoilsTaken(int WinnerId, int LoserId, int Regions, float Points) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
 /// <summary>Um beligerante fixou o que quer desta guerra (WarGoalSystem): as regiões exigidas ao inimigo.</summary>
 public sealed record WarGoalDeclared(int CountryId, int TargetCountryId, IReadOnlyList<int> RegionIds) : IGameEvent;

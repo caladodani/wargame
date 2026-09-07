@@ -34,6 +34,8 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "paz", $"{Who(w, e.A)} e {Who(w, e.B)} assinam paz branca: tudo fica como estava.", e.A));
         w.Events.Subscribe<CountryCapitulated>(e =>
             Write(w, "capitulacao", $"{Who(w, e.CountryId)} capitula perante {Who(w, e.WinnerId)}.", e.CountryId));
+        w.Events.Subscribe<SpoilsTaken>(e =>
+            Write(w, "espolio", $"{Who(w, e.WinnerId)} leva {e.Regions} regiões de {Who(w, e.LoserId)} na conferência de paz ({e.Points:0} pontos de espólio).", e.WinnerId));
         w.Events.Subscribe<WorldDominated>(e =>
             Write(w, "dominio", $"{Who(w, e.CountryId)} manda no mundo inteiro.", e.CountryId));
         w.Events.Subscribe<NukeStruck>(e =>

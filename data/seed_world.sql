@@ -406,6 +406,7 @@ INSERT INTO chronicle_kind VALUES ('alianca','Aliança','🤝',2);
 INSERT INTO chronicle_kind VALUES ('honra','Honra de batalha','▮',2);
 INSERT INTO chronicle_kind VALUES ('promocao','Promoção','🎖',2);
 INSERT INTO chronicle_kind VALUES ('foco','Foco nacional','🎯',2);
+INSERT INTO chronicle_kind VALUES ('espolio','Espólio de guerra','🏆',3);
 INSERT INTO chronicle_kind VALUES ('estacao','Estação','🌦',1);
 INSERT INTO rule (key,value,note) VALUES
  ('chronicle_min_weight',2,'peso mínimo para um acontecimento entrar na crónica'),
@@ -556,6 +557,16 @@ INSERT INTO rule (key,value,note) VALUES
  ('occupation_switch_days',30,'dias que uma política de ocupação tem de durar antes de se poder trocar'),
  ('occupation_ai_calm',0.5,'resistência média a partir da qual a IA alivia a ocupação'),
  ('occupation_ai_broke',200,'cofre abaixo do qual a IA em guerra aperta a terra ocupada');
+
+-- Conferência de paz: pontos de espólio de cada vencedor e preço de cada região (PeaceSpoils)
+INSERT INTO rule (key,value,note) VALUES
+ ('spoil_points_per_million',1,'pontos de espólio por milhão de habitantes do derrotado que se ocupa'),
+ ('spoil_points_per_battle',3,'pontos de espólio por batalha ganha nessa guerra'),
+ ('spoil_points_per_region',2,'pontos de espólio por região tomada nessa guerra'),
+ ('spoil_cost_per_million',0.8,'preço de uma região na mesa, por milhão de habitantes'),
+ ('spoil_cost_per_building',6,'preço acrescentado por cada nível de edifício da região'),
+ ('spoil_cost_capital',25,'preço acrescentado por a região ser a capital do derrotado'),
+ ('spoil_cost_min',4,'preço mínimo de uma região na conferência de paz');
 
 -- Integração de território ocupado (IntegrationSystem)
 INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');
