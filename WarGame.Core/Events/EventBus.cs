@@ -18,6 +18,9 @@ public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEven
 /// <summary>Um vencedor levou a sua parte na conferência de paz (PeaceSpoils): quantas regiões do
 /// derrotado e quantos pontos de espólio pagou por elas.</summary>
 public sealed record SpoilsTaken(int WinnerId, int LoserId, int Regions, float Points) : IGameEvent;
+/// <summary>A frente contra um inimigo passou mais um degrau de avanço (TheatreSystem): a fatia da terra dele
+/// que já controlamos, e em quantos troços de frente a guerra vai.</summary>
+public sealed record FrontAdvanced(int CountryId, int FoeId, float Progress, int Theatres) : IGameEvent;
 public sealed record WarEnded(int A, int B) : IGameEvent;
 /// <summary>Um beligerante fixou o que quer desta guerra (WarGoalSystem): as regiões exigidas ao inimigo.</summary>
 public sealed record WarGoalDeclared(int CountryId, int TargetCountryId, IReadOnlyList<int> RegionIds) : IGameEvent;

@@ -36,6 +36,8 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "capitulacao", $"{Who(w, e.CountryId)} capitula perante {Who(w, e.WinnerId)}.", e.CountryId));
         w.Events.Subscribe<SpoilsTaken>(e =>
             Write(w, "espolio", $"{Who(w, e.WinnerId)} leva {e.Regions} regiões de {Who(w, e.LoserId)} na conferência de paz ({e.Points:0} pontos de espólio).", e.WinnerId));
+        w.Events.Subscribe<FrontAdvanced>(e =>
+            Write(w, "frente", $"A frente de {Who(w, e.CountryId)} rompe: {e.Progress:P0} da terra de {Who(w, e.FoeId)} sob controlo, em {e.Theatres} teatro{(e.Theatres == 1 ? "" : "s")} de operações.", e.CountryId));
         w.Events.Subscribe<WorldDominated>(e =>
             Write(w, "dominio", $"{Who(w, e.CountryId)} manda no mundo inteiro.", e.CountryId));
         w.Events.Subscribe<NukeStruck>(e =>

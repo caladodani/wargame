@@ -407,6 +407,7 @@ INSERT INTO chronicle_kind VALUES ('honra','Honra de batalha','▮',2);
 INSERT INTO chronicle_kind VALUES ('promocao','Promoção','🎖',2);
 INSERT INTO chronicle_kind VALUES ('foco','Foco nacional','🎯',2);
 INSERT INTO chronicle_kind VALUES ('espolio','Espólio de guerra','🏆',3);
+INSERT INTO chronicle_kind VALUES ('frente','Avanço na frente','🛡',2);
 INSERT INTO chronicle_kind VALUES ('estacao','Estação','🌦',1);
 INSERT INTO rule (key,value,note) VALUES
  ('chronicle_min_weight',2,'peso mínimo para um acontecimento entrar na crónica'),
@@ -567,6 +568,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('spoil_cost_per_building',6,'preço acrescentado por cada nível de edifício da região'),
  ('spoil_cost_capital',25,'preço acrescentado por a região ser a capital do derrotado'),
  ('spoil_cost_min',4,'preço mínimo de uma região na conferência de paz');
+
+-- Teatros de operações: troços da linha de contacto, guarnição pedida e degrau de avanço (TheatreSystem)
+INSERT INTO rule (key,value,note) VALUES
+ ('theatre_need_per_region',1.5,'divisões que a frente pede por cada região de contacto'),
+ ('theatre_milestone',0.25,'fatia da terra do inimigo entre avisos de que a frente rompeu');
 
 -- Integração de território ocupado (IntegrationSystem)
 INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');

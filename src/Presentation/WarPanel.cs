@@ -89,6 +89,7 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
                       AttacheKey(w, pid) + "|" + AirKey(w, pid) + "|" + SeaKey(w, pid) + "|" +
+                      "th" + string.Join(",", TheatreSystem.Of(w, pid).Select(t => $"{t.FoeId}:{t.RegionIds.Count}:{t.Divisions}:{t.FoeDivisions}:{t.Holes}:{(int)(t.Progress * 100f)}")) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -144,6 +145,7 @@ public partial class WarPanel : PanelContainer
                 _body.AddChild(box);
             }
 
+            if (_tab == 0) Theatres(w, pid);
             if (_tab == 1) AirWar(w, pid);
             if (_tab == 2) SeaWar(w, pid);
             if (_tab == 3) Attaches(w, pid);
@@ -716,4 +718,42 @@ public partial class WarPanel : PanelContainer
     private static string Name(World w, int id) => w.Countries.TryGetValue(id, out var c) ? c.Name : "#" + id;
 
     private void Header(string text) { var l = Ui.Lbl(text, 20); l.Modulate = new Color(1f, 0.85f, 0.4f); _body.AddChild(l); }
+
+    /// <summary>Teatros de operações: a mesma guerra vista por troços de linha em vez de por país. Um cartão
+    /// por frente, com a guarnição que lá temos contra a que a frente pede, o avanço contra aquele inimigo e o
+    /// aviso quando um troço tem regiões sem uma única divisão — o buraco por onde eles entram sem disparar.</summary>
+    private void Theatres(World w, int pid)
+    {
+        var fronts = TheatreSystem.Of(w, pid);
+        if (fronts.Count == 0) return;
+        Header($"Teatros de operações ({fronts.Count})");
+        foreach (var t in fronts)
+        {
+            var (box, card) = Card();
+            var title = new HBoxContainer();
+            title.AddChild(Ui.Grow(Ui.Lbl($"🛡 {t.Name}", 19)));
+            var state = Ui.Lbl(t.Holes > 0 ? $"☠ {t.Holes} buraco{(t.Holes == 1 ? "" : "s")}" : "linha fechada", 15);
+            state.AddThemeColorOverride("font_color", t.Holes > 0 ? Ui.Danger : Ui.Good);
+            title.AddChild(state);
+            card.AddChild(title);
+            card.AddChild(Ui.Lbl($"contra {Name(w, t.FoeId)}   ·   {t.RegionIds.Count} região{(t.RegionIds.Count == 1 ? "" : "ões")} de contacto"
+                                 + $"   ·   {t.Divisions} div nossas contra {t.FoeDivisions} deles", 15));
+            Gauge(card, "Guarnição", t.Coverage, FrontOverlay.Tint(t.Coverage), $"{t.Divisions} de {t.Need:0.#} divisões");
+            Gauge(card, "Avanço", t.Progress, Ui.Danger.Lerp(Ui.Good, t.Progress), $"{t.Progress:P0} da terra dele");
+            _body.AddChild(box);
+        }
+    }
+
+    /// <summary>Uma barra com nome à esquerda e a conta à direita, para os números da frente se lerem de relance.</summary>
+    private static void Gauge(VBoxContainer card, string label, float value, Color tint, string note)
+    {
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(Ui.Lbl(label, 15));
+        var bar = Ui.Bar(Mathf.Clamp(value, 0f, 1f), tint, 0f);
+        bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        row.AddChild(bar);
+        var n = Ui.Lbl(note, 14); n.AddThemeColorOverride("font_color", Ui.TextDim);
+        row.AddChild(n);
+        card.AddChild(row);
+    }
 }
