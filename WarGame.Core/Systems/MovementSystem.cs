@@ -17,30 +17,40 @@ public sealed class MovementSystem : ISystem
         var inBattle = new HashSet<int>(w.ActiveBattles.SelectMany(b => b.Attackers.Concat(b.Defenders)));
         Retreat(w, inBattle);
 
-        float baseDays = w.Rule("move_base_days", 80f), infraFloor = w.Rule("move_infra_floor", 0.5f);
-        float seaSpeed = w.Rule("sea_speed_kmd", 400f), seaMin = w.Rule("sea_min_days", 2f);
         foreach (var d in w.Divisions.Values)
         {
             if (d.Path.Count == 0 || inBattle.Contains(d.Id)) continue;
             var target = w.Regions[d.Path[0]];
             var origin = w.Regions[d.RegionId];
             bool bySea = w.IsSeaHop(origin.Id, target.Id);
-            float days;
-            if (bySea)
-                // travessia marítima: dias pela distância, terreno e infraestrutura não contam
-                days = MathF.Max(seaMin, origin.SeaNeighbours[target.Id] / seaSpeed);
-            else
-                // dias para entrar = base / mobilidade × custo do terreno / infraestrutura (com chão)
-                days = baseDays / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
-                       / MathF.Max(infraFloor, target.Infrastructure) / (w.Countries[d.CountryId].Stat("move_speed") * w.CommandMult(d, "move_speed"));
-            days /= w.SeasonMove;      // no Inverno as colunas atolam-se; no Verão anda-se
-            d.MoveProgress += 1f / days;
+            d.MoveProgress += 1f / HopDays(w, d, origin, target);
             if (d.MoveProgress < 1f) continue;
 
             if (w.CanTraverse(d.CountryId, target)) Enter(w, d, target, inBattle, bySea);
             else if (w.IsHostile(d.CountryId, target)) Attack(w, d, target, inBattle, bySea);
             else d.ClearPath();   // terceiro (nem nosso, nem aliado, nem inimigo): pára à fronteira
         }
+    }
+
+    /// <summary>Dias que esta divisão leva a entrar naquela região vinda desta. Por mar é a distância pela
+    /// velocidade dos transportes (com um mínimo, que embarcar e desembarcar também leva tempo); por terra é
+    /// a base a dividir pela mobilidade da divisão, vezes o custo do terreno, a dividir pela infraestrutura
+    /// (com chão) e pela velocidade de marcha do país e do comando. A estação do ano multiplica tudo: no
+    /// Inverno as colunas atolam-se.
+    ///
+    /// É público porque não serve só para andar: o mapa usa-o para dizer ao jogador quantos dias faltam para
+    /// a divisão chegar ao fim da rota, e a conta tem de ser a mesma que o mundo faz — uma estimativa que
+    /// mentisse era pior do que não haver estimativa nenhuma.</summary>
+    public static float HopDays(World w, Division d, Region origin, Region target)
+    {
+        float days;
+        if (w.IsSeaHop(origin.Id, target.Id))
+            days = MathF.Max(w.Rule("sea_min_days", 2f), origin.SeaNeighbours[target.Id] / w.Rule("sea_speed_kmd", 400f));
+        else
+            days = w.Rule("move_base_days", 80f) / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
+                   / MathF.Max(w.Rule("move_infra_floor", 0.5f), target.Infrastructure)
+                   / (w.Countries[d.CountryId].Stat("move_speed") * w.CommandMult(d, "move_speed"));
+        return MathF.Max(0.01f, days / w.SeasonMove);
     }
 
     /// <summary>Divisão fora de batalha em região inimiga (acabou de ser capturada) recua para a região própria

@@ -13,6 +13,10 @@ public partial class RegionPanel : PanelContainer
     /// <summary>O próximo toque numa região é o destino das divisões seleccionadas.</summary>
     public bool MoveMode { get; private set; }
 
+    /// <summary>A região aberta e as divisões marcadas nela: o mapa desenha-lhes a rota (RouteOverlay).</summary>
+    public int OpenRegionId => _regionId;
+    public IReadOnlyCollection<int> SelectedDivisions => _selected;
+
     private Game _game = null!;
     private MapView _map = null!;
     private ProductionPanel _production = null!;

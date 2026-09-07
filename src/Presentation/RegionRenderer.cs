@@ -174,6 +174,39 @@ public partial class RegionRenderer : Node2D
         }
     }
 
+    /// <summary>As tiras de fronteira desta região que acompanham aquela vizinha, já em coordenadas de mundo
+    /// e cosidas por ordem do anel (como as que o PaintFrontier desenha, mas filtradas a uma vizinha só).
+    ///
+    /// É o que a linha da frente precisa para deixar de ser um tracejado de barras soltas: o troço em que a
+    /// nossa terra encosta mesmo à dele, com a forma que a fronteira tem no mapa. Devolve vazio quando a
+    /// simplificação dos polígonos não deu aresta comum nenhuma — nesse caso quem desenha usa o ponto de
+    /// aproximação máxima, que é sempre melhor do que não desenhar.</summary>
+    public List<Vector2[]> BorderWith(int regionId, int neighbourId)
+    {
+        var arcs = new List<Vector2[]>();
+        if (!_rings.TryGetValue(regionId, out var rings) || !_edgeOf.TryGetValue(regionId, out var edges)) return arcs;
+        for (int k = 0; k < rings.Count && k < edges.Count; k++)
+        {
+            var ring = rings[k]; var edge = edges[k];
+            int n = ring.Length, marked = 0;
+            for (int i = 0; i < n; i++) if (edge[i] == neighbourId) marked++;
+            if (marked == 0) continue;
+            if (marked == n) { arcs.Add(ring.Append(ring[0]).ToArray()); continue; }   // enclave: o anel inteiro
+            for (int i = 0; i < n; i++)
+            {
+                if (edge[i] != neighbourId || edge[(i - 1 + n) % n] == neighbourId) continue;   // só o princípio da tira
+                var pts = new List<Vector2> { ring[i] };
+                for (int j = i; j < i + n && edge[j % n] == neighbourId; j++) pts.Add(ring[(j + 1) % n]);
+                arcs.Add(pts.ToArray());
+            }
+        }
+        return arcs;
+    }
+
+    /// <summary>Os anéis crus de uma região, para contas de geometria de quem desenha por cima do mapa.</summary>
+    public IReadOnlyList<Vector2[]> Rings(int regionId) =>
+        _rings.TryGetValue(regionId, out var r) ? r : Array.Empty<Vector2[]>();
+
     private static Rect2 Box(List<Vector2[]> rings)
     {
         var box = new Rect2(rings[0][0], Vector2.Zero);

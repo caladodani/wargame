@@ -24,6 +24,8 @@ public partial class MapView : Node2D
     public ConvoyRoutes Convoys => _convoys;
     /// <summary>A linha da frente desenhada por cima do mapa (FrontOverlay).</summary>
     public FrontOverlay Fronts => _fronts;
+    /// <summary>As rotas das divisões escolhidas: para onde vai a tropa que o jogador tem em mãos.</summary>
+    public RouteOverlay Routes => _routes;
 
     private const float TapMaxDrag = 14f;      // arrasto acumulado (px) a partir do qual deixa de ser toque curto
     private const ulong LongPressMs = 450;     // dedo parado neste tempo = toque longo
@@ -35,6 +37,7 @@ public partial class MapView : Node2D
     private PlanOverlay _plans = null!;
     private ConvoyRoutes _convoys = null!;
     private FrontOverlay _fronts = null!;
+    private RouteOverlay _routes = null!;
     private readonly Dictionary<int, Vector2> _touches = new();
     private float _lastPinch, _dragDist;
     private bool _multi, _longFired;
@@ -50,9 +53,11 @@ public partial class MapView : Node2D
         // as setas dos planos entram depois das regiões: desenham-se por cima do mapa
         // as rotas de comboio entram antes das setas: os planos mandam mais e ficam por cima delas
         // a linha da frente entra primeiro de todas: é o chão da guerra, com as rotas e as setas por cima
-        _fronts = new FrontOverlay { Name = "Fronts" }; AddChild(_fronts); _fronts.Setup(game);
+        _fronts = new FrontOverlay { Name = "Fronts" }; AddChild(_fronts); _fronts.Setup(game, _regions);
         _convoys = new ConvoyRoutes { Name = "Convoys" }; AddChild(_convoys); _convoys.Setup(game);
         _plans = new PlanOverlay { Name = "Plans" }; AddChild(_plans); _plans.Setup(game);
+        // e por cima de tudo a rota da tropa escolhida: é a ordem de agora, não um plano para daqui a um mês
+        _routes = new RouteOverlay { Name = "Routes" }; AddChild(_routes); _routes.Setup(game);
         SetZoom(GetViewportRect().Size.X / 8400f);   // arranque: mapa inteiro (8000 un. de largura) visível
         SetProcess(true);
     }
@@ -151,6 +156,7 @@ public partial class MapView : Node2D
         _plans.SetZoom(z);
         _convoys.SetZoom(z);
         _fronts.SetZoom(z);
+        _routes.SetZoom(z);
         EmitSignal(SignalName.ZoomChanged, z);
     }
 }
