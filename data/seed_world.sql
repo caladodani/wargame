@@ -446,6 +446,17 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort) VALUES
  ('industria','Indústria','🏭','industry','terra rasa','fábricas',3),
  ('populacao','População','♟','population','deserto','multidão',4);
 
+-- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
+CREATE TABLE IF NOT EXISTS air_mission (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  effect TEXT NOT NULL,                      -- superiority | support | bombing
+  value REAL NOT NULL,                       -- o que cada asa vale nesse papel
+  note TEXT NOT NULL, sort INTEGER NOT NULL);
+INSERT INTO air_mission (id,name,icon,effect,value,note,sort) VALUES
+ ('superioridade','Superioridade aérea','🛩','superiority',1,'Varre o céu da região: cada asa pesa na balança aérea do combate que lá se der.',0),
+ ('apoio','Apoio próximo','💥','support',0.03,'Bate no chão ao lado da nossa tropa: cada asa soma força a quem ali combate.',1),
+ ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2);
+
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES
  ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),
@@ -498,6 +509,12 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('air_wing_cost',60,'custo de um esquadrão aéreo'),
  ('air_combat_weight',0.15,'peso máximo da superioridade aérea na força (±15%)'),
+ ('air_mission_upkeep',0.6,'custo por asa e por dia de uma missão aérea destacada'),
+ ('air_dogfight_loss',0.04,'asas abatidas por dia no céu disputado, por asa do lado mais fraco'),
+ ('air_bomb_infra_min',0.25,'chão da infraestrutura de uma região bombardeada'),
+ ('air_support_max',0.35,'tecto do bónus de apoio próximo na força de quem combate'),
+ ('air_mission_min_wings',1,'asas mínimas para destacar uma missão aérea'),
+ ('air_ai_reserve',1,'asas que a IA guarda em casa antes de destacar missões'),
  ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões');
 
 -- Integração de território ocupado (IntegrationSystem)

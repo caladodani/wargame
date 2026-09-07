@@ -19,6 +19,7 @@ public partial class JournalPanel : PanelContainer
     private readonly List<(int Day, string Text)> _entries = new();
     private string _filter = "";        // "" = tudo; senão, id do género
     private string _key = "";
+    private HBoxContainer _crest = null!;
 
     public void Setup(Game game)
     {
@@ -29,7 +30,7 @@ public partial class JournalPanel : PanelContainer
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
-        head.AddChild(Ui.Grow(Ui.Lbl("Crónica", 22)));
+        _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
         var filterScroll = new ScrollContainer
         {
@@ -81,6 +82,8 @@ public partial class JournalPanel : PanelContainer
         if (key == _key) return;
         _key = key;
 
+        Ui.CrestInto(_crest, _game.PlayerId is int me && w.Countries.TryGetValue(me, out var mc) ? mc.Tag : "",
+            "Crónica", $"{w.Chronicle.Count} entradas · dia {w.Clock.Day}");
         FillFilters(w);
         Ui.Clear(_body);
 

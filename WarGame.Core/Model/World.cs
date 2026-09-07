@@ -125,6 +125,12 @@ public sealed class World
     /// <summary>Adidos militares destacados: quem manda → missão. Um por país (AttacheSystem).</summary>
     public Dictionary<int, Attache> Attaches { get; } = new();
 
+    /// <summary>Tipos de missão aérea (tabela air_mission): o que os esquadrões podem ir fazer.</summary>
+    public Dictionary<string, AirMissionDef> AirMissionDefs { get; } = new();
+    /// <summary>Esquadrões destacados sobre regiões (AirMissionSystem; save s_air_mission). Uma missão por
+    /// (país, região): mandar mais asas para o mesmo céu engrossa a que lá está.</summary>
+    public List<AirMission> AirMissions { get; } = new();
+
     /// <summary>País metido em alguma guerra a sério (é a guerra dele que ensina o adido).</summary>
     public bool AtWar(int countryId) =>
         Countries.TryGetValue(countryId, out var c) && !c.Capitulated && c.AtWarWith.Count > 0;

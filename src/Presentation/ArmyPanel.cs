@@ -19,6 +19,7 @@ public partial class ArmyPanel : PanelContainer
     private ArmySelect _select = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    private HBoxContainer _crest = null!;
     private int? _generals;      // grupo com a lista de comandantes aberta
     /// <summary>Grupo com a lista de frentes aberta (só uma de cada vez, para o painel caber no telemóvel).</summary>
     private int? _fronts;
@@ -32,7 +33,7 @@ public partial class ArmyPanel : PanelContainer
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
-        head.AddChild(Ui.Grow(Ui.Lbl("Exércitos", 22)));
+        _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
@@ -89,6 +90,8 @@ public partial class ArmyPanel : PanelContainer
                       string.Join(";", groups.Select(g => $"{g.Id}:{g.Name}:{g.FrontCountryId}:{(int)g.Stance}:{g.Divisions.Count}:{g.GeneralId}:{(int)ArmyGroupSystem.Strength(w, g)}:{(int)(g.Planning * 100f)}"));
             if (key == _lastKey) return;
             _lastKey = key;
+            Ui.CrestInto(_crest, w.Countries[pid].Tag, "Exércitos",
+                $"{w.Divisions.Values.Count(d => d.CountryId == pid)} divisões · {groups.Count} grupos");
             Ui.Clear(_body);
 
             int max = (int)w.Rule("army_group_max", 6f);

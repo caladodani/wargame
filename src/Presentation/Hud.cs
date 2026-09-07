@@ -1027,6 +1027,19 @@ public partial class Hud : CanvasLayer
                     ? $"junto de {w.Countries[mission.HostId].Name}" : "cofre curto";
         }
         else if (w.AtWar(pid)) attache = "a nossa guerra vê-se de dentro";
+        // guerra aérea: compra-se uma asa se o cofre a der e destaca-se para o céu da frente, para a secção
+        // do painel da Guerra desenhar missões a sério em vez de uma linha vazia
+        string air = "sem céu ao alcance";
+        if (AirMissionSystem.Front(w, pid) is int sky)
+        {
+            if (AirMissionSystem.Free(w, pid) < 1f) _game.Dispatch(new BuyAirWingCommand(pid));
+            // --smoke: se o cofre não deu a compra, dá-se o esquadrão à mão — a prova é a missão voar, não o preço
+            if (AirMissionSystem.Free(w, pid) < 1f) c.AirPower += 1f;
+            float lot = MathF.Max(w.Rule("air_mission_min_wings", 1f), MathF.Floor(AirMissionSystem.Free(w, pid)));
+            var order = new AssignAirMissionCommand(pid, sky, "superioridade", lot);
+            air = order.Validate(w) is string why ? why
+                : _game.Dispatch(order) ?? $"{lot:0.#} asa{(lot == 1f ? "" : "s")} sobre {w.Regions[sky].Name}";
+        }
         _warPanel.Open();
         int hosts = _warPanel.SmokeAttache();                             // cartão do adido e lista de anfitriões
         _warPanel.Close();
@@ -1057,7 +1070,7 @@ public partial class Hud : CanvasLayer
             break;
         }
         _countryPanel.Open(pid); _countryPanel.Close();                   // o mercado desenhado no painel do País
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo)");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

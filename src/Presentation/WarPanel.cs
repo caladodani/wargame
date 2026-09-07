@@ -14,6 +14,7 @@ public partial class WarPanel : PanelContainer
     private Game _game = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    private HBoxContainer _crest = null!;
     /// <summary>Levar o mapa a uma região (o Hud é que sabe mexer na câmara): usado pelo "Ver no mapa" das
     /// cedências, para ninguém assinar terra que não viu.</summary>
     public Action<int>? OnShowRegion;
@@ -36,7 +37,7 @@ public partial class WarPanel : PanelContainer
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
-        head.AddChild(Ui.Grow(Ui.Lbl("Guerra", 22)));
+        _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
@@ -75,10 +76,12 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
-                      AttacheKey(w, pid) + "|" +
+                      AttacheKey(w, pid) + "|" + AirKey(w, pid) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
+            Ui.CrestInto(_crest, w.Countries[pid].Tag, "Guerra",
+                $"{mine.Count} em curso · {past.Count} no arquivo · {AirMissionSystem.Assigned(w, pid):0.#} asas no ar");
             Ui.Clear(_body);
 
             var front = new Dictionary<int, float>();   // força útil (org×HP) por país, para a balança
@@ -126,6 +129,7 @@ public partial class WarPanel : PanelContainer
                 _body.AddChild(box);
             }
 
+            AirWar(w, pid);
             Attaches(w, pid);
 
             if (past.Count > 0)
@@ -163,6 +167,103 @@ public partial class WarPanel : PanelContainer
         w.Countries.Values.Where(h => w.AttacheBlock(pid, h.Id) is null
                                    || (_smokeHosts && h.Id != pid && w.AtWar(h.Id)))
             .OrderBy(h => h.Id).ToList();
+
+    /// <summary>O que o painel tem de redesenhar quando o céu muda: as nossas missões, as asas em casa e o
+    /// que o inimigo tem por cima delas.</summary>
+    private string AirKey(World w, int pid) =>
+        $"air{AirMissionSystem.Free(w, pid):0.0}:"
+        + string.Join("-", w.AirMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
+            .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Wings:0.0}"))
+        + ":" + (AirMissionSystem.Front(w, pid)?.ToString() ?? "-");
+
+    /// <summary>Guerra aérea: os esquadrões deixaram de ser um número no cofre e passaram a estar num sítio.
+    /// A secção mostra o pool (em casa / no ar / o que custa por dia), as missões destacadas com o céu que
+    /// está disputado, e dá as três tarefas para o céu da frente — superioridade, apoio e bombardeamento.
+    ///
+    /// Vive no painel da Guerra porque é a frente que decide para onde vão os aviões, e é aqui que a frente
+    /// está escrita. Sem isto, a mecânica só existia para a IA.</summary>
+    private void AirWar(World w, int pid)
+    {
+        var me = w.Countries[pid];
+        float upkeep = w.Rule("air_mission_upkeep", 0.6f);
+        float free = AirMissionSystem.Free(w, pid), flying = AirMissionSystem.Assigned(w, pid);
+        Header("Guerra aérea");
+        var (box, card) = Card();
+
+        card.AddChild(Ui.Lbl($"✈ {me.AirPower:0.#} esquadrões — {free:0.#} em casa, {flying:0.#} no ar   ·   " +
+                             $"estadia {flying * upkeep:0.0}/dia   ·   cofre {me.Money:0}", 16));
+        if (me.AirPower <= 0f)
+        {
+            card.AddChild(Ui.Lbl("Sem esquadrões: compram-se no painel do País, e só depois há céu para mandar.", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        foreach (var m in w.AirMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
+        {
+            if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
+            float foe = w.AirMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Wings);
+            int rid = m.RegionId;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+            var lbl = Ui.Grow(Ui.Lbl($"{def.Icon} {r.Name} — {def.Name}, {m.Wings:0.#} asas há {w.Clock.Day - m.SinceDay} dias"
+                                     + (foe > 0f ? $"   ⚔ céu disputado ({foe:0.#} deles)" : ""), 16));
+            lbl.TooltipText = def.Note + (foe > 0f ? "\nCéu disputado: abatem-se aviões dos dois lados todos os dias." : "");
+            row.AddChild(lbl);
+            if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
+            row.AddChild(Ui.Btn("Recolher", () => RecallAir(pid, rid), 150));
+            card.AddChild(row);
+        }
+
+        // céus a que se pode mandar hoje: a frente inimiga e a nossa terra onde já se combate
+        var skies = new List<int>();
+        if (AirMissionSystem.Front(w, pid) is int front) skies.Add(front);
+        foreach (var b in w.ActiveBattles)
+            if (skies.Count < 3 && !skies.Contains(b.RegionId)
+                && w.Regions.TryGetValue(b.RegionId, out var br) && br.ControllerId == pid) skies.Add(b.RegionId);
+        if (skies.Count == 0)
+        {
+            card.AddChild(Ui.Lbl("Nenhum céu ao alcance: a frente tem de tocar em terra nossa.", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        float lot = MathF.Max(w.Rule("air_mission_min_wings", 1f), MathF.Floor(free));
+        foreach (int rid in skies)
+        {
+            var r = w.Regions[rid];
+            card.AddChild(Ui.Lbl($"{(r.ControllerId == pid ? "Céu nosso" : "Céu deles")}: {r.Name}"
+                                 + (r.ControllerId == pid ? "" : $"   ·   infra {r.Infrastructure:0.00}"), 15));
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            foreach (var def in w.AirMissionDefs.Values.OrderBy(d => d.Sort))
+            {
+                string mid = def.Id; int target = rid;
+                string? no = AirMissionSystem.Block(w, pid, target, mid, lot);
+                var b = Ui.Btn($"{def.Icon} {def.Name} ({lot:0.#})", () => SendAir(pid, target, mid, lot), 0,
+                               no is null ? Ui.Kind.Primary : Ui.Kind.Normal);
+                b.Disabled = no is not null;
+                b.TooltipText = no ?? def.Note;
+                row.AddChild(Ui.Grow(b));
+            }
+            card.AddChild(row);
+        }
+        _body.AddChild(box);
+    }
+
+    private void SendAir(int pid, int regionId, string missionId, float wings) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new AssignAirMissionCommand(pid, regionId, missionId, wings));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"{wings:0.#} asas a caminho de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
+
+    private void RecallAir(int pid, int regionId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new RecallAirMissionCommand(pid, regionId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Esquadrões de volta de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
 
     /// <summary>Adido militar: um oficial nosso a ver a guerra dos outros de dentro. Vive aqui, no painel da
     /// guerra, porque é onde estão as guerras — as nossas em cima, as alheias a seguir. Sem esta secção a

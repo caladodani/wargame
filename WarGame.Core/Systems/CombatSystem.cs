@@ -89,18 +89,34 @@ public sealed class CombatSystem : ISystem
             if (w.HasIntel(attC, defC)) for (int i = 0; i < strA.Length; i++) strA[i] *= intelMult;
             if (w.HasIntel(defC, attC)) for (int i = 0; i < strD.Length; i++) strD[i] *= intelMult;
         }
-        // superioridade aérea: razão de esquadrões modula a força (±air_combat_weight no máximo)
+        // superioridade aérea: razão de esquadrões modula a força (±air_combat_weight no máximo). O poder
+        // aéreo nacional conta sempre, mas as asas destacadas para o céu desta região contam por cima —
+        // é o que faz valer a pena concentrar a aviação numa frente em vez de a espalhar pelo mundo.
         if (att.Count > 0 && def.Count > 0
             && w.Countries.TryGetValue(att[0].CountryId, out var ac) && w.Countries.TryGetValue(def[0].CountryId, out var dc2))
         {
-            float airTot = ac.AirPower + dc2.AirPower;
+            float airA = ac.AirPower, airD = dc2.AirPower;
+            if (battleRegion is not null)
+            {
+                airA += AirMissionSystem.Superiority(w, battleRegion.Id, ac.Id);
+                airD += AirMissionSystem.Superiority(w, battleRegion.Id, dc2.Id);
+            }
+            float airTot = airA + airD;
             if (airTot > 0f)
             {
                 float weight = w.Rule("air_combat_weight", 0.15f);
-                float mA = 1f + (ac.AirPower / airTot - 0.5f) * 2f * weight;
-                float mD = 1f + (dc2.AirPower / airTot - 0.5f) * 2f * weight;
+                float mA = 1f + (airA / airTot - 0.5f) * 2f * weight;
+                float mD = 1f + (airD / airTot - 0.5f) * 2f * weight;
                 for (int i = 0; i < strA.Length; i++) strA[i] *= mA;
                 for (int i = 0; i < strD.Length; i++) strD[i] *= mD;
+            }
+            // apoio próximo: as asas que batem no chão somam força a quem ali combate (tecto air_support_max)
+            if (battleRegion is not null)
+            {
+                float supA = 1f + AirMissionSystem.Support(w, battleRegion.Id, ac.Id);
+                float supD = 1f + AirMissionSystem.Support(w, battleRegion.Id, dc2.Id);
+                for (int i = 0; i < strA.Length; i++) strA[i] *= supA;
+                for (int i = 0; i < strD.Length; i++) strD[i] *= supD;
             }
         }
         Exchange(w, att, strA, def, "defense");

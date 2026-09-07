@@ -155,6 +155,57 @@ internal static class Ui
         return row;
     }
 
+    /// <summary>Brasão do painel: a bandeira do país numa moldura de latão com rebites, e o título do
+    /// painel ao lado, com a legenda por baixo. É o escudo que os painéis dos jogos de grande estratégia
+    /// têm no canto — sem ele um painel aberto podia ser de qualquer país, e com meia dúzia deles abertos
+    /// ninguém sabia de quem era a folha que estava a ler.
+    ///
+    /// Devolve a linha inteira; quem a chama acrescenta ao lado o que lhe falta (botões, contadores).</summary>
+    public static HBoxContainer Crest(string tag, string title, string sub = "", int size = 22)
+    {
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10);
+
+        var shield = new PanelContainer();
+        var plate = Box(Ink with { A = 0.9f }, 3);
+        plate.BorderWidthLeft = plate.BorderWidthRight = plate.BorderWidthTop = plate.BorderWidthBottom = 2;
+        plate.BorderColor = Accent;
+        shield.AddThemeStyleboxOverride("panel", plate);
+        var flag = Flags.Rect(size + 6);
+        flag.Texture = Flags.Of(tag);
+        if (flag.Texture is null)
+        {
+            // país sem bandeira: fica a sigla em latão, que é melhor do que um buraco na moldura
+            var t = Lbl(tag, size - 4);
+            t.AddThemeColorOverride("font_color", Accent);
+            t.HorizontalAlignment = HorizontalAlignment.Center;
+            t.CustomMinimumSize = new Vector2((size + 6) * 1.5f, size + 6);
+            shield.AddChild(t);
+        }
+        else shield.AddChild(flag);
+        row.AddChild(shield);
+
+        var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 0);
+        var name = Lbl(title, size);
+        name.AddThemeColorOverride("font_color", Text);
+        stack.AddChild(name);
+        if (sub.Length > 0)
+        {
+            var s2 = Lbl(sub, 13);
+            s2.AddThemeColorOverride("font_color", TextDim);
+            stack.AddChild(s2);
+        }
+        row.AddChild(Grow(stack));
+        return row;
+    }
+
+    /// <summary>Volta a encher uma linha de cabeçalho com o brasão. Existe porque os cabeçalhos dos painéis
+    /// montam-se uma vez no Setup e o país do jogador só se sabe depois — e ainda muda quando ele escolhe.</summary>
+    public static void CrestInto(HBoxContainer host, string tag, string title, string sub = "", int size = 22)
+    {
+        Clear(host);
+        host.AddChild(Grow(Crest(tag, title, sub, size)));
+    }
+
     /// <summary>Título de secção à maneira das folhas de estado-maior: versaletes (o Godot não tem a
     /// variante tipográfica, faz-se por maiúsculas com espaço entre letras) em latão, com o risco por
     /// baixo. Dá hierarquia aos painéis sem gastar altura nem tamanho de letra.</summary>

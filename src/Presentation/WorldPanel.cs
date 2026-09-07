@@ -12,6 +12,7 @@ public partial class WorldPanel : PanelContainer
     private CountryPanel _countryPanel = null!;
     private VBoxContainer _body = null!;
     private string _lastKey = "";
+    private HBoxContainer _crest = null!;
     /// <summary>Nota do primeiro classificado da última contagem: as barras são todas relativas a ela.</summary>
     private float _best;
 
@@ -24,7 +25,7 @@ public partial class WorldPanel : PanelContainer
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
-        head.AddChild(Ui.Grow(Ui.Lbl("Mundo", 22)));
+        _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
@@ -54,6 +55,8 @@ public partial class WorldPanel : PanelContainer
             var key = w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count;
             if (key == _lastKey) return;
             _lastKey = key;
+            Ui.CrestInto(_crest, _game.PlayerId is int crestId && w.Countries.TryGetValue(crestId, out var mc) ? mc.Tag : "",
+                "Mundo", $"{w.Countries.Count} países · {w.Wars.Count} guerras abertas");
             Ui.Clear(_body);
 
             var divs = new Dictionary<int, int>();

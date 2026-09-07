@@ -266,6 +266,24 @@ public sealed class Attache
     public float Learned { get; set; }
 }
 
+/// <summary>Tipo de missão aérea (tabela air_mission): o que um esquadrão vai lá fazer. Effect diz qual dos
+/// três papéis é — "superiority" (varrer o céu da região e pesar no combate), "support" (bater no chão ao
+/// lado da nossa tropa) ou "bombing" (deitar abaixo a infraestrutura de quem lá manda) — e Value é o que
+/// cada asa vale nesse papel. Trocar o que a aviação faz é trocar linhas desta tabela.</summary>
+public sealed record AirMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort);
+
+/// <summary>Um esquadrão destacado para uma região (AirMissionSystem; save s_air_mission). Wings são asas
+/// do pool nacional (Country.AirPower) que ficam presas a esta missão até serem chamadas de volta — ou até
+/// serem abatidas no céu de lá.</summary>
+public sealed class AirMission
+{
+    public int CountryId { get; init; }
+    public int RegionId { get; init; }
+    public string MissionId { get; init; } = "";
+    public float Wings { get; set; }
+    public int SinceDay { get; init; }
+}
+
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
 public sealed class ProductionOrder
 {

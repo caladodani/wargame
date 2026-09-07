@@ -941,6 +941,26 @@ public sealed record BuyAirWingCommand(int CountryId) : ICommand
 }
 
 
+/// <summary>Destacar esquadrões para o céu de uma região (AirMissionSystem). As asas saem do pool nacional
+/// enquanto a missão durar, custam estadia todos os dias e podem ser abatidas onde o céu está disputado.
+/// Mandar mais asas para o mesmo céu engrossa a missão que lá está; mandar com outra tarefa re-emprega as
+/// que já lá estavam.</summary>
+public sealed record AssignAirMissionCommand(int CountryId, int RegionId, string MissionId, float Wings) : ICommand
+{
+    public string? Validate(World w) => AirMissionSystem.Block(w, CountryId, RegionId, MissionId, Wings);
+
+    public void Execute(World w) => AirMissionSystem.Assign(w, CountryId, RegionId, MissionId, Wings);
+}
+
+/// <summary>Chamar de volta os esquadrões que estão sobre uma região: as asas voltam ao pool no mesmo dia.</summary>
+public sealed record RecallAirMissionCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w) =>
+        w.AirMissions.Any(m => m.CountryId == CountryId && m.RegionId == RegionId) ? null : "não há missão nesse céu";
+
+    public void Execute(World w) => AirMissionSystem.Recall(w, CountryId, RegionId);
+}
+
 /// <summary>Construir uma ogiva nuclear: exige a tecnologia que dá o multiplicador "nuclear" (> 1)
 /// e nuke_cost pontos de produção. NuclearStrikeCommand gasta uma ogiva.</summary>
 public sealed record BuildNukeCommand(int CountryId) : ICommand

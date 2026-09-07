@@ -91,6 +91,7 @@ public partial class Game : Node
         World.Register(new OfferSystem());       // logo a seguir: a IA olha para os campos e propõe trocas
         World.Register(new WarGoalSystem());
         World.Register(new MovementSystem());
+        World.Register(new AirMissionSystem());  // antes do combate: a batalha do dia vê o céu deste dia
         World.Register(new CombatSystem());
         World.Register(new EntrenchSystem());    // depois do movimento e do combate: já se sabe quem marchou e quem assaltou hoje
         World.Register(new MedalSystem());       // depois do combate: condecora com os contadores do dia

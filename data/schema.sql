@@ -217,6 +217,15 @@ CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (ef
 CREATE TABLE IF NOT EXISTS s_pact (           -- pactos de não-agressão (a<b, até `until_day`)
   a INTEGER, b INTEGER, until_day INTEGER NOT NULL,
   PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS air_mission (      -- tipos de missão aérea (AirMissionSystem); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  effect TEXT NOT NULL,                       -- superiority | support | bombing
+  value REAL NOT NULL,                        -- o que cada asa vale nesse papel
+  note TEXT NOT NULL, sort INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre regiões (save)
+  country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
+  wings REAL NOT NULL, since_day INTEGER NOT NULL,
+  PRIMARY KEY (country_id, region_id));
 CREATE TABLE IF NOT EXISTS s_attache (        -- adidos militares destacados (AttacheSystem)
   country_id INTEGER PRIMARY KEY, host_id INTEGER NOT NULL, since_day INTEGER NOT NULL,
   learned REAL NOT NULL DEFAULT 0);
