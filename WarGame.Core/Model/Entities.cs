@@ -201,8 +201,11 @@ public sealed record PowerTier(int Level, string Name, float MinShare);
 
 /// <summary>Posto de comandante (tabela general_rank): a partir de Xp de experiência de campanha o
 /// comandante sobe a este posto e soma Bonus ao que o destacamento já amplifica. Os nomes e os
-/// limiares são dados, não código — mudar a progressão é mexer na tabela.</summary>
-public sealed record GeneralRank(int Level, string Name, float Xp, float Bonus);
+/// limiares são dados, não código — mudar a progressão é mexer na tabela.
+///
+/// Domain é a arma a que a escada pertence (World.Land/Air/Sea): um brigadeiro não é um contra-almirante,
+/// e cada comandante só sobe pela escada da arma dele — ver World.RankOf.</summary>
+public sealed record GeneralRank(string Domain, int Level, string Name, float Xp, float Bonus);
 
 /// <summary>Gravidade de uma baixa no comando (tabela wound_kind): quantos dias tira o comandante de
 /// serviço, o peso com que sai no sorteio e se é fatal. Um arranhão e um caixão são a mesma linha com

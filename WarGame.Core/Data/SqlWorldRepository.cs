@@ -157,8 +157,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.WoundKinds[(string)r["id"]!] = new WoundKind((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["days"]), Convert.ToSingle(r["weight"]), Convert.ToInt32(r["fatal"]) != 0);
         w.GeneralRanks.Clear();
-        foreach (var r in _static.Query("SELECT level,name,xp,bonus FROM general_rank ORDER BY xp"))
-            w.GeneralRanks.Add(new GeneralRank(Convert.ToInt32(r["level"]), (string)r["name"]!,
+        foreach (var r in _static.Query("SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,xp"))
+            w.GeneralRanks.Add(new GeneralRank((string)r["domain"]!, Convert.ToInt32(r["level"]), (string)r["name"]!,
                 Convert.ToSingle(r["xp"]), Convert.ToSingle(r["bonus"])));
         foreach (var r in _static.Query("SELECT id,name,cost,days,cooldown,stat_key,mult FROM decision"))
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,

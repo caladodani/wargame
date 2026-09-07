@@ -738,21 +738,38 @@ INSERT INTO rule (key,value,note) VALUES
  ('ai_group_rest_org',40,'organização média abaixo da qual a IA recolhe o grupo à reserva'),
  ('ai_group_ready_org',75,'organização média a partir da qual a IA devolve o grupo à frente');
 
--- Postos de comandante (tabela general_rank; GeneralXpSystem). O comandante destacado num grupo de
--- exércitos ganha experiência com as batalhas do grupo e sobe de posto; bonus soma-se ao
--- general_command_bonus, por isso um marechal veterano vale muito mais do que o mesmo homem no dia
--- em que foi contratado.
+-- Postos de comandante (tabela general_rank; GeneralXpSystem). O comandante ganha experiência com a
+-- guerra que faz e sobe de posto; bonus soma-se ao general_command_bonus, por isso um marechal veterano
+-- vale muito mais do que o mesmo homem no dia em que foi contratado.
+--
+-- Cada arma tem a sua carreira (domain = exercito/ar/mar): um brigadeiro não é um contra-almirante, e
+-- quem manda numa esquadra não sobe pela escada da infantaria. A chave é (domain,level), e o World.RankOf
+-- só olha para a escada da arma do comandante. As três escadas têm os mesmos limiares de propósito —
+-- o que muda é o nome e a maneira de ganhar a experiência (batalhas em terra, dias de missão no ar e no mar).
 CREATE TABLE IF NOT EXISTS general_rank (
-  level INTEGER PRIMARY KEY, name TEXT NOT NULL, xp REAL NOT NULL, bonus REAL NOT NULL);
-INSERT INTO general_rank VALUES (1,'Brigadeiro',0,0);
-INSERT INTO general_rank VALUES (2,'General de Divisão',40,0.5);
-INSERT INTO general_rank VALUES (3,'General de Exército',110,1.0);
-INSERT INTO general_rank VALUES (4,'Marechal',220,1.75);
-INSERT INTO general_rank VALUES (5,'Marechal do Reino',360,2.5);
+  domain TEXT NOT NULL, level INTEGER NOT NULL, name TEXT NOT NULL, xp REAL NOT NULL, bonus REAL NOT NULL,
+  PRIMARY KEY (domain, level));
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',1,'Brigadeiro',0,0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',2,'General de Divisão',40,0.5);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',3,'General de Exército',110,1.0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',4,'Marechal',220,1.75);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',5,'Marechal do Reino',360,2.5);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('ar',1,'Chefe de Esquadrilha',0,0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('ar',2,'Comandante de Esquadra',40,0.5);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('ar',3,'Comandante de Grupo',110,1.0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('ar',4,'General do Ar',220,1.75);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('ar',5,'Marechal do Ar',360,2.5);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('mar',1,'Capitão-Tenente',0,0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('mar',2,'Capitão de Mar e Guerra',40,0.5);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('mar',3,'Contra-Almirante',110,1.0);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('mar',4,'Vice-Almirante',220,1.75);
+INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('mar',5,'Almirante da Armada',360,2.5);
 INSERT INTO rule (key,value,note) VALUES
  ('general_xp_battle',2,'experiência do comandante por batalha travada pelo grupo'),
  ('general_xp_win',3,'experiência extra do comandante por batalha ganha pelo grupo'),
  ('general_xp_capture',4,'experiência do comandante por região tomada por divisões do grupo'),
+ ('general_xp_air_day',0.15,'experiência do comandante de asa por asa destacada e por dia'),
+ ('general_xp_sea_day',0.15,'experiência do comandante de esquadra por navio no mar e por dia'),
  ('general_xp_max',400,'tecto da experiência de campanha de um comandante');
 
 -- Baixas no comando (tabela wound_kind; CommandCasualtySystem). Cada batalha travada por um exército

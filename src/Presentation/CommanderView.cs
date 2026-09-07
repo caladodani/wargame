@@ -19,7 +19,13 @@ public static class CommanderView
         ? new Color(1f, 0.82f, 0.25f)
         : new Color(0.78f, 0.80f, 0.86f).Lerp(new Color(1f, 0.78f, 0.20f), Math.Clamp((level - 1f) / (top - 1f), 0f, 1f));
 
-    public static int TopLevel(World w) => w.GeneralRanks.Count == 0 ? 1 : w.GeneralRanks.Max(r => r.Level);
+    /// <summary>Posto de topo da escada desta arma — é contra ele que a cor da divisa se mede. Cada arma
+    /// tem a sua carreira, por isso o topo do mar não é o topo da infantaria.</summary>
+    public static int TopLevel(World w, string domain = World.Land)
+    {
+        var ranks = w.Ranks(domain);
+        return ranks.Count == 0 ? 1 : ranks.Max(r => r.Level);
+    }
 
     /// <summary>Nome do posto ("Marechal") ou vazio se a tabela de postos não estiver carregada.</summary>
     public static string RankName(World w, int countryId, string generalId) =>
@@ -32,7 +38,7 @@ public static class CommanderView
     {
         var rank = w.RankOf(countryId, def.Id);
         int level = rank?.Level ?? 1;
-        var tint = Tint(level, TopLevel(w));
+        var tint = Tint(level, TopLevel(w, def.Domain));
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.16f, 0.14f, 0.09f, 0.92f), 10));
@@ -54,7 +60,43 @@ public static class CommanderView
         v.AddChild(eff);
 
         v.AddChild(hurt ? Recovery(w, countryId, def.Id) : Progress(w, countryId, def.Id, tint));
+        if (!hurt) v.AddChild(Ladder(w, countryId, def.Id, tint));
         return card;
+    }
+
+    /// <summary>Escada de postos da arma, à maneira da folha de carreira do HoI4: uma placa por posto, da
+    /// esquerda para a direita, com as divisas por cima. Os postos já feitos ficam acesos com a cor do
+    /// comandante, o de agora leva a placa iluminada e o nome por extenso, e os que faltam ficam apagados
+    /// com a experiência que ainda pedem. A barra dizia só quanto faltava para o degrau seguinte; assim
+    /// vê-se a carreira inteira — e vê-se que a do ar e a do mar não são a da infantaria: um Chefe de
+    /// Esquadrilha sobe a Marechal do Ar, não a Marechal do Reino.</summary>
+    public static HBoxContainer Ladder(World w, int countryId, string generalId, Color tint)
+    {
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 3);
+        int level = w.RankOf(countryId, generalId)?.Level ?? 0;
+        foreach (var r in w.Ranks(w.DomainOfGeneral(generalId)))
+        {
+            bool now = r.Level == level, done = r.Level <= level;
+            var plate = new PanelContainer();
+            plate.AddThemeStyleboxOverride("panel", Ui.Box(now ? new Color(tint, 0.22f)
+                                                         : done ? new Color(0.20f, 0.18f, 0.12f, 0.85f)
+                                                                : new Color(0.09f, 0.09f, 0.10f, 0.70f), 4));
+            var cell = new VBoxContainer(); cell.AddThemeConstantOverride("separation", 0); plate.AddChild(cell);
+
+            var stars = Ui.Lbl(Insignia(r.Level), now ? 13 : 11);
+            stars.AddThemeColorOverride("font_color", done ? tint : Ui.TextDim.Darkened(0.35f));
+            stars.HorizontalAlignment = HorizontalAlignment.Center;
+            cell.AddChild(stars);
+
+            var name = Ui.Lbl(now ? r.Name : done ? "feito" : $"{r.Xp:0}", 11);
+            name.AddThemeColorOverride("font_color", now ? tint : Ui.TextDim.Darkened(done ? 0.1f : 0.35f));
+            name.HorizontalAlignment = HorizontalAlignment.Center;
+            cell.AddChild(name);
+
+            plate.TooltipText = $"{r.Name} — {r.Xp:0} de experiência, +{r.Bonus:0.00} ao comando";
+            row.AddChild(plate);
+        }
+        return row;
     }
 
     /// <summary>Barra de experiência até ao posto seguinte, com a legenda por baixo. No topo da carreira
@@ -125,7 +167,7 @@ public static class CommanderView
         var pool = w.GeneralPool(c).Where(g => g.Domain == domain).ToList();
         int slots = w.GeneralSlots(domain);
         int serving = w.GeneralsInService(c, domain);
-        int top = TopLevel(w);
+        int top = TopLevel(w, domain);
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.14f, 0.13f, 0.10f, 0.94f), 10));
@@ -198,6 +240,7 @@ public static class CommanderView
                 cell.AddChild(note);
             }
             cell.AddChild(hurt ? Recovery(w, c.Id, def.Id) : Progress(w, c.Id, def.Id, tint));
+            if (!hurt) cell.AddChild(Ladder(w, c.Id, def.Id, tint));
             row.AddChild(cell);
             v.AddChild(row);
         }

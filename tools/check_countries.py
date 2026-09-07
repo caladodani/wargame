@@ -259,6 +259,46 @@ def check(path, static):
     return errs, warns
 
 
+def check_ranks(db, static):
+    """Escadas de postos (general_rank): uma por arma, e a mesma no espelho.
+
+    Cada arma tem a sua carreira — um brigadeiro não é um contra-almirante — e o World.RankOf só olha
+    para a escada da arma do comandante: uma arma sem escada é uma arma onde ninguém sobe de posto e a
+    UI mostra o nome vazio. Os degraus têm de crescer nos dois números (o que pedem e o que valem),
+    senão há um posto que se ganha sem ser preciso nada ou que vale menos do que o anterior.
+    """
+    errs, warns = [], []
+    rows = db.execute('SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,level').fetchall()
+    by_arm = {}
+    for domain, level, name, xp, bonus in rows:
+        by_arm.setdefault(domain, []).append((level, name, xp, bonus))
+        if domain not in GENERAL_STATS:
+            errs.append(f'posto {name}: arma {domain} não existe (só {", ".join(sorted(GENERAL_STATS))})')
+    names = [r[2] for r in rows]
+    for name in sorted({n for n in names if names.count(n) > 1}):
+        errs.append(f'posto {name} repetido: dois postos com o mesmo nome são o mesmo posto')
+    for domain in GENERAL_STATS:
+        steps = by_arm.get(domain)
+        if not steps:
+            errs.append(f'sem escada de postos de {domain} — os comandantes dessa arma nunca sobem')
+            continue
+        if [s[0] for s in steps] != list(range(1, len(steps) + 1)):
+            errs.append(f'escada de {domain}: níveis {[s[0] for s in steps]} não são 1..{len(steps)} seguidos')
+        if steps[0][2] != 0 or steps[0][3] != 0:
+            errs.append(f'escada de {domain}: o primeiro posto ({steps[0][1]}) tem de ser 0 de experiência e 0 de bónus')
+        for a, b in zip(steps, steps[1:]):
+            if b[2] <= a[2] or b[3] <= a[3]:
+                errs.append(f'escada de {domain}: {b[1]} não pede nem vale mais do que {a[1]}')
+    if static:
+        mirror = sqlite3.connect(static).execute(
+            'SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,level').fetchall()
+        if mirror != rows:
+            errs.append('data/static.db tem outra tabela de postos — falta o espelho manual do seed_world.sql')
+    arms = ' '.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
+    print(f'postos de comandante [{arms}]')
+    return errs, warns
+
+
 def main():
     files = [Path(a) for a in sys.argv[1:]] or sorted((HERE / 'data' / 'countries').glob('*.sql'))
     static = HERE / 'data' / 'static.db'
@@ -285,6 +325,10 @@ def main():
             for f in files: db.executescript(f.read_text(encoding='utf-8'))
         except sqlite3.Error as e:
             print(f'  ERRO: ao carregar todos os ficheiros juntos (ids repetidos?) — {e}'); bad += 1
+        errs, warns = check_ranks(db, static)
+        for w in warns: print(f'  aviso general_rank: {w}')
+        for e in errs: print(f'  ERRO general_rank: {e}')
+        bad += bool(errs)
     print('OK' if not bad else f'{bad} ficheiro(s) com erros')
     sys.exit(1 if bad else 0)
 

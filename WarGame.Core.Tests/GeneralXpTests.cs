@@ -105,7 +105,7 @@ public class GeneralXpTests
         Assert.NotNull(first);
         Assert.Equal(1, first!.Level);           // contratado nasce no posto mais baixo
 
-        var second = w.GeneralRanks.OrderBy(r => r.Xp).ElementAt(1);
+        var second = w.Ranks(World.Land)[1];      // a escada da arma dele: o mar e o ar têm as suas
         while (w.Countries[Player].GeneralXp.GetValueOrDefault(def.Id) < second.Xp) Battle(w, 3, weWon: true);
 
         Assert.Equal(second.Level, w.RankOf(Player, def.Id)!.Level);
@@ -121,7 +121,7 @@ public class GeneralXpTests
         var (w, _, def, d) = Build();
         float before = w.CommandMult(d, def.StatKey);
 
-        var second = w.GeneralRanks.OrderBy(r => r.Xp).ElementAt(1);
+        var second = w.Ranks(World.Land)[1];      // a escada da arma dele: o mar e o ar têm as suas
         while (w.Countries[Player].GeneralXp.GetValueOrDefault(def.Id) < second.Xp) Battle(w, 3, weWon: true);
 
         Assert.True(w.CommandMult(d, def.StatKey) > before, $"antes {before}, depois {w.CommandMult(d, def.StatKey)}");

@@ -556,25 +556,34 @@ public sealed class World
         return 1f + (def.Mult - 1f) * (Rule("general_command_bonus", 2f) + RankBonus(g.CountryId, gen));
     }
 
-    /// <summary>Posto actual de um comandante contratado: o mais alto cuja experiência ele já passou.
-    /// Sem tabela de postos (ou sem experiência nenhuma) devolve null — o comando vale o de sempre.</summary>
+    /// <summary>A escada de postos de uma arma, do mais baixo para o mais alto. Cada arma tem a sua: um
+    /// brigadeiro não é um contra-almirante, e quem manda numa esquadra não sobe pela escada da infantaria.</summary>
+    public List<GeneralRank> Ranks(string domain) =>
+        GeneralRanks.Where(r => r.Domain == domain).OrderBy(r => r.Xp).ToList();
+
+    /// <summary>Posto actual de um comandante contratado: o mais alto da escada da ARMA dele cuja
+    /// experiência ele já passou. Sem tabela de postos (ou sem escada para aquela arma) devolve null — o
+    /// comando vale o de sempre.</summary>
     public GeneralRank? RankOf(int countryId, string generalId)
     {
         if (GeneralRanks.Count == 0 || !Countries.TryGetValue(countryId, out var c)) return null;
+        string domain = DomainOfGeneral(generalId);
         float xp = c.GeneralXp.GetValueOrDefault(generalId);
         GeneralRank? best = null;
         foreach (var r in GeneralRanks)
-            if (xp >= r.Xp && (best is null || r.Xp > best.Xp)) best = r;
+            if (r.Domain == domain && xp >= r.Xp && (best is null || r.Xp > best.Xp)) best = r;
         return best;
     }
 
-    /// <summary>Posto seguinte, para a UI mostrar quanto falta para a promoção (null = já é o topo).</summary>
+    /// <summary>Posto seguinte na escada da arma dele, para a UI mostrar quanto falta para a promoção
+    /// (null = já é o topo).</summary>
     public GeneralRank? NextRank(int countryId, string generalId)
     {
+        string domain = DomainOfGeneral(generalId);
         float xp = Countries.TryGetValue(countryId, out var c) ? c.GeneralXp.GetValueOrDefault(generalId) : 0f;
         GeneralRank? next = null;
         foreach (var r in GeneralRanks)
-            if (r.Xp > xp && (next is null || r.Xp < next.Xp)) next = r;
+            if (r.Domain == domain && r.Xp > xp && (next is null || r.Xp < next.Xp)) next = r;
         return next;
     }
 
