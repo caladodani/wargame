@@ -53,11 +53,12 @@ public partial class RegionPanel : PanelContainer
         Visible = false;
         AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.55f; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
-        AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
+        AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 1f)));
         var v = new VBoxContainer(); AddChild(v);
         var titleRow = new HBoxContainer(); v.AddChild(titleRow);
         _flag = Flags.Rect(26); titleRow.AddChild(_flag);
-        _title = Ui.Lbl("", 22); titleRow.AddChild(_title);
+        _title = Ui.Lbl("", 22); titleRow.AddChild(Ui.Grow(_title));
+        titleRow.AddChild(Ui.Btn("Fechar", Close));   // sempre no canto superior direito, como nos outros painéis
         _info = Ui.Lbl("", 18); v.AddChild(_info);
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
@@ -85,7 +86,6 @@ public partial class RegionPanel : PanelContainer
             if (!_game.World.Regions.TryGetValue(_regionId, out var r)) return;
             Close(); _countryPanel.Open(r.ControllerId);
         })));
-        actions.AddChild(Ui.Btn("Fechar", Close));
         _warDialog = Ui.Dialog(this, () => _game.RunWhenIdle(OnWar));
         _nukeDialog = Ui.Dialog(this, () => _game.RunWhenIdle(OnNuke));
     }

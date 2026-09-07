@@ -44,7 +44,7 @@ public partial class DoctrinePanel : PanelContainer
         Visible = false;
         AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.12f; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
-        AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.070f, 0.078f, 0.090f, 0.97f)));
+        AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.070f, 0.078f, 0.090f, 1f)));
 
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 6); AddChild(v);
         var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 8); v.AddChild(head);

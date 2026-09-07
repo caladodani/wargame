@@ -105,6 +105,17 @@ public partial class Hud : CanvasLayer
             _countryPanel.OnFocusTree = id => _focusTree.Open(id);
             _doctrines = new DoctrinePanel(); AddChild(_doctrines); _doctrines.Setup(_game);
             _countryPanel.OnDoctrines = id => _doctrines.Open(id);
+
+            // Véu por trás de cada painel flutuante: escurece o mapa e apanha o toque que lhe passava ao
+            // lado — sem isto um dedo que falhasse o botão dava um pan no mundo por trás do menu aberto.
+            foreach (var (p, close) in new (PanelContainer Panel, Action Close)[]
+            {
+                (_production, _production.Close), (_countryPanel, _countryPanel.Close), (_worldPanel, _worldPanel.Close),
+                (_warPanel, _warPanel.Close), (_journal, _journal.Close), (_region, _region.Close),
+                (_armyPanel, _armyPanel.Close), (_compare, _compare.Close), (_battle, _battle.Close),
+                (_focusTree, _focusTree.Close), (_doctrines, _doctrines.Close),
+            }) Ui.Scrim(p, close);
+
             _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
             _alerts.OnGoTo = ShowRegion;
             _alerts.OnOpen = id =>
@@ -115,7 +126,7 @@ public partial class Hud : CanvasLayer
                 else if (id == "battle" && _game.World.ActiveBattles.FirstOrDefault(b =>
                              b.AttackerCountryId == _game.PlayerId
                              || _game.World.Regions.GetValueOrDefault(b.RegionId)?.ControllerId == _game.PlayerId) is Battle mine)
-                    _battle.Open(mine.RegionId);
+                    { ClosePanels(); _battle.Open(mine.RegionId); }
             };
 
             // Caixilharia de metal: todos os painéis flutuantes ganham cantoneiras e rebites de uma vez. Fica
@@ -263,15 +274,15 @@ public partial class Hud : CanvasLayer
         // soubesse disso não tinha como chegar à fila — e a fila é onde se ganha a guerra antes de ela
         // começar. Passa a ter chapa própria na barra, como no HoI4.
         tabs.AddChild(Ui.Btn("Produção", OpenProduction));
-        tabs.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
+        tabs.AddChild(Ui.Btn("Mundo", OpenWorld));
         tabs.AddChild(Ui.Btn("Guerra", OpenWar));
         // Distintivo das propostas: só aparece quando o inimigo tem alguma coisa em cima da mesa, e
         // pisca quando chega uma nova. Sem ele a proposta vivia só na notificação, que passa.
         _offers = Ui.Btn("✉", OpenWar, 0, Ui.Kind.Primary);
         _offers.Visible = false;
         tabs.AddChild(_offers);
-        tabs.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
-        tabs.AddChild(Ui.Btn("Crónica", () => _journal.Open()));
+        tabs.AddChild(Ui.Btn("Exércitos", OpenArmies));
+        tabs.AddChild(Ui.Btn("Crónica", OpenJournal));
         // altifalante: o som é do jogo, não do telefone — desliga-se aqui e a chapa diz em que estado está
         _mute = Ui.Btn("🔊", ToggleSound, 0, Ui.Kind.Normal);
         _mute.TooltipText = "som dos avisos";
@@ -300,25 +311,40 @@ public partial class Hud : CanvasLayer
         Toast(err ?? "Divisões a caminho da frente");
     }
 
+    /// <summary>Fecha todos os painéis flutuantes — os principais e os de detalhe. Chamar sempre antes de
+    /// abrir outro: dois abertos ao mesmo tempo tapavam-se um ao outro (e o de baixo continuava a roubar o
+    /// toque de quem já achava estar a falar com o de cima). Cada aba da barra passa por aqui primeiro.</summary>
+    private void ClosePanels()
+    {
+        _region.Close(); _production.Close(); _countryPanel.Close(); _worldPanel.Close();
+        _warPanel.Close(); _armyPanel.Close(); _journal.Close();
+        _compare.Close(); _battle.Close(); _focusTree.Close(); _doctrines.Close();
+    }
+
     private void OpenWar()
     {
         if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
-        _region.Close(); _production.Close(); _countryPanel.Close(); _worldPanel.Close();
+        ClosePanels();
         _warPanel.Open();
     }
 
     private void OpenProduction()
     {
         if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
-        _region.Close(); _warPanel.Close(); _countryPanel.Close(); _worldPanel.Close();
+        ClosePanels();
         _production.Open();
     }
 
     private void OpenCountry()
     {
         if (_game.PlayerId is not int pid) { Toast("Toca num país e escolhe-o primeiro"); return; }
-        _region.Close(); _production.Close(); _countryPanel.Open(pid);
+        ClosePanels();
+        _countryPanel.Open(pid);
     }
+
+    private void OpenWorld() { ClosePanels(); _worldPanel.Open(); }
+    private void OpenArmies() { ClosePanels(); _armyPanel.Open(); }
+    private void OpenJournal() { ClosePanels(); _journal.Open(); }
 
     private void BuildToast()
     {
