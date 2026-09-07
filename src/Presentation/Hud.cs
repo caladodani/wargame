@@ -41,7 +41,6 @@ public partial class Hud : CanvasLayer
     private Button _offers = null!;                // distintivo das propostas em cima da mesa
     private int _offersShown = -1;
     private RegionPanel _region = null!;
-    private StartPanel _start = null!;             // escolha de país + dificuldade, antes de mais nada
     private ArmySelect _multiSel = null!;
     private RegionFooter _footer = null!;
     private BuildBar _buildBar = null!;
@@ -81,7 +80,13 @@ public partial class Hud : CanvasLayer
         try
         {
             _game = GetNode<Game>("/root/Game");
+            // Sem jogador (ex.: troca para um slot vazio) esta cena não é sítio para se estar — volta-se
+            // ao ecrã inicial, simétrico do que ele faz quando chega aqui já com jogador escolhido.
+            if (_game.PlayerId is null) { GetTree().ChangeSceneToFile("res://scenes/MainMenu.tscn"); return; }
             _map = GetNode<MapView>("../MapView");
+            if (_game.World.Countries.TryGetValue(_game.PlayerId.Value, out var home)
+                && _game.World.Regions.TryGetValue(home.CapitalRegionId, out var cap0))
+                _map.Focus(new Vector2(cap0.CenterX, cap0.CenterY), 1f);   // arranque: câmara já na capital, à HoI4
             _smoke = OS.GetCmdlineUserArgs().Contains("--smoke");
             Settings.Apply(GetWindow());         // tamanho da interface antes de se desenhar o que quer que seja
             GetTree().Root.Theme = Ui.Theme();   // tema da janela inteira: painéis, botões e diálogos de uma vez
@@ -93,7 +98,6 @@ public partial class Hud : CanvasLayer
             _warPanel.OnShowRegion = ShowRegion;                     // "Ver no mapa" das cedências
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
-            _start = new StartPanel(); AddChild(_start); _start.Setup(_game, _map);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
             _footer = new RegionFooter(); AddChild(_footer); _footer.Setup(_game);
             _buildBar = new BuildBar(); AddChild(_buildBar); _buildBar.Setup(_game);
@@ -151,7 +155,6 @@ public partial class Hud : CanvasLayer
             _game.CommandFailed += Toast;
             SubscribeEvents();
             _game.RunWhenIdle(RefreshAll);
-            if (_game.PlayerId is null) _game.RunWhenIdle(_start.Open);   // sem jogador: primeiro escolhe-se país
             _update.Check();                     // e, se houver versão nova, ela começa a vir já
         }
         catch (Exception ex) { GD.PushError("Hud._Ready: " + ex); }
@@ -173,7 +176,6 @@ public partial class Hud : CanvasLayer
     private void Back()
     {
         if (_game is null) return;
-        if (_start.Visible) return;   // sem jogador: nem voltar nem Escape saltam a escolha de país
         if (_end.Visible) { _end.Close(); return; }
         if (_slots.Visible) { _slots.Close(); return; }
         if (_menu.Visible) { _menu.Close(); return; }
@@ -926,7 +928,7 @@ public partial class Hud : CanvasLayer
             _doctrines.Refresh();
             bool covered = _compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
                            || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible
-                           || _battle.Visible || _focusTree.Visible || _doctrines.Visible || _start.Visible;
+                           || _battle.Visible || _focusTree.Visible || _doctrines.Visible;
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
             _footer.SetCovered(covered);   // já relê o World sozinho quando não está tapado
@@ -1554,9 +1556,7 @@ public partial class Hud : CanvasLayer
         }
         string menu = _menu.Smoke();                        // menu de jogo: secções, botões e filas de chapas medidas
         int saves = _slots.Smoke();                          // e as fichas dos jogos guardados
-        int startRows = _start.Smoke();                      // e o menu inicial de escolha de país
         GD.Print($"smoke: menu de jogo com {menu}, dificuldade {(_game.World.Difficulty ?? "por escolher")}, "
-               + $"{saves} fichas de jogo guardado (slot {_game.Slot} em curso), "
-               + $"seleção de país com {startRows} no menu inicial");
+               + $"{saves} fichas de jogo guardado (slot {_game.Slot} em curso)");
     }
 }
