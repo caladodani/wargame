@@ -217,3 +217,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('GBR_campanha','Mentioned in Despatches','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'GBR'),
  ('GBR_aco','Distinguished Service Order','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'GBR'),
  ('GBR_imortais','Victoria Cross','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'GBR');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('GBR_ar_1','No. 617 Squadron','ar',1,'GBR'),
+ ('GBR_ar_2','No. 43 Fighter Squadron','ar',2,'GBR'),
+ ('GBR_ar_3','No. 101 Squadron','ar',3,'GBR'),
+ ('GBR_mar_1','Home Fleet','mar',1,'GBR'),
+ ('GBR_mar_2','Mediterranean Fleet','mar',2,'GBR'),
+ ('GBR_mar_3','Escort Group B-7','mar',3,'GBR');

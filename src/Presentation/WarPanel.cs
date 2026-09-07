@@ -223,14 +223,12 @@ public partial class WarPanel : PanelContainer
             if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
             float foe = w.AirMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Wings);
             int rid = m.RegionId;
-            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
-            var lbl = Ui.Grow(Ui.Lbl($"{def.Icon} {r.Name} — {def.Name}, {m.Wings:0.#} asas há {w.Clock.Day - m.SinceDay} dias"
-                                     + (foe > 0f ? $"   ⚔ céu disputado ({foe:0.#} deles)" : ""), 16));
-            lbl.TooltipText = def.Note + (foe > 0f ? "\nCéu disputado: abatem-se aviões dos dois lados todos os dias." : "");
-            row.AddChild(lbl);
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
             row.AddChild(Ui.Btn("Recolher", () => RecallAir(pid, rid), 150));
-            card.AddChild(row);
+            card.AddChild(FormationView.Plate(new FormationView.Info(
+                m.Name, FormationView.IsHome(w, pid, World.Air, m.Name), World.Air, def.Icon, def.Name,
+                r.Name, m.Wings, foe, w.Clock.Day - m.SinceDay, def.Note), row));
         }
 
         // céus a que se pode mandar hoje: a frente inimiga e a nossa terra onde já se combate
@@ -272,15 +270,18 @@ public partial class WarPanel : PanelContainer
     {
         var err = _game.Dispatch(new AssignAirMissionCommand(pid, regionId, missionId, wings));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify($"{wings:0.#} asas a caminho de {_game.World.Regions[regionId].Name}");
+        // o aviso diz o nome da asa: é assim que o jogador fica a saber que ela tem um
+        string flew = _game.World.AirMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == regionId)?.Name ?? "";
+        _game.Notify((flew.Length > 0 ? flew : $"{wings:0.#} asas") + $" a caminho de {_game.World.Regions[regionId].Name}");
         _lastKey = ""; Fill();
     });
 
     private void RecallAir(int pid, int regionId) => _game.RunWhenIdle(() =>
     {
+        string home = _game.World.AirMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == regionId)?.Name ?? "";
         var err = _game.Dispatch(new RecallAirMissionCommand(pid, regionId));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify($"Esquadrões de volta de {_game.World.Regions[regionId].Name}");
+        _game.Notify((home.Length > 0 ? home : "Esquadrões") + $" de volta de {_game.World.Regions[regionId].Name}");
         _lastKey = ""; Fill();
     });
 
@@ -334,15 +335,13 @@ public partial class WarPanel : PanelContainer
             if (!w.NavalMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
             float foe = w.NavalMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Ships);
             int rid = m.RegionId;
-            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
-            var lbl = Ui.Grow(Ui.Lbl($"{def.Icon} {r.Name} — {def.Name}, {m.Ships:0.#} navios há {w.Clock.Day - m.SinceDay} dias"
-                                     + (foe > 0f ? $"   ⚔ mar disputado ({foe:0.#} deles)" : "")
-                                     + (NavalMissionSystem.Blockaded(w, rid) ? "   ⚓ costa fechada" : ""), 16));
-            lbl.TooltipText = def.Note + (foe > 0f ? "\nMar disputado: vai aço ao fundo dos dois lados todos os dias." : "");
-            row.AddChild(lbl);
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
             row.AddChild(Ui.Btn("Recolher", () => RecallSea(pid, rid), 150));
-            card.AddChild(row);
+            card.AddChild(FormationView.Plate(new FormationView.Info(
+                m.Name, FormationView.IsHome(w, pid, World.Sea, m.Name), World.Sea, def.Icon, def.Name,
+                r.Name, m.Ships, foe, w.Clock.Day - m.SinceDay, def.Note,
+                NavalMissionSystem.Blockaded(w, rid) ? "costa fechada" : ""), row));
         }
 
         // mares a que se pode mandar hoje: a melhor costa deles ao nosso alcance e as nossas costas com porto
@@ -393,15 +392,17 @@ public partial class WarPanel : PanelContainer
     {
         var err = _game.Dispatch(new AssignNavalMissionCommand(pid, regionId, missionId, ships));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify($"{ships:0.#} navios a caminho de {_game.World.Regions[regionId].Name}");
+        string sailed = _game.World.NavalMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == regionId)?.Name ?? "";
+        _game.Notify((sailed.Length > 0 ? sailed : $"{ships:0.#} navios") + $" a caminho de {_game.World.Regions[regionId].Name}");
         _lastKey = ""; Fill();
     });
 
     private void RecallSea(int pid, int regionId) => _game.RunWhenIdle(() =>
     {
+        string port = _game.World.NavalMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == regionId)?.Name ?? "";
         var err = _game.Dispatch(new RecallNavalMissionCommand(pid, regionId));
         if (err is not null) { _game.Notify(err); return; }
-        _game.Notify($"Esquadra de volta de {_game.World.Regions[regionId].Name}");
+        _game.Notify((port.Length > 0 ? port : "Esquadra") + $" de volta de {_game.World.Regions[regionId].Name}");
         _lastKey = ""; Fill();
     });
 

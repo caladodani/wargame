@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS air_mission (      -- tipos de missão aérea (AirMis
 CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre regiões (save)
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   wings REAL NOT NULL, since_day INTEGER NOT NULL,
+  name TEXT NOT NULL DEFAULT '',              -- nome próprio da asa (formation_name; '' = ainda sem nome)
   PRIMARY KEY (country_id, region_id));
 CREATE TABLE IF NOT EXISTS naval_mission (    -- tipos de missão naval (NavalMissionSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
@@ -260,6 +261,7 @@ CREATE TABLE IF NOT EXISTS naval_mission (    -- tipos de missão naval (NavalMi
 CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar de uma costa (save)
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   ships REAL NOT NULL, since_day INTEGER NOT NULL,
+  name TEXT NOT NULL DEFAULT '',              -- nome próprio da esquadra (formation_name)
   PRIMARY KEY (country_id, region_id));
 CREATE TABLE IF NOT EXISTS occupation_policy ( -- políticas de ocupação (OccupationSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,

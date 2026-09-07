@@ -74,6 +74,8 @@ public sealed class World
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
     public Dictionary<string, WoundKind> WoundKinds { get; } = new();
+    /// <summary>Fundo de nomes de asas e esquadras (tabela formation_name).</summary>
+    public List<FormationName> FormationNames { get; } = new();
     /// <summary>Patamares de potência mundial (tabela power_tier).</summary>
     public List<PowerTier> PowerTiers { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
@@ -599,6 +601,51 @@ public sealed class World
 
     /// <summary>O país condecora com fitas próprias (e não com as comuns)?</summary>
     public bool HasOwnMedals(Country c) => MedalDefs.Values.Any(m => m.CountryTag == c.Tag);
+
+    /// <summary>Este nome de formação serve este país? O fundo comum (country_tag nulo) serve quem não traz
+    /// o seu; um nome nacional é só de quem o traz — uma Home Fleet não zarpa de um porto argentino.</summary>
+    public static bool FormationNameIsFor(FormationName n, Country c) => n.CountryTag is null || n.CountryTag == c.Tag;
+
+    /// <summary>O fundo COMUM de nomes de uma arma, pela ordem por que se pegam.</summary>
+    public List<FormationName> Formations(string domain) =>
+        FormationNames.Where(n => n.Domain == domain && n.CountryTag is null).OrderBy(n => n.Sort).ToList();
+
+    /// <summary>O fundo de nomes daquela arma por que este país baptiza as formações: o dele, se trouxer um
+    /// (data/countries/&lt;TAG&gt;.sql), senão o comum. Um nome não muda conta nenhuma do jogo.</summary>
+    public List<FormationName> Formations(string domain, Country c)
+    {
+        var own = FormationNames.Where(n => n.Domain == domain && n.CountryTag == c.Tag).OrderBy(n => n.Sort).ToList();
+        return own.Count > 0 ? own : Formations(domain);
+    }
+
+    /// <summary>O país baptiza as formações daquela arma com nomes próprios (e não com os comuns)?</summary>
+    public bool HasOwnFormations(Country c, string domain) =>
+        FormationNames.Any(n => n.Domain == domain && n.CountryTag == c.Tag);
+
+    /// <summary>Este nome é do fundo de casa deste país (e não do comum)? É o que a UI põe o selo ⚜ a dizer.</summary>
+    public bool IsHomeFormationName(Country c, string domain, string name) =>
+        FormationNames.Any(n => n.Domain == domain && n.CountryTag == c.Tag && n.Name == name);
+
+    /// <summary>O nome da próxima formação daquela arma: o primeiro do fundo do país que ainda não esteja no
+    /// ar (ou no mar). Esgotado o fundo, a formação fica com o nome da região onde serve — uma guerra grande
+    /// tem mais esquadrilhas do que tradições, e "Asa de Braga" é melhor do que uma sem nome. Se até esse
+    /// nome estiver tomado, numera-se.</summary>
+    public string NextFormationName(int countryId, string domain, int regionId)
+    {
+        var taken = (domain == Sea
+            ? NavalMissions.Where(m => m.CountryId == countryId).Select(m => m.Name)
+            : AirMissions.Where(m => m.CountryId == countryId).Select(m => m.Name)).ToHashSet();
+
+        if (Countries.TryGetValue(countryId, out var c))
+            foreach (var n in Formations(domain, c))
+                if (!taken.Contains(n.Name)) return n.Name;
+
+        string place = Regions.TryGetValue(regionId, out var r) ? r.Name : "Fronteira";
+        string bare = $"{(domain == Sea ? "Esquadra" : "Asa")} de {place}";
+        if (!taken.Contains(bare)) return bare;
+        for (int i = 2; ; i++)
+            if (!taken.Contains($"{bare} {i}")) return $"{bare} {i}";
+    }
 
     /// <summary>Este posto serve este país? A escada comum (country_tag nulo) serve toda a gente; uma
     /// escada nacional é só de quem a traz — um Generalfeldmarschall não se põe num exército português.</summary>

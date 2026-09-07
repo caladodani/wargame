@@ -214,3 +214,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('PRK_campanha','Louvor do Comando Supremo','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PRK'),
  ('PRK_aco','Ordem da Bandeira Nacional','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PRK'),
  ('PRK_imortais','Título de Herói da República','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PRK');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('PRK_ar_1','Regimento de Caça de Sunchon','ar',1,'PRK'),
+ ('PRK_ar_2','Regimento de Ataque de Onchon','ar',2,'PRK'),
+ ('PRK_ar_3','Brigada Aérea de Pyongyang','ar',3,'PRK'),
+ ('PRK_mar_1','Esquadra do Mar do Leste','mar',1,'PRK'),
+ ('PRK_mar_2','Esquadra do Mar do Oeste','mar',2,'PRK'),
+ ('PRK_mar_3','Flotilha de Nampo','mar',3,'PRK');

@@ -216,3 +216,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('JPN_campanha','Louvor do Estado-Maior','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'JPN'),
  ('JPN_aco','Kyokujitsu-sho','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'JPN'),
  ('JPN_imortais','Kinshi Kunsho','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'JPN');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('JPN_ar_1','Hikotai 302','ar',1,'JPN'),
+ ('JPN_ar_2','Hikotai 204','ar',2,'JPN'),
+ ('JPN_ar_3','Hikotai 305','ar',3,'JPN'),
+ ('JPN_mar_1','Frota de Escolta 1','mar',1,'JPN'),
+ ('JPN_mar_2','Frota de Escolta 2','mar',2,'JPN'),
+ ('JPN_mar_3','Flotilha de Yokosuka','mar',3,'JPN');

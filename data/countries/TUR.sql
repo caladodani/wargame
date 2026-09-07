@@ -215,3 +215,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('TUR_campanha','Takdirname','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'TUR'),
  ('TUR_aco','Şeref Madalyası','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'TUR'),
  ('TUR_imortais','İstiklal Madalyası','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'TUR');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('TUR_ar_1','141 Filo Kurt','ar',1,'TUR'),
+ ('TUR_ar_2','161 Filo Yarasa','ar',2,'TUR'),
+ ('TUR_ar_3','182 Filo Atmaca','ar',3,'TUR'),
+ ('TUR_mar_1','Muhrip Filosu','mar',1,'TUR'),
+ ('TUR_mar_2','Firkateyn Filosu','mar',2,'TUR'),
+ ('TUR_mar_3','Denizaltı Filosu','mar',3,'TUR');

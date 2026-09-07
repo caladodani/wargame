@@ -228,3 +228,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('PRT_campanha','Louvor do Chefe do Estado-Maior','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PRT'),
  ('PRT_aco','Medalha de Valor Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PRT'),
  ('PRT_imortais','Ordem da Torre e Espada','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PRT');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('PRT_ar_1','Esquadra 201 Falcões','ar',1,'PRT'),
+ ('PRT_ar_2','Esquadra 301 Jaguares','ar',2,'PRT'),
+ ('PRT_ar_3','Esquadra 601 Lobos','ar',3,'PRT'),
+ ('PRT_mar_1','Esquadra do Atlântico','mar',1,'PRT'),
+ ('PRT_mar_2','Flotilha do Tejo','mar',2,'PRT'),
+ ('PRT_mar_3','Divisão Naval dos Açores','mar',3,'PRT');

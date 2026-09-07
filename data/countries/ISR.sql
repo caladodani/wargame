@@ -205,3 +205,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('ISR_campanha','Tzalash HaRamatkal','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ISR'),
  ('ISR_aco','Itur HaOz','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ISR'),
  ('ISR_imortais','Itur HaGvura','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ISR');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('ISR_ar_1','Tayeset 101 Rishona','ar',1,'ISR'),
+ ('ISR_ar_2','Tayeset 69 Patishim','ar',2,'ISR'),
+ ('ISR_ar_3','Tayeset 201 Ahat','ar',3,'ISR'),
+ ('ISR_mar_1','Flotilha de Haifa','mar',1,'ISR'),
+ ('ISR_mar_2','Esquadra do Mediterrâneo','mar',2,'ISR'),
+ ('ISR_mar_3','Flotilha de Eilat','mar',3,'ISR');

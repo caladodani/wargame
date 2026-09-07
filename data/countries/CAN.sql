@@ -202,3 +202,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('CAN_campanha','Mention in Dispatches','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'CAN'),
  ('CAN_aco','Star of Military Valour','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'CAN'),
  ('CAN_imortais','Victoria Cross for Canada','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'CAN');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('CAN_ar_1','401 Tactical Fighter Squadron','ar',1,'CAN'),
+ ('CAN_ar_2','425 Alouette Squadron','ar',2,'CAN'),
+ ('CAN_ar_3','409 Nighthawk Squadron','ar',3,'CAN'),
+ ('CAN_mar_1','Maritime Forces Atlantic','mar',1,'CAN'),
+ ('CAN_mar_2','Maritime Forces Pacific','mar',2,'CAN'),
+ ('CAN_mar_3','Escort Group C-3','mar',3,'CAN');

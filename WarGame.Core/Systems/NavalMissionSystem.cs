@@ -144,12 +144,14 @@ public sealed class NavalMissionSystem : ISystem
         if (ships <= 0f || !w.NavalMissionDefs.ContainsKey(missionId)) return;
         var have = w.NavalMissions.FirstOrDefault(m => m.CountryId == countryId && m.RegionId == regionId);
         if (have is not null && have.MissionId == missionId) { have.Ships += ships; return; }
-        // trocar de tarefa no mesmo mar não manda ninguém para o porto: os navios que lá estavam mudam de ordem
+        // trocar de tarefa no mesmo mar não manda ninguém para o porto: os navios que lá estavam mudam de
+        // ordem, e por isso guardam o nome da esquadra
         if (have is not null) w.NavalMissions.Remove(have);
         w.NavalMissions.Add(new NavalMission
         {
             CountryId = countryId, RegionId = regionId, MissionId = missionId,
             Ships = ships + (have?.Ships ?? 0f), SinceDay = w.Clock.Day,
+            Name = have?.Name is { Length: > 0 } old ? old : w.NextFormationName(countryId, World.Sea, regionId),
         });
     }
 

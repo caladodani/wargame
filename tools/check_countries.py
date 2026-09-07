@@ -56,7 +56,7 @@ def check(path, static):
             errs.append(f'tag {tag} não existe na tabela country')
     TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier',
                   'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch', 'tech',
-                  'general_rank', 'medal')
+                  'general_rank', 'medal', 'formation_name')
     base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
@@ -352,6 +352,39 @@ def check(path, static):
     else:
         warns.append('sem medalheiro nacional (as divisões recebem as fitas comuns)')
 
+    # fundo de nomes de formação (formation_name.country_tag): as asas e as esquadras deste país. Quem traz
+    # fundo traz as DUAS armas — senão metade das formações ficava com os nomes comuns e a outra metade com
+    # os de casa, e o selo ⚜ do painel da Guerra passava a dizer coisas diferentes na mesma frota.
+    own_names = db.execute('SELECT id,name,domain,sort FROM formation_name WHERE country_tag=?'
+                           ' ORDER BY domain,sort', (tag,)).fetchall()
+    names_by_arm = {}
+    for nid, name, domain, sort in own_names:
+        names_by_arm.setdefault(domain, []).append((nid, name, sort))
+        if domain not in ('ar', 'mar'):
+            errs.append(f'nome de formação {nid}: arma {domain} não existe (só ar e mar)')
+        if not nid.startswith(tag + '_'):
+            errs.append(f'nome de formação {nid}: o id de um nome nacional começa por {tag}_')
+    if own_names:
+        common_names = {d: [r[0] for r in db.execute(
+            'SELECT name FROM formation_name WHERE domain=? AND country_tag IS NULL ORDER BY sort', (d,))]
+            for d in ('ar', 'mar')}
+        for domain in ('ar', 'mar'):
+            mine = names_by_arm.get(domain)
+            if not mine:
+                errs.append(f'fundo de nomes sem a arma {domain} — quem traz nomes traz os das duas')
+                continue
+            got = [m[1] for m in mine]
+            for name in sorted({n for n in got if got.count(n) > 1}):
+                errs.append(f'fundo de {domain}: nome {name} repetido — o segundo nunca sairia')
+            sorts = [m[2] for m in mine]
+            if sorted(sorts) != list(range(1, len(sorts) + 1)):
+                errs.append(f'fundo de {domain}: ordens {sorts} — esperava 1..{len(sorts)} sem saltos')
+            for name in got:
+                if name in common_names[domain]:
+                    errs.append(f'fundo de {domain}: {name} é um nome comum — nome de casa é nome de casa')
+    else:
+        warns.append('sem fundo de nomes de formação (as asas e as esquadras levam os comuns)')
+
     n_units = 0
     for name, tname, rname in db.execute('SELECT name,template_name,region_name FROM country_unit WHERE country_tag=?', (tag,)):
         n_units += 1
@@ -365,7 +398,9 @@ def check(path, static):
     gen_arms = '+'.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     tech_arms = '+'.join(f'{TECH_BRANCHES[b]}:{len(tech_by_branch.get(b, []))}' for b in sorted(TECH_BRANCHES))
     rank_arms = '+'.join(f'{d}:{len(ranks_by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
+    form_arms = '+'.join(f'{d}:{len(names_by_arm.get(d, []))}' for d in ('ar', 'mar'))
     summary = (f'{tag}: {len(own_ranks)} postos próprios [{rank_arms}], {len(own_medals)} condecorações próprias, '
+               f'{len(own_names)} nomes de formação [{form_arms}], '
                f'{len(own_techs)} programas nacionais [{tech_arms}], '
                f'{len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
                f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
@@ -531,6 +566,59 @@ def check_medals(db, static):
     return errs, warns
 
 
+def check_formations(db, static):
+    """Nomes de formação (formation_name): há fundo comum das duas armas e o espelho está em dia.
+
+    World.NextFormationName pega o primeiro nome do fundo do país que ainda não esteja no ar (ou no mar).
+    Uma arma sem fundo comum deixa toda a gente que não traga nomes próprios com formações baptizadas pela
+    região; dois nomes iguais no mesmo fundo são um nome a menos, porque o segundo nunca é escolhido.
+    """
+    errs, warns = [], []
+    rows = db.execute('SELECT id,name,domain,sort,country_tag FROM formation_name ORDER BY id').fetchall()
+    if not rows:
+        return ['sem nomes de formação: as asas e as esquadras ficam sem nome'], warns
+
+    tags = {r[0] for r in sqlite3.connect(static).execute('SELECT tag FROM country')} if static else None
+    pools = {}
+    for nid, name, domain, sort, tag in rows:
+        pools.setdefault((tag, domain), []).append((nid, name, sort))
+        if domain not in ('ar', 'mar'):
+            errs.append(f'nome de formação {nid}: arma {domain} não existe (só ar e mar)')
+        if not name.strip():
+            errs.append(f'nome de formação {nid}: nome vazio')
+        if tag is not None and tags is not None and tag not in tags:
+            errs.append(f'nome de formação {nid}: país {tag} não existe')
+
+    for domain in ('ar', 'mar'):
+        if not pools.get((None, domain)):
+            errs.append(f'sem fundo comum de {domain} — quem não traz nomes próprios fica sem nenhum')
+
+    for (tag, domain), pool in pools.items():
+        who = f'fundo comum de {domain}' if tag is None else f'fundo de {tag}/{domain}'
+        got = [p[1] for p in pool]
+        for name in sorted({n for n in got if got.count(n) > 1}):
+            errs.append(f'{who}: nome {name} repetido')
+        sorts = [p[2] for p in pool]
+        if len(set(sorts)) != len(sorts):
+            errs.append(f'{who}: duas ordens iguais — a escolha do nome passava a depender da base')
+
+    if static:
+        st = sqlite3.connect(static)
+        mirror = st.execute('SELECT id,name,domain,sort,country_tag FROM formation_name ORDER BY id').fetchall()
+        if mirror != rows:
+            errs.append('data/static.db tem outros nomes de formação — falta o espelho manual dos .sql')
+        # o telemóvel reconstrói o schema do save a partir do sqlite_master do static.db: sem a coluna lá,
+        # o nome da formação não sobrevive a um save feito no telefone
+        for table in ('s_air_mission', 's_naval_mission'):
+            if 'name' not in [r[1] for r in st.execute(f'PRAGMA table_info({table})')]:
+                errs.append(f'data/static.db: {table} sem a coluna name — o nome não sobrevive ao save')
+
+    arms = ' '.join(f'{d}:{len(pools.get((None, d), []))}' for d in ('ar', 'mar'))
+    own = len({t for (t, _) in pools if t is not None})
+    print(f'nomes de formação [comuns {arms}], {own} fundos nacionais ({len(rows)} nomes)')
+    return errs, warns
+
+
 def main():
     files = [Path(a) for a in sys.argv[1:]] or sorted((HERE / 'data' / 'countries').glob('*.sql'))
     static = HERE / 'data' / 'static.db'
@@ -568,6 +656,10 @@ def main():
         errs, warns = check_medals(db, static)
         for w in warns: print(f'  aviso medal: {w}')
         for e in errs: print(f'  ERRO medal: {e}')
+        bad += bool(errs)
+        errs, warns = check_formations(db, static)
+        for w in warns: print(f'  aviso formation_name: {w}')
+        for e in errs: print(f'  ERRO formation_name: {e}')
         bad += bool(errs)
     print('OK' if not bad else f'{bad} ficheiro(s) com erros')
     sys.exit(1 if bad else 0)

@@ -214,3 +214,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('POL_campanha','Pochwała Dowódcy','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'POL'),
  ('POL_aco','Krzyż Zasługi z Mieczami','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'POL'),
  ('POL_imortais','Order Virtuti Militari','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'POL');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('POL_ar_1','1 Eskadra Lotnictwa Taktycznego','ar',1,'POL'),
+ ('POL_ar_2','6 Eskadra Lotnictwa Taktycznego','ar',2,'POL'),
+ ('POL_ar_3','21 Baza Lotnictwa','ar',3,'POL'),
+ ('POL_mar_1','3 Flotylla Okrętów','mar',1,'POL'),
+ ('POL_mar_2','8 Flotylla Obrony Wybrzeża','mar',2,'POL'),
+ ('POL_mar_3','Dywizjon Ścigaczy','mar',3,'POL');

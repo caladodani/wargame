@@ -213,3 +213,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('PAK_campanha','Imtiazi Sanad','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PAK'),
  ('PAK_aco','Sitara-e-Jurat','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PAK'),
  ('PAK_imortais','Nishan-e-Haider','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PAK');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('PAK_ar_1','No. 9 Squadron Griffins','ar',1,'PAK'),
+ ('PAK_ar_2','No. 11 Squadron Arrows','ar',2,'PAK'),
+ ('PAK_ar_3','No. 5 Squadron Falcons','ar',3,'PAK'),
+ ('PAK_mar_1','25th Destroyer Squadron','mar',1,'PAK'),
+ ('PAK_mar_2','10th Patrol Squadron','mar',2,'PAK'),
+ ('PAK_mar_3','Karachi Escort Flotilla','mar',3,'PAK');

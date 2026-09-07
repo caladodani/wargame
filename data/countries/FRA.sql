@@ -210,3 +210,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('FRA_campanha','Croix du Combattant','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'FRA'),
  ('FRA_aco','Médaille Militaire','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'FRA'),
  ('FRA_imortais','Grand-Croix de la Légion','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'FRA');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('FRA_ar_1','Escadron de Chasse 1/2 Cigognes','ar',1,'FRA'),
+ ('FRA_ar_2','Escadron de Chasse 2/30 Normandie-Niemen','ar',2,'FRA'),
+ ('FRA_ar_3','Escadron de Bombardement 1/91 Gascogne','ar',3,'FRA'),
+ ('FRA_mar_1','Escadre de Toulon','mar',1,'FRA'),
+ ('FRA_mar_2','Escadre de Brest','mar',2,'FRA'),
+ ('FRA_mar_3','Flottille de la Manche','mar',3,'FRA');

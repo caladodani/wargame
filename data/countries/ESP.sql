@@ -221,3 +221,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('ESP_campanha','Mención Honorífica','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ESP'),
  ('ESP_aco','Medalla Militar Individual','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ESP'),
  ('ESP_imortais','Cruz Laureada de San Fernando','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ESP');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('ESP_ar_1','Ala 11','ar',1,'ESP'),
+ ('ESP_ar_2','Ala 15','ar',2,'ESP'),
+ ('ESP_ar_3','Ala 12','ar',3,'ESP'),
+ ('ESP_mar_1','Flota de Ferrol','mar',1,'ESP'),
+ ('ESP_mar_2','Grupo de Acción Naval 1','mar',2,'ESP'),
+ ('ESP_mar_3','Flotilla de Cartagena','mar',3,'ESP');

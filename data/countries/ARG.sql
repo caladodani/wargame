@@ -202,3 +202,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('ARG_campanha','Mención de Campaña','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ARG'),
  ('ARG_aco','Cruz al Mérito Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ARG'),
  ('ARG_imortais','Cruz al Heroico Valor en Combate','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ARG');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('ARG_ar_1','Grupo 6 de Caza','ar',1,'ARG'),
+ ('ARG_ar_2','Escuadrón Fénix','ar',2,'ARG'),
+ ('ARG_ar_3','Grupo 5 de Bombardeo','ar',3,'ARG'),
+ ('ARG_mar_1','Flota de Mar','mar',1,'ARG'),
+ ('ARG_mar_2','Escuadrilla de Corbetas','mar',2,'ARG'),
+ ('ARG_mar_3','División Naval del Atlántico Sur','mar',3,'ARG');

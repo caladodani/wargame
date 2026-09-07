@@ -212,3 +212,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('DEU_campanha','Belobigung des Kommandos','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'DEU'),
  ('DEU_aco','Ehrenkreuz für Tapferkeit','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'DEU'),
  ('DEU_imortais','Großes Ehrenzeichen der Bundeswehr','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'DEU');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('DEU_ar_1','Jagdgeschwader 71','ar',1,'DEU'),
+ ('DEU_ar_2','Taktisches Luftwaffengeschwader 33','ar',2,'DEU'),
+ ('DEU_ar_3','Aufklärungsgeschwader 51','ar',3,'DEU'),
+ ('DEU_mar_1','Einsatzflottille 1','mar',1,'DEU'),
+ ('DEU_mar_2','Einsatzflottille 2','mar',2,'DEU'),
+ ('DEU_mar_3','Fregattengeschwader 4','mar',3,'DEU');

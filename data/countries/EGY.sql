@@ -209,3 +209,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('EGY_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'EGY'),
  ('EGY_aco','Ordem do Sinai','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'EGY'),
  ('EGY_imortais','Ordem do Nilo','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'EGY');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('EGY_ar_1','Esquadrão de Caça de Gianaclis','ar',1,'EGY'),
+ ('EGY_ar_2','Ala de Ataque de Beni Suef','ar',2,'EGY'),
+ ('EGY_ar_3','Grupo Aéreo do Cairo Oeste','ar',3,'EGY'),
+ ('EGY_mar_1','Frota do Mediterrâneo','mar',1,'EGY'),
+ ('EGY_mar_2','Frota do Mar Vermelho','mar',2,'EGY'),
+ ('EGY_mar_3','Flotilha de Alexandria','mar',3,'EGY');

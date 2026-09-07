@@ -201,3 +201,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('MOZ_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'MOZ'),
  ('MOZ_aco','Medalha do Mérito Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'MOZ'),
  ('MOZ_imortais','Ordem Eduardo Mondlane','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'MOZ');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('MOZ_ar_1','Esquadrilha de Caça de Maputo','ar',1,'MOZ'),
+ ('MOZ_ar_2','Esquadrilha da Beira','ar',2,'MOZ'),
+ ('MOZ_ar_3','Grupo de Ataque de Nacala','ar',3,'MOZ'),
+ ('MOZ_mar_1','Flotilha do Canal de Moçambique','mar',1,'MOZ'),
+ ('MOZ_mar_2','Esquadra de Maputo','mar',2,'MOZ'),
+ ('MOZ_mar_3','Divisão Naval de Pemba','mar',3,'MOZ');

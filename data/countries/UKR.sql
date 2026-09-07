@@ -217,3 +217,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('UKR_campanha','Louvor do Comandante','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'UKR'),
  ('UKR_aco','Ordem de Bohdan Khmelnytsky','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'UKR'),
  ('UKR_imortais','Estrela de Ouro de Herói da Ucrânia','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'UKR');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('UKR_ar_1','Brigada Aérea Táctica de Vasylkiv','ar',1,'UKR'),
+ ('UKR_ar_2','Brigada Aérea de Myrhorod','ar',2,'UKR'),
+ ('UKR_ar_3','Esquadrilha de Kulbakine','ar',3,'UKR'),
+ ('UKR_mar_1','Flotilha de Odessa','mar',1,'UKR'),
+ ('UKR_mar_2','Esquadra do Mar Negro','mar',2,'UKR'),
+ ('UKR_mar_3','Divisão Naval do Danúbio','mar',3,'UKR');

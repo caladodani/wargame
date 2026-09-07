@@ -213,3 +213,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('ITA_campanha','Encomio Solenne','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ITA'),
  ('ITA_aco','Medaglia di Argento al Valor Militare','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ITA'),
  ('ITA_imortais','Medaglia di Oro al Valor Militare','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ITA');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('ITA_ar_1','4 Stormo','ar',1,'ITA'),
+ ('ITA_ar_2','6 Stormo','ar',2,'ITA'),
+ ('ITA_ar_3','32 Stormo','ar',3,'ITA'),
+ ('ITA_mar_1','Squadra Navale','mar',1,'ITA'),
+ ('ITA_mar_2','Terza Divisione Navale','mar',2,'ITA'),
+ ('ITA_mar_3','Flottiglia di Taranto','mar',3,'ITA');

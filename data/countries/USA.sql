@@ -203,3 +203,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('USA_campanha','Commendation Medal','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'USA'),
  ('USA_aco','Silver Star','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'USA'),
  ('USA_imortais','Medal of Honor','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'USA');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('USA_ar_1','334th Fighter Squadron','ar',1,'USA'),
+ ('USA_ar_2','77th Fighter Squadron','ar',2,'USA'),
+ ('USA_ar_3','9th Bomb Squadron','ar',3,'USA'),
+ ('USA_mar_1','Sixth Fleet','mar',1,'USA'),
+ ('USA_mar_2','Seventh Fleet','mar',2,'USA'),
+ ('USA_mar_3','Destroyer Squadron 26','mar',3,'USA');

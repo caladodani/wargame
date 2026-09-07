@@ -218,3 +218,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('KOR_campanha','Chungmu Mugong Hunjang','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'KOR'),
  ('KOR_aco','Eulji Mugong Hunjang','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'KOR'),
  ('KOR_imortais','Taegeuk Mugong Hunjang','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'KOR');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('KOR_ar_1','Jeontu Bidaedae 11','ar',1,'KOR'),
+ ('KOR_ar_2','Jeontu Bidaedae 19','ar',2,'KOR'),
+ ('KOR_ar_3','Bidaedae 39','ar',3,'KOR'),
+ ('KOR_mar_1','Frota do Mar do Oeste','mar',1,'KOR'),
+ ('KOR_mar_2','Frota do Mar do Leste','mar',2,'KOR'),
+ ('KOR_mar_3','Flotilha de Jinhae','mar',3,'KOR');

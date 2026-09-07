@@ -206,3 +206,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('CHN_campanha','Louvor de Primeira Classe','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'CHN'),
  ('CHN_aco','Medalha de Heroísmo em Combate','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'CHN'),
  ('CHN_imortais','Ordem da Estrela de Agosto','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'CHN');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('CHN_ar_1','Brigada de Caça do Leste','ar',1,'CHN'),
+ ('CHN_ar_2','Esquadrão Falcão de Nanjing','ar',2,'CHN'),
+ ('CHN_ar_3','Regimento de Bombardeiros do Norte','ar',3,'CHN'),
+ ('CHN_mar_1','Frota do Mar do Leste','mar',1,'CHN'),
+ ('CHN_mar_2','Frota do Mar do Sul','mar',2,'CHN'),
+ ('CHN_mar_3','Frota do Mar do Norte','mar',3,'CHN');

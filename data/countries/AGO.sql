@@ -205,3 +205,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('AGO_campanha','Louvor de Campanha das FAA','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'AGO'),
  ('AGO_aco','Medalha do Mérito Militar de Angola','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'AGO'),
  ('AGO_imortais','Ordem Agostinho Neto','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'AGO');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('AGO_ar_1','Regimento de Caça de Negage','ar',1,'AGO'),
+ ('AGO_ar_2','Esquadrilha de Ataque de Catumbela','ar',2,'AGO'),
+ ('AGO_ar_3','Grupo Aéreo de Luanda','ar',3,'AGO'),
+ ('AGO_mar_1','Flotilha de Luanda','mar',1,'AGO'),
+ ('AGO_mar_2','Esquadra do Namibe','mar',2,'AGO'),
+ ('AGO_mar_3','Divisão Naval do Soyo','mar',3,'AGO');

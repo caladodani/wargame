@@ -215,3 +215,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('IRN_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IRN'),
  ('IRN_aco','Ordem de Fath','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IRN'),
  ('IRN_imortais','Ordem de Zolfaghar','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IRN');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('IRN_ar_1','Esquadrão de Caça de Tabriz','ar',1,'IRN'),
+ ('IRN_ar_2','Ala Táctica de Bushehr','ar',2,'IRN'),
+ ('IRN_ar_3','Grupo Aéreo de Hamadan','ar',3,'IRN'),
+ ('IRN_mar_1','Frota do Golfo Pérsico','mar',1,'IRN'),
+ ('IRN_mar_2','Flotilha de Bandar Abbas','mar',2,'IRN'),
+ ('IRN_mar_3','Esquadra do Mar de Oman','mar',3,'IRN');

@@ -233,3 +233,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('BRA_campanha','Louvor do Comando','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'BRA'),
  ('BRA_aco','Cruz de Combate','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'BRA'),
  ('BRA_imortais','Ordem do Mérito Militar','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'BRA');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('BRA_ar_1','Esquadrão Jaguar','ar',1,'BRA'),
+ ('BRA_ar_2','Esquadrão Pampa','ar',2,'BRA'),
+ ('BRA_ar_3','Grupo de Bombardeio de Natal','ar',3,'BRA'),
+ ('BRA_mar_1','Esquadra do Atlântico Sul','mar',1,'BRA'),
+ ('BRA_mar_2','Flotilha do Rio de Janeiro','mar',2,'BRA'),
+ ('BRA_mar_3','Divisão Naval do Nordeste','mar',3,'BRA');

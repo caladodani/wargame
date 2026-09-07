@@ -205,3 +205,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('IND_campanha','Mention in Despatches','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IND'),
  ('IND_aco','Vir Chakra','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IND'),
  ('IND_imortais','Param Vir Chakra','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IND');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('IND_ar_1','No. 1 Squadron Tigers','ar',1,'IND'),
+ ('IND_ar_2','No. 17 Squadron Golden Arrows','ar',2,'IND'),
+ ('IND_ar_3','No. 47 Squadron Black Archers','ar',3,'IND'),
+ ('IND_mar_1','Western Fleet','mar',1,'IND'),
+ ('IND_mar_2','Eastern Fleet','mar',2,'IND'),
+ ('IND_mar_3','Andaman Squadron','mar',3,'IND');

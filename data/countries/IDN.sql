@@ -212,3 +212,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('IDN_campanha','Piagam Penghargaan','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IDN'),
  ('IDN_aco','Bintang Dharma','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IDN'),
  ('IDN_imortais','Bintang Sakti','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IDN');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('IDN_ar_1','Skadron Udara 3','ar',1,'IDN'),
+ ('IDN_ar_2','Skadron Udara 11','ar',2,'IDN'),
+ ('IDN_ar_3','Skadron Udara 16','ar',3,'IDN'),
+ ('IDN_mar_1','Armada Barat','mar',1,'IDN'),
+ ('IDN_mar_2','Armada Timur','mar',2,'IDN'),
+ ('IDN_mar_3','Satuan Kapal Eskorta','mar',3,'IDN');

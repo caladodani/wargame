@@ -531,6 +531,27 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort) VALUES
  ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1),
  ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2);
 
+-- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
+-- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
+-- sort o primeiro nome do fundo que o país ainda não tenha no ar (ou no mar); esgotado o fundo, a formação
+-- fica com o nome da região onde serve. country_tag NULL = fundo comum, que serve quem não traz o seu; com
+-- tag são os nomes de casa (data/countries/<TAG>.sql), e esse país só usa os dele — ver World.FormationNames
+-- e World.FormationNameIsFor. O nome é só um nome: não muda uma conta do jogo, e por isso quem traz fundo
+-- próprio tem de trazer as duas armas, senão metade das formações ficava sem tradição nenhuma. É regra
+-- verificada em tools/check_countries.py.
+CREATE TABLE IF NOT EXISTS formation_name (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  domain TEXT NOT NULL,                      -- ar | mar (World.Air / World.Sea)
+  sort INTEGER NOT NULL,                     -- ordem por que se pegam os nomes
+  country_tag TEXT);
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('ar_1','1.º Grupo de Caça','ar',1,NULL),
+ ('ar_2','2.º Grupo de Assalto','ar',2,NULL),
+ ('ar_3','3.º Grupo de Bombardeamento','ar',3,NULL),
+ ('mar_1','1.ª Esquadra','mar',1,NULL),
+ ('mar_2','2.ª Esquadra','mar',2,NULL),
+ ('mar_3','Flotilha de Escolta','mar',3,NULL);
+
 -- Políticas de ocupação (tabela occupation_policy; OccupationSystem): o que se faz ao povo da terra tomada.
 -- A de sort mais baixo é a de partida, e é neutra nas três contas (multiplicadores a 1).
 CREATE TABLE IF NOT EXISTS occupation_policy (

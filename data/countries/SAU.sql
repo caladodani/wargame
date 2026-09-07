@@ -205,3 +205,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('SAU_campanha','Louvor do Comando','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'SAU'),
  ('SAU_aco','Ordem do Rei Abdulaziz','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'SAU'),
  ('SAU_imortais','Medalha de Honra Militar do Reino','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'SAU');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('SAU_ar_1','Esquadrão 2 de Caça','ar',1,'SAU'),
+ ('SAU_ar_2','Esquadrão 92 de Ataque','ar',2,'SAU'),
+ ('SAU_ar_3','Ala de Dhahran','ar',3,'SAU'),
+ ('SAU_mar_1','Frota do Mar Vermelho','mar',1,'SAU'),
+ ('SAU_mar_2','Frota do Golfo','mar',2,'SAU'),
+ ('SAU_mar_3','Flotilha de Jeddah','mar',3,'SAU');

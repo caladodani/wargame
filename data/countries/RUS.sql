@@ -212,3 +212,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('RUS_campanha','Louvor do Comando','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'RUS'),
  ('RUS_aco','Ordem da Coragem','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'RUS'),
  ('RUS_imortais','Estrela de Ouro de Herói','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'RUS');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('RUS_ar_1','Regimento de Caça de Kubinka','ar',1,'RUS'),
+ ('RUS_ar_2','Regimento de Assalto de Voronezh','ar',2,'RUS'),
+ ('RUS_ar_3','Regimento de Bombardeiros de Engels','ar',3,'RUS'),
+ ('RUS_mar_1','Frota do Norte','mar',1,'RUS'),
+ ('RUS_mar_2','Frota do Báltico','mar',2,'RUS'),
+ ('RUS_mar_3','Frota do Mar Negro','mar',3,'RUS');

@@ -141,6 +141,11 @@ public sealed class Region
 public sealed record MedalDef(string Id, string Name, string Description, string Metric, float Threshold, float Bonus,
                              int Sort, string? CountryTag = null);
 
+/// <summary>Um nome de formação do fundo (tabela formation_name): o nome que a próxima asa ou esquadra do
+/// país vai levar. Domain diz de que arma é (World.Air / World.Sea) e Sort a ordem por que se pegam.
+/// CountryTag nulo = fundo comum, que serve quem não traz o seu.</summary>
+public sealed record FormationName(string Id, string Name, string Domain, int Sort, string? CountryTag = null);
+
 /// <summary>Honra de batalha (tabela division_honour). Ao contrário das condecorações, que se acumulam,
 /// uma divisão só carrega UMA honra — a mais alta que mereceu — e ela passa a fazer parte do nome:
 /// "3.ª de Infantaria «Leões de Braga»". Title é um molde onde {r} é o nome da região onde a honra foi
@@ -336,6 +341,9 @@ public sealed class AirMission
     public string MissionId { get; init; } = "";
     public float Wings { get; set; }
     public int SinceDay { get; init; }
+    /// <summary>Nome próprio da asa (tabela formation_name; save s_air_mission.name). Muda de tarefa sem
+    /// mudar de nome: quem está no céu de uma região é sempre a mesma gente. "" = save antigo, sem nome.</summary>
+    public string Name { get; set; } = "";
 }
 
 /// <summary>Tipo de missão naval (tabela naval_mission): o que uma esquadra vai fazer ao mar de uma costa.
@@ -354,6 +362,8 @@ public sealed class NavalMission
     public string MissionId { get; init; } = "";
     public float Ships { get; set; }
     public int SinceDay { get; init; }
+    /// <summary>Nome próprio da esquadra (tabela formation_name; save s_naval_mission.name).</summary>
+    public string Name { get; set; } = "";
 }
 
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>

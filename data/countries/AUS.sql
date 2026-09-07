@@ -208,3 +208,12 @@ INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) 
  ('AUS_campanha','Commendation for Distinguished Service','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'AUS'),
  ('AUS_aco','Distinguished Service Cross','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'AUS'),
  ('AUS_imortais','Victoria Cross for Australia','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'AUS');
+
+-- ===== nomes de formação nacionais (formation_name.country_tag) =====
+INSERT INTO formation_name (id,name,domain,sort,country_tag) VALUES
+ ('AUS_ar_1','No. 3 Squadron','ar',1,'AUS'),
+ ('AUS_ar_2','No. 75 Squadron','ar',2,'AUS'),
+ ('AUS_ar_3','No. 82 Wing','ar',3,'AUS'),
+ ('AUS_mar_1','Australian Fleet','mar',1,'AUS'),
+ ('AUS_mar_2','Anzac Squadron','mar',2,'AUS'),
+ ('AUS_mar_3','Task Group 627','mar',3,'AUS');

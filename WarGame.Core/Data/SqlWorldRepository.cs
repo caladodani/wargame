@@ -100,6 +100,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]),
                 r["country_tag"] as string);
+        foreach (var r in _static.Query("SELECT id,name,domain,sort,country_tag FROM formation_name ORDER BY sort,id"))
+            w.FormationNames.Add(new FormationName((string)r["id"]!, (string)r["name"]!, (string)r["domain"]!,
+                Convert.ToInt32(r["sort"]), r["country_tag"] as string));
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
@@ -370,6 +373,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_country", "air_xp", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "navy_xp", "REAL NOT NULL DEFAULT 0"),
         ("s_general", "wound_kind", "TEXT NOT NULL DEFAULT ''"),
+        ("s_air_mission", "name", "TEXT NOT NULL DEFAULT ''"),
+        ("s_naval_mission", "name", "TEXT NOT NULL DEFAULT ''"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -497,20 +502,26 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var r in save.Query("SELECT a,b,until_day FROM s_pact"))
             w.Pacts[(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]))] = Convert.ToInt32(r["until_day"]);
-        foreach (var r in save.Query("SELECT country_id,region_id,mission_id,wings,since_day FROM s_air_mission"))
+        foreach (var r in save.Query("SELECT country_id,region_id,mission_id,wings,since_day,name FROM s_air_mission"))
             w.AirMissions.Add(new AirMission
             {
                 CountryId = Convert.ToInt32(r["country_id"]), RegionId = Convert.ToInt32(r["region_id"]),
                 MissionId = (string)r["mission_id"]!, Wings = Convert.ToSingle(r["wings"]),
-                SinceDay = Convert.ToInt32(r["since_day"]),
+                SinceDay = Convert.ToInt32(r["since_day"]), Name = r["name"] as string ?? "",
             });
-        foreach (var r in save.Query("SELECT country_id,region_id,mission_id,ships,since_day FROM s_naval_mission"))
+        foreach (var r in save.Query("SELECT country_id,region_id,mission_id,ships,since_day,name FROM s_naval_mission"))
             w.NavalMissions.Add(new NavalMission
             {
                 CountryId = Convert.ToInt32(r["country_id"]), RegionId = Convert.ToInt32(r["region_id"]),
                 MissionId = (string)r["mission_id"]!, Ships = Convert.ToSingle(r["ships"]),
-                SinceDay = Convert.ToInt32(r["since_day"]),
+                SinceDay = Convert.ToInt32(r["since_day"]), Name = r["name"] as string ?? "",
             });
+        // saves feitos antes de haver nomes de formação trazem as missões com a coluna vazia (é o DEFAULT ''
+        // da migração): baptizam-se aqui, senão a asa ficava para sempre "asa sem nome" na ficha da Guerra
+        foreach (var m in w.AirMissions.Where(m => m.Name.Length == 0).ToList())
+            m.Name = w.NextFormationName(m.CountryId, World.Air, m.RegionId);
+        foreach (var m in w.NavalMissions.Where(m => m.Name.Length == 0).ToList())
+            m.Name = w.NextFormationName(m.CountryId, World.Sea, m.RegionId);
         foreach (var r in save.Query("SELECT country_id,target_id,policy_id,since_day FROM s_occupation"))
             w.Occupations.Add(new Occupation
             {
@@ -667,11 +678,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var ((pa, pb), until) in w.Pacts)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_pact VALUES (?,?,?)", pa, pb, until);
         foreach (var m in w.AirMissions)
-            save.Execute("INSERT INTO s_air_mission (country_id,region_id,mission_id,wings,since_day) VALUES (?,?,?,?,?)",
-                m.CountryId, m.RegionId, m.MissionId, m.Wings, m.SinceDay);
+            save.Execute("INSERT INTO s_air_mission (country_id,region_id,mission_id,wings,since_day,name) VALUES (?,?,?,?,?,?)",
+                m.CountryId, m.RegionId, m.MissionId, m.Wings, m.SinceDay, m.Name);
         foreach (var m in w.NavalMissions)
-            save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day) VALUES (?,?,?,?,?)",
-                m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay);
+            save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day,name) VALUES (?,?,?,?,?,?)",
+                m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay, m.Name);
         foreach (var o in w.Occupations)
             save.Execute("INSERT INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
                 o.CountryId, o.TargetId, o.PolicyId, o.SinceDay);

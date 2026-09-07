@@ -144,12 +144,14 @@ public sealed class AirMissionSystem : ISystem
         if (wings <= 0f || !w.AirMissionDefs.ContainsKey(missionId)) return;
         var have = w.AirMissions.FirstOrDefault(m => m.CountryId == countryId && m.RegionId == regionId);
         if (have is not null && have.MissionId == missionId) { have.Wings += wings; return; }
-        // trocar de missão no mesmo céu não manda ninguém para casa: as asas que lá estavam mudam de tarefa
+        // trocar de missão no mesmo céu não manda ninguém para casa: as asas que lá estavam mudam de tarefa,
+        // e por isso guardam o nome — quem está naquele céu é a mesma gente
         if (have is not null) w.AirMissions.Remove(have);
         w.AirMissions.Add(new AirMission
         {
             CountryId = countryId, RegionId = regionId, MissionId = missionId,
             Wings = wings + (have?.Wings ?? 0f), SinceDay = w.Clock.Day,
+            Name = have?.Name is { Length: > 0 } old ? old : w.NextFormationName(countryId, World.Air, regionId),
         });
     }
 
