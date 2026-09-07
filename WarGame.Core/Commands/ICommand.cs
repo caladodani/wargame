@@ -961,6 +961,44 @@ public sealed record RecallAirMissionCommand(int CountryId, int RegionId) : ICom
     public void Execute(World w) => AirMissionSystem.Recall(w, CountryId, RegionId);
 }
 
+/// <summary>Comprar um navio de guerra: +1 Warships por naval_ship_cost pontos. O pool nacional é o que
+/// se pode destacar para o mar; quem for ao fundo numa missão não volta ao pool.</summary>
+public sealed record BuyWarshipCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        float cost = w.Rule("naval_ship_cost", 90f);
+        if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Money -= w.Rule("naval_ship_cost", 90f);
+        c.Warships += 1f;
+    }
+}
+
+/// <summary>Destacar navios para o mar de uma costa com uma tarefa (bloqueio, escolta ou patrulha). Passa
+/// pelo NavalMissionSystem, que é quem sabe quantos navios há no porto e se o mar está ao alcance.</summary>
+public sealed record AssignNavalMissionCommand(int CountryId, int RegionId, string MissionId, float Ships) : ICommand
+{
+    public string? Validate(World w) => NavalMissionSystem.Block(w, CountryId, RegionId, MissionId, Ships);
+
+    public void Execute(World w) => NavalMissionSystem.Assign(w, CountryId, RegionId, MissionId, Ships);
+}
+
+/// <summary>Chamar a esquadra de volta ao porto: os navios voltam ao pool no mesmo dia.</summary>
+public sealed record RecallNavalMissionCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w) =>
+        w.NavalMissions.Any(m => m.CountryId == CountryId && m.RegionId == RegionId) ? null : "não há esquadra nesse mar";
+
+    public void Execute(World w) => NavalMissionSystem.Recall(w, CountryId, RegionId);
+}
+
 /// <summary>Construir uma ogiva nuclear: exige a tecnologia que dá o multiplicador "nuclear" (> 1)
 /// e nuke_cost pontos de produção. NuclearStrikeCommand gasta uma ogiva.</summary>
 public sealed record BuildNukeCommand(int CountryId) : ICommand

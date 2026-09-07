@@ -33,7 +33,7 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, Node2D> _markers = new();      // região → Node2D (escala 1/zoom) com um Label
     private readonly Dictionary<int, Tween> _pulses = new();        // região em batalha → animação do marcador
     private readonly Dictionary<int, float> _area = new();          // região → área do polígono (peso do centróide do país)
-    private readonly Dictionary<int, Node2D> _countryNames = new();  // país → etiqueta com o nome no mapa
+    private readonly Dictionary<int, CountryLabel> _countryNames = new();  // país → nome escrito sobre o território
     private readonly Dictionary<int, UnitCounter> _counters = new();  // região → contador NATO (só de perto)
     /// <summary>Zoom a partir do qual os contadores substituem o número da pastilha: de longe o mapa é
     /// político e não militar, e cem caixas ao mesmo tempo não se leem.</summary>
@@ -487,54 +487,45 @@ public partial class RegionRenderer : Node2D
     /// é pequeno demais no ecrã para caber lá o nome (ver ShowNames).</summary>
     private void RefreshCountryNames(World w)
     {
-        var sum = new Dictionary<int, (float X, float Y, float A)>();
+        // um ponto por região, pesado pela área: é a nuvem que dá o eixo e a curva do nome (CountryLabel)
+        var cloud = new Dictionary<int, List<(Vector2 At, float Weight)>>();
         foreach (var r in w.Regions.Values)
         {
             float a = MathF.Max(1f, _area.GetValueOrDefault(r.Id));
-            var acc = sum.GetValueOrDefault(r.ControllerId);
-            sum[r.ControllerId] = (acc.X + r.CenterX * a, acc.Y + r.CenterY * a, acc.A + a);
+            if (!cloud.TryGetValue(r.ControllerId, out var list)) cloud[r.ControllerId] = list = new();
+            list.Add((new Vector2(r.CenterX, r.CenterY), a));
         }
 
-        foreach (var (id, acc) in sum)
+        foreach (var (id, points) in cloud)
         {
-            if (acc.A <= 0f || !w.Countries.TryGetValue(id, out var c)) continue;
-            if (!_countryNames.TryGetValue(id, out var node)) _countryNames[id] = node = NewCountryName(c.Name);
-            node.Position = new Vector2(acc.X / acc.A, acc.Y / acc.A);
-            var label = node.GetNode<Label>("Text");
-            var st = label.LabelSettings;
-            // países grandes levam letra maior; o texto centra-se no sítio onde está pousado
-            st.FontSize = (int)Mathf.Clamp(MathF.Sqrt(acc.A) * 0.16f, 16f, 64f);
-            st.FontColor = _countryColor.GetValueOrDefault(id, Colors.White).Lightened(0.55f);
-            label.Size = new Vector2(600, st.FontSize * 1.6f);
-            label.Position = new Vector2(-300, -st.FontSize * 0.8f);
-            node.SetMeta("span", MathF.Sqrt(acc.A));
+            if (!w.Countries.TryGetValue(id, out var c)) continue;
+            float area = points.Sum(p => p.Weight);
+            if (area <= 0f) continue;
+            if (!_countryNames.TryGetValue(id, out var node)) _countryNames[id] = node = NewCountryName();
+            // países grandes levam letra maior; a cor é a do país, clareada para se ler por cima do mapa
+            int size = (int)Mathf.Clamp(MathF.Sqrt(area) * 0.16f, 16f, 64f);
+            node.Set(c.Name, points, _countryColor.GetValueOrDefault(id, Colors.White).Lightened(0.55f), size);
         }
         foreach (var (id, node) in _countryNames)
         {
-            node.SetMeta("alive", sum.ContainsKey(id));   // país sem território não tem nome no mapa
-            node.Visible = sum.ContainsKey(id) && ShowName(node);
+            node.SetMeta("alive", cloud.ContainsKey(id));   // país sem território não tem nome no mapa
+            node.Visible = cloud.ContainsKey(id) && ShowName(node);
         }
     }
 
-    /// <summary>Etiqueta com o nome do país: letra clara com contorno preto, para se ler por cima de
-    /// qualquer cor de mapa. Fica na sua própria camada, por baixo dos marcadores das divisões.</summary>
-    private Node2D NewCountryName(string name)
+    /// <summary>Etiqueta com o nome do país, escrita letra a letra sobre a espinha do território: letra clara
+    /// com contorno preto, para se ler por cima de qualquer cor de mapa. Fica na sua própria camada, por
+    /// baixo dos marcadores das divisões.</summary>
+    private CountryLabel NewCountryName()
     {
-        var node = new Node2D { Scale = Vector2.One * _markerScale };
-        node.AddChild(new Label
-        {
-            Name = "Text", Text = name.ToUpperInvariant(),
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            LabelSettings = new LabelSettings { FontSize = 24, FontColor = Colors.White, OutlineSize = 8, OutlineColor = new Color(0, 0, 0, 0.85f) },
-        });
+        var node = new CountryLabel { Scale = Vector2.One * _markerScale };
         _nameRoot.AddChild(node);
         return node;
     }
 
     /// <summary>O nome só aparece quando o país ocupa espaço que chegue no ecrã (largura aparente em píxeis):
     /// afastado vêem-se os impérios, ao aproximar aparecem os pequenos.</summary>
-    private bool ShowName(Node2D node) => (float)node.GetMeta("span", 0f) * _zoom > 90f;
+    private bool ShowName(CountryLabel node) => node.Span * _zoom > 90f;
 
     /// <summary>Regiões que o jogador exigiu nas guerras em curso (objectivos de guerra) e ainda não controla.</summary>
     private HashSet<int> PlayerGoals(World w)
@@ -653,6 +644,11 @@ public partial class RegionRenderer : Node2D
     }
 
     /// <summary>--smoke: tiras de fronteira nacional desenhadas (uma por troço seguido de arestas).</summary>
+    /// <summary>Nomes de país no mapa e as letras que eles somam: o --smoke prova por aqui que os nomes
+    /// deixaram de ser um Label direito e passaram a ser letra a letra sobre a curva do território.</summary>
+    public (int Names, int Glyphs) CountryNames() =>
+        (_countryNames.Values.Count(n => (bool)n.GetMeta("alive", false)), _countryNames.Values.Sum(n => n.GetChildCount()));
+
     public int FrontierLines() => _frontier.Values.Sum(n => n.GetChildCount());
 
     /// <summary>Hit-test para toque: região cujo polígono contém o ponto (mundo).</summary>

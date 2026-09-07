@@ -72,6 +72,7 @@ public partial class Game : Node
         }
 
         // Ordem do tick — única fonte de verdade.
+        World.Register(new NavalMissionSystem());  // antes do abastecimento: o cais bloqueado hoje dá fome hoje
         World.Register(new SupplySystem());
         World.Register(new TradeSystem());
         World.Register(new ResourceSystem());

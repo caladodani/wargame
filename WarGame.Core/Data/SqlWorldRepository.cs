@@ -101,6 +101,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort FROM air_mission ORDER BY sort"))
             w.AirMissionDefs[(string)r["id"]!] = new AirMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort FROM naval_mission ORDER BY sort"))
+            w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,icon,weight FROM chronicle_kind"))
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToInt32(r["weight"]));
@@ -297,6 +300,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "xp", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "auto_advance", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
+        ("s_country", "warships", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "nukes", "INTEGER NOT NULL DEFAULT 0"),
         ("s_production_queue", "repeat_order", "INTEGER NOT NULL DEFAULT 0"),
         ("s_war", "a_regions", "INTEGER NOT NULL DEFAULT 0"),
@@ -352,7 +356,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var r in factionMembers)
                 if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f)) f.Members.Add(Convert.ToInt32(r["country_id"]));
         }
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev,army_xp FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,nukes,power_rank,power_rank_prev,army_xp FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
@@ -367,6 +371,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["justify_progress"] is not null) c.JustifyProgress = Convert.ToSingle(r["justify_progress"]);
             if (r["war_exhaustion"] is not null) c.WarExhaustion = Convert.ToSingle(r["war_exhaustion"]);
             if (r["air_power"] is not null) c.AirPower = Convert.ToSingle(r["air_power"]);
+            if (r["warships"] is not null) c.Warships = Convert.ToSingle(r["warships"]);
             if (r["nukes"] is not null) c.Nukes = Convert.ToInt32(r["nukes"]);
             if (r["power_rank"] is not null) c.PowerRank = Convert.ToInt32(r["power_rank"]);
             if (r["power_rank_prev"] is not null) c.PowerRankPrev = Convert.ToInt32(r["power_rank_prev"]);
@@ -434,6 +439,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             {
                 CountryId = Convert.ToInt32(r["country_id"]), RegionId = Convert.ToInt32(r["region_id"]),
                 MissionId = (string)r["mission_id"]!, Wings = Convert.ToSingle(r["wings"]),
+                SinceDay = Convert.ToInt32(r["since_day"]),
+            });
+        foreach (var r in save.Query("SELECT country_id,region_id,mission_id,ships,since_day FROM s_naval_mission"))
+            w.NavalMissions.Add(new NavalMission
+            {
+                CountryId = Convert.ToInt32(r["country_id"]), RegionId = Convert.ToInt32(r["region_id"]),
+                MissionId = (string)r["mission_id"]!, Ships = Convert.ToSingle(r["ships"]),
                 SinceDay = Convert.ToInt32(r["since_day"]),
             });
         foreach (var r in save.Query("SELECT country_id,host_id,since_day,learned FROM s_attache"))
@@ -540,7 +552,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -583,6 +595,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var m in w.AirMissions)
             save.Execute("INSERT INTO s_air_mission (country_id,region_id,mission_id,wings,since_day) VALUES (?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Wings, m.SinceDay);
+        foreach (var m in w.NavalMissions)
+            save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day) VALUES (?,?,?,?,?)",
+                m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay);
         foreach (var a in w.Attaches.Values)
             save.Execute("INSERT INTO s_attache (country_id,host_id,since_day,learned) VALUES (?,?,?,?)",
                 a.CountryId, a.HostId, a.SinceDay, a.Learned);
@@ -606,8 +621,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             // países sem estado nenhum não gastam linha; o lugar na tabela mundial não os obriga a ter uma
             // (o PowerRankingSystem refá-la em power_rank_days), mas o do jogador vai sempre com o save
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev,army_xp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp);
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,nukes,power_rank,power_rank_prev,army_xp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Warships, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp);
             // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a
             // primeira, para um save novo ainda abrir num binário anterior às ranhuras
             foreach (var (techId, progress) in c.Research)

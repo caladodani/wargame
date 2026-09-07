@@ -457,6 +457,17 @@ INSERT INTO air_mission (id,name,icon,effect,value,note,sort) VALUES
  ('apoio','Apoio próximo','💥','support',0.03,'Bate no chão ao lado da nossa tropa: cada asa soma força a quem ali combate.',1),
  ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2);
 
+-- Missões navais (tabela naval_mission; NavalMissionSystem): o que uma esquadra vai fazer ao mar de uma costa.
+CREATE TABLE IF NOT EXISTS naval_mission (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  effect TEXT NOT NULL,                      -- blockade | escort | patrol
+  value REAL NOT NULL,                       -- o que cada navio vale nesse papel
+  note TEXT NOT NULL, sort INTEGER NOT NULL);
+INSERT INTO naval_mission (id,name,icon,effect,value,note,sort) VALUES
+ ('bloqueio','Bloqueio naval','⚓','blockade',1,'Fecha o mar em frente àquela costa: enquanto lá estiver a esquadra, o cais não carrega nada e o abastecimento por mar não passa.',0),
+ ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1),
+ ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2);
+
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES
  ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),
@@ -515,7 +526,13 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_support_max',0.35,'tecto do bónus de apoio próximo na força de quem combate'),
  ('air_mission_min_wings',1,'asas mínimas para destacar uma missão aérea'),
  ('air_ai_reserve',1,'asas que a IA guarda em casa antes de destacar missões'),
- ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões');
+ ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões'),
+ ('naval_ship_cost',90,'custo de um navio de guerra'),
+ ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
+ ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),
+ ('naval_range_km',1500,'distância máxima, por rota marítima, entre a nossa costa e o mar da missão'),
+ ('naval_mission_min_ships',1,'navios mínimos para destacar uma esquadra'),
+ ('naval_ai_reserve',1,'navios que a IA guarda em casa antes de destacar esquadras');
 
 -- Integração de território ocupado (IntegrationSystem)
 INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');

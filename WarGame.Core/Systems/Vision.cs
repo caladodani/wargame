@@ -11,6 +11,7 @@ namespace WarGame.Core.Systems;
 /// • é nossa (controlamos) ou temos lá tropa;
 /// • é de um aliado da mesma facção — os aliados partilham o que vêem;
 /// • faz fronteira (por terra ou por mar) com terreno nosso — as patrulhas de fronteira vêem o vizinho;
+/// • temos uma patrulha naval no mar daquela costa (NavalMissionSystem);
 /// • temos rede de informações montada sobre quem a controla (EspionageSystem: World.HasIntel);
 /// • temos uma operação a decorrer nessa própria região.
 ///
@@ -37,6 +38,7 @@ public static class Vision
             if (w.Divisions.TryGetValue(id, out var d) && (d.CountryId == viewerId || w.SameFaction(viewerId, d.CountryId)))
                 return true;
 
+        if (NavalMissionSystem.Patrols(w, viewerId, r.Id)) return true;   // patrulha naval: aquele mar é nosso a olhar
         if (w.HasIntel(viewerId, r.ControllerId)) return true;
         foreach (var op in w.ActiveSpyOps)
             if (op.CountryId == viewerId && op.RegionId == r.Id) return true;

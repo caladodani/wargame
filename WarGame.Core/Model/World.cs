@@ -131,6 +131,10 @@ public sealed class World
     /// (país, região): mandar mais asas para o mesmo céu engrossa a que lá está.</summary>
     public List<AirMission> AirMissions { get; } = new();
 
+    /// <summary>Tipos de missão naval (tabela naval_mission) e as esquadras destacadas hoje.</summary>
+    public Dictionary<string, NavalMissionDef> NavalMissionDefs { get; } = new();
+    public List<NavalMission> NavalMissions { get; } = new();
+
     /// <summary>País metido em alguma guerra a sério (é a guerra dele que ensina o adido).</summary>
     public bool AtWar(int countryId) =>
         Countries.TryGetValue(countryId, out var c) && !c.Capitulated && c.AtWarWith.Count > 0;

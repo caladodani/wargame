@@ -63,8 +63,11 @@ public sealed class SupplySystem : ISystem
     {
         var bySea = new HashSet<int>();
         capacity = new Dictionary<int, float>();
+        // cais bloqueado não carrega nada: enquanto a esquadra inimiga estiver naquele mar, o porto é uma
+        // pedra na costa (NavalMissionSystem.Blockaded; sem missões navais no mundo isto não muda nada)
         var ports = w.Regions.Values.Where(r => r.Buildings.Count > 0 && linked.Contains(r.Id)
-                                             && r.Buildings.Any(b => Range(w, b) > 0f)).ToList();
+                                             && r.Buildings.Any(b => Range(w, b) > 0f)
+                                             && !NavalMissionSystem.Blockaded(w, r.Id)).ToList();
         float perLevel = w.Rule("port_capacity_per_level", 6f);
         foreach (var port in ports)
             capacity[port.ControllerId] = capacity.GetValueOrDefault(port.ControllerId)
@@ -78,6 +81,7 @@ public sealed class SupplySystem : ISystem
             foreach (var (dst, km) in port.SeaNeighbours)
             {
                 if (km > reach || !w.Regions.TryGetValue(dst, out var r)) continue;
+                if (NavalMissionSystem.Blockaded(w, dst)) continue;      // rota fechada pela esquadra inimiga
                 if (r.ControllerId != port.ControllerId || !linked.Add(dst)) continue;
                 bySea.Add(dst); queue.Enqueue(r);
             }

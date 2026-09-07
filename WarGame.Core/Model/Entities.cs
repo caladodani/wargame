@@ -284,6 +284,24 @@ public sealed class AirMission
     public int SinceDay { get; init; }
 }
 
+/// <summary>Tipo de missão naval (tabela naval_mission): o que uma esquadra vai fazer ao mar de uma costa.
+/// Effect diz qual dos três papéis é — "blockade" (fechar o mar àquela costa), "escort" (acompanhar os
+/// nossos comboios e desfazer o bloqueio) ou "patrol" (vigiar aquele mar e tirar a costa do nevoeiro).
+/// Trocar o que a marinha faz é trocar linhas desta tabela.</summary>
+public sealed record NavalMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort);
+
+/// <summary>Uma esquadra destacada para o mar de uma região costeira (NavalMissionSystem; save
+/// s_naval_mission). Ships são navios do pool nacional (Country.Warships) que ficam presos a esta missão
+/// até serem chamados de volta — ou até irem ao fundo naquele mar.</summary>
+public sealed class NavalMission
+{
+    public int CountryId { get; init; }
+    public int RegionId { get; init; }
+    public string MissionId { get; init; } = "";
+    public float Ships { get; set; }
+    public int SinceDay { get; init; }
+}
+
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
 public sealed class ProductionOrder
 {
@@ -355,6 +373,7 @@ public sealed class Country
     public int SeaSupplied { get; set; }           // divisões que hoje só bebem por mar (SupplySystem, derivado)
     public float WarExhaustion { get; set; }       // 0..exhaustion_max: baixas acumuladas puxam a estabilidade para baixo
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
+    public float Warships { get; set; }            // navios de guerra (BuyWarshipCommand); destacam-se por NavalMissionSystem
     public int Nukes { get; set; }                 // ogivas prontas (BuildNukeCommand); NuclearStrikeCommand gasta uma
     /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
     public Dictionary<string, string> Laws { get; } = new();

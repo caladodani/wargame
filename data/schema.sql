@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS s_country (
   justify_target INTEGER, justify_progress REAL NOT NULL DEFAULT 0,
   war_exhaustion REAL NOT NULL DEFAULT 0,
   air_power REAL NOT NULL DEFAULT 0,
+  warships REAL NOT NULL DEFAULT 0,
   nukes INTEGER NOT NULL DEFAULT 0,
   power_rank INTEGER NOT NULL DEFAULT 0,        -- lugar na tabela mundial (PowerRankingSystem)
   power_rank_prev INTEGER NOT NULL DEFAULT 0    -- lugar anterior, para a seta de subida/descida
@@ -225,6 +226,13 @@ CREATE TABLE IF NOT EXISTS air_mission (      -- tipos de missão aérea (AirMis
 CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre regiões (save)
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   wings REAL NOT NULL, since_day INTEGER NOT NULL,
+  PRIMARY KEY (country_id, region_id));
+CREATE TABLE IF NOT EXISTS naval_mission (    -- tipos de missão naval (NavalMissionSystem); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  effect TEXT NOT NULL, value REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar de uma costa (save)
+  country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
+  ships REAL NOT NULL, since_day INTEGER NOT NULL,
   PRIMARY KEY (country_id, region_id));
 CREATE TABLE IF NOT EXISTS s_attache (        -- adidos militares destacados (AttacheSystem)
   country_id INTEGER PRIMARY KEY, host_id INTEGER NOT NULL, since_day INTEGER NOT NULL,

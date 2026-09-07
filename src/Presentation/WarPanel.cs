@@ -76,12 +76,13 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
-                      AttacheKey(w, pid) + "|" + AirKey(w, pid) + "|" +
+                      AttacheKey(w, pid) + "|" + AirKey(w, pid) + "|" + SeaKey(w, pid) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.CrestInto(_crest, w.Countries[pid].Tag, "Guerra",
-                $"{mine.Count} em curso · {past.Count} no arquivo · {AirMissionSystem.Assigned(w, pid):0.#} asas no ar");
+                $"{mine.Count} em curso · {past.Count} no arquivo · {AirMissionSystem.Assigned(w, pid):0.#} asas no ar"
+                + $" · {NavalMissionSystem.Assigned(w, pid):0.#} navios no mar");
             Ui.Clear(_body);
 
             var front = new Dictionary<int, float>();   // força útil (org×HP) por país, para a balança
@@ -130,6 +131,7 @@ public partial class WarPanel : PanelContainer
             }
 
             AirWar(w, pid);
+            SeaWar(w, pid);
             Attaches(w, pid);
 
             if (past.Count > 0)
@@ -262,6 +264,104 @@ public partial class WarPanel : PanelContainer
         var err = _game.Dispatch(new RecallAirMissionCommand(pid, regionId));
         if (err is not null) { _game.Notify(err); return; }
         _game.Notify($"Esquadrões de volta de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
+
+    /// <summary>O que o painel tem de redesenhar quando o mar muda: as nossas esquadras, os navios no porto,
+    /// o que o inimigo tem à porta e as costas que hoje estão fechadas.</summary>
+    private string SeaKey(World w, int pid) =>
+        $"sea{NavalMissionSystem.Free(w, pid):0.0}:"
+        + string.Join("-", w.NavalMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
+            .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Ships:0.0}"))
+        + ":" + (NavalMissionSystem.Target(w, pid)?.ToString() ?? "-");
+
+    /// <summary>Guerra naval: o mar era um cano de abastecimento que ninguém podia cortar. A secção mostra a
+    /// frota (no porto / no mar / o que custa por dia), as esquadras destacadas com o mar que está disputado
+    /// e as costas ao alcance — a deles para bloquear ou patrulhar, a nossa para escoltar comboios.
+    ///
+    /// Vive no painel da Guerra, ao lado do céu: as duas decisões são a mesma — onde é que se põe o aço que
+    /// há, sabendo que espalhá-lo por toda a parte não fecha nada.</summary>
+    private void SeaWar(World w, int pid)
+    {
+        var me = w.Countries[pid];
+        float upkeep = w.Rule("naval_mission_upkeep", 0.8f);
+        float free = NavalMissionSystem.Free(w, pid), sailing = NavalMissionSystem.Assigned(w, pid);
+        Header("Guerra naval");
+        var (box, card) = Card();
+
+        card.AddChild(Ui.Lbl($"⚓ {me.Warships:0.#} navios — {free:0.#} no porto, {sailing:0.#} no mar   ·   " +
+                             $"estadia {sailing * upkeep:0.0}/dia   ·   cofre {me.Money:0}", 16));
+        if (me.Warships <= 0f)
+        {
+            card.AddChild(Ui.Lbl("Sem frota: os navios compram-se no painel do País, e só depois há mar para mandar.", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        foreach (var m in w.NavalMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
+        {
+            if (!w.NavalMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
+            float foe = w.NavalMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Ships);
+            int rid = m.RegionId;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+            var lbl = Ui.Grow(Ui.Lbl($"{def.Icon} {r.Name} — {def.Name}, {m.Ships:0.#} navios há {w.Clock.Day - m.SinceDay} dias"
+                                     + (foe > 0f ? $"   ⚔ mar disputado ({foe:0.#} deles)" : "")
+                                     + (NavalMissionSystem.Blockaded(w, rid) ? "   ⚓ costa fechada" : ""), 16));
+            lbl.TooltipText = def.Note + (foe > 0f ? "\nMar disputado: vai aço ao fundo dos dois lados todos os dias." : "");
+            row.AddChild(lbl);
+            if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
+            row.AddChild(Ui.Btn("Recolher", () => RecallSea(pid, rid), 150));
+            card.AddChild(row);
+        }
+
+        // mares a que se pode mandar hoje: a melhor costa deles ao nosso alcance e as nossas costas com porto
+        var seas = new List<int>();
+        if (NavalMissionSystem.Target(w, pid) is int target) seas.Add(target);
+        foreach (var r in w.Regions.Values.Where(x => x.ControllerId == pid && x.SeaNeighbours.Count > 0
+                                                      && x.Buildings.Count > 0).OrderByDescending(x => x.Buildings.Values.Sum()).ThenBy(x => x.Id))
+            if (seas.Count < 3 && !seas.Contains(r.Id)) seas.Add(r.Id);
+        if (seas.Count == 0)
+        {
+            card.AddChild(Ui.Lbl("Nenhum mar ao alcance: é preciso costa nossa com rota até lá.", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        float lot = MathF.Max(w.Rule("naval_mission_min_ships", 1f), MathF.Floor(free));
+        foreach (int rid in seas)
+        {
+            var r = w.Regions[rid];
+            card.AddChild(Ui.Lbl($"{(r.ControllerId == pid ? "Costa nossa" : "Costa deles")}: {r.Name}"
+                                 + (NavalMissionSystem.Blockaded(w, rid) ? "   ·   fechada por bloqueio" : ""), 15));
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            foreach (var def in w.NavalMissionDefs.Values.OrderBy(d => d.Sort))
+            {
+                string mid = def.Id; int sea = rid;
+                string? no = NavalMissionSystem.Block(w, pid, sea, mid, lot);
+                var b = Ui.Btn($"{def.Icon} {def.Name} ({lot:0.#})", () => SendSea(pid, sea, mid, lot), 0,
+                               no is null ? Ui.Kind.Primary : Ui.Kind.Normal);
+                b.Disabled = no is not null;
+                b.TooltipText = no ?? def.Note;
+                row.AddChild(Ui.Grow(b));
+            }
+            card.AddChild(row);
+        }
+        _body.AddChild(box);
+    }
+
+    private void SendSea(int pid, int regionId, string missionId, float ships) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new AssignNavalMissionCommand(pid, regionId, missionId, ships));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"{ships:0.#} navios a caminho de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
+
+    private void RecallSea(int pid, int regionId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new RecallNavalMissionCommand(pid, regionId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Esquadra de volta de {_game.World.Regions[regionId].Name}");
         _lastKey = ""; Fill();
     });
 
