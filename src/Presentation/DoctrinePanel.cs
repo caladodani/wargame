@@ -42,7 +42,7 @@ public partial class DoctrinePanel : PanelContainer
     {
         _game = game;
         Visible = false;
-        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.12f; AnchorBottom = 1;
+        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.070f, 0.078f, 0.090f, 1f)));
 

@@ -51,7 +51,7 @@ public partial class RegionPanel : PanelContainer
         catch (Exception ex) { GD.PushError("terrain: " + ex.Message); }
 
         Visible = false;
-        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.55f; AnchorBottom = 1;
+        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 1f)));
         var v = new VBoxContainer(); AddChild(v);

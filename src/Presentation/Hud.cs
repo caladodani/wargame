@@ -49,7 +49,6 @@ public partial class Hud : CanvasLayer
     private WarPanel _warPanel = null!;
     private ArmyPanel _armyPanel = null!;
     private EndScreen _end = null!;
-    private MiniMap _mini = null!;
     private MapModeBar _modeBar = null!;
     private BattlePanel _battle = null!;
     private FocusPanel _focusTree = null!;
@@ -96,7 +95,6 @@ public partial class Hud : CanvasLayer
             _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
             _slots = new SlotsPanel(); AddChild(_slots); _slots.Setup(_game);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
-            _mini = new MiniMap(); AddChild(_mini); _mini.Setup(_map);
             _modeBar = new MapModeBar(); AddChild(_modeBar); _modeBar.Setup(_game, _map.Regions);
             _compare = new ComparePanel(); AddChild(_compare); _compare.Setup(_game);
             _battle = new BattlePanel(); AddChild(_battle); _battle.Setup(_game);
@@ -901,7 +899,6 @@ public partial class Hud : CanvasLayer
             _worldPanel.Refresh();
             _warPanel.Refresh();
             _armyPanel.Refresh();
-            // O mini-mapa não serve de nada por baixo de um painel que ocupa metade do ecrã.
             _alerts.Refresh();
             _battle.Refresh();
             _focusTree.Refresh();
@@ -909,11 +906,8 @@ public partial class Hud : CanvasLayer
             bool covered = _compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
                            || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible
                            || _battle.Visible || _focusTree.Visible || _doctrines.Visible;
-            _mini.SetCovered(covered);
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
-            if (!_mini.Visible) return;
-            _mini.Refresh();
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
@@ -1514,7 +1508,6 @@ public partial class Hud : CanvasLayer
             if (withDivs.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.DoubleTap(nb);
             GD.Print($"smoke: duplo toque → selecção {(_multiSel.Active ? "por usar" : "consumida")}");
         }
-        _mini.Toggle(); _mini.Toggle(); _mini.Refresh();   // mini-mapa: encolher, abrir e pintar sem rebentar
         string menu = _menu.Smoke();                        // menu de jogo: secções, botões e filas de chapas medidas
         int saves = _slots.Smoke();                          // e as fichas dos jogos guardados
         GD.Print($"smoke: menu de jogo com {menu}, dificuldade {(_game.World.Difficulty ?? "por escolher")}, "

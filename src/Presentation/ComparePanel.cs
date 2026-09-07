@@ -25,7 +25,7 @@ public partial class ComparePanel : PanelContainer
     {
         _game = game;
         Visible = false;
-        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.42f; AnchorBottom = 1;
+        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.078f, 0.09f, 0.098f, 1f)));
 
