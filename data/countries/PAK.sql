@@ -147,3 +147,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PAK_doc_corpo_choque','attack',1.08),
  ('PAK_doc_profunda','defense',1.07),
  ('PAK_doc_profunda','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PAK_ar','Asas do Norte','☾',11,'PAK','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PAK_ar_desfiladeiro','PAK_ar','Voo entre Montanhas','Voar por dentro dos vales esconde-se de qualquer radar.',50,NULL,1,'PAK'),
+ ('PAK_ar_kamra','PAK_ar','Oficina de Kamra','Montar, reparar e melhorar em casa dá horas de voo que o dinheiro não dá.',110,'PAK_ar_desfiladeiro',2,'PAK'),
+ ('PAK_ar_swift_retort','PAK_ar','Resposta Imediata','Responder no dia seguinte é a única resposta que conta.',185,'PAK_ar_kamra',3,'PAK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PAK_ar_desfiladeiro','air_losses',0.92),
+ ('PAK_ar_kamra','air_upkeep',0.91),
+ ('PAK_ar_swift_retort','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PAK_mar','Guarda de Gwadar','🌙',12,'PAK','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PAK_mar_karachi','PAK_mar','Defesa de Karachi','Um só porto grande: perdido ele, perde-se o mar todo.',50,NULL,1,'PAK'),
+ ('PAK_mar_agosta','PAK_mar','Escola de Submarinos','Um submarino silencioso é a resposta de quem tem menos navios.',110,'PAK_mar_karachi',2,'PAK'),
+ ('PAK_mar_gwadar','PAK_mar','Porto de Águas Profundas','Um segundo porto muda a conta inteira da guerra no mar.',185,'PAK_mar_agosta',3,'PAK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PAK_mar_karachi','naval_patrol',1.09),
+ ('PAK_mar_agosta','naval_blockade',1.1),
+ ('PAK_mar_gwadar','naval_upkeep',0.92);

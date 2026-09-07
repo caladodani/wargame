@@ -162,3 +162,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PRT_doc_comandos','move_speed',1.05),
  ('PRT_doc_atlantico','move_speed',1.08),
  ('PRT_doc_atlantico','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PRT_ar','Asas do Atlântico','🇵🇹',11,'PRT','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRT_ar_lajes','PRT_ar','Placa dos Açores','Uma pista no meio do oceano vale por uma esquadra.',50,NULL,1,'PRT'),
+ ('PRT_ar_busca','PRT_ar','Busca e Salvamento','A maior área de busca da Europa treina quem voa longe de terra.',110,'PRT_ar_lajes',2,'PRT'),
+ ('PRT_ar_africa_ar','PRT_ar','Apoio em África','Três guerras a apoiar colunas em mato ensinaram a largar onde é preciso.',185,'PRT_ar_busca',3,'PRT');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRT_ar_lajes','air_upkeep',0.92),
+ ('PRT_ar_busca','air_losses',0.92),
+ ('PRT_ar_africa_ar','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PRT_mar','Escola do Mar Largo','🧭',12,'PRT','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRT_mar_descobrimentos','PRT_mar','Arte de Navegar','Quinhentos anos a ir aonde ninguém tinha ido deixaram maneira de estar no mar.',50,NULL,1,'PRT'),
+ ('PRT_mar_zee','PRT_mar','Guarda da Zona Económica','A maior zona de mar da Europa vigia-se com poucos navios e muita rota.',110,'PRT_mar_descobrimentos',2,'PRT'),
+ ('PRT_mar_acores','PRT_mar','Triângulo dos Açores','Do meio do Atlântico chega-se aos dois lados antes dos dois lados.',185,'PRT_mar_zee',3,'PRT');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRT_mar_descobrimentos','naval_patrol',1.1),
+ ('PRT_mar_zee','naval_escort',1.1),
+ ('PRT_mar_acores','naval_losses',0.93);

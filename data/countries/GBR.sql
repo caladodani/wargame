@@ -150,3 +150,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('GBR_doc_commando','move_speed',1.05),
  ('GBR_doc_imperial','org_regain',1.08),
  ('GBR_doc_imperial','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('GBR_ar','Comando de Caça','🎯',11,'GBR','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('GBR_ar_dowding','GBR_ar','Sistema Dowding','Radar, telefone e mapa: a caça sobe quando é preciso, não quando apetece.',50,NULL,1,'GBR'),
+ ('GBR_ar_bomber_command','GBR_ar','Comando de Bombardeiro','A corrente de bombardeiros passa toda no mesmo minuto e o defensor não chega.',110,'GBR_ar_dowding',2,'GBR'),
+ ('GBR_ar_pathfinder','GBR_ar','Marcadores de Alvo','Marcar bem o alvo vale mais do que dobrar a carga.',185,'GBR_ar_bomber_command',3,'GBR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('GBR_ar_dowding','air_losses',0.9),
+ ('GBR_ar_bomber_command','air_bombing',1.09),
+ ('GBR_ar_pathfinder','air_bombing',1.08),
+ ('GBR_ar_pathfinder','air_losses',0.95);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('GBR_mar','Escola do Almirantado','👑',12,'GBR','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('GBR_mar_comboio_gbr','GBR_mar','Sistema de Comboios','Descobriu-se duas vezes que o comboio salva o que a caça ao submarino não salva.',50,NULL,1,'GBR'),
+ ('GBR_mar_bloqueio_gbr','GBR_mar','Bloqueio Distante','Não se fecha o porto do inimigo: fecha-se o mar todo à volta dele.',110,'GBR_mar_comboio_gbr',2,'GBR'),
+ ('GBR_mar_nelson','GBR_mar','Tradição de Combate','Duzentos anos a esperar que o capitão faça o que tem de ser feito.',185,'GBR_mar_bloqueio_gbr',3,'GBR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('GBR_mar_comboio_gbr','naval_escort',1.12),
+ ('GBR_mar_bloqueio_gbr','naval_blockade',1.1),
+ ('GBR_mar_nelson','naval_losses',0.92);

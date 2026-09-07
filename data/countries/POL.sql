@@ -147,3 +147,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('POL_doc_hussardo','move_speed',1.05),
  ('POL_doc_mobilizacao','conscription',1.1),
  ('POL_doc_mobilizacao','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('POL_ar','Asas do Leste','🦅',11,'POL','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('POL_ar_dywizjon','POL_ar','Esquadrilha 303','A esquadrilha polaca foi a que mais abateu na Batalha de Inglaterra.',50,NULL,1,'POL'),
+ ('POL_ar_dispersao_pol','POL_ar','Pistas de Recurso','Uma estrada larga é um aeródromo quando o aeródromo já não existe.',110,'POL_ar_dywizjon',2,'POL'),
+ ('POL_ar_flanco_ar','POL_ar','Interdição do Flanco','Cortar a estrada por onde vem o segundo escalão é ganhar a semana.',185,'POL_ar_dispersao_pol',3,'POL');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('POL_ar_dywizjon','air_losses',0.9),
+ ('POL_ar_dispersao_pol','air_upkeep',0.94),
+ ('POL_ar_dispersao_pol','air_losses',0.95),
+ ('POL_ar_flanco_ar','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('POL_mar','Guarda do Báltico','🦬',12,'POL','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('POL_mar_baltico','POL_mar','Patrulha do Báltico','Um mar fechado e estreito onde toda a gente se vê.',50,NULL,1,'POL'),
+ ('POL_mar_orzel','POL_mar','Fuga do Orzeł','O submarino que fugiu sem cartas nem sextante e chegou a Inglaterra.',110,'POL_mar_baltico',2,'POL'),
+ ('POL_mar_gdansk','POL_mar','Estaleiros de Gdańsk','Os cais que fizeram história também fazem navios.',185,'POL_mar_orzel',3,'POL');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('POL_mar_baltico','naval_patrol',1.09),
+ ('POL_mar_orzel','naval_losses',0.92),
+ ('POL_mar_gdansk','naval_upkeep',0.92);

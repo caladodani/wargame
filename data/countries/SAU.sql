@@ -139,3 +139,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('SAU_doc_travessia','move_speed',1.08),
  ('SAU_doc_ouro','production_speed',1.07),
  ('SAU_doc_ouro','attack',1.05);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('SAU_ar','Asas do Reino','🕋',11,'SAU','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('SAU_ar_compra','SAU_ar','Frota Comprada','O que falta em oficina compra-se em contrato de manutenção.',50,NULL,1,'SAU'),
+ ('SAU_ar_awacs','SAU_ar','Olhos no Alto','Um avião que vê trezentos quilómetros manda em todos os outros.',110,'SAU_ar_compra',2,'SAU'),
+ ('SAU_ar_campanha','SAU_ar','Campanha de Bombardeamento','Uma guerra longa no sul ensinou a manter o ritmo de saídas.',185,'SAU_ar_awacs',3,'SAU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('SAU_ar_compra','air_upkeep',0.92),
+ ('SAU_ar_awacs','air_losses',0.91),
+ ('SAU_ar_campanha','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('SAU_mar','Guarda do Mar Vermelho','🕋',12,'SAU','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('SAU_mar_jeddah','SAU_mar','Guarda de Jidá','A porta de Meca e do petróleo do oeste guarda-se com esquadra própria.',50,NULL,1,'SAU'),
+ ('SAU_mar_bab','SAU_mar','Estreito de Bab el-Mandeb','Vinte e nove quilómetros por onde passa tudo o que vem do oriente.',110,'SAU_mar_jeddah',2,'SAU'),
+ ('SAU_mar_contrato','SAU_mar','Manutenção Contratada','O que falta em oficina compra-se com contrato, e os navios andam.',185,'SAU_mar_bab',3,'SAU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('SAU_mar_jeddah','naval_patrol',1.09),
+ ('SAU_mar_bab','naval_blockade',1.1),
+ ('SAU_mar_contrato','naval_upkeep',0.92);

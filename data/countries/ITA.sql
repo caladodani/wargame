@@ -147,3 +147,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ITA_doc_mediterraneo','attack',1.05),
  ('ITA_doc_bersaglieri','move_speed',1.08),
  ('ITA_doc_bersaglieri','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ITA_ar','Asas do Mediterrâneo','🍀',11,'ITA','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ITA_ar_acrobatica','ITA_ar','Escola Acrobática','Quem voa em formação apertada nos dias bons não se perde nos maus.',50,NULL,1,'ITA'),
+ ('ITA_ar_torpedo_ar','ITA_ar','Aerotorpedeiros','A arma que fez do Mediterrâneo um mar perigoso para toda a gente.',110,'ITA_ar_acrobatica',2,'ITA'),
+ ('ITA_ar_mare_nostrum','ITA_ar','Alcance Mediterrânico','De Sicília chega-se a todo o lado sem reabastecer.',185,'ITA_ar_torpedo_ar',3,'ITA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ITA_ar_acrobatica','air_losses',0.93),
+ ('ITA_ar_torpedo_ar','air_bombing',1.1),
+ ('ITA_ar_mare_nostrum','air_upkeep',0.93);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ITA_mar','Mar Nosso','🍀',12,'ITA','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ITA_mar_maiale','ITA_mar','Assaltadores de Porto','Dois homens num torpedo tripulado afundaram uma esquadra inteira em Alexandria.',50,NULL,1,'ITA'),
+ ('ITA_mar_sicilia','ITA_mar','Estreito da Sicília','O meio do Mediterrâneo é uma porta e a porta é nossa.',110,'ITA_mar_maiale',2,'ITA'),
+ ('ITA_mar_fincantieri','ITA_mar','Estaleiros do Adriático','Constrói-se para meio mundo e repara-se o próprio em metade do tempo.',185,'ITA_mar_sicilia',3,'ITA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ITA_mar_maiale','naval_blockade',1.11),
+ ('ITA_mar_sicilia','naval_patrol',1.09),
+ ('ITA_mar_fincantieri','naval_upkeep',0.91);

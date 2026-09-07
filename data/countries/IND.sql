@@ -139,3 +139,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IND_doc_corpo_golpe','move_speed',1.05),
  ('IND_doc_duas_frentes','org_regain',1.07),
  ('IND_doc_duas_frentes','conscription',1.07);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IND_ar','Asas do Himalaia','🦚',11,'IND','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IND_ar_altitude_ar','IND_ar','Voo de Altitude','A cinco mil metros o motor perde metade e o piloto não pode perder nada.',50,NULL,1,'IND'),
+ ('IND_ar_hal','IND_ar','Montagem Nacional','Montar em casa o que se compra fora tira metade do custo.',110,'IND_ar_altitude_ar',2,'IND'),
+ ('IND_ar_balakot','IND_ar','Ataque em Profundidade','Entrar, largar e sair antes de o outro perceber que se entrou.',185,'IND_ar_hal',3,'IND');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IND_ar_altitude_ar','air_losses',0.93),
+ ('IND_ar_hal','air_upkeep',0.91),
+ ('IND_ar_balakot','air_bombing',1.1);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IND_mar','Guarda do Índico','🕉',12,'IND','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IND_mar_oceano','IND_mar','Domínio do Índico','O oceano tem o nome do país: alguém tem de fazer jus a isso.',50,NULL,1,'IND'),
+ ('IND_mar_vikrant','IND_mar','Porta-Aviões Nacional','Construído em casa, com aço de casa, e a esquadra deixou de pedir emprestado.',110,'IND_mar_oceano',2,'IND'),
+ ('IND_mar_antipirata','IND_mar','Escolta Anti-Pirata','Anos a escoltar mercantes no Golfo de Áden são anos de escola a sério.',185,'IND_mar_vikrant',3,'IND');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IND_mar_oceano','naval_patrol',1.1),
+ ('IND_mar_vikrant','naval_escort',1.09),
+ ('IND_mar_antipirata','naval_losses',0.93);

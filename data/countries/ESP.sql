@@ -155,3 +155,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ESP_doc_legion','org_regain',1.05),
  ('ESP_doc_pirenaico','defense',1.08),
  ('ESP_doc_pirenaico','conscription',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ESP_ar','Asas do Estreito','🛬',11,'ESP','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ESP_ar_estreito_ar','ESP_ar','Ponte Aérea do Estreito','Catorze quilómetros de mar passam-se por cima em minutos.',50,NULL,1,'ESP'),
+ ('ESP_ar_canarias','ESP_ar','Alcance das Canárias','Mil e trezentos quilómetros de casa é o voo de todos os dias.',110,'ESP_ar_estreito_ar',2,'ESP'),
+ ('ESP_ar_apoio_esp','ESP_ar','Apoio Aproximado','A Legião pede fogo por rádio e o avião responde ao minuto.',185,'ESP_ar_canarias',3,'ESP');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ESP_ar_estreito_ar','air_upkeep',0.93),
+ ('ESP_ar_canarias','air_losses',0.94),
+ ('ESP_ar_apoio_esp','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ESP_mar','Escola de Armada','🏰',12,'ESP','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ESP_mar_estreito_mar','ESP_mar','Guarda do Estreito','Catorze quilómetros decidem quem entra e quem sai do Mediterrâneo.',50,NULL,1,'ESP'),
+ ('ESP_mar_lhd','ESP_mar','Projecção Anfíbia','Um navio que leva tropa e aviões vale por uma base que não se tem.',110,'ESP_mar_estreito_mar',2,'ESP'),
+ ('ESP_mar_bazan','ESP_mar','Estaleiros do Ferrol','Constrói-se em casa, repara-se em casa, e o mar não espera.',185,'ESP_mar_lhd',3,'ESP');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ESP_mar_estreito_mar','naval_blockade',1.1),
+ ('ESP_mar_lhd','naval_escort',1.08),
+ ('ESP_mar_bazan','naval_upkeep',0.92);

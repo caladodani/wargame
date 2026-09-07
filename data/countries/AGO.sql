@@ -138,3 +138,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('AGO_doc_emboscada','attack',1.05),
  ('AGO_doc_longa','defense',1.08),
  ('AGO_doc_longa','org_regain',1.07);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('AGO_ar','Asas do Kwanza','🛩',11,'AGO','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AGO_ar_vigia','AGO_ar','Vigia do Mato','Um avião que sabe onde olhar vale por dez que andam à procura.',50,NULL,1,'AGO'),
+ ('AGO_ar_cuito','AGO_ar','Lição de Cuito Cuanavale','A maior batalha aérea de África ensinou a não gastar o que não se substitui.',110,'AGO_ar_vigia',2,'AGO'),
+ ('AGO_ar_coluna','AGO_ar','Apoio à Coluna','O avião serve a coluna em terra; quem se esquece disso perde as duas coisas.',185,'AGO_ar_cuito',3,'AGO');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AGO_ar_vigia','air_losses',0.95),
+ ('AGO_ar_cuito','air_losses',0.94),
+ ('AGO_ar_cuito','air_upkeep',0.95),
+ ('AGO_ar_coluna','air_bombing',1.1);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('AGO_mar','Guarda de Cabinda','🛢',12,'AGO','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AGO_mar_barra','AGO_mar','Guarda da Barra','Quem manda na foz manda no país que vive dela.',50,NULL,1,'AGO'),
+ ('AGO_mar_lancha','AGO_mar','Escola das Lanchas','Barcos pequenos, mar de casa, inimigo sempre longe do porto dele.',110,'AGO_mar_barra',2,'AGO'),
+ ('AGO_mar_petroleo','AGO_mar','Escolta do Petróleo','O que sai de Cabinda paga o país: sai com escolta ou não sai.',185,'AGO_mar_lancha',3,'AGO');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AGO_mar_barra','naval_patrol',1.08),
+ ('AGO_mar_lancha','naval_upkeep',0.92),
+ ('AGO_mar_petroleo','naval_escort',1.1);

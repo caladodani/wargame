@@ -149,3 +149,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IRN_doc_mosaico','org_regain',1.06),
  ('IRN_doc_basij','conscription',1.12),
  ('IRN_doc_basij','attack',1.05);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IRN_ar','Asas Remendadas','🕌',11,'IRN','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IRN_ar_remendo','IRN_ar','Escola do Remendo','Quarenta anos sem peças ensinaram a manter no ar o que devia estar no chão.',50,NULL,1,'IRN'),
+ ('IRN_ar_drone_ar','IRN_ar','Enxame de Drones','Cem aparelhos baratos custam ao inimigo mais do que valem.',110,'IRN_ar_remendo',2,'IRN'),
+ ('IRN_ar_profundidade_ar','IRN_ar','Golpe em Profundidade','O que não chega de avião chega de outra maneira, e chega longe.',185,'IRN_ar_drone_ar',3,'IRN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IRN_ar_remendo','air_upkeep',0.88),
+ ('IRN_ar_drone_ar','air_losses',0.93),
+ ('IRN_ar_profundidade_ar','air_bombing',1.11);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IRN_mar','Enxame do Golfo','☪',12,'IRN','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IRN_mar_enxame','IRN_mar','Ataque em Enxame','Quarenta lanchas rápidas contra um cruzador: alguma passa.',50,NULL,1,'IRN'),
+ ('IRN_mar_ormuz','IRN_mar','Fecho de Ormuz','Um estreito de trinta e três quilómetros com um quinto do petróleo do mundo.',110,'IRN_mar_enxame',2,'IRN'),
+ ('IRN_mar_mini_sub','IRN_mar','Submarinos de Bolso','Água rasa e barcos pequenos: onde o grande não entra.',185,'IRN_mar_ormuz',3,'IRN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IRN_mar_enxame','naval_blockade',1.12),
+ ('IRN_mar_ormuz','naval_patrol',1.1),
+ ('IRN_mar_mini_sub','naval_upkeep',0.9);

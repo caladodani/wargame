@@ -150,3 +150,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('UKR_doc_trincheira','defense',1.08),
  ('UKR_doc_adaptacao','org_regain',1.07),
  ('UKR_doc_adaptacao','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('UKR_ar','Asas Teimosas','🌻',11,'UKR','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('UKR_ar_fantasma','UKR_ar','Voo Baixo','A dez metros do chão não há míssil que aponte.',50,NULL,1,'UKR'),
+ ('UKR_ar_improviso','UKR_ar','Improviso de Armamento','Pendurou-se num caça soviético uma arma ocidental, e resultou.',110,'UKR_ar_fantasma',2,'UKR'),
+ ('UKR_ar_dispersao_ukr','UKR_ar','Aeródromos Dispersos','Nunca dois aviões no mesmo sítio na mesma noite.',185,'UKR_ar_improviso',3,'UKR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('UKR_ar_fantasma','air_losses',0.9),
+ ('UKR_ar_improviso','air_bombing',1.1),
+ ('UKR_ar_dispersao_ukr','air_upkeep',0.92),
+ ('UKR_ar_dispersao_ukr','air_losses',0.96);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('UKR_mar','Mar Teimoso','🌻',12,'UKR','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('UKR_mar_neptune','UKR_mar','Míssil Costeiro','Afundar o navio-almirante da esquadra inimiga sem se ter esquadra.',50,NULL,1,'UKR'),
+ ('UKR_mar_drone_mar','UKR_mar','Drone de Superfície','Um barco sem ninguém dentro entra no porto do outro e não volta.',110,'UKR_mar_neptune',2,'UKR'),
+ ('UKR_mar_corredor','UKR_mar','Corredor de Cereal','Abrir uma rota de exportação debaixo de guerra é ganhar sem esquadra.',185,'UKR_mar_drone_mar',3,'UKR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('UKR_mar_neptune','naval_blockade',1.12),
+ ('UKR_mar_drone_mar','naval_losses',0.9),
+ ('UKR_mar_corredor','naval_escort',1.1);

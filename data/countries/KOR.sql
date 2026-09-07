@@ -152,3 +152,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('KOR_doc_contra_bateria','attack',1.08),
  ('KOR_doc_prontidao','org_regain',1.08),
  ('KOR_doc_prontidao','move_speed',1.05);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('KOR_ar','Asas da Linha','🛡',11,'KOR','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('KOR_ar_alerta','KOR_ar','Alerta Permanente','Cinco minutos de aviso obrigam a ter sempre um par a rolar.',50,NULL,1,'KOR'),
+ ('KOR_ar_contra_bateria_ar','KOR_ar','Caça à Artilharia','A artilharia que ameaça Seul procura-se do ar e cala-se do ar.',110,'KOR_ar_alerta',2,'KOR'),
+ ('KOR_ar_kf21','KOR_ar','Caça Nacional','Fazer o próprio caça é deixar de esperar pela peça que vem de fora.',185,'KOR_ar_contra_bateria_ar',3,'KOR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('KOR_ar_alerta','air_losses',0.92),
+ ('KOR_ar_contra_bateria_ar','air_bombing',1.1),
+ ('KOR_ar_kf21','air_upkeep',0.92);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('KOR_mar','Escola do Almirante','🐢',12,'KOR','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('KOR_mar_yi_sun_sin','KOR_mar','Herança de Yi Sun-sin','Vinte e três batalhas, vinte e três vitórias, e nunca com mais navios.',50,NULL,1,'KOR'),
+ ('KOR_mar_estaleiro_kor','KOR_mar','Estaleiros de Ulsan','Os maiores estaleiros do mundo põem um navio na água num ano.',110,'KOR_mar_yi_sun_sin',2,'KOR'),
+ ('KOR_mar_costa_kor','KOR_mar','Defesa Costeira','Uma península defende-se nos dois mares ao mesmo tempo ou não se defende.',185,'KOR_mar_estaleiro_kor',3,'KOR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('KOR_mar_yi_sun_sin','naval_losses',0.9),
+ ('KOR_mar_estaleiro_kor','naval_upkeep',0.9),
+ ('KOR_mar_costa_kor','naval_patrol',1.08);

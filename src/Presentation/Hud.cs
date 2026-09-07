@@ -18,8 +18,8 @@ public partial class Hud : CanvasLayer
     private Label _money = null!, _moneyNote = null!, _men = null!, _menNote = null!, _divs = null!, _divsNote = null!;
     // Fábricas civis, militares e estaleiros: a fila de mostradores industriais do HoI4.
     private Label _civ = null!, _civNote = null!, _mil = null!, _milNote = null!, _yard = null!, _yardNote = null!;
-    private Label _xp = null!, _xpNote = null!;
-    private PanelContainer _yardPlate = null!, _xpPlate = null!;
+    private Label _xp = null!, _xpNote = null!, _airXp = null!, _airXpNote = null!, _seaXp = null!, _seaXpNote = null!;
+    private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!;
     private PanelContainer _season = null!;
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
@@ -199,10 +199,19 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
         _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
         row.AddChild(_yardPlate);
-        // Experiência de exército: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a
-        // mesma pergunta — o que é que hoje já dá para comprar — e só aparece a quem tem tropa a aprender.
-        _xpPlate = Ui.Counter("🎖", out _xp, out _xpNote, Ui.Good.Lightened(0.2f));
+        // Experiência: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a mesma pergunta —
+        // o que é que hoje já dá para comprar. São três medalhas, uma por arma, como o HoI4 as tem lado a
+        // lado na barra de cima: o exército aprende a combater, o ar a voar, o mar a navegar, e cada bolso
+        // é seu. Carregar numa abre a árvore de escolas daquela arma — na barra nada é só enfeite.
+        _xpPlate = Ui.Click(Ui.Counter("🎖", out _xp, out _xpNote, Ui.Good.Lightened(0.2f)),
+                            () => Schools(World.Land), "escolas de guerra do exército");
         row.AddChild(_xpPlate);
+        _airXpPlate = Ui.Click(Ui.Counter("✈", out _airXp, out _airXpNote, Ui.Text),
+                               () => Schools(World.Air), "escolas de guerra do ar");
+        row.AddChild(_airXpPlate);
+        _seaXpPlate = Ui.Click(Ui.Counter("🚢", out _seaXp, out _seaXpNote, Ui.Text),
+                               () => Schools(World.Sea), "escolas de guerra do mar");
+        row.AddChild(_seaXpPlate);
 
         // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
         // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
@@ -894,11 +903,9 @@ public partial class Hud : CanvasLayer
             _yardPlate.Visible = yards.Naval > 0;                 // país sem costa não tem cais nenhum a mostrar
             _yard.Text = $"{yards.NavalBusy}/{yards.Naval}";
             _yardNote.Text = yards.Naval == 1 ? "estaleiro" : "estaleiros";
-            _xpPlate.Visible = w.ArmyDoctrines.Count > 0;
-            _xp.Text = $"{p.ArmyXp:0}";
-            _xp.AddThemeColorOverride("font_color", ArmyXpSystem.Next(w, p) is null ? Ui.Text : Ui.Good.Lightened(0.35f));
-            _xpNote.Text = ArmyXpSystem.Next(w, p) is string next && w.ArmyDoctrines.TryGetValue(next, out var nd)
-                ? "dá para " + nd.Name.ToLowerInvariant() : "experiência";
+            Medal(w, p, World.Land, _xpPlate, _xp, _xpNote);
+            Medal(w, p, World.Air, _airXpPlate, _airXp, _airXpNote);
+            Medal(w, p, World.Sea, _seaXpPlate, _seaXp, _seaXpNote);
             _hint.Visible = false;
             int posted = OfferView.Count(w, pid);
             if (posted != _offersShown)
@@ -917,7 +924,27 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+    }
+
+    /// <summary>Uma das três medalhas da barra: o que esta arma tem no bolso e o que isso já dá para
+    /// comprar. Some-se quando o mundo não tem escolas dessa arma — um jogo sem doutrinas navais não põe
+    /// um mostrador vazio a ocupar barra.</summary>
+    private void Medal(World w, Country p, string domain, PanelContainer plate, Label value, Label note)
+    {
+        plate.Visible = w.DoctrineBranches.Values.Any(b => b.Domain == domain);
+        value.Text = $"{World.Xp(p, domain):0}";
+        string? next = ArmyXpSystem.Next(w, p, domain);
+        value.AddThemeColorOverride("font_color", next is null ? Ui.Text : Ui.Good.Lightened(0.35f));
+        note.Text = next is string id && w.ArmyDoctrines.TryGetValue(id, out var nd)
+            ? "dá para " + nd.Name.ToLowerInvariant()
+            : domain switch { World.Air => "experiência do ar", World.Sea => "experiência do mar", _ => "experiência" };
+    }
+
+    /// <summary>Carregar numa medalha abre a árvore de escolas daquela arma, já na aba certa.</summary>
+    private void Schools(string domain)
+    {
+        if (_game.PlayerId is int pid) _doctrines.Open(pid, domain);
     }
 
     /// <summary>Leva o mapa a uma região e abre-lhe a ficha: o "Ver no mapa" da cedência aterra aqui, e
@@ -1107,6 +1134,11 @@ public partial class Hud : CanvasLayer
             && w.DoctrineSteps(c, homeSchool.Id).FirstOrDefault() is ArmyDoctrine homeStep)
             _game.Dispatch(new AdoptDoctrineCommand(pid, homeStep.Id));
         string schools = _doctrines.Smoke();                              // escolas de guerra: ramos e degraus da árvore
+        // as três medalhas da barra de cima, uma por arma: o que está no bolso e o que isso já dá para comprar
+        string medals = string.Join(" · ", new[] { (World.Land, "🎖"), (World.Air, "✈"), (World.Sea, "🚢") }
+            .Select(medal => $"{medal.Item2} {World.Xp(c, medal.Item1):0}"
+                           + (ArmyXpSystem.Next(w, c, medal.Item1) is string ready
+                                ? $" dá para {w.ArmyDoctrines[ready].Name}" : " sem compra")));
         // adido militar: quantos anfitriões há, e a missão despachada quando houver guerra alheia para ver
         string attache = "sem guerra alheia";
         if (AttacheSystem.Pick(w, pid) is int hostId)
@@ -1263,7 +1295,7 @@ public partial class Hud : CanvasLayer
         ToggleSound(); bool hushed = _sfx.Muted; ToggleSound();
         string sound = $"{bank}, cartão com a chapa {plate}, "
                      + $"altifalante {(hushed && !_sfx.Muted ? "cala e volta" : "preso")}";
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, estado-maior de {c.Generals.Count} (de casa: {ourGeneral}), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, escolas de guerra: {schools}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, estado-maior de {c.Generals.Count} (de casa: {ourGeneral}), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

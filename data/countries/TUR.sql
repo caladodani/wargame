@@ -149,3 +149,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('TUR_doc_drone','production_speed',1.05),
  ('TUR_doc_mehmetcik','conscription',1.09),
  ('TUR_doc_mehmetcik','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('TUR_ar','Asas do Bósforo','🌙',11,'TUR','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('TUR_ar_bayraktar','TUR_ar','Escola do Drone','O aparelho barato que muda guerras inteiras e não leva ninguém dentro.',50,NULL,1,'TUR'),
+ ('TUR_ar_sead','TUR_ar','Caça à Antiaérea','Primeiro cega-se o radar; só depois é que entram os tripulados.',110,'TUR_ar_bayraktar',2,'TUR'),
+ ('TUR_ar_interdicao_tur','TUR_ar','Interdição de Coluna','A coluna que se vê de cima nunca chega ao sítio.',185,'TUR_ar_sead',3,'TUR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('TUR_ar_bayraktar','air_upkeep',0.88),
+ ('TUR_ar_sead','air_losses',0.91),
+ ('TUR_ar_interdicao_tur','air_bombing',1.11);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('TUR_mar','Pátria Azul','☾',12,'TUR','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('TUR_mar_estreitos_tur','TUR_mar','Guarda dos Estreitos','Bósforo e Dardanelos: duas portas de um mar inteiro, ambas nossas.',50,NULL,1,'TUR'),
+ ('TUR_mar_milgem','TUR_mar','Corvetas Nacionais','Desenhadas e construídas em casa: sem licença de ninguém para navegar.',110,'TUR_mar_estreitos_tur',2,'TUR'),
+ ('TUR_mar_egeu','TUR_mar','Patrulha do Egeu','Mil ilhas à porta obrigam a ter sempre alguém no mar.',185,'TUR_mar_milgem',3,'TUR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('TUR_mar_estreitos_tur','naval_blockade',1.12),
+ ('TUR_mar_milgem','naval_upkeep',0.9),
+ ('TUR_mar_egeu','naval_patrol',1.09);

@@ -148,3 +148,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('PRK_doc_infiltracao','attack',1.05),
  ('PRK_doc_songun','conscription',1.12),
  ('PRK_doc_songun','defense',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PRK_ar','Asas Escondidas','⛰',11,'PRK','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRK_ar_hangar','PRK_ar','Hangares na Rocha','Aviões guardados dentro da montanha não se bombardeiam.',50,NULL,1,'PRK'),
+ ('PRK_ar_velho','PRK_ar','Frota Antiga Viva','Aparelhos de sessenta anos voam porque alguém decidiu que voam.',110,'PRK_ar_hangar',2,'PRK'),
+ ('PRK_ar_noite_prk','PRK_ar','Incursão Nocturna','Um biplano de madeira à noite não aparece em radar nenhum.',185,'PRK_ar_velho',3,'PRK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRK_ar_hangar','air_losses',0.89),
+ ('PRK_ar_velho','air_upkeep',0.88),
+ ('PRK_ar_noite_prk','air_bombing',1.07);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('PRK_mar','Esquadra Escondida','☭',12,'PRK','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRK_mar_tuneis_mar','PRK_mar','Bases em Túnel','Navios que entram na montanha não aparecem em fotografia nenhuma.',50,NULL,1,'PRK'),
+ ('PRK_mar_sang_o','PRK_mar','Submarinos Costeiros','Submarinos pequenos que largam gente na praia do vizinho.',110,'PRK_mar_tuneis_mar',2,'PRK'),
+ ('PRK_mar_lancha_prk','PRK_mar','Enxame Costeiro','Muitas lanchas velhas custam pouco e obrigam a olhar para todo o lado.',185,'PRK_mar_sang_o',3,'PRK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRK_mar_tuneis_mar','naval_losses',0.9),
+ ('PRK_mar_sang_o','naval_blockade',1.09),
+ ('PRK_mar_lancha_prk','naval_upkeep',0.89);

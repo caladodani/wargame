@@ -136,3 +136,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('CAN_doc_rota_norte','move_speed',1.05),
  ('CAN_doc_aliado','attack',1.07),
  ('CAN_doc_aliado','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('CAN_ar','Asas do Norte','🍁',11,'CAN','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CAN_ar_gelo','CAN_ar','Voo sobre o Gelo','A quarenta abaixo o avião só levanta se a manutenção fez o trabalho.',50,NULL,1,'CAN'),
+ ('CAN_ar_intercepcao','CAN_ar','Intercepção do Norte','Guardar o telhado do continente é olhar sempre para o mesmo lado do horizonte.',110,'CAN_ar_gelo',2,'CAN'),
+ ('CAN_ar_bomber_harris','CAN_ar','Grupo de Bombardeiro','O 6.º Grupo aprendeu a noite da maneira mais cara que há.',185,'CAN_ar_intercepcao',3,'CAN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CAN_ar_gelo','air_upkeep',0.92),
+ ('CAN_ar_intercepcao','air_losses',0.92),
+ ('CAN_ar_bomber_harris','air_bombing',1.09);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('CAN_mar','Escolta do Atlântico Norte','⚓',12,'CAN','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CAN_mar_corveta','CAN_mar','Escola das Corvetas','Navios pequenos, feitos depressa, que fizeram a travessia possível.',50,NULL,1,'CAN'),
+ ('CAN_mar_asdic','CAN_mar','Caça ao Submarino','Ouvir o que está debaixo de água é meia batalha do Atlântico.',110,'CAN_mar_corveta',2,'CAN'),
+ ('CAN_mar_gelo_mar','CAN_mar','Navegação no Gelo','Rota do norte aberta a marreta e a paciência.',185,'CAN_mar_asdic',3,'CAN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CAN_mar_corveta','naval_upkeep',0.9),
+ ('CAN_mar_asdic','naval_escort',1.11),
+ ('CAN_mar_gelo_mar','naval_losses',0.94);

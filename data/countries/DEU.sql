@@ -145,3 +145,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('DEU_doc_panzer','attack',1.09),
  ('DEU_doc_panzer','move_speed',1.07),
  ('DEU_doc_panzer','defense',0.98);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('DEU_ar','Escola de Caça','✠',11,'DEU','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('DEU_ar_rotte','DEU_ar','Par de Caça','Dois aviões que se guardam um ao outro voltam os dois.',50,NULL,1,'DEU'),
+ ('DEU_ar_jagd','DEU_ar','Grupo de Caça','A caça concentra-se onde o bombardeiro vai passar, não onde ele já passou.',110,'DEU_ar_rotte',2,'DEU'),
+ ('DEU_ar_stuka','DEU_ar','Bombardeamento de Precisão','Bombardear a ponte certa poupa uma semana de guerra em terra.',185,'DEU_ar_jagd',3,'DEU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('DEU_ar_rotte','air_losses',0.9),
+ ('DEU_ar_jagd','air_losses',0.93),
+ ('DEU_ar_jagd','air_upkeep',0.96),
+ ('DEU_ar_stuka','air_bombing',1.1);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('DEU_mar','Guerra ao Comércio','🐺',12,'DEU','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('DEU_mar_alcateia','DEU_mar','Alcateia','Vários submarinos no mesmo comboio na mesma noite: o comboio não se defende de todos.',50,NULL,1,'DEU'),
+ ('DEU_mar_u_boot','DEU_mar','Escola de Submarinos','Debaixo de água não há bandeira nem tamanho: há quem viu primeiro.',110,'DEU_mar_alcateia',2,'DEU'),
+ ('DEU_mar_bunker','DEU_mar','Abrigos de Betão','Sete metros de betão sobre o cais e o porto continua a trabalhar.',185,'DEU_mar_u_boot',3,'DEU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('DEU_mar_alcateia','naval_blockade',1.12),
+ ('DEU_mar_u_boot','naval_losses',0.92),
+ ('DEU_mar_bunker','naval_upkeep',0.93);

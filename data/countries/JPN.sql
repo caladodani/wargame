@@ -150,3 +150,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('JPN_doc_recuperacao','org_regain',1.05),
  ('JPN_doc_tecnologia','production_speed',1.06),
  ('JPN_doc_tecnologia','defense',1.07);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('JPN_ar','Asas do Sol','🌸',11,'JPN','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('JPN_ar_zero','JPN_ar','Alcance de Caça','Um caça que vai mais longe do que o inimigo pensa aparece onde não devia.',50,NULL,1,'JPN'),
+ ('JPN_ar_embarcada','JPN_ar','Aviação Embarcada','A pista anda com a esquadra e chega onde não há aeródromo.',110,'JPN_ar_zero',2,'JPN'),
+ ('JPN_ar_manutencao','JPN_ar','Manutenção de Precisão','Poucos aparelhos, todos a voar todos os dias.',185,'JPN_ar_embarcada',3,'JPN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('JPN_ar_zero','air_losses',0.92),
+ ('JPN_ar_embarcada','air_bombing',1.09),
+ ('JPN_ar_manutencao','air_upkeep',0.9);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('JPN_mar','Esquadra Combinada','⛩',12,'JPN','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('JPN_mar_kantai','JPN_mar','Batalha Decisiva','Cem anos a preparar um dia só de combate de esquadras.',50,NULL,1,'JPN'),
+ ('JPN_mar_long_lance','JPN_mar','Torpedo de Longo Alcance','Atacar de vinte quilómetros à noite, quando ninguém acha que dá.',110,'JPN_mar_kantai',2,'JPN'),
+ ('JPN_mar_asw_jpn','JPN_mar','Guerra Anti-Submarina','A ilha vive do que entra por mar: o que caça submarinos é o que come.',185,'JPN_mar_long_lance',3,'JPN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('JPN_mar_kantai','naval_losses',0.91),
+ ('JPN_mar_long_lance','naval_blockade',1.1),
+ ('JPN_mar_asw_jpn','naval_escort',1.11);

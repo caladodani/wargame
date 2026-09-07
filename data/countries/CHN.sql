@@ -140,3 +140,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('CHN_doc_profundidade','org_regain',1.05),
  ('CHN_doc_milhoes','conscription',1.12),
  ('CHN_doc_milhoes','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('CHN_ar','Asas do Povo','🐉',11,'CHN','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CHN_ar_numero','CHN_ar','Massa no Ar','Cem aparelhos simples enchem um céu que dez complicados não enchem.',50,NULL,1,'CHN'),
+ ('CHN_ar_negacao','CHN_ar','Negação do Espaço Aéreo','Não é preciso mandar no céu: chega que o inimigo não mande.',110,'CHN_ar_numero',2,'CHN'),
+ ('CHN_ar_foguete','CHN_ar','Força de Foguetes','O que se destrói no aeródromo não se combate no ar.',185,'CHN_ar_negacao',3,'CHN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CHN_ar_numero','air_upkeep',0.9),
+ ('CHN_ar_negacao','air_losses',0.93),
+ ('CHN_ar_foguete','air_bombing',1.12);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('CHN_mar','Mar Próximo','🐉',12,'CHN','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CHN_mar_negacao_mar','CHN_mar','Negação do Mar Próximo','Não é preciso ter o mar: chega que o outro não entre nele.',50,NULL,1,'CHN'),
+ ('CHN_mar_estaleiro_chn','CHN_mar','Estaleiros em Massa','Meia frota mundial sai dos mesmos cais todos os anos.',110,'CHN_mar_negacao_mar',2,'CHN'),
+ ('CHN_mar_milicia','CHN_mar','Milícia Marítima','Mil barcos de pesca também são uma esquadra, e ninguém lhes atira.',185,'CHN_mar_estaleiro_chn',3,'CHN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CHN_mar_negacao_mar','naval_blockade',1.1),
+ ('CHN_mar_estaleiro_chn','naval_upkeep',0.89),
+ ('CHN_mar_milicia','naval_patrol',1.1);

@@ -146,3 +146,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('RUS_doc_escalao','conscription',1.06),
  ('RUS_doc_inverno','defense',1.09),
  ('RUS_doc_inverno','attack',1.05);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('RUS_ar','Asas da Pátria','🐻',11,'RUS','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('RUS_ar_frontal','RUS_ar','Aviação Frontal','O avião pertence à frente e à frente obedece.',50,NULL,1,'RUS'),
+ ('RUS_ar_pvo','RUS_ar','Defesa Antiaérea Integrada','O céu de casa defende-se de baixo e de cima ao mesmo tempo.',110,'RUS_ar_frontal',2,'RUS'),
+ ('RUS_ar_rustico','RUS_ar','Aparelho Rústico','Pista de terra, mecânico com luvas grossas, e o motor pega à mesma.',185,'RUS_ar_pvo',3,'RUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('RUS_ar_frontal','air_bombing',1.1),
+ ('RUS_ar_pvo','air_losses',0.9),
+ ('RUS_ar_rustico','air_upkeep',0.9);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('RUS_mar','Esquadra do Norte','🐻',12,'RUS','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('RUS_mar_bastiao','RUS_mar','Bastião do Norte','Um mar de casa fechado a ferrolho, com o que interessa lá dentro.',50,NULL,1,'RUS'),
+ ('RUS_mar_quebra_gelo','RUS_mar','Rota do Gelo','Quem tem quebra-gelos tem um oceano que mais ninguém usa.',110,'RUS_mar_bastiao',2,'RUS'),
+ ('RUS_mar_missil_rus','RUS_mar','Salva de Mísseis','Uma salva inteira de uma vez: ou passa toda ou não valia a pena.',185,'RUS_mar_quebra_gelo',3,'RUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('RUS_mar_bastiao','naval_blockade',1.1),
+ ('RUS_mar_quebra_gelo','naval_patrol',1.1),
+ ('RUS_mar_missil_rus','naval_losses',0.93);

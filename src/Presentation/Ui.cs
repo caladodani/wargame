@@ -92,6 +92,25 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>Faz de um mostrador (ou de qualquer cartão) um botão: o dedo carrega em cima e abre-se o
+    /// painel de que ele fala. É a maneira dos jogos de grande estratégia — na barra de cima nada é só
+    /// enfeite, tudo o que mostra um número leva ao sítio onde esse número se gasta.</summary>
+    public static T Click<T>(T node, Action onClick, string? tip = null) where T : Control
+    {
+        node.MouseFilter = Control.MouseFilterEnum.Stop;
+        node.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
+        if (tip is not null) node.TooltipText = tip;
+        node.GuiInput += e =>
+        {
+            if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } or InputEventScreenTouch { Pressed: true })
+            {
+                node.AcceptEvent();
+                onClick();
+            }
+        };
+        return node;
+    }
+
     /// <summary>Escala de calor dos modos de mapa: do aço frio ao latão e do latão ao vermelho. É a mesma
     /// leitura de qualquer mapa temático — quanto mais quente, mais daquilo há — feita com as cores da casa
     /// em vez de um arco-íris que não pertence a esta pele.</summary>

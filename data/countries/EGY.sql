@@ -142,3 +142,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('EGY_doc_travessia','org_regain',1.05),
  ('EGY_doc_deserto_ocidental','move_speed',1.08),
  ('EGY_doc_deserto_ocidental','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('EGY_ar','Asas do Nilo','𓅃',11,'EGY','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('EGY_ar_abrigo','EGY_ar','Abrigos Endurecidos','Aprendeu-se em 1967 o que custa ter os aviões à vista.',50,NULL,1,'EGY'),
+ ('EGY_ar_sam','EGY_ar','Guarda-Chuva de Mísseis','A caça vale mais quando voa por cima de um céu que já é seu.',110,'EGY_ar_abrigo',2,'EGY'),
+ ('EGY_ar_travessia_ar','EGY_ar','Cobertura da Travessia','Uma passagem de canal faz-se com o céu tapado por cima.',185,'EGY_ar_sam',3,'EGY');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('EGY_ar_abrigo','air_losses',0.9),
+ ('EGY_ar_sam','air_losses',0.94),
+ ('EGY_ar_travessia_ar','air_bombing',1.08),
+ ('EGY_ar_travessia_ar','air_upkeep',0.96);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('EGY_mar','Guarda do Canal','🛶',12,'EGY','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('EGY_mar_canal_mar','EGY_mar','Passagem do Canal','A passagem mais importante do mundo guarda-se dos dois lados ao mesmo tempo.',50,NULL,1,'EGY'),
+ ('EGY_mar_mar_vermelho','EGY_mar','Patrulha do Mar Vermelho','Um mar estreito vigia-se de ponta a ponta com poucos navios.',110,'EGY_mar_canal_mar',2,'EGY'),
+ ('EGY_mar_mina','EGY_mar','Guerra de Minas','Uma mina barata fecha uma rota cara.',185,'EGY_mar_mar_vermelho',3,'EGY');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('EGY_mar_canal_mar','naval_blockade',1.11),
+ ('EGY_mar_mar_vermelho','naval_patrol',1.09),
+ ('EGY_mar_mina','naval_losses',0.94);

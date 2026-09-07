@@ -48,12 +48,16 @@ public sealed class ArmyXpSystem : ISystem
 
     /// <summary>Degrau mais barato que este país pode adoptar já (empates pelo id), ou null. A escola
     /// nacional passa à frente das comuns quando as duas estão pagas: um exército que tem maneira própria de
-    /// fazer a guerra treina a sua, não a do vizinho.</summary>
-    public static string? Next(World w, Country c)
+    /// fazer a guerra treina a sua, não a do vizinho.
+    ///
+    /// Com uma arma (World.Land/Air/Sea) responde só por ela — é o que a barra de cima pergunta a cada
+    /// mostrador de experiência: "o que é que isto hoje já dá para comprar?".</summary>
+    public static string? Next(World w, Country c, string? domain = null)
     {
         ArmyDoctrine? best = null;
         foreach (var d in w.ArmyDoctrines.Values)
         {
+            if (domain is not null && w.DomainOf(d) != domain) continue;
             if (!w.CanAdopt(c, d.Id)) continue;
             if (best is null || Better(d, best)) best = d;
         }

@@ -144,3 +144,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('FRA_doc_choc','attack',1.08),
  ('FRA_doc_outremer','move_speed',1.09),
  ('FRA_doc_outremer','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('FRA_ar','Asas da República','🐓',11,'FRA','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('FRA_ar_mirage','FRA_ar','Indústria Própria','Um país que desenha os seus caças não pede licença para os usar.',50,NULL,1,'FRA'),
+ ('FRA_ar_dissuasao','FRA_ar','Força de Dissuasão','Um esquadrão sempre pronto vale por uma guerra que não houve.',110,'FRA_ar_mirage',2,'FRA'),
+ ('FRA_ar_sahel','FRA_ar','Intervenção no Sahel','Quatro mil quilómetros num salto, e a bomba cai onde tinha de cair.',185,'FRA_ar_dissuasao',3,'FRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('FRA_ar_mirage','air_upkeep',0.91),
+ ('FRA_ar_dissuasao','air_losses',0.93),
+ ('FRA_ar_sahel','air_bombing',1.1);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('FRA_mar','Marinha Nacional','⚜',12,'FRA','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('FRA_mar_porta_avioes','FRA_mar','Grupo Aeronaval','Um porta-aviões nuclear é a única pista que ninguém pode negar.',50,NULL,1,'FRA'),
+ ('FRA_mar_ssbn','FRA_mar','Patrulha Permanente','Há sessenta anos que há sempre um submarino no mar, sem falhar um dia.',110,'FRA_mar_porta_avioes',2,'FRA'),
+ ('FRA_mar_outremer_mar','FRA_mar','Guarda do Ultramar','Ilhas em três oceanos são a segunda maior zona de mar do mundo.',185,'FRA_mar_ssbn',3,'FRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('FRA_mar_porta_avioes','naval_escort',1.1),
+ ('FRA_mar_ssbn','naval_blockade',1.09),
+ ('FRA_mar_outremer_mar','naval_patrol',1.09);

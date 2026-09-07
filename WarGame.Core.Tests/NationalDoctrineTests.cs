@@ -21,7 +21,7 @@ public class NationalDoctrineTests
     public void EveryCountryBringsOneSchoolOfItsOwnWithTheStepsChained()
     {
         var w = FactionTests.BuildReal();
-        var own = w.DoctrineBranches.Values.Where(b => b.CountryTag is not null).ToList();
+        var own = w.DoctrineBranches.Values.Where(b => b.CountryTag is not null && b.Domain == World.Land).ToList();
         Assert.Equal(28, own.Count);
         Assert.Equal(3, w.DoctrineBranches.Values.Count(b => b.CountryTag is null && b.Domain == World.Land));
 

@@ -167,3 +167,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('BRA_doc_amazonia','move_speed',1.06),
  ('BRA_doc_pracinha','attack',1.09),
  ('BRA_doc_pracinha','org_regain',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('BRA_ar','Asas do Atlântico Sul','🦜',11,'BRA','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('BRA_ar_embraer','BRA_ar','Fábrica Própria','Quem faz os seus aviões repara-os na mesma tarde.',50,NULL,1,'BRA'),
+ ('BRA_ar_amazonia_ar','BRA_ar','Vigilância da Amazónia','Cinco milhões de quilómetros quadrados vigiam-se de cima ou não se vigiam.',110,'BRA_ar_embraer',2,'BRA'),
+ ('BRA_ar_senta_pua','BRA_ar','Senta a Pua','O grupo de caça que voou em Itália deixou o lema e a maneira.',185,'BRA_ar_amazonia_ar',3,'BRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('BRA_ar_embraer','air_upkeep',0.9),
+ ('BRA_ar_amazonia_ar','air_losses',0.94),
+ ('BRA_ar_senta_pua','air_bombing',1.1);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('BRA_mar','Mar Azul','🇧🇷',12,'BRA','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('BRA_mar_amazonia_azul','BRA_mar','Amazónia Azul','Quatro milhões de quilómetros quadrados de mar são território, não paisagem.',50,NULL,1,'BRA'),
+ ('BRA_mar_escolta_bra','BRA_mar','Escolta do Atlântico','Comboios para o norte durante uma guerra inteira ensinaram o ofício.',110,'BRA_mar_amazonia_azul',2,'BRA'),
+ ('BRA_mar_fluvial','BRA_mar','Esquadra Fluvial','Onde o mar acaba começa o rio, e o rio também se guarda.',185,'BRA_mar_escolta_bra',3,'BRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('BRA_mar_amazonia_azul','naval_patrol',1.1),
+ ('BRA_mar_escolta_bra','naval_escort',1.09),
+ ('BRA_mar_fluvial','naval_upkeep',0.93);

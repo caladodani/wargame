@@ -141,3 +141,28 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('AUS_doc_anzac','attack',1.06),
  ('AUS_doc_pacifico','attack',1.08),
  ('AUS_doc_pacifico','defense',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('AUS_ar','Asas do Interior','🦅',11,'AUS','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AUS_ar_deserto_ar','AUS_ar','Voo do Deserto','Mil quilómetros sem aeródromo obrigam a poupar tudo, sobretudo o motor.',50,NULL,1,'AUS'),
+ ('AUS_ar_vigilancia','AUS_ar','Vigilância Marítima','O continente vê-se do ar antes de se ver do mar.',110,'AUS_ar_deserto_ar',2,'AUS'),
+ ('AUS_ar_coalizao','AUS_ar','Voo em Coligação','Encaixar na força aérea dos outros é meia força aérea de graça.',185,'AUS_ar_vigilancia',3,'AUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AUS_ar_deserto_ar','air_upkeep',0.92),
+ ('AUS_ar_vigilancia','air_losses',0.94),
+ ('AUS_ar_coalizao','air_bombing',1.08),
+ ('AUS_ar_coalizao','air_upkeep',0.95);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('AUS_mar','Guarda do Pacífico','🌊',12,'AUS','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AUS_mar_coral','AUS_mar','Herança do Mar de Coral','A batalha em que as esquadras não se viram mudou a maneira de as usar.',50,NULL,1,'AUS'),
+ ('AUS_mar_fragata','AUS_mar','Escola de Fragatas','Poucos navios, todos a andar, nenhum parado por avaria.',110,'AUS_mar_coral',2,'AUS'),
+ ('AUS_mar_sea_lanes','AUS_mar','Guarda das Rotas','Uma ilha grande vive das rotas: cortadas elas, acabou.',185,'AUS_mar_fragata',3,'AUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AUS_mar_coral','naval_losses',0.93),
+ ('AUS_mar_fragata','naval_upkeep',0.91),
+ ('AUS_mar_sea_lanes','naval_escort',1.1);

@@ -75,10 +75,16 @@ public partial class DoctrinePanel : PanelContainer
         _lastKey = ""; Fill();
     }
 
-    /// <summary>Abre a árvore de doutrinas deste país (por omissão, a do jogador).</summary>
-    public void Open(int countryId)
+    /// <summary>Abre a árvore de doutrinas deste país (por omissão, a do jogador). Com uma arma
+    /// (World.Land/Air/Sea) abre logo na aba dela — é por aqui que entram as medalhas da barra de cima.</summary>
+    public void Open(int countryId, string? domain = null)
     {
         _countryId = countryId; _lastKey = "";
+        if (domain is not null && Array.IndexOf(World.Domains, domain) is int tab && tab >= 0)
+        {
+            _domain = domain;
+            _tabs.Set(TabNames, tab, Pick);
+        }
         _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); });
     }
 
@@ -334,7 +340,9 @@ public partial class DoctrinePanel : PanelContainer
             int cards = Drawn();
             Close();
             string dom = World.Domains[i];
+            var home = w.Branches(c, dom).FirstOrDefault(b => b.CountryTag == c.Tag);
             arms.Add($"{TabNames[i]}: {cards} cartões em {w.Branches(c, dom).Count} escolas, "
+                   + $"de casa {(home is null ? "nenhuma" : "⚜ " + home.Name)}, "
                    + $"{(w.DoctrineBranchOf(c, dom) is string b ? w.DoctrineBranches[b].Name : "sem ramo")}, "
                    + $"{World.Xp(c, dom):0} xp");
         }

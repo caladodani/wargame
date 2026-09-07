@@ -146,3 +146,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('IDN_doc_ilha_a_ilha','move_speed',1.08),
  ('IDN_doc_mar_interior','defense',1.07),
  ('IDN_doc_mar_interior','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IDN_ar','Asas do Arquipélago','🌺',11,'IDN','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IDN_ar_ilhas_ar','IDN_ar','Salto de Ilha em Ilha','Dezassete mil ilhas só se ligam por cima.',50,NULL,1,'IDN'),
+ ('IDN_ar_dispersao','IDN_ar','Dispersão de Pistas','Aviões espalhados por vinte pistas não morrem todos no mesmo dia.',110,'IDN_ar_ilhas_ar',2,'IDN'),
+ ('IDN_ar_maritima_idn','IDN_ar','Patrulha Marítima Armada','O avião que vê o navio é o mesmo que o afunda.',185,'IDN_ar_dispersao',3,'IDN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IDN_ar_ilhas_ar','air_upkeep',0.92),
+ ('IDN_ar_dispersao','air_losses',0.92),
+ ('IDN_ar_maritima_idn','air_bombing',1.08);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('IDN_mar','Mar Interior','🌋',12,'IDN','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IDN_mar_estreitos_idn','IDN_mar','Guarda dos Estreitos','Malaca, Sunda, Lombok: três portas e todo o comércio do mundo a passar.',50,NULL,1,'IDN'),
+ ('IDN_mar_arquipelago_mar','IDN_mar','Navegação de Arquipélago','Dezassete mil ilhas fazem pilotos que não precisam de carta.',110,'IDN_mar_estreitos_idn',2,'IDN'),
+ ('IDN_mar_pesca','IDN_mar','Frota de Pesca Armada','A frota que pesca é a frota que vigia.',185,'IDN_mar_arquipelago_mar',3,'IDN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IDN_mar_estreitos_idn','naval_blockade',1.11),
+ ('IDN_mar_arquipelago_mar','naval_patrol',1.09),
+ ('IDN_mar_pesca','naval_upkeep',0.91);

@@ -136,3 +136,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('ARG_doc_cordilheira','org_regain',1.05),
  ('ARG_doc_malvinas','move_speed',1.08),
  ('ARG_doc_malvinas','attack',1.06);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ARG_ar','Asas do Sul','🛫',11,'ARG','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ARG_ar_pampa','ARG_ar','Escola do Pampa','Pista de terra, oficina de campanha, e a esquadrilha voa na mesma.',50,NULL,1,'ARG'),
+ ('ARG_ar_rasante','ARG_ar','Ataque Rasante','Vinte metros acima da água ninguém tem tempo de apontar.',110,'ARG_ar_pampa',2,'ARG'),
+ ('ARG_ar_exocet','ARG_ar','Golpe de Longo Alcance','Um só avião com a arma certa vale por um esquadrão sem ela.',185,'ARG_ar_rasante',3,'ARG');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ARG_ar_pampa','air_upkeep',0.93),
+ ('ARG_ar_rasante','air_losses',0.93),
+ ('ARG_ar_exocet','air_bombing',1.12);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('ARG_mar','Mar do Sul','🐧',12,'ARG','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ARG_mar_atlantico_sul','ARG_mar','Patrulha do Atlântico Sul','O mar mais bravo do mundo treina quem lá vive todos os dias.',50,NULL,1,'ARG'),
+ ('ARG_mar_submarino_arg','ARG_mar','Escola de Submarinos','Um submarino no mar prende dez navios à procura dele.',110,'ARG_mar_atlantico_sul',2,'ARG'),
+ ('ARG_mar_austral','ARG_mar','Navegação Austral','Gelo, vento e cinquenta graus de latitude: o casco tem de aguentar.',185,'ARG_mar_submarino_arg',3,'ARG');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ARG_mar_atlantico_sul','naval_patrol',1.09),
+ ('ARG_mar_submarino_arg','naval_blockade',1.09),
+ ('ARG_mar_austral','naval_losses',0.93);

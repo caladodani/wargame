@@ -16,7 +16,13 @@ MOD_STATS = {'str', 'str_attacker', 'str_defender', 'command'}
 UNIT_STATS = {'soft_atk', 'hard_atk', 'defense', 'breakthrough', 'armor', 'piercing', 'hardness', 'hp'}
 COND_KEYS = {'terrain', 'river', 'country'}
 GENERAL_STATS = {'attack', 'defense', 'org_regain', 'move_speed', 'industry'}
-DOCTRINE_STATS = {'attack', 'conscription', 'defense', 'industry', 'move_speed', 'org_regain', 'production_speed'}
+# o que cada arma pode melhorar: uma escola de caça não dá recrutamento e uma de infantaria não dá bloqueio
+DOCTRINE_STATS = {'exercito': {'attack', 'conscription', 'defense', 'industry', 'move_speed', 'org_regain', 'production_speed'},
+                  'ar': {'air_losses', 'air_bombing', 'air_upkeep'},
+                  'mar': {'naval_losses', 'naval_upkeep', 'naval_blockade', 'naval_escort', 'naval_patrol'}}
+# chaves em que o número é uma conta a pagar (perdas, sustento): melhorar é descer, e um valor acima de 1
+# seria uma escola que piora quem a aprende — quase sempre um sinal trocado
+LOWER_IS_BETTER = {'air_losses', 'air_upkeep', 'naval_losses', 'naval_upkeep'}
 LAW_STATS = {'attack', 'conscription', 'counter_intel', 'defense', 'export_price', 'export_share', 'industry',
              'integration_speed', 'occupied_yield', 'org_regain', 'production_speed', 'research_speed',
              'resistance_growth'}
@@ -134,9 +140,12 @@ def check(path, static):
         if not gicon: warns.append(f'general {gid}: sem chapa (o retrato do estado-maior fica vazio)')
 
     # escola nacional de guerra: ramo do país, degraus encadeados, preço a subir e efeitos conhecidos
-    own_branches = {r[0] for r in db.execute('SELECT id FROM army_doctrine_branch WHERE country_tag=?', (tag,))}
-    for bid in own_branches:
+    own_branches = {r[0]: r[1] for r in db.execute('SELECT id,domain FROM army_doctrine_branch WHERE country_tag=?', (tag,))}
+    by_domain = {}
+    for bid, domain in own_branches.items():
         if not bid.startswith(tag + '_'): errs.append(f'army_doctrine_branch {bid}: id deve começar por {tag}_')
+        if domain not in DOCTRINE_STATS: errs.append(f'army_doctrine_branch {bid}: arma {domain} desconhecida (usa {sorted(DOCTRINE_STATS)})')
+        by_domain.setdefault(domain, []).append(bid)
         steps = db.execute('SELECT id,requires,cost,sort,country_tag FROM army_doctrine WHERE branch=? ORDER BY sort',
                            (bid,)).fetchall()
         if len(steps) < 2: errs.append(f'army_doctrine_branch {bid}: {len(steps)} degrau(s) — uma escola precisa de dois ou mais')
@@ -148,14 +157,26 @@ def check(path, static):
         costs = [c for _, _, c, _, _ in steps]
         if costs != sorted(costs) or len(set(costs)) != len(costs):
             errs.append(f'army_doctrine_branch {bid}: preços {costs} não sobem degrau a degrau')
+    # uma escola de casa por arma: duas escolas próprias da mesma arma fechavam-se uma à outra e a segunda
+    # nunca seria aprendida; nenhuma numa arma é só um país sem maneira própria de a fazer
+    for domain, bids in by_domain.items():
+        if len(bids) > 1: errs.append(f'{domain}: {len(bids)} escolas de casa ({", ".join(sorted(bids))}) — só pode haver uma por arma')
+    for domain in DOCTRINE_STATS:
+        if domain not in by_domain: warns.append(f'sem escola de casa da arma {domain}')
     for did, branch in db.execute('SELECT id,branch FROM army_doctrine WHERE country_tag=?', (tag,)):
         if not did.startswith(tag + '_'): errs.append(f'army_doctrine {did}: id deve começar por {tag}_')
         if branch not in own_branches: errs.append(f'army_doctrine {did}: escola {branch} não é de {tag} (degrau próprio em ramo comum)')
         effs = db.execute('SELECT stat_key,value FROM army_doctrine_effect WHERE doctrine_id=?', (did,)).fetchall()
         if not effs: warns.append(f'army_doctrine {did}: sem efeitos (army_doctrine_effect)')
+        domain = own_branches.get(branch, 'exercito')
+        allowed = DOCTRINE_STATS.get(domain, set())
         for k, v in effs:
-            if k not in DOCTRINE_STATS: errs.append(f'army_doctrine {did}: stat_key {k} desconhecido (usa {sorted(DOCTRINE_STATS)})')
-            if not (0.9 <= v <= 1.2): warns.append(f'army_doctrine {did}: {k}={v} fora de 0.9..1.2')
+            if k not in allowed: errs.append(f'army_doctrine {did}: stat_key {k} não é da arma {domain} (usa {sorted(allowed)})')
+            lo = 0.85 if k in LOWER_IS_BETTER else 0.9   # cortar 15% de perdas é uma escola forte, não um erro
+            if not (lo <= v <= 1.2): warns.append(f'army_doctrine {did}: {k}={v} fora de {lo}..1.2')
+            if k in LOWER_IS_BETTER and v >= 1: errs.append(f'army_doctrine {did}: {k}={v} — aqui menos é melhor, o valor tem de ser < 1')
+            if k not in LOWER_IS_BETTER and domain != 'exercito' and v <= 1:
+                errs.append(f'army_doctrine {did}: {k}={v} — aqui mais é melhor, o valor tem de ser > 1')
 
     # conselheiros próprios: id prefixado e uma pasta que exista
     slots = {r[0] for r in db.execute('SELECT id FROM cabinet_slot')}
@@ -193,8 +214,9 @@ def check(path, static):
     n_adv = db.execute('SELECT COUNT(*) FROM advisor WHERE country_tag=?', (tag,)).fetchone()[0]
     n_gen = db.execute('SELECT COUNT(*) FROM general WHERE country_tag=?', (tag,)).fetchone()[0]
     n_doc = db.execute('SELECT COUNT(*) FROM army_doctrine WHERE country_tag=?', (tag,)).fetchone()[0]
+    arms = '+'.join(f'{d}:{len(by_domain.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     summary = (f'{tag}: {len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes, '
-               f'{len(own_branches)} escola de guerra ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
+               f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
                f'{n_units} brigadas nomeadas, stats {dict(db.execute("SELECT key,value FROM country_stat WHERE country_tag=?", (tag,)).fetchall())}')
     print(summary)

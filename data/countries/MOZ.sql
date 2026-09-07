@@ -135,3 +135,27 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('MOZ_doc_zambeze','org_regain',1.05),
  ('MOZ_doc_costeira','defense',1.08),
  ('MOZ_doc_costeira','attack',1.05);
+
+-- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('MOZ_ar','Asas do Índico','🌴',11,'MOZ','ar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('MOZ_ar_mata_ar','MOZ_ar','Vigia da Mata','Cabo Delgado vê-se de cima antes de custar homens em baixo.',50,NULL,1,'MOZ'),
+ ('MOZ_ar_ligacao','MOZ_ar','Ligação Aérea','Sem estrada, o avião leve é a estrada.',110,'MOZ_ar_mata_ar',2,'MOZ'),
+ ('MOZ_ar_apoio_moz','MOZ_ar','Apoio de Fogo Leve','Um avião pequeno com a bomba certa desatola uma coluna inteira.',185,'MOZ_ar_ligacao',3,'MOZ');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('MOZ_ar_mata_ar','air_losses',0.95),
+ ('MOZ_ar_ligacao','air_upkeep',0.9),
+ ('MOZ_ar_apoio_moz','air_bombing',1.08);
+
+-- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
+ ('MOZ_mar','Guarda do Canal de Moçambique','🐟',12,'MOZ','mar');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('MOZ_mar_canal_moz','MOZ_mar','Patrulha do Canal','Metade do petróleo do Golfo passa aqui e ninguém pergunta a quem.',50,NULL,1,'MOZ'),
+ ('MOZ_mar_barco_pequeno','MOZ_mar','Escola do Barco Pequeno','Dois mil e quinhentos quilómetros de costa com o que houver a flutuar.',110,'MOZ_mar_canal_moz',2,'MOZ'),
+ ('MOZ_mar_delgado','MOZ_mar','Desembarque em Cabo Delgado','Onde não há estrada, a tropa chega pela praia.',185,'MOZ_mar_barco_pequeno',3,'MOZ');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('MOZ_mar_canal_moz','naval_patrol',1.1),
+ ('MOZ_mar_barco_pequeno','naval_upkeep',0.89),
+ ('MOZ_mar_delgado','naval_escort',1.08);
