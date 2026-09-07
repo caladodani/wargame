@@ -55,7 +55,19 @@ public partial class CountryPanel : PanelContainer
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
     }
 
-    public void Open(int countryId) { _countryId = countryId; _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+    /// <summary>Índice da aba da diplomacia em `Sections`. Quem vem da lista de países quer a mesa, não a
+    /// ficha — e o índice não se escreve à mão de fora, que uma aba nova pelo meio partia-o em silêncio.</summary>
+    public static readonly int Diplomacy = Array.IndexOf(Sections, "Diplomacia");
+
+    /// <summary>Abre a ficha de um país. Sem `tab` fica na aba onde estava — quem anda a comparar países
+    /// não quer voltar ao princípio a cada um.</summary>
+    public void Open(int countryId, int? tab = null)
+    {
+        _countryId = countryId;
+        if (tab is int t && t >= 0 && t < Sections.Length) _tab = t;
+        _lastKey = "";
+        _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); });
+    }
     public void Refresh() { if (Visible) Fill(); }
 
     /// <summary>--smoke: enche o painel do país sem esperar pelo RunWhenIdle e devolve quantas divisões

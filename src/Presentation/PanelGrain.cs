@@ -56,12 +56,37 @@ public partial class PanelGrain : Control
         return (new Rect2(GetGlobalTransform() * r.Position, r.Size), chapa.GetGlobalRect());
     }
 
-    /// <summary>O que o --smoke diz da chapa: tamanho do ladrilho e quantas camadas acertam no painel todo.
-    /// Conta as escondidas também — quem não desenhou no arranque desenha à primeira vez que o painel abre, e
-    /// aí já não há smoke a ver.</summary>
+    /// <summary>Valores mais escuro e mais claro do ladrilho. O 0.3.15 foi para o telemóvel com a imagem da
+    /// primeira versão da ferramenta, que ainda trazia uma moldura escura de 1 px à volta — e um ladrilho com
+    /// moldura, ladrilhado, é uma grelha de células por cima do mundo. O smoke dizia "chapa de 128×128" e a
+    /// chapa lá estava: contava o que existe e não olhava para o que se vê. Um grão de superfície não desce
+    /// muito abaixo de 0.9; uma moldura desce a 0.4, e é isso que este número denuncia.</summary>
+    private static (float Lo, float Hi)? _range;
+
+    private static (float Lo, float Hi)? Range()
+    {
+        if (_range is not null) return _range;
+        if (Plate()?.GetImage() is not Image img) return null;
+        float lo = 1f, hi = 0f;
+        for (int y = 0; y < img.GetHeight(); y++)
+            for (int x = 0; x < img.GetWidth(); x++)
+            {
+                float v = img.GetPixel(x, y).Luminance;
+                if (v < lo) lo = v;
+                if (v > hi) hi = v;
+            }
+        return _range = (lo, hi);
+    }
+
+    /// <summary>O que o --smoke diz da chapa: tamanho do ladrilho, o que ele escurece e quantas camadas
+    /// acertam no painel todo. Conta as escondidas também — quem não desenhou no arranque desenha à primeira
+    /// vez que o painel abre, e aí já não há smoke a ver.</summary>
     public static string Report(Node root)
     {
-        string chapa = Plate() is Texture2D t ? $"chapa de {t.GetWidth()}×{t.GetHeight()}" : "chapa em falta";
+        string chapa = Plate() is Texture2D t
+            ? $"chapa de {t.GetWidth()}×{t.GetHeight()}"
+              + (Range() is (float lo, float hi) ? $" a {lo:0.00}–{hi:0.00}" : "")
+            : "chapa em falta";
         var all = Descendants(root).Select(g => g.Cover()).ToList();
         int ok = all.Count(c => c.Mine.Position.DistanceTo(c.Plate.Position) < 0.5f
                              && c.Mine.Size.DistanceTo(c.Plate.Size) < 0.5f);
