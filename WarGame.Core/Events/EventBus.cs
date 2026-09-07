@@ -47,6 +47,15 @@ public sealed record OfferMade(int FromId, int ToId, string Kind, int Men, int R
 public sealed record OfferAnswered(int FromId, int ToId, string Kind, bool Accepted) : IGameEvent;
 public sealed record OfferExpired(int FromId, int ToId, string Kind) : IGameEvent;
 
+/// <summary>Combate travado no céu de uma região (AirMissionSystem) ou no mar de uma costa
+/// (NavalMissionSystem), do ponto de vista de UM dos lados: Lost é o que este país deixou lá e Worse diz
+/// que foi ele quem levou a pior parte (perdeu a maior fatia do que tinha lá). Sai um por cada lado.
+///
+/// Existem para o comando do ar e do mar poder cair como cai o de terra: sem eles, o CommandCasualtySystem
+/// só sabia de batalhas em terra e um almirante nunca corria risco nenhum.</summary>
+public sealed record AirCombatEnded(int RegionId, int CountryId, int EnemyCountryId, float Lost, bool Worse) : IGameEvent;
+public sealed record SeaCombatEnded(int RegionId, int CountryId, int EnemyCountryId, float Lost, bool Worse) : IGameEvent;
+
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;
 public sealed record GeneralKilled(int CountryId, string GeneralId, int RegionId) : IGameEvent;

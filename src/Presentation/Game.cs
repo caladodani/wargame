@@ -91,7 +91,9 @@ public partial class Game : Node
         World.Register(new WarStatsSystem());   // antes do combate: liga-se aos eventos que vai contar
         World.Register(new DefeatAlarmSystem());  // idem: conta as derrotas seguidas e levanta o alarme
         World.Register(new GeneralXpSystem());  // idem: ouve as batalhas para dar posto aos comandantes
-        World.Register(new CommandCasualtySystem());  // e as mesmas batalhas podem tirar-lhe o comandante
+        var casualties = new CommandCasualtySystem();
+        casualties.Bind(World);                  // ao barramento JÁ: o mar e o céu correm antes dele nesta lista,
+        World.Register(casualties);              // e sem isto os combates do primeiro dia não feriam ninguém
         World.Register(new PrisonerSystem());    // quem cai em terreno inimigo rende-se: prisioneiros, trabalho e repatriação
         World.Register(new OfferSystem());       // logo a seguir: a IA olha para os campos e propõe trocas
         World.Register(new WarGoalSystem());

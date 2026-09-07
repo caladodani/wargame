@@ -1,3 +1,4 @@
+using WarGame.Core.Events;
 using WarGame.Core.Model;
 
 namespace WarGame.Core.Systems;
@@ -66,9 +67,16 @@ public sealed class AirMissionSystem : ISystem
                 foreach (var b in here)
                 {
                     if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
-                    float hit = MathF.Min(a.Wings, b.Wings) * loss;
+                    float aHad = a.Wings, bHad = b.Wings;
+                    float hit = MathF.Min(aHad, bHad) * loss;
                     // cada lado leva o que a sua escola do ar lhe deixa levar: air_losses < 1 é caça melhor
-                    Shoot(w, a, hit * Mult(w, a.CountryId)); Shoot(w, b, hit * Mult(w, b.CountryId));
+                    float aLost = Shoot(w, a, hit * Mult(w, a.CountryId));
+                    float bLost = Shoot(w, b, hit * Mult(w, b.CountryId));
+                    // levou a pior quem deixou lá a maior fatia do que tinha: é a esquadrilha pequena
+                    // mandada para um céu cheio, e é ela que arrisca o comandante
+                    float aShare = Share(aLost, aHad), bShare = Share(bLost, bHad);
+                    w.Events.Publish(new AirCombatEnded(region, a.CountryId, b.CountryId, aLost, aShare > bShare));
+                    w.Events.Publish(new AirCombatEnded(region, b.CountryId, a.CountryId, bLost, bShare > aShare));
                 }
         }
         w.AirMissions.RemoveAll(m => m.Wings <= 0.001f);
@@ -77,15 +85,19 @@ public sealed class AirMissionSystem : ISystem
     private static float Mult(World w, int countryId) =>
         w.Countries.TryGetValue(countryId, out var c) ? c.Stat("air_losses", 1f) : 1f;
 
+    /// <summary>Que fatia do que estava lá ficou lá (0 quando não estava lá nada).</summary>
+    private static float Share(float lost, float had) => had <= 0f ? 0f : lost / had;
+
     /// <summary>Aviões abatidos: saem da missão e do pool nacional — não voltam. O que a aviação aprende com
     /// isso fica: um combate aéreo ensina muito mais num dia do que um mês de patrulha em céu vazio.</summary>
-    private static void Shoot(World w, AirMission m, float wings)
+    private static float Shoot(World w, AirMission m, float wings)
     {
         float gone = MathF.Min(m.Wings, wings);
         m.Wings -= gone;
-        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return;
+        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return gone;
         c.AirPower = MathF.Max(0f, c.AirPower - gone);
         Learn(w, c, gone * w.Rule("air_xp_per_loss", 3f));
+        return gone;
     }
 
     /// <summary>Experiência aérea, com o tecto da regra — é a moeda das escolas do ar.</summary>

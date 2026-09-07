@@ -451,9 +451,14 @@ public static class CommanderView
         return chip;
     }
 
-    /// <summary>Enfermaria do estado-maior: quem está fora, há quanto tempo falta e o aviso de que os
-    /// exércitos deles andam entregues a interinos. Vazia (null) quando não há baixas — o painel não
-    /// mostra secções vazias.</summary>
+    /// <summary>Enfermaria do estado-maior, arma a arma: quem está fora, com que gravidade (a chapa da
+    /// tabela wound_kind), quantos dias faltam e o que o país deixa de ter enquanto ele não volta.
+    ///
+    /// Era uma lista corrida de nomes e dias: não se via se quem estava no hospital era o marechal ou o
+    /// almirante — e agora que o céu e o mar também ferem comandantes, essa distinção é a informação
+    /// toda. A contagem por arma vai no cabeçalho, para quem olha de passagem saber onde tem o buraco.
+    ///
+    /// Vazia (null) quando não há baixas — o painel não mostra secções vazias.</summary>
     public static PanelContainer? Infirmary(World w, int countryId)
     {
         if (!w.Countries.TryGetValue(countryId, out var c)) return null;
@@ -464,22 +469,75 @@ public static class CommanderView
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.20f, 0.10f, 0.11f, 0.90f), 10));
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
-        var head = Ui.Lbl($"🏥 Enfermaria · {hurt.Count} fora de serviço", 17);
-        head.AddThemeColorOverride("font_color", Hurt);
+
+        var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 6);
+        var title = Ui.Lbl($"🏥 Enfermaria · {hurt.Count} fora de serviço", 17);
+        title.AddThemeColorOverride("font_color", Hurt);
+        head.AddChild(Ui.Grow(title));
+        for (int i = 0; i < World.Domains.Length; i++)
+        {
+            int n = hurt.Count(kv => w.DomainOfGeneral(kv.Key) == World.Domains[i]);
+            if (n > 0) head.AddChild(Tally(Ui.Arms[i], n));
+        }
         v.AddChild(head);
 
-        foreach (var (id, until) in hurt)
+        for (int i = 0; i < World.Domains.Length; i++)
         {
-            string name = w.GeneralDefs.TryGetValue(id, out var def) ? def.Name : id;
-            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); v.AddChild(row);
-            var who = Ui.Lbl(name, 16);
-            who.AddThemeColorOverride("font_color", Ui.Text);
-            row.AddChild(Ui.Grow(who));
-            var when = Ui.Lbl($"{Math.Max(0, until - w.Clock.Day)} dias", 15);
-            when.AddThemeColorOverride("font_color", Hurt);
-            row.AddChild(when);
-            v.AddChild(Recovery(w, countryId, id));
+            var here = hurt.Where(kv => w.DomainOfGeneral(kv.Key) == World.Domains[i]).ToList();
+            if (here.Count == 0) continue;                              // arma inteira de pé: não se anuncia
+            var arm = Ui.Lbl(Ui.Arms[i], 14);
+            arm.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(arm);
+            foreach (var (id, until) in here) v.AddChild(Bed(w, c, id, until));
         }
         return card;
+    }
+
+    /// <summary>Contagem de baixas de uma arma no cabeçalho da enfermaria ("✈ Ar 2").</summary>
+    private static PanelContainer Tally(string arm, int men)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(new Color(Hurt, 0.18f), 4));
+        var l = Ui.Lbl($"{arm} {men}", 13);
+        l.AddThemeColorOverride("font_color", Hurt);
+        l.TooltipText = $"{men} fora de serviço no comando de {arm}";
+        chip.AddChild(l);
+        return chip;
+    }
+
+    /// <summary>Uma cama da enfermaria: a chapa da gravidade que o tirou de serviço, o nome, os dias que
+    /// faltam, o que o país perde enquanto ele lá está e a barra da convalescença.</summary>
+    private static PanelContainer Bed(World w, Country c, string generalId, int until)
+    {
+        var kind = c.GeneralWoundKind.TryGetValue(generalId, out var kid)
+                   && w.WoundKinds.TryGetValue(kid, out var k) ? k : null;
+        string name = w.GeneralDefs.TryGetValue(generalId, out var def) ? def.Name : generalId;
+
+        var plate = new PanelContainer();
+        plate.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.27f, 0.13f, 0.14f, 0.85f), 6));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 1); plate.AddChild(v);
+
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6); v.AddChild(row);
+        row.AddChild(Ui.Lbl(kind?.Icon ?? "🩸", 17));
+        var who = Ui.Lbl(name, 16);
+        who.AddThemeColorOverride("font_color", Ui.Text);
+        row.AddChild(Ui.Grow(who));
+        var when = Ui.Lbl($"{Math.Max(0, until - w.Clock.Day)} dias", 15);
+        when.AddThemeColorOverride("font_color", Hurt);
+        row.AddChild(when);
+
+        // o preço da baixa em números: enquanto está no hospital o multiplicador dele não conta a ninguém
+        string cost = def is null ? "" : $" · o país fica sem {Ui.StatName(def.StatKey)} ×{def.Mult:0.00}";
+        var note = Ui.Lbl((kind?.Name ?? "Ferido em combate") + cost, 13);
+        note.AddThemeColorOverride("font_color", Ui.TextDim);
+        note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        v.AddChild(note);
+
+        v.AddChild(Recovery(w, c.Id, generalId));
+        plate.TooltipText = kind is null
+            ? $"{name} está fora de serviço"
+            : $"{kind.Icon} {kind.Name} — {kind.Days} dias de baixa"
+              + (kind.Domain is null ? "" : $"; é baixa de {kind.Domain} e só acontece a quem serve nessa arma");
+        return plate;
     }
 }

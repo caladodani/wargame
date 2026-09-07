@@ -782,15 +782,24 @@ INSERT INTO rule (key,value,note) VALUES
 -- com comandante destacado é uma hipótese de o perder: days = dias fora de serviço (a zero quando é
 -- fatal), weight = peso no sorteio, fatal = fica lá. Enquanto está ferido não soma nada ao país nem
 -- amplifica nada no exército, e o comando passa a um substituto do estado-maior.
+--
+-- domain NULL = gravidade de toda a gente (um estilhaço apanha qualquer um); com arma ('exercito',
+-- 'ar', 'mar') só é sorteada para os comandantes dessa arma — ver World.WoundIsFor. É assim que o
+-- comandante de asa cai de pára-quedas e o de esquadra vai à água, coisas que não acontecem a quem
+-- comanda infantaria.
 CREATE TABLE IF NOT EXISTS wound_kind (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, days INTEGER NOT NULL,
-  weight REAL NOT NULL, fatal INTEGER NOT NULL DEFAULT 0);
-INSERT INTO wound_kind VALUES ('arranhao','Ferimento ligeiro','🩹',6,50,0);
-INSERT INTO wound_kind VALUES ('ferido','Ferido em combate','🩸',21,28,0);
-INSERT INTO wound_kind VALUES ('grave','Ferido com gravidade','🏥',60,15,0);
-INSERT INTO wound_kind VALUES ('morto','Morto em combate','⚰',0,7,1);
+  weight REAL NOT NULL, fatal INTEGER NOT NULL DEFAULT 0, domain TEXT);
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('arranhao','Ferimento ligeiro','🩹',6,50,0,NULL);
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('ferido','Ferido em combate','🩸',21,28,0,NULL);
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('grave','Ferido com gravidade','🏥',60,15,0,NULL);
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('morto','Morto em combate','⚰',0,7,1,NULL);
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('abatido','Abatido sobre o inimigo','🪂',45,12,0,'ar');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('afundado','Afundado com o navio','🌊',30,12,0,'mar');
 INSERT INTO rule (key,value,note) VALUES
  ('wound_chance',0.035,'probabilidade de o comandante de um exército cair por batalha travada'),
+ ('wound_chance_air',0.012,'probabilidade de um comandante de asa cair por combate no céu de uma região'),
+ ('wound_chance_sea',0.010,'probabilidade de um comandante de esquadra cair por combate num mar'),
  ('wound_loss_mult',2.2,'quanto a derrota multiplica essa probabilidade');
 
 -- Prisioneiros de guerra (PrisonerSystem). Uma divisão desfeita em terreno inimigo entrega

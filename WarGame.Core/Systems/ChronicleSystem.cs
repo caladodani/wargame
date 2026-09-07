@@ -67,7 +67,8 @@ public sealed class ChronicleSystem : ISystem
         w.Events.Subscribe<GeneralKilled>(e =>
             Write(w, "baixa", $"{GeneralName(w, e.GeneralId)} morre em combate em {Place(w, e.RegionId)} ao serviço de {Who(w, e.CountryId)}.", e.CountryId, e.RegionId));
         w.Events.Subscribe<GeneralWounded>(e =>
-            Write(w, "baixa", $"{GeneralName(w, e.GeneralId)} ({Who(w, e.CountryId)}) sai ferido do campo: {e.Days} dias fora de serviço.", e.CountryId));
+            Write(w, "baixa", $"{GeneralName(w, e.GeneralId)} ({Who(w, e.CountryId)}) sai de serviço"
+                              + $" — {WoundName(w, e.KindId)}: {e.Days} dias.", e.CountryId));
         w.Events.Subscribe<GeneralPromoted>(e =>
             Write(w, "promocao", $"{Who(w, e.CountryId)}: {GeneralName(w, e.GeneralId)} promovido a {e.RankName}.", e.CountryId));
         w.Events.Subscribe<FocusCompleted>(e =>
@@ -114,6 +115,11 @@ public sealed class ChronicleSystem : ISystem
         w.Regions.TryGetValue(regionId, out var r) ? r.Name : "uma região";
     private static string GeneralName(World w, string id) =>
         w.GeneralDefs.TryGetValue(id, out var g) ? g.Name : id;
+
+    /// <summary>O nome da gravidade da baixa (tabela wound_kind) — "Abatido sobre o inimigo" diz o que
+    /// aconteceu e "ferido" não.</summary>
+    private static string WoundName(World w, string id) =>
+        w.WoundKinds.TryGetValue(id, out var k) ? k.Name.ToLowerInvariant() : "ferido em combate";
 
     private static string AdvisorName(World w, string id) =>
         w.AdvisorDefs.TryGetValue(id, out var a) ? a.Name : id;

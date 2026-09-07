@@ -561,6 +561,20 @@ public sealed class World
         return 1f + (def.Mult - 1f) * (Rule("general_command_bonus", 2f) + RankBonus(g.CountryId, gen));
     }
 
+    /// <summary>Esta gravidade de baixa serve esta arma? Sem arma (wound_kind.domain nulo) serve todas —
+    /// um estilhaço apanha qualquer um; com arma é só de lá, que não se cai de pára-quedas à frente de uma
+    /// divisão de infantaria nem se vai ao fundo com um navio que não se tem.</summary>
+    public static bool WoundIsFor(WoundKind k, string domain) => k.Domain is null || k.Domain == domain;
+
+    /// <summary>A regra que diz a probabilidade de um comandante desta arma cair num combate dela. São
+    /// três armas com três riscos: a batalha em terra é uma coisa, o céu disputado é outra.</summary>
+    public static string WoundChanceRule(string domain) => domain switch
+    {
+        Air => "wound_chance_air",
+        Sea => "wound_chance_sea",
+        _ => "wound_chance",
+    };
+
     /// <summary>Este posto serve este país? A escada comum (country_tag nulo) serve toda a gente; uma
     /// escada nacional é só de quem a traz — um Generalfeldmarschall não se põe num exército português.</summary>
     public static bool RankIsFor(GeneralRank r, Country c) => r.CountryTag is null || r.CountryTag == c.Tag;

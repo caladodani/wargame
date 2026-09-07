@@ -1,3 +1,4 @@
+using WarGame.Core.Events;
 using WarGame.Core.Model;
 
 namespace WarGame.Core.Systems;
@@ -54,9 +55,15 @@ public sealed class NavalMissionSystem : ISystem
                 foreach (var b in here)
                 {
                     if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
-                    float hit = MathF.Min(a.Ships, b.Ships) * loss;
+                    float aHad = a.Ships, bHad = b.Ships;
+                    float hit = MathF.Min(aHad, bHad) * loss;
                     // naval_losses < 1 é couraça e pontaria: leva-se menos aço ao fundo pelo mesmo combate
-                    Sink(w, a, hit * Mult(w, a.CountryId)); Sink(w, b, hit * Mult(w, b.CountryId));
+                    float aLost = Sink(w, a, hit * Mult(w, a.CountryId));
+                    float bLost = Sink(w, b, hit * Mult(w, b.CountryId));
+                    // levou a pior quem deixou lá a maior fatia da esquadra — e é essa que arrisca o almirante
+                    float aShare = Share(aLost, aHad), bShare = Share(bLost, bHad);
+                    w.Events.Publish(new SeaCombatEnded(region, a.CountryId, b.CountryId, aLost, aShare > bShare));
+                    w.Events.Publish(new SeaCombatEnded(region, b.CountryId, a.CountryId, bLost, bShare > aShare));
                 }
         }
         w.NavalMissions.RemoveAll(m => m.Ships <= 0.001f);
@@ -65,15 +72,19 @@ public sealed class NavalMissionSystem : ISystem
     private static float Mult(World w, int countryId) =>
         w.Countries.TryGetValue(countryId, out var c) ? c.Stat("naval_losses", 1f) : 1f;
 
+    /// <summary>Que fatia da esquadra que estava lá ficou lá (0 quando não estava lá nada).</summary>
+    private static float Share(float lost, float had) => had <= 0f ? 0f : lost / had;
+
     /// <summary>Navios ao fundo: saem da missão e do pool nacional — não voltam. A marinha que os perdeu
     /// aprende com o combate: é assim que se pagam as escolas do mar.</summary>
-    private static void Sink(World w, NavalMission m, float ships)
+    private static float Sink(World w, NavalMission m, float ships)
     {
         float gone = MathF.Min(m.Ships, ships);
         m.Ships -= gone;
-        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return;
+        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return gone;
         c.Warships = MathF.Max(0f, c.Warships - gone);
         Learn(w, c, gone * w.Rule("navy_xp_per_loss", 3f));
+        return gone;
     }
 
     /// <summary>Experiência naval, com o tecto da regra — é a moeda das escolas do mar.</summary>

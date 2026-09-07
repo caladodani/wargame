@@ -394,6 +394,62 @@ def check_ranks(db, static):
     return errs, warns
 
 
+def check_wounds(db, static):
+    """Gravidades de baixa (wound_kind): as armas todas têm por onde cair, e o espelho está em dia.
+
+    O CommandCasualtySystem sorteia a gravidade pelos pesos da tabela, mas só entre as que servem a arma
+    do comandante (domain NULL = todas; com arma é só dessa). Uma arma sem gravidade nenhuma é uma arma
+    onde o comando nunca cai — o sorteio devolve null e o combate não fere ninguém. E uma gravidade com
+    arma que não existe é peso morto que nunca sai a ninguém.
+    """
+    errs, warns = [], []
+    rows = db.execute('SELECT id,name,icon,days,weight,fatal,domain FROM wound_kind ORDER BY id').fetchall()
+    if not rows:
+        return ['sem gravidades de baixa: o comando nunca cai'], warns
+
+    icons = [r[2] for r in rows]
+    for wid, name, icon, days, weight, fatal, domain in rows:
+        if domain is not None and domain not in GENERAL_STATS:
+            errs.append(f'gravidade {wid}: arma {domain} não existe (só {", ".join(sorted(GENERAL_STATS))})')
+        if weight <= 0:
+            errs.append(f'gravidade {wid}: peso {weight} — nunca sai no sorteio')
+        if fatal and days:
+            errs.append(f'gravidade {wid}: é fatal e ainda assim marca {days} dias de hospital')
+        if not fatal and days <= 0:
+            errs.append(f'gravidade {wid}: não é fatal e não tira o homem de serviço nem um dia')
+        if icons.count(icon) > 1:
+            errs.append(f'gravidade {wid}: chapa {icon} repetida — na enfermaria não se distinguem')
+
+    for domain in GENERAL_STATS:
+        mine = [r for r in rows if r[6] is None or r[6] == domain]
+        if not any(r[4] > 0 for r in mine):
+            errs.append(f'sem gravidades de baixa para {domain} — o comando dessa arma nunca cai')
+        if not any(r[5] for r in mine):
+            warns.append(f'em {domain} não há gravidade fatal: o comando dessa arma nunca se perde de vez')
+        rule = {'ar': 'wound_chance_air', 'mar': 'wound_chance_sea'}.get(domain, 'wound_chance')
+        got = db.execute('SELECT value FROM rule WHERE key=?', (rule,)).fetchone()
+        if not got:
+            errs.append(f'falta a regra {rule} — World.WoundChanceRule({domain}) não encontra a probabilidade')
+        elif got[0] <= 0:
+            warns.append(f'{rule} está a {got[0]}: o comando de {domain} não corre risco nenhum')
+
+    if static:
+        st = sqlite3.connect(static)
+        mirror = st.execute('SELECT id,name,icon,days,weight,fatal,domain FROM wound_kind ORDER BY id').fetchall()
+        if mirror != rows:
+            errs.append('data/static.db tem outras gravidades de baixa — falta o espelho manual do seed_world.sql')
+        for rule in ('wound_chance', 'wound_chance_air', 'wound_chance_sea'):
+            a = db.execute('SELECT value FROM rule WHERE key=?', (rule,)).fetchone()
+            b = st.execute('SELECT value FROM rule WHERE key=?', (rule,)).fetchone()
+            if a != b:
+                errs.append(f'data/static.db tem outro {rule} ({b} contra {a}) — falta o espelho manual')
+
+    arms = ' '.join(f'{d}:{sum(1 for r in rows if r[6] is None or r[6] == d)}' for d in ('exercito', 'ar', 'mar'))
+    own = sum(1 for r in rows if r[6] is not None)
+    print(f'gravidades de baixa [{arms}], {own} próprias de uma arma')
+    return errs, warns
+
+
 def main():
     files = [Path(a) for a in sys.argv[1:]] or sorted((HERE / 'data' / 'countries').glob('*.sql'))
     static = HERE / 'data' / 'static.db'
@@ -423,6 +479,10 @@ def main():
         errs, warns = check_ranks(db, static)
         for w in warns: print(f'  aviso general_rank: {w}')
         for e in errs: print(f'  ERRO general_rank: {e}')
+        bad += bool(errs)
+        errs, warns = check_wounds(db, static)
+        for w in warns: print(f'  aviso wound_kind: {w}')
+        for e in errs: print(f'  ERRO wound_kind: {e}')
         bad += bool(errs)
     print('OK' if not bad else f'{bad} ficheiro(s) com erros')
     sys.exit(1 if bad else 0)

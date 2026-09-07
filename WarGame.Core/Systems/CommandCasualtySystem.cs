@@ -12,8 +12,15 @@ namespace WarGame.Core.Systems;
 /// estado-maior — o interino leva o seu próprio bónus, não o do homem que substituiu. Isso é o preço a
 /// sério de deixar um marechal na primeira linha.
 ///
+/// O céu e o mar são iguais: o comandante de asa voa com as asas que manda e o de esquadra vai ao mar
+/// com ela. Onde há combate de aviões ou de navios, o estado-maior dessa arma arrisca-se — e aí não há
+/// exército para entregar a ninguém, o que se perde é o que o homem dava ao país inteiro enquanto está
+/// fora. Foi por isso que a guerra aérea e a naval passaram a anunciar os combates
+/// (AirCombatEnded/SeaCombatEnded): sem isso, um almirante morria de velho.
+///
 /// Nada disto está escrito em C#: a gravidade vem da tabela wound_kind (dias, peso no sorteio, se é
-/// fatal) e a probabilidade das regras wound_chance e wound_loss_mult.</summary>
+/// fatal, e de que arma é) e a probabilidade das regras wound_chance/wound_chance_air/wound_chance_sea
+/// e wound_loss_mult.</summary>
 public sealed class CommandCasualtySystem : ISystem
 {
     public string Name => "CommandCasualty";
@@ -30,6 +37,8 @@ public sealed class CommandCasualtySystem : ISystem
     {
         _bound = w;
         w.Events.Subscribe<BattleEnded>(e => OnBattle(w, e));
+        w.Events.Subscribe<AirCombatEnded>(e => OnMissionCombat(w, World.Air, e.CountryId, e.RegionId, e.Worse));
+        w.Events.Subscribe<SeaCombatEnded>(e => OnMissionCombat(w, World.Sea, e.CountryId, e.RegionId, e.Worse));
     }
 
     /// <summary>Quem já cumpriu o tempo de hospital volta ao serviço — e volta a contar para os stats.</summary>
@@ -42,6 +51,7 @@ public sealed class CommandCasualtySystem : ISystem
             foreach (var gen in back)
             {
                 c.GeneralWound.Remove(gen);
+                c.GeneralWoundKind.Remove(gen);
                 w.Events.Publish(new GeneralRecovered(c.Id, gen));
             }
             if (back.Count > 0) World.ApplyGenerals(w, c);
@@ -62,6 +72,27 @@ public sealed class CommandCasualtySystem : ISystem
             Roll(w, cid, e.RegionId, chance * (cid == winner ? 1f : loss));
     }
 
+    /// <summary>Combate no céu de uma região ou no mar de uma costa: o estado-maior daquela arma andava lá
+    /// dentro. Ao contrário do exército, não há grupo destacado nem interino a quem entregar nada — o
+    /// comandante de asa é do estado-maior, e o que ele dava ao país deixa de contar enquanto está fora.
+    ///
+    /// Cada comandante da arma arrisca-se uma vez por combate; quem levou a pior parte do dia arrisca
+    /// wound_loss_mult vezes mais, como em terra é a retirada que mata comandantes.</summary>
+    private static void OnMissionCombat(World w, string domain, int countryId, int regionId, bool worse)
+    {
+        if (w.WoundKinds.Count == 0 || !w.Countries.TryGetValue(countryId, out var c)) return;
+        float chance = w.Rule(World.WoundChanceRule(domain), 0.012f);
+        if (chance <= 0f) return;
+        if (worse) chance *= w.Rule("wound_loss_mult", 2f);
+
+        foreach (var gen in c.Generals.Where(id => w.DomainOfGeneral(id) == domain).ToList())
+        {
+            if (w.IsWounded(countryId, gen)) continue;                 // já está fora: não se fere duas vezes
+            if (w.Rng.NextDouble() >= chance) continue;
+            StrikeStaff(w, c, gen, regionId);
+        }
+    }
+
     /// <summary>Sorteia a sorte dos comandantes deste país naquela região. Um exército conta uma vez, por
     /// muitas divisões que lá tenha: quem arrisca é o homem, não a contagem de unidades.</summary>
     private static void Roll(World w, int countryId, int regionId, float chance)
@@ -79,29 +110,47 @@ public sealed class CommandCasualtySystem : ISystem
         }
     }
 
-    /// <summary>A baixa em si: sorteia a gravidade pelos pesos da tabela, tira o homem de serviço (ou de
-    /// vez) e entrega o exército a quem estiver livre.</summary>
+    /// <summary>A baixa de um comandante destacado: cai, e o exército dele passa a quem estiver livre.</summary>
     public static void Strike(World w, Country c, ArmyGroup g, string generalId, int regionId)
     {
-        var kind = Draw(w);
-        if (kind is null) return;
+        if (!Hit(w, c, generalId, regionId)) return;
+        g.GeneralId = StandIn(w, c, generalId);
+        w.Events.Publish(new CommandHandedOver(c.Id, g.Id, g.GeneralId));
+        World.ApplyGenerals(w, c);
+    }
+
+    /// <summary>A baixa de um comandante do estado-maior — de asa, de esquadra, ou um homem de terra sem
+    /// exército entregue. Não há comando para passar a ninguém: o que ele dava ao país sai com ele e volta
+    /// quando ele voltar (ou nunca mais, se ficou lá).</summary>
+    public static bool StrikeStaff(World w, Country c, string generalId, int regionId)
+    {
+        if (!Hit(w, c, generalId, regionId)) return false;
+        World.ApplyGenerals(w, c);
+        return true;
+    }
+
+    /// <summary>A baixa em si: sorteia a gravidade pelos pesos da tabela da ARMA dele e tira o homem de
+    /// serviço — ou de vez. Devolve false quando não há gravidade nenhuma para sortear.</summary>
+    private static bool Hit(World w, Country c, string generalId, int regionId)
+    {
+        var kind = Draw(w, w.DomainOfGeneral(generalId));
+        if (kind is null) return false;
 
         if (kind.Fatal)
         {
             c.Generals.Remove(generalId);
             c.GeneralXp.Remove(generalId);
             c.GeneralWound.Remove(generalId);
+            c.GeneralWoundKind.Remove(generalId);
             w.Events.Publish(new GeneralKilled(c.Id, generalId, regionId));
         }
         else
         {
             c.GeneralWound[generalId] = w.Clock.Day + Math.Max(1, kind.Days);
+            c.GeneralWoundKind[generalId] = kind.Id;
             w.Events.Publish(new GeneralWounded(c.Id, generalId, kind.Id, Math.Max(1, kind.Days)));
         }
-
-        g.GeneralId = StandIn(w, c, generalId);
-        w.Events.Publish(new CommandHandedOver(c.Id, g.Id, g.GeneralId));
-        World.ApplyGenerals(w, c);
+        return true;
     }
 
     /// <summary>Substituto: o primeiro comandante do estado-maior que não esteja ferido nem já a comandar
@@ -115,17 +164,20 @@ public sealed class CommandCasualtySystem : ISystem
         return null;
     }
 
-    /// <summary>Gravidade sorteada pelos pesos da tabela: muitos arranhões, poucos caixões.</summary>
-    private static WoundKind? Draw(World w)
+    /// <summary>Gravidade sorteada pelos pesos da tabela: muitos arranhões, poucos caixões. Só entram as
+    /// que servem esta arma (World.WoundIsFor) — o pára-quedas é do ar e a água é do mar.</summary>
+    private static WoundKind? Draw(World w, string domain)
     {
-        float total = w.WoundKinds.Values.Sum(k => MathF.Max(0f, k.Weight));
+        var kinds = w.WoundKinds.Values.Where(k => World.WoundIsFor(k, domain))
+                                       .OrderBy(k => k.Fatal).ThenBy(k => k.Days).ThenBy(k => k.Id).ToList();
+        float total = kinds.Sum(k => MathF.Max(0f, k.Weight));
         if (total <= 0f) return null;
         double roll = w.Rng.NextDouble() * total;
-        foreach (var k in w.WoundKinds.Values.OrderBy(k => k.Fatal).ThenBy(k => k.Days))
+        foreach (var k in kinds)
         {
             roll -= MathF.Max(0f, k.Weight);
             if (roll <= 0d) return k;
         }
-        return w.WoundKinds.Values.Last();
+        return kinds[^1];
     }
 }

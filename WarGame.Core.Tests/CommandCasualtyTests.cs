@@ -205,9 +205,10 @@ public class CommandCasualtyTests
         c.GeneralWound["gen_defesa"] = w.Clock.Day - 5;         // já sarado: não volta do save
 
         using var save = new MsSqliteDatabase();
-        var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
-        WarGame.Core.Data.SqlWorldRepository.EnsureSaveSchema(save, schema);
+        // o schema do save é o do static.db, reconstruído no motor (SchemaFromSqliteMaster): era a última
+        // cópia deste código que andava por aqui, e a cópia não sabia dos índices únicos
+        WarGame.Core.Data.SqlWorldRepository.EnsureSaveSchema(
+            save, WarGame.Core.Data.SqlWorldRepository.SchemaFromSqliteMaster(staticDb));
         var repo = new WarGame.Core.Data.SqlWorldRepository(staticDb);
         repo.WriteSave(w, save);
 

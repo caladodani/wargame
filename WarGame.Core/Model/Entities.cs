@@ -215,7 +215,8 @@ public sealed record GeneralRank(string Domain, int Level, string Name, float Xp
 /// <summary>Gravidade de uma baixa no comando (tabela wound_kind): quantos dias tira o comandante de
 /// serviço, o peso com que sai no sorteio e se é fatal. Um arranhão e um caixão são a mesma linha com
 /// números diferentes — a progressão muda-se na tabela, não no código.</summary>
-public sealed record WoundKind(string Id, string Name, string Icon, int Days, float Weight, bool Fatal);
+public sealed record WoundKind(string Id, string Name, string Icon, int Days, float Weight, bool Fatal,
+                               string? Domain = null);
 
 /// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
 public sealed class ActiveDecision
@@ -411,6 +412,9 @@ public sealed class Country
     /// <summary>Comandantes fora de serviço por ferimento (CommandCasualtySystem): general → dia em que
     /// regressa. Enquanto lá está não conta para os stats do país nem comanda exército nenhum.</summary>
     public Dictionary<string, int> GeneralWound { get; } = new();
+    /// <summary>A gravidade que tirou cada comandante de serviço (wound_kind.id; s_general.wound_kind).
+    /// Só a enfermaria a lê: o que ela muda no jogo são os dias, que estão no GeneralWound.</summary>
+    public Dictionary<string, string> GeneralWoundKind { get; } = new();
     /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
     public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>

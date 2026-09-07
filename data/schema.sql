@@ -337,6 +337,7 @@ CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (Hir
   country_id INTEGER NOT NULL, general TEXT NOT NULL,
   xp REAL NOT NULL DEFAULT 0,                   -- experiência de campanha (GeneralXpSystem)
   wound_until INTEGER NOT NULL DEFAULT 0,       -- dia em que volta do hospital (CommandCasualtySystem)
+  wound_kind TEXT NOT NULL DEFAULT '',          -- gravidade dessa baixa (wound_kind.id; '' = está de pé)
   PRIMARY KEY (country_id, general));
 
 CREATE TABLE IF NOT EXISTS s_cabinet (           -- gabinete civil em funções (AppointAdvisorCommand)
