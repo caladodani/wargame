@@ -32,7 +32,14 @@ public partial class Game : Node
     private string SavePath => Slot <= 1 ? "user://save.db" : $"user://save{Slot}.db";
     public const int SlotCount = 3;
     private const int AutoSaveDays = 30;
-    private static readonly double[] SpeedSeconds = { 0, 2.0, 1.0, 0.5, 0.25 };
+    // Segundos de relógio de parede por dia de jogo, um por andamento. O andamento mede-se pelo tempo de
+    // jogo que passa num segundo real — 2 horas, um quarto de dia, um dia, dois dias — e não por um número
+    // sem unidade: o mais devagar serve para se ver uma batalha a decidir-se, o mais depressa para atravessar
+    // um Inverno sem nada a acontecer. Um dia continua a ser um tique: o que muda é de quanto em quanto.
+    private static readonly double[] SpeedSeconds = { 0, 12.0, 4.0, 1.0, 0.5 };
+
+    /// <summary>Quanto tempo de jogo passa num segundo real, andamento a andamento (0 = pausa).</summary>
+    public static readonly string[] SpeedPace = { "parado", "2 h/s", "¼ dia/s", "1 dia/s", "2 dias/s" };
 
     private IDatabase _static = null!;
     private IDatabase? _save;
@@ -43,6 +50,9 @@ public partial class Game : Node
     private readonly Queue<Action> _pending = new();    // corre na main thread quando o tick acaba, antes de TickCompleted
     private int _lastSaveDay;
     private bool _smoke;
+
+    /// <summary>Estamos no arranque de prova (--smoke)? Quem fala com a rede não o faz aqui.</summary>
+    public bool IsSmoke => _smoke;
 
     public override void _Ready()
     {

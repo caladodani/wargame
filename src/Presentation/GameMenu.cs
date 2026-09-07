@@ -60,8 +60,32 @@ public partial class GameMenu : PanelContainer
             _body.AddChild(Ui.Lbl("Muda a produção, o rendimento, os homens por mês e a folga da IA.", 14));
         }
 
+        // Tamanho da interface: o jogo desenha-se numa tela esticada para o ecrã e num telemóvel em pé a
+        // letra saía pequena de mais para painéis de quinze linhas. Aqui muda-se tudo de uma vez — letra,
+        // chapas e a altura do dedo — e fica guardado fora do save, porque é do ecrã e não do jogo.
+        _body.AddChild(Ui.Lbl("Tamanho da interface", 20));
+        var sizes = new HBoxContainer(); sizes.AddThemeConstantOverride("separation", 6);
+        for (int i = 0; i < Settings.Scales.Length; i++)
+        {
+            int step = i;
+            bool now = i == Settings.ScaleIndex;
+            var b = Ui.Btn((now ? "● " : "○ ") + Settings.ScaleNames[i], () => SetScale(step));
+            b.TooltipText = $"tudo a ×{Settings.Scales[i]:0.00}";
+            b.Disabled = now;
+            sizes.AddChild(Ui.Grow(b));
+        }
+        _body.AddChild(sizes);
+
         _body.AddChild(Ui.Btn("Recomeçar", () => _confirmNew.PopupCentered()));
         _body.AddChild(Ui.Btn("Sair do jogo", () => _confirmQuit.PopupCentered()));
+    }
+
+    /// <summary>Muda o tamanho de tudo e redesenha o menu já no tamanho novo, para se ver a escolha.</summary>
+    private void SetScale(int step)
+    {
+        Settings.SetScale(step, GetWindow());
+        _game.Notify($"Interface: {Settings.ScaleName}");
+        Fill();
     }
 
     /// <summary>Troca de nível a meio do jogo: aplica as regras novas e guarda para não se perder.</summary>

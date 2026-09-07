@@ -13,8 +13,12 @@ namespace WarGame.Presentation;
 /// jogador, não do mundo.</summary>
 public partial class SpeedRibbon : PanelContainer
 {
-    /// <summary>Nome de cada andamento, na ordem do Clock.Speed (0..4).</summary>
+    /// <summary>Nome de cada andamento, na ordem do Clock.Speed (0..4). O nome traz o ritmo atrás porque é
+    /// isso que se quer saber ao carregar: "Depressa" não diz nada, "1 dia/s" diz.</summary>
     public static readonly string[] Names = { "Pausa", "Devagar", "Normal", "Depressa", "A correr" };
+
+    /// <summary>O que cada casa promete, em tempo de jogo por segundo real (ver Game.SpeedSeconds).</summary>
+    public static string Pace(int speed) => Game.SpeedPace[Mathf.Clamp(speed, 0, Game.SpeedPace.Length - 1)];
     private static readonly string[] Faces = { "❚❚", "▶", "▶▶", "▶▶▶", "▶▶▶▶" };
 
     private Game _game = null!;
@@ -30,14 +34,18 @@ public partial class SpeedRibbon : PanelContainer
         for (int i = 0; i < _cells.Length; i++)
         {
             int level = i;
-            var b = new Button { Text = Faces[i], CustomMinimumSize = new Vector2(i == 0 ? 54 : 44, 40), TooltipText = Names[i] };
+            var b = new Button
+            {
+                Text = Faces[i], CustomMinimumSize = new Vector2(i == 0 ? 54 : 44, 40),
+                TooltipText = i == 0 ? "Pausa" : $"{Names[i]} — {Pace(i)} de jogo",
+            };
             b.AddThemeFontSizeOverride("font_size", 15);
             b.Pressed += () => Set(level);
             _cells[i] = b;
             row.AddChild(b);
         }
         _name = Ui.Lbl("", 14);
-        _name.CustomMinimumSize = new Vector2(76, 0);
+        _name.CustomMinimumSize = new Vector2(96, 0);
         _name.VerticalAlignment = VerticalAlignment.Center;
         row.AddChild(_name);
         Paint(_game.World.Clock.Speed);
@@ -82,7 +90,7 @@ public partial class SpeedRibbon : PanelContainer
             _cells[i].AddThemeStyleboxOverride("pressed", Ui.Box(bg.Darkened(0.25f), 2));
             _cells[i].AddThemeColorOverride("font_color", on ? tint.Lightened(0.6f) : Ui.TextDim);
         }
-        _name.Text = Names[speed];
+        _name.Text = speed == 0 ? Names[0] : $"{Names[speed]}\n{Pace(speed)}";
         _name.AddThemeColorOverride("font_color", speed == 0 ? Ui.Danger.Lightened(0.3f) : Ui.TextDim);
     }
 
@@ -92,6 +100,7 @@ public partial class SpeedRibbon : PanelContainer
         int was = _game.World.Clock.Speed;
         for (int i = 0; i < _cells.Length; i++) Set(i);
         Set(was);
-        return Names[Mathf.Clamp(_game.World.Clock.Speed, 0, _cells.Length - 1)];
+        int at = Mathf.Clamp(_game.World.Clock.Speed, 0, _cells.Length - 1);
+        return $"{Names[at]} ({Pace(at)})";
     }
 }
