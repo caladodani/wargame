@@ -179,3 +179,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('SAU_tech_ar_ala_deserto','air_bombing',1.17),
  ('SAU_tech_mar_mar_vermelho','naval_escort',1.17);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Amid',0,0,'SAU'),
+ ('exercito',2,'Liwa',40,0.5,'SAU'),
+ ('exercito',3,'Fariq',110,1,'SAU'),
+ ('exercito',4,'Fariq Awwal',220,1.75,'SAU'),
+ ('exercito',5,'Mushir',360,2.5,'SAU'),
+ ('ar',1,'Amid Tayyar',0,0,'SAU'),
+ ('ar',2,'Liwa Tayyar',40,0.5,'SAU'),
+ ('ar',3,'Fariq Tayyar',110,1,'SAU'),
+ ('ar',4,'Fariq Awwal Tayyar',220,1.75,'SAU'),
+ ('ar',5,'Comandante da Força Aérea Real',360,2.5,'SAU'),
+ ('mar',1,'Amid Bahri',0,0,'SAU'),
+ ('mar',2,'Liwa Bahri',40,0.5,'SAU'),
+ ('mar',3,'Fariq Bahri',110,1,'SAU'),
+ ('mar',4,'Fariq Awwal Bahri',220,1.75,'SAU'),
+ ('mar',5,'Comandante da Marinha Real',360,2.5,'SAU');

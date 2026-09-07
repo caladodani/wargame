@@ -37,8 +37,7 @@ public class LineEfficiencyTests
 
     /// <summary>O esquema do save sai do mesmo sítio de onde sai no jogo: o static.db.</summary>
     private static string Schema(IDatabase staticDb) =>
-        string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
+        SqlWorldRepository.SchemaFromSqliteMaster(staticDb);
     private static int MinDays(World w) => (int)w.Rule("build_min_days");
 
     [Fact]

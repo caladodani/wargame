@@ -192,3 +192,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('KOR_tech_ar_caca_kf','air_losses',0.86),
  ('KOR_tech_mar_destroyers_aegis','naval_losses',0.87);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadeiro-General da Coreia',0,0,'KOR'),
+ ('exercito',2,'General-Major da Coreia',40,0.5,'KOR'),
+ ('exercito',3,'Tenente-General da Coreia',110,1,'KOR'),
+ ('exercito',4,'General da República',220,1.75,'KOR'),
+ ('exercito',5,'Marechal da República',360,2.5,'KOR'),
+ ('ar',1,'Brigadeiro-General da Aviação',0,0,'KOR'),
+ ('ar',2,'General-Major da Aviação',40,0.5,'KOR'),
+ ('ar',3,'Tenente-General da Aviação',110,1,'KOR'),
+ ('ar',4,'General da Força Aérea da Coreia',220,1.75,'KOR'),
+ ('ar',5,'Chefe do Estado-Maior Aéreo da Coreia',360,2.5,'KOR'),
+ ('mar',1,'Comodoro da Coreia',0,0,'KOR'),
+ ('mar',2,'Contra-Almirante da Coreia',40,0.5,'KOR'),
+ ('mar',3,'Vice-Almirante da Coreia',110,1,'KOR'),
+ ('mar',4,'Almirante da Coreia',220,1.75,'KOR'),
+ ('mar',5,'Chefe do Estado-Maior Naval da Coreia',360,2.5,'KOR');

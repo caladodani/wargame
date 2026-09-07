@@ -189,3 +189,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('IRN_tech_ar_enxame_ar','air_bombing',1.18),
  ('IRN_tech_mar_lanchas_rapidas','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Sartip Dovom',0,0,'IRN'),
+ ('exercito',2,'Sartip',40,0.5,'IRN'),
+ ('exercito',3,'Sarlashkar',110,1,'IRN'),
+ ('exercito',4,'Sepahbod',220,1.75,'IRN'),
+ ('exercito',5,'Arteshbod',360,2.5,'IRN'),
+ ('ar',1,'Sartip Dovom do Ar',0,0,'IRN'),
+ ('ar',2,'Sartip do Ar',40,0.5,'IRN'),
+ ('ar',3,'Sarlashkar do Ar',110,1,'IRN'),
+ ('ar',4,'Sepahbod do Ar',220,1.75,'IRN'),
+ ('ar',5,'Comandante da Força Aérea',360,2.5,'IRN'),
+ ('mar',1,'Nakhoda',0,0,'IRN'),
+ ('mar',2,'Daryadar',40,0.5,'IRN'),
+ ('mar',3,'Daryaban',110,1,'IRN'),
+ ('mar',4,'Daryasalar',220,1.75,'IRN'),
+ ('mar',5,'Comandante da Marinha',360,2.5,'IRN');

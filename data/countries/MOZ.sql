@@ -175,3 +175,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('MOZ_tech_ar_rovuma','air_upkeep',0.86),
  ('MOZ_tech_mar_canal_mocambique','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadeiro das FADM',0,0,'MOZ'),
+ ('exercito',2,'Major-General das FADM',40,0.5,'MOZ'),
+ ('exercito',3,'Tenente-General das FADM',110,1,'MOZ'),
+ ('exercito',4,'General das FADM',220,1.75,'MOZ'),
+ ('exercito',5,'Comandante-Geral',360,2.5,'MOZ'),
+ ('ar',1,'Brigadeiro da Aeronáutica',0,0,'MOZ'),
+ ('ar',2,'Major-General da Aeronáutica',40,0.5,'MOZ'),
+ ('ar',3,'Tenente-General da Aeronáutica',110,1,'MOZ'),
+ ('ar',4,'General da Força Aérea de Moçambique',220,1.75,'MOZ'),
+ ('ar',5,'Comandante da Força Aérea',360,2.5,'MOZ'),
+ ('mar',1,'Capitão de Mar e Guerra de Moçambique',0,0,'MOZ'),
+ ('mar',2,'Comodoro de Moçambique',40,0.5,'MOZ'),
+ ('mar',3,'Contra-Almirante de Moçambique',110,1,'MOZ'),
+ ('mar',4,'Vice-Almirante de Moçambique',220,1.75,'MOZ'),
+ ('mar',5,'Comandante da Marinha de Guerra de Moçambique',360,2.5,'MOZ');

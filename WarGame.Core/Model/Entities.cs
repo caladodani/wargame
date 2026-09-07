@@ -205,8 +205,12 @@ public sealed record PowerTier(int Level, string Name, float MinShare);
 /// limiares são dados, não código — mudar a progressão é mexer na tabela.
 ///
 /// Domain é a arma a que a escada pertence (World.Land/Air/Sea): um brigadeiro não é um contra-almirante,
-/// e cada comandante só sobe pela escada da arma dele — ver World.RankOf.</summary>
-public sealed record GeneralRank(string Domain, int Level, string Name, float Xp, float Bonus);
+/// e cada comandante só sobe pela escada da arma dele — ver World.RankOf.
+///
+/// CountryTag NULL é a escada comum; com tag é a escada daquele país e só dele (World.RankIsFor). Os
+/// limiares e os bónus são os mesmos: o que a escada nacional muda é o NOME do posto — um Generalfeldmarschall
+/// e um Marechal do Reino valem o mesmo, chamam-se é de maneira diferente.</summary>
+public sealed record GeneralRank(string Domain, int Level, string Name, float Xp, float Bonus, string? CountryTag = null);
 
 /// <summary>Gravidade de uma baixa no comando (tabela wound_kind): quantos dias tira o comandante de
 /// serviço, o peso com que sai no sorteio e se é fatal. Um arranhão e um caixão são a mesma linha com

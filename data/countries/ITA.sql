@@ -187,3 +187,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('ITA_tech_ar_mediterraneo','air_upkeep',0.87),
  ('ITA_tech_mar_porta_avioes_leve','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Generale di Brigata',0,0,'ITA'),
+ ('exercito',2,'Generale di Divisione',40,0.5,'ITA'),
+ ('exercito',3,'Generale di Corpo d''Armata',110,1,'ITA'),
+ ('exercito',4,'Generale',220,1.75,'ITA'),
+ ('exercito',5,'Maresciallo d''Italia',360,2.5,'ITA'),
+ ('ar',1,'Generale di Brigata Aerea',0,0,'ITA'),
+ ('ar',2,'Generale di Divisione Aerea',40,0.5,'ITA'),
+ ('ar',3,'Generale di Squadra Aerea',110,1,'ITA'),
+ ('ar',4,'Capo di Stato Maggiore dell''Aeronautica',220,1.75,'ITA'),
+ ('ar',5,'Maresciallo dell''Aria',360,2.5,'ITA'),
+ ('mar',1,'Contrammiraglio',0,0,'ITA'),
+ ('mar',2,'Ammiraglio di Divisione',40,0.5,'ITA'),
+ ('mar',3,'Ammiraglio di Squadra',110,1,'ITA'),
+ ('mar',4,'Ammiraglio',220,1.75,'ITA'),
+ ('mar',5,'Grande Ammiraglio',360,2.5,'ITA');

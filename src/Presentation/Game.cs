@@ -155,9 +155,7 @@ public partial class Game : Node
     {
         const string res = "res://data/schema.sql";
         if (FileAccess.FileExists(res)) return FileAccess.GetFileAsString(res);
-        var stmts = _static.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "));
-        return string.Join(";\n", stmts) + ";\n";
+        return SqlWorldRepository.SchemaFromSqliteMaster(_static);
     }
 
     /// <summary>Escreve o save. Se um tick estiver a correr, espera pela Task — o World fica coerente.</summary>

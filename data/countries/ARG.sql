@@ -176,3 +176,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('ARG_tech_ar_pampa','air_bombing',1.16),
  ('ARG_tech_mar_atlantico_sul','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Coronel Mayor',0,0,'ARG'),
+ ('exercito',2,'General de Brigada',40,0.5,'ARG'),
+ ('exercito',3,'General de División',110,1,'ARG'),
+ ('exercito',4,'Teniente General',220,1.75,'ARG'),
+ ('exercito',5,'Jefe del Estado Mayor del Ejército',360,2.5,'ARG'),
+ ('ar',1,'Comodoro',0,0,'ARG'),
+ ('ar',2,'Brigadier',40,0.5,'ARG'),
+ ('ar',3,'Brigadier Mayor',110,1,'ARG'),
+ ('ar',4,'Brigadier General',220,1.75,'ARG'),
+ ('ar',5,'Jefe del Estado Mayor de la Fuerza Aérea',360,2.5,'ARG'),
+ ('mar',1,'Capitán de Navío',0,0,'ARG'),
+ ('mar',2,'Contralmirante de la Armada',40,0.5,'ARG'),
+ ('mar',3,'Vicealmirante de la Armada',110,1,'ARG'),
+ ('mar',4,'Almirante',220,1.75,'ARG'),
+ ('mar',5,'Jefe del Estado Mayor de la Armada',360,2.5,'ARG');

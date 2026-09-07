@@ -179,3 +179,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('ISR_tech_ar_escudo_camadas','air_losses',0.85),
  ('ISR_tech_mar_corvetas_costeiras','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Aluf Mishne',0,0,'ISR'),
+ ('exercito',2,'Tat Aluf',40,0.5,'ISR'),
+ ('exercito',3,'Aluf',110,1,'ISR'),
+ ('exercito',4,'Rav Aluf',220,1.75,'ISR'),
+ ('exercito',5,'Ramatkal',360,2.5,'ISR'),
+ ('ar',1,'Comandante de Esquadra',0,0,'ISR'),
+ ('ar',2,'Comandante de Ala',40,0.5,'ISR'),
+ ('ar',3,'Tat Aluf do Ar',110,1,'ISR'),
+ ('ar',4,'Aluf do Ar',220,1.75,'ISR'),
+ ('ar',5,'Comandante da Força Aérea',360,2.5,'ISR'),
+ ('mar',1,'Comandante de Flotilha',0,0,'ISR'),
+ ('mar',2,'Comandante de Esquadrilha Naval',40,0.5,'ISR'),
+ ('mar',3,'Tat Aluf do Mar',110,1,'ISR'),
+ ('mar',4,'Aluf do Mar',220,1.75,'ISR'),
+ ('mar',5,'Comandante da Marinha',360,2.5,'ISR');

@@ -743,12 +743,18 @@ INSERT INTO rule (key,value,note) VALUES
 -- vale muito mais do que o mesmo homem no dia em que foi contratado.
 --
 -- Cada arma tem a sua carreira (domain = exercito/ar/mar): um brigadeiro não é um contra-almirante, e
--- quem manda numa esquadra não sobe pela escada da infantaria. A chave é (domain,level), e o World.RankOf
--- só olha para a escada da arma do comandante. As três escadas têm os mesmos limiares de propósito —
--- o que muda é o nome e a maneira de ganhar a experiência (batalhas em terra, dias de missão no ar e no mar).
+-- quem manda numa esquadra não sobe pela escada da infantaria. O World.RankOf só olha para a escada da
+-- arma do comandante. As três escadas têm os mesmos limiares de propósito — o que muda é o nome e a
+-- maneira de ganhar a experiência (batalhas em terra, dias de missão no ar e no mar).
+--
+-- country_tag NULL = escada comum, que serve todo o país que não traga a sua; com tag = escada nacional
+-- (data/countries/<TAG>.sql), e esse país sobe só pela dele — ver World.Ranks e World.RankIsFor. Os
+-- limiares e os bónus da escada nacional são IGUAIS aos da comum de propósito: o que muda é o nome do
+-- posto, não o que ele vale (o tools/check_countries.py recusa uma escada que mexa no equilíbrio).
 CREATE TABLE IF NOT EXISTS general_rank (
   domain TEXT NOT NULL, level INTEGER NOT NULL, name TEXT NOT NULL, xp REAL NOT NULL, bonus REAL NOT NULL,
-  PRIMARY KEY (domain, level));
+  country_tag TEXT );
+CREATE UNIQUE INDEX IF NOT EXISTS general_rank_key ON general_rank (domain, level, IFNULL(country_tag,''));
 INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',1,'Brigadeiro',0,0);
 INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',2,'General de Divisão',40,0.5);
 INSERT INTO general_rank (domain,level,name,xp,bonus) VALUES ('exercito',3,'General de Exército',110,1.0);

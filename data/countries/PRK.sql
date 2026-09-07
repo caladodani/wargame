@@ -188,3 +188,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('PRK_tech_ar_bases_tunel','air_upkeep',0.85),
  ('PRK_tech_mar_mini_submarinos','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'General-Major do Povo',0,0,'PRK'),
+ ('exercito',2,'Tenente-General do Povo Coreano',40,0.5,'PRK'),
+ ('exercito',3,'Coronel-General do Povo',110,1,'PRK'),
+ ('exercito',4,'General do Exército do Povo',220,1.75,'PRK'),
+ ('exercito',5,'Marechal da República',360,2.5,'PRK'),
+ ('ar',1,'General-Major da Aviação do Povo',0,0,'PRK'),
+ ('ar',2,'Tenente-General da Aviação do Povo',40,0.5,'PRK'),
+ ('ar',3,'Coronel-General da Aviação do Povo',110,1,'PRK'),
+ ('ar',4,'Comandante da Força Aérea do Povo',220,1.75,'PRK'),
+ ('ar',5,'Marechal do Ar',360,2.5,'PRK'),
+ ('mar',1,'Contra-Almirante do Povo Coreano',0,0,'PRK'),
+ ('mar',2,'Vice-Almirante do Povo Coreano',40,0.5,'PRK'),
+ ('mar',3,'Almirante do Povo Coreano',110,1,'PRK'),
+ ('mar',4,'Comandante da Marinha do Povo Coreano',220,1.75,'PRK'),
+ ('mar',5,'Almirante da Frota do Povo',360,2.5,'PRK');

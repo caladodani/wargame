@@ -195,3 +195,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('ESP_tech_ar_tifon','air_bombing',1.16),
  ('ESP_tech_mar_armada','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'General de Brigada',0,0,'ESP'),
+ ('exercito',2,'General de División',40,0.5,'ESP'),
+ ('exercito',3,'Teniente General',110,1,'ESP'),
+ ('exercito',4,'General de Ejército',220,1.75,'ESP'),
+ ('exercito',5,'Capitán General',360,2.5,'ESP'),
+ ('ar',1,'General de Brigada del Aire',0,0,'ESP'),
+ ('ar',2,'General de División del Aire',40,0.5,'ESP'),
+ ('ar',3,'Teniente General del Aire',110,1,'ESP'),
+ ('ar',4,'General del Aire',220,1.75,'ESP'),
+ ('ar',5,'Capitán General del Aire',360,2.5,'ESP'),
+ ('mar',1,'Contralmirante',0,0,'ESP'),
+ ('mar',2,'Vicealmirante',40,0.5,'ESP'),
+ ('mar',3,'Almirante',110,1,'ESP'),
+ ('mar',4,'Almirante General',220,1.75,'ESP'),
+ ('mar',5,'Capitán General de la Armada',360,2.5,'ESP');

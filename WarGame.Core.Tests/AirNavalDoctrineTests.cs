@@ -259,8 +259,7 @@ public class AirNavalDoctrineTests
         c.IsPlayer = true; c.AirXp = 123f; c.NavyXp = 45f; c.ArmyXp = 7f;
         c.Doctrines.Add("ceu_1"); c.Doctrines.Add("cor_1");
 
-        string schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
+        string schema = SqlWorldRepository.SchemaFromSqliteMaster(staticDb);
         using var save = new MsSqliteDatabase();
         SqlWorldRepository.EnsureSaveSchema(save, schema);
         foreach (var col in new[] { "air_xp", "navy_xp" })              // um save gravado antes desta versão

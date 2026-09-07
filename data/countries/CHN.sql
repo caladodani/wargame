@@ -180,3 +180,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('CHN_tech_ar_quinta_geracao','air_losses',0.86),
  ('CHN_tech_mar_mar_do_sul','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Coronel Superior',0,0,'CHN'),
+ ('exercito',2,'General-Major',40,0.5,'CHN'),
+ ('exercito',3,'Tenente-General do Povo',110,1,'CHN'),
+ ('exercito',4,'General do Povo',220,1.75,'CHN'),
+ ('exercito',5,'Comandante da Comissão Militar Central',360,2.5,'CHN'),
+ ('ar',1,'Coronel Superior da Aviação',0,0,'CHN'),
+ ('ar',2,'General-Major da Aviação',40,0.5,'CHN'),
+ ('ar',3,'Tenente-General da Aviação',110,1,'CHN'),
+ ('ar',4,'General da Força Aérea',220,1.75,'CHN'),
+ ('ar',5,'Comandante da Força Aérea',360,2.5,'CHN'),
+ ('mar',1,'Comodoro do Povo',0,0,'CHN'),
+ ('mar',2,'Contra-Almirante do Povo',40,0.5,'CHN'),
+ ('mar',3,'Vice-Almirante do Povo',110,1,'CHN'),
+ ('mar',4,'Almirante do Povo',220,1.75,'CHN'),
+ ('mar',5,'Comandante da Marinha do Povo',360,2.5,'CHN');

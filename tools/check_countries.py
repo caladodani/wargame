@@ -55,7 +55,8 @@ def check(path, static):
         if not db.execute('SELECT 1 FROM st.country WHERE tag=?', (tag,)).fetchone():
             errs.append(f'tag {tag} não existe na tabela country')
     TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier',
-                  'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch', 'tech')
+                  'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch', 'tech',
+                  'general_rank')
     base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
@@ -286,6 +287,41 @@ def check(path, static):
     for branch in TECH_BRANCHES:
         if branch not in tech_by_branch: warns.append(f'sem programa nacional de {branch}')
 
+    # escada de postos nacional (general_rank.country_tag): três armas, os mesmos degraus da escada
+    # comum e nomes próprios. Os limiares e os bónus TÊM de ser os comuns: uma escada nacional muda o
+    # nome do posto, não o que ele vale — senão um país sobe mais depressa por ter melhores palavras.
+    own_ranks = db.execute('SELECT domain,level,name,xp,bonus FROM general_rank WHERE country_tag=?'
+                           ' ORDER BY domain,level', (tag,)).fetchall()
+    ranks_by_arm = {}
+    for domain, level, name, xp, bonus in own_ranks:
+        ranks_by_arm.setdefault(domain, []).append((level, name, xp, bonus))
+        if domain not in GENERAL_STATS:
+            errs.append(f'posto {name}: arma {domain} não existe (só {", ".join(sorted(GENERAL_STATS))})')
+    if own_ranks:
+        for domain in GENERAL_STATS:
+            steps = ranks_by_arm.get(domain)
+            common = db.execute('SELECT level,name,xp,bonus FROM general_rank'
+                                ' WHERE domain=? AND country_tag IS NULL ORDER BY level', (domain,)).fetchall()
+            if not steps:
+                errs.append(f'escada nacional sem a arma {domain} — quem trouxer uma escada tem de trazer as três')
+                continue
+            if len(steps) != len(common):
+                errs.append(f'escada de {domain}: {len(steps)} degraus e a comum tem {len(common)}')
+                continue
+            names = [s[1] for s in steps]
+            for name in sorted({n for n in names if names.count(n) > 1}):
+                errs.append(f'escada de {domain}: posto {name} repetido')
+            for (lvl, name, xp, bonus), (clvl, cname, cxp, cbonus) in zip(steps, common):
+                if lvl != clvl:
+                    errs.append(f'escada de {domain}: nível {lvl} onde a comum tem {clvl}')
+                if (xp, bonus) != (cxp, cbonus):
+                    errs.append(f'posto {name}: pede {xp}/vale {bonus} e o degrau comum ({cname}) pede {cxp}/vale {cbonus}'
+                                ' — a escada nacional muda o nome, não o equilíbrio')
+            if names == [c[1] for c in common]:
+                errs.append(f'escada de {domain}: nomes iguais aos da comum — uma escada nacional sem nada de nacional')
+    else:
+        warns.append('sem escada de postos nacional (os comandantes sobem pela comum)')
+
     n_units = 0
     for name, tname, rname in db.execute('SELECT name,template_name,region_name FROM country_unit WHERE country_tag=?', (tag,)):
         n_units += 1
@@ -298,7 +334,8 @@ def check(path, static):
     arms = '+'.join(f'{d}:{len(by_domain.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     gen_arms = '+'.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     tech_arms = '+'.join(f'{TECH_BRANCHES[b]}:{len(tech_by_branch.get(b, []))}' for b in sorted(TECH_BRANCHES))
-    summary = (f'{tag}: {len(own_techs)} programas nacionais [{tech_arms}], '
+    rank_arms = '+'.join(f'{d}:{len(ranks_by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
+    summary = (f'{tag}: {len(own_ranks)} postos próprios [{rank_arms}], {len(own_techs)} programas nacionais [{tech_arms}], '
                f'{len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
                f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
@@ -316,7 +353,8 @@ def check_ranks(db, static):
     senão há um posto que se ganha sem ser preciso nada ou que vale menos do que o anterior.
     """
     errs, warns = [], []
-    rows = db.execute('SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,level').fetchall()
+    rows = db.execute('SELECT domain,level,name,xp,bonus FROM general_rank'
+                      ' WHERE country_tag IS NULL ORDER BY domain,level').fetchall()
     by_arm = {}
     for domain, level, name, xp, bonus in rows:
         by_arm.setdefault(domain, []).append((level, name, xp, bonus))
@@ -338,12 +376,21 @@ def check_ranks(db, static):
             if b[2] <= a[2] or b[3] <= a[3]:
                 errs.append(f'escada de {domain}: {b[1]} não pede nem vale mais do que {a[1]}')
     if static:
-        mirror = sqlite3.connect(static).execute(
-            'SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,level').fetchall()
+        st = sqlite3.connect(static)
+        mirror = st.execute('SELECT domain,level,name,xp,bonus FROM general_rank'
+                            ' WHERE country_tag IS NULL ORDER BY domain,level').fetchall()
         if mirror != rows:
-            errs.append('data/static.db tem outra tabela de postos — falta o espelho manual do seed_world.sql')
+            errs.append('data/static.db tem outra escada comum de postos — falta o espelho manual do seed_world.sql')
+        nat = st.execute('SELECT domain,level,name,xp,bonus,country_tag FROM general_rank'
+                         ' WHERE country_tag IS NOT NULL ORDER BY country_tag,domain,level').fetchall()
+        seed = db.execute('SELECT domain,level,name,xp,bonus,country_tag FROM general_rank'
+                          ' WHERE country_tag IS NOT NULL ORDER BY country_tag,domain,level').fetchall()
+        if nat != seed:
+            errs.append(f'data/static.db tem {len(nat)} postos nacionais e os ficheiros dos países têm {len(seed)}'
+                        ' — falta o espelho manual')
     arms = ' '.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
-    print(f'postos de comandante [{arms}]')
+    nations = db.execute('SELECT COUNT(DISTINCT country_tag) FROM general_rank WHERE country_tag IS NOT NULL').fetchone()[0]
+    print(f'postos de comandante [{arms}] + escadas próprias de {nations} países')
     return errs, warns
 
 

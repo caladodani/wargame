@@ -176,3 +176,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('CAN_tech_ar_artico','air_upkeep',0.87),
  ('CAN_tech_mar_halifax','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier-General',0,0,'CAN'),
+ ('exercito',2,'Major-General (CA)',40,0.5,'CAN'),
+ ('exercito',3,'Lieutenant-General (CA)',110,1,'CAN'),
+ ('exercito',4,'General (CA)',220,1.75,'CAN'),
+ ('exercito',5,'Chief of the Defence Staff',360,2.5,'CAN'),
+ ('ar',1,'Air Commodore (RCAF)',0,0,'CAN'),
+ ('ar',2,'Air Vice-Marshal (RCAF)',40,0.5,'CAN'),
+ ('ar',3,'Air Marshal (RCAF)',110,1,'CAN'),
+ ('ar',4,'Air Chief Marshal (RCAF)',220,1.75,'CAN'),
+ ('ar',5,'Commander of the Royal Canadian Air Force',360,2.5,'CAN'),
+ ('mar',1,'Commodore (RCN)',0,0,'CAN'),
+ ('mar',2,'Rear-Admiral (RCN)',40,0.5,'CAN'),
+ ('mar',3,'Vice-Admiral (RCN)',110,1,'CAN'),
+ ('mar',4,'Admiral (RCN)',220,1.75,'CAN'),
+ ('mar',5,'Commander of the Royal Canadian Navy',360,2.5,'CAN');

@@ -202,3 +202,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('PRT_tech_ar_lajes','air_upkeep',0.86),
  ('PRT_tech_mar_fragatas_zee','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadeiro-General',0,0,'PRT'),
+ ('exercito',2,'Major-General',40,0.5,'PRT'),
+ ('exercito',3,'Tenente-General',110,1,'PRT'),
+ ('exercito',4,'General',220,1.75,'PRT'),
+ ('exercito',5,'Marechal de Portugal',360,2.5,'PRT'),
+ ('ar',1,'Brigadeiro-General do Ar',0,0,'PRT'),
+ ('ar',2,'Major-General do Ar',40,0.5,'PRT'),
+ ('ar',3,'Tenente-General do Ar',110,1,'PRT'),
+ ('ar',4,'General do Ar',220,1.75,'PRT'),
+ ('ar',5,'Chefe do Estado-Maior da Força Aérea',360,2.5,'PRT'),
+ ('mar',1,'Comodoro',0,0,'PRT'),
+ ('mar',2,'Contra-Almirante da Armada',40,0.5,'PRT'),
+ ('mar',3,'Vice-Almirante da Armada',110,1,'PRT'),
+ ('mar',4,'Almirante',220,1.75,'PRT'),
+ ('mar',5,'Almirante da Armada Portuguesa',360,2.5,'PRT');

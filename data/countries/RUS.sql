@@ -186,3 +186,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('RUS_tech_ar_assalto','air_bombing',1.18),
  ('RUS_tech_mar_frota_norte','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'General-Maior',0,0,'RUS'),
+ ('exercito',2,'Tenente-General da Rússia',40,0.5,'RUS'),
+ ('exercito',3,'Coronel-General',110,1,'RUS'),
+ ('exercito',4,'General do Exército',220,1.75,'RUS'),
+ ('exercito',5,'Marechal da Federação',360,2.5,'RUS'),
+ ('ar',1,'General-Maior da Aviação',0,0,'RUS'),
+ ('ar',2,'Tenente-General da Aviação',40,0.5,'RUS'),
+ ('ar',3,'Coronel-General da Aviação',110,1,'RUS'),
+ ('ar',4,'General do Ar',220,1.75,'RUS'),
+ ('ar',5,'Marechal Chefe da Aviação',360,2.5,'RUS'),
+ ('mar',1,'Contra-Almirante da Frota',0,0,'RUS'),
+ ('mar',2,'Vice-Almirante da Frota',40,0.5,'RUS'),
+ ('mar',3,'Almirante',110,1,'RUS'),
+ ('mar',4,'Almirante de Esquadra',220,1.75,'RUS'),
+ ('mar',5,'Almirante da Frota',360,2.5,'RUS');

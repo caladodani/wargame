@@ -189,3 +189,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('TUR_tech_ar_drones_combate','air_bombing',1.18),
  ('TUR_tech_mar_bosforo','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Tuğgeneral',0,0,'TUR'),
+ ('exercito',2,'Tümgeneral',40,0.5,'TUR'),
+ ('exercito',3,'Korgeneral',110,1,'TUR'),
+ ('exercito',4,'Orgeneral',220,1.75,'TUR'),
+ ('exercito',5,'Mareşal',360,2.5,'TUR'),
+ ('ar',1,'Hava Tuğgeneral',0,0,'TUR'),
+ ('ar',2,'Hava Tümgeneral',40,0.5,'TUR'),
+ ('ar',3,'Hava Korgeneral',110,1,'TUR'),
+ ('ar',4,'Hava Orgeneral',220,1.75,'TUR'),
+ ('ar',5,'Hava Kuvvetleri Komutanı',360,2.5,'TUR'),
+ ('mar',1,'Tuğamiral',0,0,'TUR'),
+ ('mar',2,'Tümamiral',40,0.5,'TUR'),
+ ('mar',3,'Koramiral',110,1,'TUR'),
+ ('mar',4,'Oramiral',220,1.75,'TUR'),
+ ('mar',5,'Deniz Kuvvetleri Komutanı',360,2.5,'TUR');

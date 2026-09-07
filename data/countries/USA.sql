@@ -177,3 +177,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('USA_tech_ar_ala_furtiva','air_losses',0.85),
  ('USA_tech_mar_grupo_porta_avioes','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier General',0,0,'USA'),
+ ('exercito',2,'Major General',40,0.5,'USA'),
+ ('exercito',3,'Lieutenant General',110,1,'USA'),
+ ('exercito',4,'General',220,1.75,'USA'),
+ ('exercito',5,'General of the Army',360,2.5,'USA'),
+ ('ar',1,'Air Commodore',0,0,'USA'),
+ ('ar',2,'Major General (USAF)',40,0.5,'USA'),
+ ('ar',3,'Lieutenant General (USAF)',110,1,'USA'),
+ ('ar',4,'General (USAF)',220,1.75,'USA'),
+ ('ar',5,'General of the Air Force',360,2.5,'USA'),
+ ('mar',1,'Commodore',0,0,'USA'),
+ ('mar',2,'Rear Admiral',40,0.5,'USA'),
+ ('mar',3,'Vice Admiral',110,1,'USA'),
+ ('mar',4,'Admiral',220,1.75,'USA'),
+ ('mar',5,'Fleet Admiral',360,2.5,'USA');

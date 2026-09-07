@@ -182,3 +182,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('AUS_tech_ar_mar_de_coral','air_losses',0.87),
  ('AUS_tech_mar_anzac','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier (ADF)',0,0,'AUS'),
+ ('exercito',2,'Major General (ADF)',40,0.5,'AUS'),
+ ('exercito',3,'Lieutenant General (ADF)',110,1,'AUS'),
+ ('exercito',4,'General (ADF)',220,1.75,'AUS'),
+ ('exercito',5,'Chief of the Defence Force',360,2.5,'AUS'),
+ ('ar',1,'Air Commodore (RAAF)',0,0,'AUS'),
+ ('ar',2,'Air Vice-Marshal (RAAF)',40,0.5,'AUS'),
+ ('ar',3,'Air Marshal (RAAF)',110,1,'AUS'),
+ ('ar',4,'Air Chief Marshal (RAAF)',220,1.75,'AUS'),
+ ('ar',5,'Chief of Air Force',360,2.5,'AUS'),
+ ('mar',1,'Commodore (RAN)',0,0,'AUS'),
+ ('mar',2,'Rear Admiral (RAN)',40,0.5,'AUS'),
+ ('mar',3,'Vice Admiral (RAN)',110,1,'AUS'),
+ ('mar',4,'Admiral (RAN)',220,1.75,'AUS'),
+ ('mar',5,'Chief of Navy',360,2.5,'AUS');

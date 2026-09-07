@@ -184,3 +184,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('FRA_tech_ar_rafale','air_bombing',1.18),
  ('FRA_tech_mar_grupo_aeronaval','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Général de brigade',0,0,'FRA'),
+ ('exercito',2,'Général de division',40,0.5,'FRA'),
+ ('exercito',3,'Général de corps d''armée',110,1,'FRA'),
+ ('exercito',4,'Général d''armée',220,1.75,'FRA'),
+ ('exercito',5,'Maréchal de France',360,2.5,'FRA'),
+ ('ar',1,'Général de brigade aérienne',0,0,'FRA'),
+ ('ar',2,'Général de division aérienne',40,0.5,'FRA'),
+ ('ar',3,'Général de corps aérien',110,1,'FRA'),
+ ('ar',4,'Général d''armée aérienne',220,1.75,'FRA'),
+ ('ar',5,'Chef d''état-major de l''Armée de l''air',360,2.5,'FRA'),
+ ('mar',1,'Contre-amiral',0,0,'FRA'),
+ ('mar',2,'Vice-amiral',40,0.5,'FRA'),
+ ('mar',3,'Vice-amiral d''escadre',110,1,'FRA'),
+ ('mar',4,'Amiral',220,1.75,'FRA'),
+ ('mar',5,'Amiral de France',360,2.5,'FRA');

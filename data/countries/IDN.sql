@@ -186,3 +186,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('IDN_tech_ar_arquipelago','air_upkeep',0.86),
  ('IDN_tech_mar_estreitos','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadir Jenderal',0,0,'IDN'),
+ ('exercito',2,'Mayor Jenderal',40,0.5,'IDN'),
+ ('exercito',3,'Letnan Jenderal',110,1,'IDN'),
+ ('exercito',4,'Jenderal',220,1.75,'IDN'),
+ ('exercito',5,'Jenderal Besar',360,2.5,'IDN'),
+ ('ar',1,'Marsekal Pertama',0,0,'IDN'),
+ ('ar',2,'Marsekal Muda',40,0.5,'IDN'),
+ ('ar',3,'Marsekal Madya',110,1,'IDN'),
+ ('ar',4,'Marsekal',220,1.75,'IDN'),
+ ('ar',5,'Marsekal Besar',360,2.5,'IDN'),
+ ('mar',1,'Laksamana Pertama',0,0,'IDN'),
+ ('mar',2,'Laksamana Muda',40,0.5,'IDN'),
+ ('mar',3,'Laksamana Madya',110,1,'IDN'),
+ ('mar',4,'Laksamana',220,1.75,'IDN'),
+ ('mar',5,'Laksamana Besar',360,2.5,'IDN');

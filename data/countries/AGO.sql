@@ -179,3 +179,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('AGO_tech_ar_cabinda','air_losses',0.87),
  ('AGO_tech_mar_golfo_guine','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadeiro',0,0,'AGO'),
+ ('exercito',2,'Major-General de Angola',40,0.5,'AGO'),
+ ('exercito',3,'Tenente-General de Angola',110,1,'AGO'),
+ ('exercito',4,'General',220,1.75,'AGO'),
+ ('exercito',5,'General de Exército',360,2.5,'AGO'),
+ ('ar',1,'Brigadeiro do Ar',0,0,'AGO'),
+ ('ar',2,'Major-General do Ar de Angola',40,0.5,'AGO'),
+ ('ar',3,'Tenente-General do Ar de Angola',110,1,'AGO'),
+ ('ar',4,'General do Ar de Angola',220,1.75,'AGO'),
+ ('ar',5,'Comandante da Força Aérea Nacional',360,2.5,'AGO'),
+ ('mar',1,'Comodoro de Angola',0,0,'AGO'),
+ ('mar',2,'Contra-Almirante de Angola',40,0.5,'AGO'),
+ ('mar',3,'Vice-Almirante de Angola',110,1,'AGO'),
+ ('mar',4,'Almirante de Angola',220,1.75,'AGO'),
+ ('mar',5,'Comandante da Marinha de Guerra',360,2.5,'AGO');

@@ -191,3 +191,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('UKR_tech_ar_aviacao_drones','air_bombing',1.17),
  ('UKR_tech_mar_negacao_mar_negro','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadeiro-General da Ucrânia',0,0,'UKR'),
+ ('exercito',2,'General-Maior da Ucrânia',40,0.5,'UKR'),
+ ('exercito',3,'Tenente-General da Ucrânia',110,1,'UKR'),
+ ('exercito',4,'General das Forças Armadas',220,1.75,'UKR'),
+ ('exercito',5,'General do Exército da Ucrânia',360,2.5,'UKR'),
+ ('ar',1,'Brigadeiro-General da Aviação',0,0,'UKR'),
+ ('ar',2,'General-Maior do Ar',40,0.5,'UKR'),
+ ('ar',3,'Tenente-General do Ar',110,1,'UKR'),
+ ('ar',4,'Comandante das Forças Aéreas',220,1.75,'UKR'),
+ ('ar',5,'General do Ar da Ucrânia',360,2.5,'UKR'),
+ ('mar',1,'Contra-Almirante do Mar Negro',0,0,'UKR'),
+ ('mar',2,'Vice-Almirante do Mar Negro',40,0.5,'UKR'),
+ ('mar',3,'Almirante da Ucrânia',110,1,'UKR'),
+ ('mar',4,'Comandante da Marinha',220,1.75,'UKR'),
+ ('mar',5,'Almirante de Esquadra da Ucrânia',360,2.5,'UKR');

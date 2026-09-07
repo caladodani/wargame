@@ -187,3 +187,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('PAK_tech_ar_caca_conjunto','air_upkeep',0.86),
  ('PAK_tech_mar_makran','naval_patrol',1.17);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier (PA)',0,0,'PAK'),
+ ('exercito',2,'Major General (PA)',40,0.5,'PAK'),
+ ('exercito',3,'Lieutenant General (PA)',110,1,'PAK'),
+ ('exercito',4,'General (PA)',220,1.75,'PAK'),
+ ('exercito',5,'Field Marshal (PA)',360,2.5,'PAK'),
+ ('ar',1,'Air Commodore (PAF)',0,0,'PAK'),
+ ('ar',2,'Air Vice Marshal (PAF)',40,0.5,'PAK'),
+ ('ar',3,'Air Marshal (PAF)',110,1,'PAK'),
+ ('ar',4,'Air Chief Marshal (PAF)',220,1.75,'PAK'),
+ ('ar',5,'Marshal of the Pakistan Air Force',360,2.5,'PAK'),
+ ('mar',1,'Commodore (PN)',0,0,'PAK'),
+ ('mar',2,'Rear Admiral (PN)',40,0.5,'PAK'),
+ ('mar',3,'Vice Admiral (PN)',110,1,'PAK'),
+ ('mar',4,'Admiral (PN)',220,1.75,'PAK'),
+ ('mar',5,'Admiral of the Fleet (PN)',360,2.5,'PAK');

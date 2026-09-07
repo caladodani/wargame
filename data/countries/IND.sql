@@ -179,3 +179,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('IND_tech_ar_caca_ligeiro','air_losses',0.87),
  ('IND_tech_mar_indico','naval_escort',1.17);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier (IA)',0,0,'IND'),
+ ('exercito',2,'Major General (IA)',40,0.5,'IND'),
+ ('exercito',3,'Lieutenant General (IA)',110,1,'IND'),
+ ('exercito',4,'General (IA)',220,1.75,'IND'),
+ ('exercito',5,'Field Marshal (IA)',360,2.5,'IND'),
+ ('ar',1,'Air Commodore (IAF)',0,0,'IND'),
+ ('ar',2,'Air Vice Marshal (IAF)',40,0.5,'IND'),
+ ('ar',3,'Air Marshal (IAF)',110,1,'IND'),
+ ('ar',4,'Air Chief Marshal (IAF)',220,1.75,'IND'),
+ ('ar',5,'Marshal of the Indian Air Force',360,2.5,'IND'),
+ ('mar',1,'Commodore (IN)',0,0,'IND'),
+ ('mar',2,'Rear Admiral (IN)',40,0.5,'IND'),
+ ('mar',3,'Vice Admiral (IN)',110,1,'IND'),
+ ('mar',4,'Admiral (IN)',220,1.75,'IND'),
+ ('mar',5,'Admiral of the Fleet (IN)',360,2.5,'IND');

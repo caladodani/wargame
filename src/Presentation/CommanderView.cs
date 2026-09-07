@@ -20,10 +20,11 @@ public static class CommanderView
         : new Color(0.78f, 0.80f, 0.86f).Lerp(new Color(1f, 0.78f, 0.20f), Math.Clamp((level - 1f) / (top - 1f), 0f, 1f));
 
     /// <summary>Posto de topo da escada desta arma — é contra ele que a cor da divisa se mede. Cada arma
-    /// tem a sua carreira, por isso o topo do mar não é o topo da infantaria.</summary>
-    public static int TopLevel(World w, string domain = World.Land)
+    /// tem a sua carreira, por isso o topo do mar não é o topo da infantaria; e cada país sobe pela escada
+    /// dele, que pode ter outros nomes (a mesma altura, chamada de outra maneira).</summary>
+    public static int TopLevel(World w, string domain = World.Land, int countryId = 0)
     {
-        var ranks = w.Ranks(domain);
+        var ranks = countryId == 0 ? w.Ranks(domain) : w.Ranks(domain, countryId);
         return ranks.Count == 0 ? 1 : ranks.Max(r => r.Level);
     }
 
@@ -38,7 +39,7 @@ public static class CommanderView
     {
         var rank = w.RankOf(countryId, def.Id);
         int level = rank?.Level ?? 1;
-        var tint = Tint(level, TopLevel(w, def.Domain));
+        var tint = Tint(level, TopLevel(w, def.Domain, countryId));
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.16f, 0.14f, 0.09f, 0.92f), 10));
@@ -74,7 +75,7 @@ public static class CommanderView
     {
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 3);
         int level = w.RankOf(countryId, generalId)?.Level ?? 0;
-        foreach (var r in w.Ranks(w.DomainOfGeneral(generalId)))
+        foreach (var r in w.Ranks(w.DomainOfGeneral(generalId), countryId))
         {
             bool now = r.Level == level, done = r.Level <= level;
             var plate = new PanelContainer();
@@ -93,7 +94,8 @@ public static class CommanderView
             name.HorizontalAlignment = HorizontalAlignment.Center;
             cell.AddChild(name);
 
-            plate.TooltipText = $"{r.Name} — {r.Xp:0} de experiência, +{r.Bonus:0.00} ao comando";
+            plate.TooltipText = $"{r.Name} — {r.Xp:0} de experiência, +{r.Bonus:0.00} ao comando"
+                                + (r.CountryTag is null ? "" : $" (posto de {r.CountryTag})");
             row.AddChild(plate);
         }
         return row;
@@ -167,7 +169,7 @@ public static class CommanderView
         var pool = w.GeneralPool(c).Where(g => g.Domain == domain).ToList();
         int slots = w.GeneralSlots(domain);
         int serving = w.GeneralsInService(c, domain);
-        int top = TopLevel(w, domain);
+        int top = TopLevel(w, domain, c.Id);
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.14f, 0.13f, 0.10f, 0.94f), 10));
@@ -356,6 +358,95 @@ public static class CommanderView
         var l = Ui.Lbl($"⚜ {c.Tag}", 13);
         l.AddThemeColorOverride("font_color", Ui.Accent);
         l.TooltipText = $"comandante de {c.Name}: nenhum outro estado-maior o chama";
+        chip.AddChild(l);
+        return chip;
+    }
+
+    /// <summary>Quadro de postos do país, à maneira da folha de carreira do HoI4: as três armas lado a
+    /// lado, cada uma com a escada inteira do topo para baixo, e em cada degrau quem lá está agora. A
+    /// escada só se via no cartão de um comandante — e só a arma dele; assim vê-se o estado-maior todo
+    /// de uma vez, onde há gente parada no degrau de baixo e quantos degraus faltam ao país.
+    ///
+    /// Quando o país traz escada própria (general_rank.country_tag) a coluna leva o selo ⚜ e os nomes da
+    /// tradição dele: um Generalfeldmarschall e um Marechal do Reino valem o mesmo, chamam-se é de
+    /// maneira diferente.</summary>
+    public static PanelContainer Board(World w, Country c)
+    {
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.12f, 0.12f, 0.14f, 0.94f), 10));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 5); card.AddChild(v);
+
+        int own = World.Domains.Count(d => w.HasOwnRanks(c, d));
+        var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 8);
+        var title = Ui.Lbl("Quadro de postos", 17);
+        title.AddThemeColorOverride("font_color", Ui.Accent);
+        head.AddChild(Ui.Grow(title));
+        if (own > 0) head.AddChild(RankSeal(c));
+        v.AddChild(head);
+
+        var cols = Ui.Grow(new GridContainer { Columns = World.Domains.Length });
+        cols.AddThemeConstantOverride("h_separation", 6);
+        v.AddChild(cols);
+        for (int i = 0; i < World.Domains.Length; i++) cols.AddChild(Column(w, c, World.Domains[i], Ui.Arms[i]));
+        return card;
+    }
+
+    /// <summary>Uma coluna do quadro: a arma, e a escada dela do posto mais alto para o mais baixo.</summary>
+    private static PanelContainer Column(World w, Country c, string domain, string arm)
+    {
+        var box = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        box.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface, 6));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 3); box.AddChild(v);
+
+        var ranks = w.Ranks(domain, c);
+        bool mine = w.HasOwnRanks(c, domain);
+        int top = ranks.Count == 0 ? 1 : ranks.Max(r => r.Level);
+        var name = Ui.Lbl(mine ? $"{arm} ⚜" : arm, 15);
+        name.AddThemeColorOverride("font_color", mine ? Ui.Accent : Ui.TextDim);
+        name.TooltipText = mine ? $"postos de {c.Name}: só esta bandeira os usa" : "postos da escada comum";
+        v.AddChild(name);
+
+        foreach (var r in ranks.OrderByDescending(x => x.Level))
+        {
+            var men = c.Generals.Where(id => w.DomainOfGeneral(id) == domain
+                                             && (w.RankOf(c.Id, id)?.Level ?? 0) == r.Level)
+                                .Select(id => w.GeneralDefs.TryGetValue(id, out var g) ? g.Name : id)
+                                .OrderBy(x => x).ToList();
+            var tint = men.Count > 0 ? Tint(r.Level, top) : Ui.TextDim.Darkened(0.3f);
+            var plate = new PanelContainer();
+            plate.AddThemeStyleboxOverride("panel", Ui.Box(men.Count > 0 ? new Color(tint, 0.16f)
+                                                                        : new Color(0.09f, 0.09f, 0.10f, 0.65f), 4));
+            var cell = new VBoxContainer(); cell.AddThemeConstantOverride("separation", 0); plate.AddChild(cell);
+
+            var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 5);
+            var stars = Ui.Lbl(Insignia(r.Level), 11);
+            stars.AddThemeColorOverride("font_color", tint);
+            line.AddChild(stars);
+            var who = Ui.Lbl(r.Name, 13);
+            who.AddThemeColorOverride("font_color", tint);
+            line.AddChild(Ui.Grow(who));
+            cell.AddChild(line);
+
+            var note = Ui.Lbl(men.Count > 0 ? string.Join(", ", men) : $"{r.Xp:0} de experiência", 11);
+            note.AddThemeColorOverride("font_color", men.Count > 0 ? Ui.Text : Ui.TextDim.Darkened(0.25f));
+            note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            cell.AddChild(note);
+
+            plate.TooltipText = $"{r.Name} — {r.Xp:0} de experiência, +{r.Bonus:0.00} ao comando"
+                                + (men.Count == 0 ? "" : $" · {string.Join(", ", men)}");
+            v.AddChild(plate);
+        }
+        return box;
+    }
+
+    /// <summary>Selo do quadro: a escada é desta bandeira e de mais nenhuma.</summary>
+    private static PanelContainer RankSeal(Country c)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Accent with { A = 0.18f }, 4));
+        var l = Ui.Lbl($"⚜ postos de {c.Tag}", 13);
+        l.AddThemeColorOverride("font_color", Ui.Accent);
+        l.TooltipText = $"escada de postos de {c.Name}: nenhum outro exército tem estes nomes";
         chip.AddChild(l);
         return chip;
     }

@@ -207,3 +207,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('BRA_tech_ar_caca_nacional','air_losses',0.87),
  ('BRA_tech_mar_amazonia_azul','naval_patrol',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'General de Brigada',0,0,'BRA'),
+ ('exercito',2,'General de Divisão',40,0.5,'BRA'),
+ ('exercito',3,'General de Exército',110,1,'BRA'),
+ ('exercito',4,'Comandante do Exército',220,1.75,'BRA'),
+ ('exercito',5,'Marechal',360,2.5,'BRA'),
+ ('ar',1,'Brigadeiro do Ar',0,0,'BRA'),
+ ('ar',2,'Major-Brigadeiro',40,0.5,'BRA'),
+ ('ar',3,'Tenente-Brigadeiro',110,1,'BRA'),
+ ('ar',4,'Comandante da Aeronáutica',220,1.75,'BRA'),
+ ('ar',5,'Marechal do Ar',360,2.5,'BRA'),
+ ('mar',1,'Contra-Almirante do Brasil',0,0,'BRA'),
+ ('mar',2,'Vice-Almirante do Brasil',40,0.5,'BRA'),
+ ('mar',3,'Almirante de Esquadra',110,1,'BRA'),
+ ('mar',4,'Comandante da Marinha',220,1.75,'BRA'),
+ ('mar',5,'Almirante',360,2.5,'BRA');

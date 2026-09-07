@@ -561,10 +561,30 @@ public sealed class World
         return 1f + (def.Mult - 1f) * (Rule("general_command_bonus", 2f) + RankBonus(g.CountryId, gen));
     }
 
-    /// <summary>A escada de postos de uma arma, do mais baixo para o mais alto. Cada arma tem a sua: um
+    /// <summary>Este posto serve este país? A escada comum (country_tag nulo) serve toda a gente; uma
+    /// escada nacional é só de quem a traz — um Generalfeldmarschall não se põe num exército português.</summary>
+    public static bool RankIsFor(GeneralRank r, Country c) => r.CountryTag is null || r.CountryTag == c.Tag;
+
+    /// <summary>A escada COMUM de uma arma, do mais baixo para o mais alto. Cada arma tem a sua: um
     /// brigadeiro não é um contra-almirante, e quem manda numa esquadra não sobe pela escada da infantaria.</summary>
     public List<GeneralRank> Ranks(string domain) =>
-        GeneralRanks.Where(r => r.Domain == domain).OrderBy(r => r.Xp).ToList();
+        GeneralRanks.Where(r => r.Domain == domain && r.CountryTag is null).OrderBy(r => r.Xp).ToList();
+
+    /// <summary>A escada por que este país sobe naquela arma: a dele, se trouxer uma (data/countries/&lt;TAG&gt;.sql),
+    /// senão a comum. Os degraus pedem a mesma experiência e valem o mesmo nos dois casos — muda o nome.</summary>
+    public List<GeneralRank> Ranks(string domain, Country c)
+    {
+        var own = GeneralRanks.Where(r => r.Domain == domain && r.CountryTag == c.Tag).OrderBy(r => r.Xp).ToList();
+        return own.Count > 0 ? own : Ranks(domain);
+    }
+
+    /// <summary>A mesma escada, pelo número do país — é o que a UI tem à mão.</summary>
+    public List<GeneralRank> Ranks(string domain, int countryId) =>
+        Countries.TryGetValue(countryId, out var c) ? Ranks(domain, c) : Ranks(domain);
+
+    /// <summary>O país sobe por escada própria naquela arma (e não pela comum)?</summary>
+    public bool HasOwnRanks(Country c, string domain) =>
+        GeneralRanks.Any(r => r.Domain == domain && r.CountryTag == c.Tag);
 
     /// <summary>Posto actual de um comandante contratado: o mais alto da escada da ARMA dele cuja
     /// experiência ele já passou. Sem tabela de postos (ou sem escada para aquela arma) devolve null — o
@@ -572,11 +592,10 @@ public sealed class World
     public GeneralRank? RankOf(int countryId, string generalId)
     {
         if (GeneralRanks.Count == 0 || !Countries.TryGetValue(countryId, out var c)) return null;
-        string domain = DomainOfGeneral(generalId);
         float xp = c.GeneralXp.GetValueOrDefault(generalId);
         GeneralRank? best = null;
-        foreach (var r in GeneralRanks)
-            if (r.Domain == domain && xp >= r.Xp && (best is null || r.Xp > best.Xp)) best = r;
+        foreach (var r in Ranks(DomainOfGeneral(generalId), c))
+            if (xp >= r.Xp && (best is null || r.Xp > best.Xp)) best = r;
         return best;
     }
 
@@ -584,11 +603,11 @@ public sealed class World
     /// (null = já é o topo).</summary>
     public GeneralRank? NextRank(int countryId, string generalId)
     {
-        string domain = DomainOfGeneral(generalId);
-        float xp = Countries.TryGetValue(countryId, out var c) ? c.GeneralXp.GetValueOrDefault(generalId) : 0f;
+        if (!Countries.TryGetValue(countryId, out var c)) return null;
+        float xp = c.GeneralXp.GetValueOrDefault(generalId);
         GeneralRank? next = null;
-        foreach (var r in GeneralRanks)
-            if (r.Domain == domain && r.Xp > xp && (next is null || r.Xp < next.Xp)) next = r;
+        foreach (var r in Ranks(DomainOfGeneral(generalId), c))
+            if (r.Xp > xp && (next is null || r.Xp < next.Xp)) next = r;
         return next;
     }
 

@@ -190,3 +190,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('JPN_tech_ar_intercepcao_insular','air_losses',0.86),
  ('JPN_tech_mar_escolta_izumo','naval_escort',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Comandante de Brigada',0,0,'JPN'),
+ ('exercito',2,'General-Adjunto',40,0.5,'JPN'),
+ ('exercito',3,'General de Divisão do Japão',110,1,'JPN'),
+ ('exercito',4,'General do Exército',220,1.75,'JPN'),
+ ('exercito',5,'Chefe do Estado-Maior Conjunto',360,2.5,'JPN'),
+ ('ar',1,'Comandante de Asa',0,0,'JPN'),
+ ('ar',2,'General-Adjunto do Ar',40,0.5,'JPN'),
+ ('ar',3,'General de Divisão Aérea',110,1,'JPN'),
+ ('ar',4,'General da Força Aérea',220,1.75,'JPN'),
+ ('ar',5,'Chefe do Estado-Maior Aéreo',360,2.5,'JPN'),
+ ('mar',1,'Capitão de Mar',0,0,'JPN'),
+ ('mar',2,'Contra-Almirante do Japão',40,0.5,'JPN'),
+ ('mar',3,'Vice-Almirante do Japão',110,1,'JPN'),
+ ('mar',4,'Almirante do Japão',220,1.75,'JPN'),
+ ('mar',5,'Chefe do Estado-Maior Naval',360,2.5,'JPN');

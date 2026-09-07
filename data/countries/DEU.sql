@@ -186,3 +186,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('DEU_tech_ar_intercepcao','air_losses',0.86),
  ('DEU_tech_mar_baltico','naval_patrol',1.17);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadegeneral',0,0,'DEU'),
+ ('exercito',2,'Generalmajor',40,0.5,'DEU'),
+ ('exercito',3,'Generalleutnant',110,1,'DEU'),
+ ('exercito',4,'General',220,1.75,'DEU'),
+ ('exercito',5,'Generalinspekteur',360,2.5,'DEU'),
+ ('ar',1,'Kommodore',0,0,'DEU'),
+ ('ar',2,'Generalmajor der Luftwaffe',40,0.5,'DEU'),
+ ('ar',3,'Generalleutnant der Luftwaffe',110,1,'DEU'),
+ ('ar',4,'General der Luftwaffe',220,1.75,'DEU'),
+ ('ar',5,'Inspekteur der Luftwaffe',360,2.5,'DEU'),
+ ('mar',1,'Flottillenadmiral',0,0,'DEU'),
+ ('mar',2,'Konteradmiral',40,0.5,'DEU'),
+ ('mar',3,'Vizeadmiral',110,1,'DEU'),
+ ('mar',4,'Admiral',220,1.75,'DEU'),
+ ('mar',5,'Inspekteur der Marine',360,2.5,'DEU');

@@ -191,3 +191,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('GBR_tech_ar_alerta_rapido','air_losses',0.86),
  ('GBR_tech_mar_caca_submarino','naval_losses',0.86);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Brigadier',0,0,'GBR'),
+ ('exercito',2,'Major-General',40,0.5,'GBR'),
+ ('exercito',3,'Lieutenant-General',110,1,'GBR'),
+ ('exercito',4,'General',220,1.75,'GBR'),
+ ('exercito',5,'Field Marshal',360,2.5,'GBR'),
+ ('ar',1,'Air Commodore',0,0,'GBR'),
+ ('ar',2,'Air Vice-Marshal',40,0.5,'GBR'),
+ ('ar',3,'Air Marshal',110,1,'GBR'),
+ ('ar',4,'Air Chief Marshal',220,1.75,'GBR'),
+ ('ar',5,'Marshal of the Royal Air Force',360,2.5,'GBR'),
+ ('mar',1,'Commodore',0,0,'GBR'),
+ ('mar',2,'Rear-Admiral',40,0.5,'GBR'),
+ ('mar',3,'Vice-Admiral',110,1,'GBR'),
+ ('mar',4,'Admiral',220,1.75,'GBR'),
+ ('mar',5,'Admiral of the Fleet',360,2.5,'GBR');

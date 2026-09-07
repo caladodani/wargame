@@ -188,3 +188,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('POL_tech_ar_vistula','air_losses',0.87),
  ('POL_tech_mar_flotilha_gdansk','naval_patrol',1.17);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Generał brygady',0,0,'POL'),
+ ('exercito',2,'Generał dywizji',40,0.5,'POL'),
+ ('exercito',3,'Generał broni',110,1,'POL'),
+ ('exercito',4,'Generał',220,1.75,'POL'),
+ ('exercito',5,'Marszałek Polski',360,2.5,'POL'),
+ ('ar',1,'Generał brygady pilot',0,0,'POL'),
+ ('ar',2,'Generał dywizji pilot',40,0.5,'POL'),
+ ('ar',3,'Generał broni pilot',110,1,'POL'),
+ ('ar',4,'Dowódca Sił Powietrznych',220,1.75,'POL'),
+ ('ar',5,'Marszałek Lotnictwa',360,2.5,'POL'),
+ ('mar',1,'Kontradmirał',0,0,'POL'),
+ ('mar',2,'Wiceadmirał',40,0.5,'POL'),
+ ('mar',3,'Admirał floty',110,1,'POL'),
+ ('mar',4,'Admirał',220,1.75,'POL'),
+ ('mar',5,'Dowódca Marynarki Wojennej',360,2.5,'POL');

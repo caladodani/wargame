@@ -235,6 +235,8 @@ public partial class CountryPanel : PanelContainer
                         gid => Faction(new HireGeneralCommand(c.Id, gid)),
                         gid => Faction(new DismissGeneralCommand(c.Id, gid)), PickArm) is PanelContainer staff)
                     _body.AddChild(staff);
+                // o quadro de postos: as três escadas do país lado a lado, com quem está em cada degrau
+                _body.AddChild(CommanderView.Board(w, c));
                 // a enfermaria só aparece quando há quem lá esteja: é o aviso de que há exércitos por comandar
                 if (CommanderView.Infirmary(w, c.Id) is PanelContainer sick) _body.AddChild(sick);
             }

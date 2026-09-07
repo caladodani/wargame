@@ -158,9 +158,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.WoundKinds[(string)r["id"]!] = new WoundKind((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["days"]), Convert.ToSingle(r["weight"]), Convert.ToInt32(r["fatal"]) != 0);
         w.GeneralRanks.Clear();
-        foreach (var r in _static.Query("SELECT domain,level,name,xp,bonus FROM general_rank ORDER BY domain,xp"))
+        foreach (var r in _static.Query("SELECT domain,level,name,xp,bonus,country_tag FROM general_rank ORDER BY domain,xp"))
             w.GeneralRanks.Add(new GeneralRank((string)r["domain"]!, Convert.ToInt32(r["level"]), (string)r["name"]!,
-                Convert.ToSingle(r["xp"]), Convert.ToSingle(r["bonus"])));
+                Convert.ToSingle(r["xp"]), Convert.ToSingle(r["bonus"]), r["country_tag"] as string));
         foreach (var r in _static.Query("SELECT id,name,cost,days,cooldown,stat_key,mult FROM decision"))
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), Convert.ToInt32(r["cooldown"]),
@@ -274,6 +274,17 @@ public sealed class SqlWorldRepository : IWorldRepository
             yield return (Convert.ToInt32(r["region_id"]), pts);
         }
     }
+
+    /// <summary>O schema do save reconstruído a partir do sqlite_master de uma base já feita — é o que o
+    /// telemóvel tem, porque os *.sql ficam fora do export do APK. O SQLite guarda os CREATE sem o
+    /// IF NOT EXISTS: repõe-se aqui, e num sítio só, para o jogo e os testes lerem o mesmo texto (o
+    /// UNIQUE INDEX é caso à parte, e ficar de fora dava "index já existe" ao reabrir um save).</summary>
+    public static string SchemaFromSqliteMaster(IDatabase staticDb) =>
+        string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
+            .Select(r => ((string)r["sql"]!)
+                .Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ")
+                .Replace("CREATE UNIQUE INDEX ", "CREATE UNIQUE INDEX IF NOT EXISTS ")
+                .Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
 
     /// <summary>Cria as tabelas do save num ficheiro novo: executa schema.sql instrução a instrução
     /// (o driver Godot só aceita uma por chamada). Comentários `--` são retirados antes.</summary>

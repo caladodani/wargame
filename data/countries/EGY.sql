@@ -183,3 +183,21 @@ INSERT INTO tech (id,branch,name,cost,requires,description,country_tag) VALUES
 INSERT INTO tech_effect (tech_id,stat_key,value) VALUES
  ('EGY_tech_ar_nilo','air_losses',0.87),
  ('EGY_tech_mar_suez','naval_blockade',1.18);
+
+-- ===== escada de postos nacional (general_rank.country_tag) =====
+INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
+ ('exercito',1,'Amid do Egipto',0,0,'EGY'),
+ ('exercito',2,'Liwa do Egipto',40,0.5,'EGY'),
+ ('exercito',3,'Fariq do Egipto',110,1,'EGY'),
+ ('exercito',4,'Fariq Awwal do Egipto',220,1.75,'EGY'),
+ ('exercito',5,'Mushir do Egipto',360,2.5,'EGY'),
+ ('ar',1,'Comandante de Esquadrilha',0,0,'EGY'),
+ ('ar',2,'Amid do Ar',40,0.5,'EGY'),
+ ('ar',3,'Liwa do Ar',110,1,'EGY'),
+ ('ar',4,'Fariq do Ar',220,1.75,'EGY'),
+ ('ar',5,'Comandante da Força Aérea Egípcia',360,2.5,'EGY'),
+ ('mar',1,'Comodoro do Egipto',0,0,'EGY'),
+ ('mar',2,'Amid do Mar',40,0.5,'EGY'),
+ ('mar',3,'Liwa do Mar',110,1,'EGY'),
+ ('mar',4,'Fariq do Mar',220,1.75,'EGY'),
+ ('mar',5,'Comandante da Marinha Egípcia',360,2.5,'EGY');

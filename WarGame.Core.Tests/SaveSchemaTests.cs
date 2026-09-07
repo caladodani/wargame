@@ -10,8 +10,7 @@ namespace WarGame.Core.Tests;
 public class SaveSchemaTests
 {
     private static string SchemaFromStatic(IDatabase staticDb) =>
-        string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
+        SqlWorldRepository.SchemaFromSqliteMaster(staticDb);      // o mesmo texto que o Game usa no telemóvel
 
     [Fact]
     public void SchemaFromSqliteMaster_CreatesSaveTables_AndIsIdempotent()
