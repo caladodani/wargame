@@ -488,12 +488,13 @@ CREATE TABLE IF NOT EXISTS building (
   stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL,
   coastal INTEGER NOT NULL DEFAULT 0,        -- 1 = só em região de costa
   supply_range REAL NOT NULL DEFAULT 0,      -- km de abastecimento projectado por mar, por nível
-  yard TEXT NOT NULL DEFAULT '');            -- fila de fábricas que abre (Industry): civil | militar | naval
-INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard) VALUES
- ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil'),
- ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,''),
- ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar'),
- ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval');
+  yard TEXT NOT NULL DEFAULT '',             -- fila de fábricas que abre (Industry): civil | militar | naval
+  icon TEXT NOT NULL DEFAULT '');            -- desenho na lista do Construir; como map_mode.icon
+INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon) VALUES
+ ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil','🏭'),
+ ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,'','🔬'),
+ ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar','🛠'),
+ ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval','⚓');
 
 -- Capacidade industrial (Industry): quantas obras e quantas linhas de montagem andam ao mesmo tempo.
 INSERT INTO rule (key,value,note) VALUES

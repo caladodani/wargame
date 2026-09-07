@@ -79,7 +79,7 @@ public partial class UnitCounter : Node2D
                                        box.End + new Vector2(-6f, -6f), new Vector2(box.Position.X + 6f, box.End.Y - 6f) })
             DrawCircle(corner, 2.2f, rivet);
 
-        DrawSymbol(new Rect2(box.Position.X + BoxW / 2f + 6f, box.Position.Y + 16f, BoxW / 2f - 14f, BoxH - 30f));
+        NatoSymbol.Draw(this, new Rect2(box.Position.X + BoxW / 2f + 6f, box.Position.Y + 16f, BoxW / 2f - 14f, BoxH - 30f), _kind);
 
         // barras: organização por cima da resistência, em pé de igualdade com as do painel da região
         float y = box.End.Y - 12f, w = box.Size.X - 12f, x = box.Position.X + 6f;
@@ -101,42 +101,4 @@ public partial class UnitCounter : Node2D
         }
     }
 
-    /// <summary>Símbolo NATO dentro da moldura dada: as mesmas linhas que se desenham à mão num mapa.</summary>
-    private void DrawSymbol(Rect2 r)
-    {
-        var ink = Colors.White with { A = 0.92f };
-        const float thick = 2.6f;
-        DrawRect(r, new Color(0, 0, 0, 0.35f));
-        DrawRect(r, ink with { A = 0.65f }, false, 1.6f);
-
-        void Cross()
-        {
-            DrawLine(r.Position, r.End, ink, thick);
-            DrawLine(new Vector2(r.End.X, r.Position.Y), new Vector2(r.Position.X, r.End.Y), ink, thick);
-        }
-        void Oval()
-        {
-            var c = r.Position + r.Size / 2f;
-            var pts = new Vector2[25];
-            for (int i = 0; i < pts.Length; i++)
-            {
-                float a = Mathf.Tau * i / (pts.Length - 1);
-                pts[i] = c + new Vector2(Mathf.Cos(a) * r.Size.X * 0.42f, Mathf.Sin(a) * r.Size.Y * 0.40f);
-            }
-            DrawPolyline(pts, ink, thick);
-        }
-
-        switch (_kind)
-        {
-            case "armor": Oval(); break;
-            case "mech": Oval(); Cross(); break;
-            case "support": DrawCircle(r.Position + r.Size / 2f, MathF.Min(r.Size.X, r.Size.Y) * 0.22f, ink); break;
-            case "airborne":
-                Cross();
-                DrawArc(r.Position + new Vector2(r.Size.X * 0.25f, r.Size.Y * 0.5f), r.Size.Y * 0.3f, Mathf.Pi, Mathf.Tau, 8, ink, thick * 0.7f);
-                DrawArc(r.Position + new Vector2(r.Size.X * 0.75f, r.Size.Y * 0.5f), r.Size.Y * 0.3f, Mathf.Pi, Mathf.Tau, 8, ink, thick * 0.7f);
-                break;
-            default: Cross(); break;
-        }
-    }
 }

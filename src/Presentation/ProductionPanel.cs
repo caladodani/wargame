@@ -130,6 +130,8 @@ public partial class ProductionPanel : PanelContainer
                 float cost; try { cost = w.TemplateCost(t.Id); } catch { cost = 0f; }
                 int tid = t.Id;
                 var row = new HBoxContainer();
+                row.AddThemeConstantOverride("separation", 8);
+                row.AddChild(UnitSymbol.For(w, tid));
                 row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name}   custo {cost:0.0}   ·   {cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens")));
                 row.AddChild(Ui.Btn("+", () => Order(tid), 72));
                 _templates.AddChild(row);
@@ -151,13 +153,17 @@ public partial class ProductionPanel : PanelContainer
                 bool rep = o.Repeat;
 
                 // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
+                string kind = UnitSymbol.KindFor(w, tid);
                 var row = new QueueRow();
-                row.Bind(idx, name, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
+                row.Bind(idx, name, kind, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
                 var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8); row.AddChild(line);
                 var grip = Ui.Lbl("⣿", 18); grip.AddThemeColorOverride("font_color", Ui.TextDim); line.AddChild(grip);
                 var place = Ui.Lbl($"{idx + 1}º", 15);
                 place.AddThemeColorOverride("font_color", waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent);
                 line.AddChild(place);
+                // o que ali se fabrica, em símbolo: numa fila de uma dúzia de encomendas todas escritas
+                // igual, a coluna blindada distingue-se da de infantaria sem se ler nome nenhum
+                line.AddChild(UnitSymbol.Of(kind, 34f, 24f));
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
                 cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
@@ -330,8 +336,13 @@ public partial class ProductionPanel : PanelContainer
         string roll = window <= 0f ? "sem janela medida"
                     : tall > window ? $"desliza ({tall:0}px de fila em {window:0}px de janela)"
                     : $"cabe inteira ({tall:0}px em {window:0}px)";
+        // Os símbolos não têm como falhar alto (um Control que não desenha nada não dá erro nenhum), por
+        // isso contam-se: se a fila ou os modelos perderem o símbolo, o número cai e o smoke acusa.
+        var kinds = Descendants<UnitSymbol>(this).Select(s => s.Kind).ToList();
+        string symbols = kinds.Count == 0 ? "sem símbolos"
+            : $"{kinds.Count} símbolos NATO ({string.Join(", ", kinds.Distinct().OrderBy(k => k).Select(NatoSymbol.Name))})";
         return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção em {Sections.Length} abas"
-             + $", {roll} ({dragged}, {yards}, {rhythm})";
+             + $", {roll} ({dragged}, {yards}, {rhythm}, {symbols})";
     }
 
     /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>

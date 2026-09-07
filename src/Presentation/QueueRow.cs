@@ -15,16 +15,16 @@ namespace WarGame.Presentation;
 public partial class QueueRow : PanelContainer
 {
     private int _index;
-    private string _label = "";
+    private string _label = "", _kind = "infantry";
     private Action<int, int>? _onMove;
     private StyleBoxFlat _rest = null!, _hot = null!;
 
     /// <summary>Índice desta encomenda na fila (o mesmo que o comando usa).</summary>
     public int Index => _index;
 
-    public void Bind(int index, string label, Color tint, Action<int, int> onMove)
+    public void Bind(int index, string label, string kind, Color tint, Action<int, int> onMove)
     {
-        _index = index; _label = label; _onMove = onMove;
+        _index = index; _label = label; _kind = kind; _onMove = onMove;
         _rest = Ui.Box(tint, 6);
         _hot = Ui.Box(Ui.SurfaceHi, 6);
         AddThemeStyleboxOverride("panel", _rest);
@@ -32,14 +32,19 @@ public partial class QueueRow : PanelContainer
         TooltipText = "Arrasta para mudar a prioridade";
     }
 
-    /// <summary>Pegar: o dado que viaja é o índice de onde a encomenda saiu.</summary>
+    /// <summary>Pegar: o dado que viaja é o índice de onde a encomenda saiu. O fantasma leva o símbolo da
+    /// tropa à frente do nome — a meio de um arrasto o dedo tapa a linha de origem, e é pelo fantasma que se
+    /// sabe qual das encomendas vem agarrada.</summary>
     public override Variant _GetDragData(Vector2 atPosition)
     {
         var ghost = new PanelContainer();
         ghost.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.9f }, 6));
+        var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8);
+        line.AddChild(UnitSymbol.Of(_kind, 30f, 20f));
         var lbl = Ui.Lbl("⣿ " + _label, 15);
         lbl.AddThemeColorOverride("font_color", Ui.Accent);
-        ghost.AddChild(lbl);
+        line.AddChild(lbl);
+        ghost.AddChild(line);
         SetDragPreview(ghost);
         return _index;
     }

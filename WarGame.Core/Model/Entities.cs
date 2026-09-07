@@ -173,8 +173,10 @@ public sealed record MapModeDef(string Id, string Name, string Icon, string Metr
 
 /// <param name="Yard">Fila de fábricas que este edifício alimenta (coluna building.yard): "civil", "militar",
 /// "naval" ou vazio. É o que liga um edifício aos contadores do Industry.</param>
+/// <param name="Icon">Desenho do edifício na lista do Construir (coluna building.icon). Vem da tabela e não
+/// do código pela mesma razão que o resto: um edifício novo é uma linha de SQL, não uma linha de C#.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
-    bool Coastal = false, float SupplyRange = 0f, string Yard = "");
+    bool Coastal = false, float SupplyRange = 0f, string Yard = "", string Icon = "");
 
 /// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
 /// depois Cooldown dias de espera.</summary>

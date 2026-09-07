@@ -13,6 +13,10 @@ public partial class BuildBar : PanelContainer
 {
     private const string Infra = "@infra", Fort = "@fort";
 
+    // Os edifícios trazem o desenho da tabela `building`; estes dois não são linhas de lá — são regras
+    // (infra_build_cost, fort_build_cost) e já tinham o nome escrito aqui. O desenho fica ao pé do nome.
+    private const string InfraIcon = "🛣", FortIcon = "🛡";
+
     private Game _game = null!;
     private VBoxContainer _list = null!;
     private Label _status = null!;
@@ -61,14 +65,19 @@ public partial class BuildBar : PanelContainer
         _painted = key;
         Ui.Clear(_list);
         foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
-            _list.AddChild(Pick(d.Name, d.Id, $"{d.Cost:0}, {d.Days:0} d"));
-        _list.AddChild(Pick("Infra-estrutura", Infra, $"{w.Rule("infra_build_cost", 40f):0}, {w.Rule("infra_build_days", 30f):0} d"));
-        _list.AddChild(Pick("Fortificação", Fort, $"{w.Rule("fort_build_cost", 30f):0}, {w.Rule("fort_build_days", 20f):0} d"));
+            _list.AddChild(Pick(d.Name, d.Id, $"{d.Cost:0}, {d.Days:0} d", d.Icon));
+        _list.AddChild(Pick("Infra-estrutura", Infra, $"{w.Rule("infra_build_cost", 40f):0}, {w.Rule("infra_build_days", 30f):0} d", InfraIcon));
+        _list.AddChild(Pick("Fortificação", Fort, $"{w.Rule("fort_build_cost", 30f):0}, {w.Rule("fort_build_days", 20f):0} d", FortIcon));
     }
 
-    private Button Pick(string name, string id, string cost)
+    /// <summary>Uma chapa da lista. O desenho vai à cabeça do nome, como no menu de construção do HoI4: numa
+    /// lista de seis obras todas escritas do mesmo tamanho, o que se procura encontra-se pela figura e não
+    /// pela leitura. Edifício sem desenho na tabela leva um espaço no lugar dele, para as colunas de nomes
+    /// não ficarem em degrau.</summary>
+    private Button Pick(string name, string id, string cost, string icon)
     {
-        var b = Ui.Btn($"{name} ({cost})", () => Arm(id), 0f, id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
+        var b = Ui.Btn($"{(icon.Length == 0 ? " " : icon)}  {name} ({cost})", () => Arm(id), 0f,
+                       id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
         b.Alignment = HorizontalAlignment.Left;
         return b;
     }
@@ -77,9 +86,10 @@ public partial class BuildBar : PanelContainer
     {
         _armed = id; _painted = "";
         Fill();
-        string name = id == Infra ? "Infra-estrutura" : id == Fort ? "Fortificação"
-            : _game.World.BuildingDefs.TryGetValue(id, out var d) ? d.Name : id;
-        _status.Text = $"Toca no mapa onde construir — {name}";
+        (string name, string icon) = id == Infra ? ("Infra-estrutura", InfraIcon)
+            : id == Fort ? ("Fortificação", FortIcon)
+            : _game.World.BuildingDefs.TryGetValue(id, out var d) ? (d.Name, d.Icon) : (id, "");
+        _status.Text = $"Toca no mapa onde construir — {icon} {name}".Replace("—  ", "— ");
     }
 
     /// <summary>Toque no mapa enquanto armado: uma ordem de construção nessa região; o menu fica armado
@@ -94,14 +104,17 @@ public partial class BuildBar : PanelContainer
         _game.Notify(err ?? $"Obra iniciada em {name}");
     });
 
-    /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido.</summary>
+    /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido. Conta também as
+    /// obras com desenho: a coluna `building.icon` vazia não dá erro nenhum, apenas uma lista sem figuras.</summary>
     public string Smoke()
     {
         Open();
-        var first = _game.World.BuildingDefs.Values.OrderBy(d => d.Id).FirstOrDefault();
+        var defs = _game.World.BuildingDefs.Values.OrderBy(d => d.Id).ToList();
+        var first = defs.FirstOrDefault();
         if (first is not null) Arm(first.Id);
         string status = _status.Text;
+        int com = defs.Count(d => d.Icon.Length > 0) + 2;   // +2: infra e fortificação, que não são linhas de `building`
         Close();
-        return status;
+        return $"{status} ({com} de {defs.Count + 2} obras com desenho)";
     }
 }
