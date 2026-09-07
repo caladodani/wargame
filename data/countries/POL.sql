@@ -105,3 +105,12 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('pol_rezerwa_terytorialna','pol_wschodnia_tarcza');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('POL_adv_vistula','POL','economia','Engenheiro do Vístula','🏭',175,'Reconstrói uma fábrica no tempo de a discutir.'),
+ ('POL_adv_territorial','POL','seguranca','Chefe da Defesa Territorial','🎖',170,'Cada aldeia com a sua companhia.');
+INSERT INTO advisor_effect VALUES ('POL_adv_vistula','industry',1.12);
+INSERT INTO advisor_effect VALUES ('POL_adv_vistula','production_speed',1.05);
+INSERT INTO advisor_effect VALUES ('POL_adv_territorial','conscription',1.15);
+INSERT INTO advisor_effect VALUES ('POL_adv_territorial','defense',1.05);

@@ -95,3 +95,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('usa_forcas_especiais','usa_reindustrializacao');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('USA_adv_arsenal','USA','economia','Arsenal da Democracia','🏭',220,'Põe a indústria civil a fazer guerra em semanas.'),
+ ('USA_adv_laboratorios','USA','ciencia','Director dos Laboratórios Nacionais','🔬',210,'Sabe pôr mil doutores no mesmo problema.');
+INSERT INTO advisor_effect VALUES ('USA_adv_arsenal','industry',1.18);
+INSERT INTO advisor_effect VALUES ('USA_adv_arsenal','production_speed',1.08);
+INSERT INTO advisor_effect VALUES ('USA_adv_laboratorios','research_speed',1.25);

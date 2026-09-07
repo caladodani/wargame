@@ -99,3 +99,10 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('chn_mar_do_sul','chn_conscricao_universal');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('chn_conscricao_universal','chn_made_in_china_2025');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('CHN_adv_plano','CHN','economia','Secretário do Plano','🏭',200,'Fábricas novas de província em província.'),
+ ('CHN_adv_massas','CHN','propaganda','Comissário das Massas','📣',185,'Chama à tropa aldeias inteiras.');
+INSERT INTO advisor_effect VALUES ('CHN_adv_plano','industry',1.16);
+INSERT INTO advisor_effect VALUES ('CHN_adv_massas','conscription',1.2);

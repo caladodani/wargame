@@ -103,3 +103,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('deu_reserva_territorial','deu_industria_precisao');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('DEU_adv_ruhr','DEU','economia','Barão do Ruhr','🏭',200,'As chaminés do vale trabalham para ele.'),
+ ('DEU_adv_engenharia','DEU','ciencia','Engenheiro-chefe do Estado','🔧',190,'Desenha e põe na linha de montagem no mesmo mês.');
+INSERT INTO advisor_effect VALUES ('DEU_adv_ruhr','industry',1.16);
+INSERT INTO advisor_effect VALUES ('DEU_adv_engenharia','research_speed',1.15);
+INSERT INTO advisor_effect VALUES ('DEU_adv_engenharia','production_speed',1.06);

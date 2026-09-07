@@ -108,3 +108,12 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('gbr_industria_defesa','gbr_porta_avioes');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('gbr_forcas_especiais','gbr_compromisso_nato');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('GBR_adv_almirantado','GBR','seguranca','Lorde do Almirantado','⚓',195,'Os portos da ilha nunca fecham.'),
+ ('GBR_adv_colonias','GBR','propaganda','Secretário das Colónias','🏛',190,'Administra meio mundo com uma pasta de couro.');
+INSERT INTO advisor_effect VALUES ('GBR_adv_almirantado','port_capacity',1.3);
+INSERT INTO advisor_effect VALUES ('GBR_adv_almirantado','defense',1.04);
+INSERT INTO advisor_effect VALUES ('GBR_adv_colonias','occupied_yield',1.2);
+INSERT INTO advisor_effect VALUES ('GBR_adv_colonias','integration_speed',1.2);

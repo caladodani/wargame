@@ -113,3 +113,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('esp_legion','esp_otan_ue');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('ESP_adv_ferrol','ESP','economia','Chefe dos Estaleiros de Ferrol','⚓',185,'Carga e navios saem de Ferrol antes do prazo.'),
+ ('ESP_adv_plazas','ESP','propaganda','Governador das Praças de África','🏛',180,'Sabe governar terra do outro lado do mar.');
+INSERT INTO advisor_effect VALUES ('ESP_adv_ferrol','port_capacity',1.25);
+INSERT INTO advisor_effect VALUES ('ESP_adv_ferrol','production_speed',1.06);
+INSERT INTO advisor_effect VALUES ('ESP_adv_plazas','occupied_yield',1.22);

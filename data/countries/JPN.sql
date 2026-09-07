@@ -107,3 +107,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('jpn_f35_reequipamento','jpn_shudanteki_jieiken');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('JPN_adv_conglomerado','JPN','economia','Chefe do Conglomerado','🏯',200,'Uma casa só, e manda em estaleiros e aciarias.'),
+ ('JPN_adv_robotica','JPN','ciencia','Mestre da Robótica','🤖',195,'Máquinas a fazer máquinas.');
+INSERT INTO advisor_effect VALUES ('JPN_adv_conglomerado','production_speed',1.18);
+INSERT INTO advisor_effect VALUES ('JPN_adv_robotica','research_speed',1.18);
+INSERT INTO advisor_effect VALUES ('JPN_adv_robotica','industry',1.05);

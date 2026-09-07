@@ -98,3 +98,10 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('ind_drdo_agni','ind_rafale_su30');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('ind_indo_pacifico','ind_make_in_india_defesa');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('IND_adv_aco','IND','economia','Ministro do Aço','🏭',185,'Altos-fornos acesos de norte a sul.'),
+ ('IND_adv_provincias','IND','propaganda','Recrutador das Províncias','📣',175,'Traz homens de onde ninguém julgava haver.');
+INSERT INTO advisor_effect VALUES ('IND_adv_aco','industry',1.14);
+INSERT INTO advisor_effect VALUES ('IND_adv_provincias','conscription',1.22);

@@ -108,3 +108,10 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('idn_kopassus','idn_mef');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('IDN_adv_arquipelago','IDN','economia','Ministro do Arquipélago','🛳',175,'Dezassete mil ilhas ligadas por cais dele.'),
+ ('IDN_adv_transmigracao','IDN','propaganda','Comissário da Transmigração','📣',170,'Move povo e com ele os quartéis.');
+INSERT INTO advisor_effect VALUES ('IDN_adv_arquipelago','port_capacity',1.25);
+INSERT INTO advisor_effect VALUES ('IDN_adv_transmigracao','conscription',1.16);

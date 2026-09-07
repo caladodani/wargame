@@ -95,3 +95,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('arg_fadea','arg_industria_naval');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('arg_industria_naval','arg_atlantico_sul');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('ARG_adv_pampas','ARG','economia','Barão dos Pampas','🐄',165,'Carne e trigo pagos em moeda estrangeira.'),
+ ('ARG_adv_atlantico','ARG','seguranca','Comandante do Atlântico Sul','⚓',170,'Conhece cada baía do sul.');
+INSERT INTO advisor_effect VALUES ('ARG_adv_pampas','export_price',1.15);
+INSERT INTO advisor_effect VALUES ('ARG_adv_pampas','industry',1.05);
+INSERT INTO advisor_effect VALUES ('ARG_adv_atlantico','port_capacity',1.2);

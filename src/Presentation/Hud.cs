@@ -1122,10 +1122,22 @@ public partial class Hud : CanvasLayer
         // do painel do País ter cadeiras ocupadas, folha de salários e chapas de candidatos
         string gov = "gabinete por formar";
         foreach (var slot in w.CabinetSlots)
-            if (CabinetSystem.Candidates(w, c, slot.Id).FirstOrDefault(a => a.Cost <= c.Money) is AdvisorDef pick)
+        {
+            // primeiro o conselheiro próprio do país, que é o que se quer ver com o selo no cartão
+            var pool = CabinetSystem.Candidates(w, c, slot.Id).Where(a => a.Cost <= c.Money).ToList();
+            if ((pool.FirstOrDefault(a => a.CountryTag is not null) ?? pool.FirstOrDefault()) is AdvisorDef pick)
                 _game.Dispatch(new AppointAdvisorCommand(pid, pick.Id));
+        }
         if (c.Cabinet.Count > 0)
-            gov = $"{c.Cabinet.Count} pasta{(c.Cabinet.Count == 1 ? "" : "s")} do gabinete ({string.Join(", ", c.Cabinet.Values.Select(id => w.AdvisorDefs[id].Name))}), folha de {CabinetSystem.Wages(w, c):0.0}/dia";
+        {
+            // --smoke: um ano de casa na primeira pasta, para a barra de rodagem ter o que mostrar
+            string first = c.Cabinet.Keys.OrderBy(k => k).First();
+            c.CabinetSince[first] = w.Clock.Day - (int)w.Rule("advisor_tenure_days", 365f);
+            World.ApplyCabinet(w, c);
+            int nossos = c.Cabinet.Values.Count(id => w.AdvisorDefs[id].CountryTag is not null);
+            gov = $"{c.Cabinet.Count} pasta{(c.Cabinet.Count == 1 ? "" : "s")} do gabinete ({string.Join(", ", c.Cabinet.Values.Select(id => w.AdvisorDefs[id].Name))}), "
+                + $"{nossos} de casa, folha de {CabinetSystem.Wages(w, c):0.0}/dia, rodagem de {World.CabinetTenure(w, c, first):P0} na pasta mais antiga";
+        }
         // leis nacionais: sobe-se um degrau na primeira escada que o cofre pague, para o cartão do painel do
         // País mostrar o degrau em vigor a mudar de sítio, e diz-se o que a lei de comércio deixa sair do país
         string laws = "sem leis na base de dados";

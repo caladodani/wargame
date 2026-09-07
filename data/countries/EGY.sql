@@ -101,3 +101,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('egy_reserva_estrategica','egy_soberania_canal');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('EGY_adv_canal','EGY','economia','Administrador do Canal','🚢',180,'Cobra portagem a meio mundo.'),
+ ('EGY_adv_deserto','EGY','seguranca','Comandante do Deserto','🏜',165,'Atravessa areia como quem anda em estrada.');
+INSERT INTO advisor_effect VALUES ('EGY_adv_canal','export_price',1.15);
+INSERT INTO advisor_effect VALUES ('EGY_adv_canal','port_capacity',1.2);
+INSERT INTO advisor_effect VALUES ('EGY_adv_deserto','move_speed',1.14);

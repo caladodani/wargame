@@ -107,3 +107,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('prk_industria_militar','prk_mobilizacao');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('PRK_adv_juche','PRK','propaganda','Comissário do Juche','📣',180,'O país inteiro em pé de guerra desde sempre.'),
+ ('PRK_adv_tuneis','PRK','seguranca','Engenheiro dos Túneis','🛠',170,'Uma montanha por dentro vale uma fortaleza.');
+INSERT INTO advisor_effect VALUES ('PRK_adv_juche','conscription',1.25);
+INSERT INTO advisor_effect VALUES ('PRK_adv_tuneis','defense',1.12);
+INSERT INTO advisor_effect VALUES ('PRK_adv_tuneis','counter_intel',1.1);

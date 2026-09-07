@@ -643,6 +643,8 @@ INSERT INTO advisor_effect VALUES ('adv_logistico','move_speed',1.10);
 INSERT INTO advisor_effect VALUES ('adv_logistico','production_speed',1.05);
 
 INSERT INTO rule VALUES ('advisor_wage_share', 0.01, 'salário diário de um conselheiro, em fracção do que custou nomeá-lo');
+INSERT INTO rule VALUES ('advisor_tenure_days', 365, 'dias de casa para um conselheiro estar rodado de todo');
+INSERT INTO rule VALUES ('advisor_tenure_bonus', 0.5, 'quanto o que ele faz vale a mais, rodado de todo (0.5 = mais metade)');
 INSERT INTO chronicle_kind VALUES ('gabinete','Gabinete','🏛',2);
 
 -- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)

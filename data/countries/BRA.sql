@@ -126,3 +126,12 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('bra_pre_sal','bra_prosub');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('bra_potencia','bra_amazonia');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('BRA_adv_aeronautica','BRA','ciencia','Engenheiro-chefe da Aeronáutica','✈',185,'Desenha aviões que o país sabe construir.'),
+ ('BRA_adv_amazonia','BRA','seguranca','Coronel da Amazónia','🌳',170,'Move tropa onde não há estrada nenhuma.');
+INSERT INTO advisor_effect VALUES ('BRA_adv_aeronautica','research_speed',1.14);
+INSERT INTO advisor_effect VALUES ('BRA_adv_aeronautica','production_speed',1.05);
+INSERT INTO advisor_effect VALUES ('BRA_adv_amazonia','move_speed',1.12);
+INSERT INTO advisor_effect VALUES ('BRA_adv_amazonia','defense',1.05);

@@ -109,3 +109,12 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('ukr_ajuda_ocidental','ukr_reconstrucao_energia');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('ukr_reconstrucao_energia','ukr_resistencia_territorial');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('UKR_adv_celeiro','UKR','economia','Administrador do Celeiro','🌾',165,'Vende trigo caro e paga a guerra com ele.'),
+ ('UKR_adv_oficinas','UKR','ciencia','Oficina de Aparelhos','🛠',175,'Do quintal para a linha da frente em dias.');
+INSERT INTO advisor_effect VALUES ('UKR_adv_celeiro','industry',1.1);
+INSERT INTO advisor_effect VALUES ('UKR_adv_celeiro','export_price',1.05);
+INSERT INTO advisor_effect VALUES ('UKR_adv_oficinas','research_speed',1.14);
+INSERT INTO advisor_effect VALUES ('UKR_adv_oficinas','production_speed',1.06);

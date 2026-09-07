@@ -96,3 +96,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('ago_reequipamento_t72','ago_diamantes_petroleo');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('ago_veteranos_reserva','ago_modernizacao_blindada');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('AGO_adv_petrolifera','AGO','economia','Director da Petrolífera','🛢',170,'Barris vendidos ao melhor preço do golfo.'),
+ ('AGO_adv_matas','AGO','seguranca','Veterano das Matas','🌳',155,'Fez a guerra toda sem estrada nenhuma.');
+INSERT INTO advisor_effect VALUES ('AGO_adv_petrolifera','export_price',1.22);
+INSERT INTO advisor_effect VALUES ('AGO_adv_matas','move_speed',1.12);
+INSERT INTO advisor_effect VALUES ('AGO_adv_matas','org_regain',1.06);

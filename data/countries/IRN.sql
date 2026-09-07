@@ -108,3 +108,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('irn_industria_aeroespacial','irn_expansao_guarda_revolucionaria');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('IRN_adv_bazar','IRN','economia','Mestre do Bazar','💰',170,'Vende bem o que ninguém devia poder comprar.'),
+ ('IRN_adv_guardioes','IRN','seguranca','Comissário dos Guardiões','🕵',175,'Duas polícias a vigiarem-se uma à outra.');
+INSERT INTO advisor_effect VALUES ('IRN_adv_bazar','export_price',1.18);
+INSERT INTO advisor_effect VALUES ('IRN_adv_guardioes','counter_intel',1.3);
+INSERT INTO advisor_effect VALUES ('IRN_adv_guardioes','conscription',1.08);

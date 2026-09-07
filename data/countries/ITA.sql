@@ -107,3 +107,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('ita_alpini_addestramento','ita_riserva_nazionale');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('ita_riserva_nazionale','ita_pilastro_mediterraneo');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('ITA_adv_turim','ITA','economia','Senhor das Oficinas de Turim','🏭',180,'As encomendas dele saem antes das outras.'),
+ ('ITA_adv_mare','ITA','propaganda','Prefeito do Mare Nostrum','🌊',175,'Enche os quartéis com discursos de mar.');
+INSERT INTO advisor_effect VALUES ('ITA_adv_turim','production_speed',1.16);
+INSERT INTO advisor_effect VALUES ('ITA_adv_mare','conscription',1.12);
+INSERT INTO advisor_effect VALUES ('ITA_adv_mare','occupied_yield',1.1);

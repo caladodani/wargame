@@ -101,3 +101,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('aus_aukus','aus_ran_expansion');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('AUS_adv_minas','AUS','economia','Senhor das Minas','⛏',190,'O minério dele chega a três continentes.'),
+ ('AUS_adv_costa','AUS','seguranca','Guardião da Costa','⚓',175,'Cais abertos de um oceano ao outro.');
+INSERT INTO advisor_effect VALUES ('AUS_adv_minas','industry',1.13);
+INSERT INTO advisor_effect VALUES ('AUS_adv_minas','export_price',1.1);
+INSERT INTO advisor_effect VALUES ('AUS_adv_costa','port_capacity',1.22);

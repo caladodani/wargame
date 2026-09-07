@@ -12,7 +12,10 @@ namespace WarGame.Core.Systems;
 /// sentado, multiplica os stats do país (advisor_effect). Quem não tiver com que lhe pagar vê-o sair pela
 /// porta — o gabinete de um país falido esvazia-se sozinho, por ordem de pasta, até as contas darem.
 ///
-/// Este sistema só trata da folha de salários e das saídas; nomear e demitir é dos comandos.</summary>
+/// Um conselheiro também ganha rodagem: quanto mais tempo serve, mais vale o que faz (World.CabinetTenure,
+/// regras advisor_tenure_days e advisor_tenure_bonus). Trocar de homem todos os meses é deitar isso fora.
+///
+/// Este sistema só trata da folha de salários, da rodagem e das saídas; nomear e demitir é dos comandos.</summary>
 public sealed class CabinetSystem : ISystem
 {
     public string Name => "Cabinet";
@@ -25,6 +28,7 @@ public sealed class CabinetSystem : ISystem
         foreach (var c in w.Countries.Values)
         {
             if (c.Cabinet.Count == 0) continue;
+            World.ApplyCabinet(w, c);                 // a rodagem cresce com os dias de casa: recontar todos os dias
             float wages = Wages(w, c);
             c.Money -= wages;
             if (c.Money >= 0f) continue;

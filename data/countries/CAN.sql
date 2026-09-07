@@ -95,3 +95,12 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('can_f35','can_francofonia');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('can_reserva','can_norad');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('CAN_adv_recursos','CAN','economia','Ministro dos Recursos','⛏',185,'Minas e florestas a render como fábricas.'),
+ ('CAN_adv_artico','CAN','seguranca','Patrulheiro do Árctico','❄',170,'O gelo não o atrasa.');
+INSERT INTO advisor_effect VALUES ('CAN_adv_recursos','industry',1.12);
+INSERT INTO advisor_effect VALUES ('CAN_adv_recursos','export_price',1.08);
+INSERT INTO advisor_effect VALUES ('CAN_adv_artico','move_speed',1.12);
+INSERT INTO advisor_effect VALUES ('CAN_adv_artico','defense',1.05);

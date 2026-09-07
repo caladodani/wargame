@@ -109,3 +109,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('tur_exportacao_defesa','tur_patria_azul');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('TUR_adv_estreitos','TUR','seguranca','Guardião dos Estreitos','⚓',180,'Quem passa, passa com licença dele.'),
+ ('TUR_adv_aparelhos','TUR','ciencia','Mestre dos Aparelhos Não Tripulados','🛩',190,'Oficinas pequenas com ideias grandes.');
+INSERT INTO advisor_effect VALUES ('TUR_adv_estreitos','port_capacity',1.2);
+INSERT INTO advisor_effect VALUES ('TUR_adv_estreitos','defense',1.06);
+INSERT INTO advisor_effect VALUES ('TUR_adv_aparelhos','research_speed',1.16);

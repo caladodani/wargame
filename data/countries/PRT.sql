@@ -120,3 +120,12 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('prt_nato','prt_lusofonia');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('prt_comandos','prt_atlantico');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('PRT_adv_estaleiros','PRT','economia','Mestre dos Estaleiros do Tejo','🛳',180,'Os cais dele despacham o dobro da carga.'),
+ ('PRT_adv_ultramar','PRT','seguranca','Veterano do Ultramar','🎖',175,'Fez guerra em três continentes e ensina-a.');
+INSERT INTO advisor_effect VALUES ('PRT_adv_estaleiros','port_capacity',1.25);
+INSERT INTO advisor_effect VALUES ('PRT_adv_estaleiros','industry',1.08);
+INSERT INTO advisor_effect VALUES ('PRT_adv_ultramar','org_regain',1.12);
+INSERT INTO advisor_effect VALUES ('PRT_adv_ultramar','defense',1.05);

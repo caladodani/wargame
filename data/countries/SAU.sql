@@ -99,3 +99,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('sau_gign','sau_neom');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('sau_academia_rei_khalid','sau_guarda_nacional');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('SAU_adv_petroleo','SAU','economia','Ministro do Petróleo','🛢',210,'Fixa o preço do mundo ao pequeno-almoço.'),
+ ('SAU_adv_guarda','SAU','seguranca','Comandante da Guarda Nacional','🎖',180,'Tropa fiel e sempre descansada.');
+INSERT INTO advisor_effect VALUES ('SAU_adv_petroleo','export_price',1.25);
+INSERT INTO advisor_effect VALUES ('SAU_adv_petroleo','industry',1.06);
+INSERT INTO advisor_effect VALUES ('SAU_adv_guarda','org_regain',1.12);

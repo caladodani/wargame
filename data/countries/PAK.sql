@@ -108,3 +108,10 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('pak_jf17','pak_spd');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('pak_forca_fronteira','pak_ciec');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('PAK_adv_canais','PAK','economia','Engenheiro dos Canais','💧',165,'Água onde não havia, fábricas a seguir.'),
+ ('PAK_adv_interarmas','PAK','seguranca','Chefe dos Serviços Inter-Armas','🕵',180,'Manda mais do que quem manda.');
+INSERT INTO advisor_effect VALUES ('PAK_adv_canais','industry',1.11);
+INSERT INTO advisor_effect VALUES ('PAK_adv_interarmas','counter_intel',1.3);

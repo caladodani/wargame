@@ -228,14 +228,28 @@ public sealed class World
     }
 
     /// <summary>Recalcula Country.CabinetMult a partir do gabinete em funções (após nomear, demitir ou
-    /// carregar um jogo). Uma pasta com um conselheiro que já não existe na BD não conta.</summary>
+    /// carregar um jogo, e todos os dias pelo CabinetSystem, que a rodagem cresce). Uma pasta com um
+    /// conselheiro que já não existe na BD não conta.</summary>
     public static void ApplyCabinet(World w, Country c)
     {
         c.CabinetMult.Clear();
-        foreach (var id in c.Cabinet.Values)
+        foreach (var (slot, id) in c.Cabinet)
             if (w.AdvisorDefs.TryGetValue(id, out var a))
+            {
+                // rodagem: o homem que já lá está há muito conhece a casa e o que faz vale mais
+                float factor = 1f + w.Rule("advisor_tenure_bonus", 0.5f) * CabinetTenure(w, c, slot);
                 foreach (var (key, mult) in a.Effects)
-                    c.CabinetMult[key] = c.CabinetMult.GetValueOrDefault(key, 1f) * mult;
+                    c.CabinetMult[key] = c.CabinetMult.GetValueOrDefault(key, 1f) * (1f + (mult - 1f) * factor);
+            }
+    }
+
+    /// <summary>Rodagem do conselheiro desta pasta, de 0 (chegou hoje) a 1 (casa conhecida): os dias de casa
+    /// sobre a regra advisor_tenure_days. Uma pasta vazia, ou um conselheiro sem data, dá 0.</summary>
+    public static float CabinetTenure(World w, Country c, string slot)
+    {
+        if (!c.CabinetSince.TryGetValue(slot, out int since)) return 0f;
+        float days = MathF.Max(1f, w.Rule("advisor_tenure_days", 365f));
+        return Math.Clamp((w.Clock.Day - since) / days, 0f, 1f);
     }
 
     /// <summary>Recalcula Country.TechMult a partir das tecnologias concluídas (chamar após LoadSave e ao concluir uma).</summary>

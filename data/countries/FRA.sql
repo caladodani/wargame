@@ -103,3 +103,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('fra_porte_avions','fra_legion');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('FRA_adv_plano','FRA','economia','Comissário do Plano','📐',190,'A economia inteira num caderno, e o caderno cumpre-se.'),
+ ('FRA_adv_atomico','FRA','ciencia','Director do Comissariado Atómico','⚛',200,'Laboratórios que não param nem aos domingos.');
+INSERT INTO advisor_effect VALUES ('FRA_adv_plano','industry',1.13);
+INSERT INTO advisor_effect VALUES ('FRA_adv_plano','production_speed',1.06);
+INSERT INTO advisor_effect VALUES ('FRA_adv_atomico','research_speed',1.22);

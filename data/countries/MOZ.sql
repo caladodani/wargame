@@ -94,3 +94,11 @@ INSERT INTO focus_effect (focus_id,stat_key,value) VALUES
 -- Árvore de focos: ramos que se excluem e o topo que exige as duas raízes (focus_link/focus_rival).
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('moz_industria_naval','moz_cabo_delgado');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('MOZ_adv_gas','MOZ','economia','Administrador do Gás','🔥',160,'O gás do norte paga o orçamento inteiro.'),
+ ('MOZ_adv_milicias','MOZ','seguranca','Chefe das Milícias Locais','🎖',150,'Arma quem conhece o mato.');
+INSERT INTO advisor_effect VALUES ('MOZ_adv_gas','export_price',1.2);
+INSERT INTO advisor_effect VALUES ('MOZ_adv_gas','industry',1.05);
+INSERT INTO advisor_effect VALUES ('MOZ_adv_milicias','conscription',1.14);

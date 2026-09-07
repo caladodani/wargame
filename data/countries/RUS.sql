@@ -104,3 +104,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('rus_complexo_militar_industrial','rus_academia_ciencias_militares');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('rus_defesa_territorial','rus_rearmamento_estatal');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('RUS_adv_gosplan','RUS','economia','Comissário do Plano Quinquenal','📊',200,'A meta é a meta, custe o que custar.'),
+ ('RUS_adv_orgaos','RUS','seguranca','Chefe dos Órgãos de Segurança','🕵',190,'Nenhum espião estrangeiro dorme descansado.');
+INSERT INTO advisor_effect VALUES ('RUS_adv_gosplan','industry',1.15);
+INSERT INTO advisor_effect VALUES ('RUS_adv_gosplan','conscription',1.08);
+INSERT INTO advisor_effect VALUES ('RUS_adv_orgaos','counter_intel',1.35);

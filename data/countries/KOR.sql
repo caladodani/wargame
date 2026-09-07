@@ -111,3 +111,11 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('kor_k_industria','kor_add_pesquisa');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('kor_reserva_mobilizavel','kor_juche_defesa');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('KOR_adv_chaebol','KOR','economia','Presidente do Chaebol','🏭',200,'Uma casa que faz navios, carros e canhões.'),
+ ('KOR_adv_semicondutores','KOR','ciencia','Director dos Semicondutores','💾',205,'Ninguém no mundo o acompanha na bancada.');
+INSERT INTO advisor_effect VALUES ('KOR_adv_chaebol','industry',1.15);
+INSERT INTO advisor_effect VALUES ('KOR_adv_chaebol','production_speed',1.06);
+INSERT INTO advisor_effect VALUES ('KOR_adv_semicondutores','research_speed',1.24);

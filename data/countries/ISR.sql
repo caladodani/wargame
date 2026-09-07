@@ -99,3 +99,10 @@ INSERT INTO focus_rival (focus_id,rival_id) VALUES
  ('isr_fronteira_sul','isr_forcas_especiais');
 INSERT INTO focus_link (focus_id,requires_id) VALUES
  ('isr_forcas_especiais','isr_doutrina_seguranca');
+
+-- ===== conselheiros próprios do gabinete civil (advisor.country_tag) =====
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
+ ('ISR_adv_servicos','ISR','seguranca','Chefe dos Serviços','🕵',200,'Sabe do inimigo antes de o inimigo saber.'),
+ ('ISR_adv_oficinas','ISR','ciencia','Fundador de Oficinas','💡',195,'Meia dúzia de homens e uma ideia por semana.');
+INSERT INTO advisor_effect VALUES ('ISR_adv_servicos','counter_intel',1.4);
+INSERT INTO advisor_effect VALUES ('ISR_adv_oficinas','research_speed',1.2);
