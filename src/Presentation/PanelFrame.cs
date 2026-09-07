@@ -24,6 +24,9 @@ public partial class PanelFrame : Control
     {
         var f = new PanelFrame { Name = "Frame", MouseFilter = MouseFilterEnum.Ignore, _loud = loud };
         f.SetAnchorsPreset(LayoutPreset.FullRect);
+        var g = new PanelGrain { Name = "Grain", MouseFilter = MouseFilterEnum.Ignore, ZIndex = -1 };
+        g.SetAnchorsPreset(LayoutPreset.FullRect);
+        f.AddChild(g);        // ZIndex −1 é relativo ao pai: o grão fica por baixo das cantoneiras
         panel.AddChild(f);
         return f;
     }
