@@ -51,6 +51,13 @@ public partial class Hud : CanvasLayer
     private DoctrinePanel _doctrines = null!;
     private AlertStrip _alerts = null!;
     private DefeatKlaxon _klaxon = null!;
+    private Sfx _sfx = null!;                      // banco de sons gerado em código
+    private Button _mute = null!;                  // altifalante da barra de topo
+    private PanelContainer _toastPlate = null!;    // chapa do timbre à esquerda do cartão do aviso
+    private Label _toastIcon = null!;
+    private ColorRect _toastClock = null!;         // barra que escoa os segundos do aviso
+    private StyleBoxFlat _toastSkin = null!;
+    private Sfx.Kind _toastKind = Sfx.Kind.None;
     private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
     private readonly List<IDisposable> _subs = new();
@@ -107,6 +114,7 @@ public partial class Hud : CanvasLayer
 
             // Depois da caixilharia: o cartaz do klaxon é de alarme e não leva cantoneiras de painel.
             _klaxon = new DefeatKlaxon(); AddChild(_klaxon); _klaxon.Setup();
+            _sfx = new Sfx { Name = "Sfx" }; AddChild(_sfx);   // as vozes fazem-se no _Ready dele
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
@@ -218,6 +226,10 @@ public partial class Hud : CanvasLayer
         tabs.AddChild(_offers);
         tabs.AddChild(Ui.Btn("Exércitos", () => _armyPanel.Open()));
         tabs.AddChild(Ui.Btn("Crónica", () => _journal.Open()));
+        // altifalante: o som é do jogo, não do telefone — desliga-se aqui e a chapa diz em que estado está
+        _mute = Ui.Btn("🔊", ToggleSound, 0, Ui.Kind.Normal);
+        _mute.TooltipText = "som dos avisos";
+        tabs.AddChild(_mute);
         tabs.AddChild(Ui.Btn("☰ Menu", () => _menu.Toggle()));
 
         stack.AddChild(Ui.Rule());                                    // risco de latão a fechar a chapa
@@ -262,8 +274,30 @@ public partial class Hud : CanvasLayer
         center.OffsetTop = 132; center.OffsetBottom = 192;   // a barra de topo tem duas linhas
         AddChild(center);
         _toastBox = new PanelContainer { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
-        _toastBox.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.92f }, 12));
-        _toast = Ui.Lbl("", 20); _toastBox.AddChild(_toast); center.AddChild(_toastBox);
+        _toastSkin = Ui.Box(Ui.Ink with { A = 0.94f }, 12);
+        _toastSkin.SetBorderWidthAll(2);
+        _toastSkin.BorderColor = Ui.Frame;
+        _toastBox.AddThemeStyleboxOverride("panel", _toastSkin);
+        // cartão de aviso à maneira do HoI4: chapa do timbre à esquerda, texto ao meio, e por baixo a barra
+        // que escoa os quatro segundos — quem olha de relance sabe o que é sem ler
+        var card = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        card.AddThemeConstantOverride("separation", 4);
+        var line = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        line.AddThemeConstantOverride("separation", 10);
+        _toastPlate = new PanelContainer { CustomMinimumSize = new Vector2(44, 44) };
+        _toastPlate.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface, 6));
+        _toastIcon = Ui.Lbl("•", 22);
+        _toastIcon.HorizontalAlignment = HorizontalAlignment.Center;
+        _toastIcon.VerticalAlignment = VerticalAlignment.Center;
+        _toastPlate.AddChild(_toastIcon);
+        line.AddChild(_toastPlate);
+        _toast = Ui.Lbl("", 20);
+        _toast.VerticalAlignment = VerticalAlignment.Center;
+        line.AddChild(Ui.Grow(_toast));
+        card.AddChild(line);
+        _toastClock = new ColorRect { CustomMinimumSize = new Vector2(0, 3), Color = Ui.Frame, MouseFilter = Control.MouseFilterEnum.Ignore };
+        card.AddChild(_toastClock);
+        _toastBox.AddChild(card); center.AddChild(_toastBox);
         _toastTimer = new Timer { WaitTime = 4, OneShot = true }; AddChild(_toastTimer);
         _toastTimer.Timeout += FadeOutToast;
 
@@ -300,18 +334,37 @@ public partial class Hud : CanvasLayer
         _slots.PopupCentered();
     }
 
-    public void Toast(string msg)
+    public void Toast(string msg) => Toast(msg, Sfx.Kind.Blip);
+
+    /// <summary>Aviso no ecrã, com a voz que lhe pertence: a chapa, a cor da moldura e o som saem todos do
+    /// mesmo Kind, para o olho e o ouvido dizerem a mesma coisa.</summary>
+    public void Toast(string msg, Sfx.Kind kind)
     {
         try
         {
             if (!IsInstanceValid(this) || !IsInsideTree()) return;
+            _toastKind = kind;
             _toast.Text = msg;
+            _toastIcon.Text = Sfx.Icon(kind);
+            var tint = Sfx.Tint(kind);
+            _toastIcon.AddThemeColorOverride("font_color", tint);
+            _toastSkin.BorderColor = tint with { A = 0.85f };
+            _toastClock.Color = tint;
             ShowToastBox();
             _toastTimer.Start();
+            _sfx?.Play(kind);
             _journal?.Add(msg);
             if (_smoke) GD.Print("toast: " + msg);
         }
         catch (Exception ex) { GD.PushError("Toast: " + ex); }
+    }
+
+    /// <summary>Liga e desliga o som dos avisos. O botão fica com a chapa do estado em que está.</summary>
+    private void ToggleSound()
+    {
+        _sfx.Muted = !_sfx.Muted;
+        _mute.Text = _sfx.Muted ? "🔇" : "🔊";
+        Toast(_sfx.Muted ? "Som desligado" : "Som ligado", _sfx.Muted ? Sfx.Kind.None : Sfx.Kind.Chime);
     }
 
     /// <summary>Entrada do toast: aparece a subir e a ganhar opacidade (0,18 s).</summary>
@@ -324,6 +377,10 @@ public partial class Hud : CanvasLayer
         _toastTween = CreateTween().SetParallel();
         _toastTween.TweenProperty(_toastBox, "modulate:a", 1f, 0.18);
         _toastTween.TweenProperty(_toastBox, "position:y", 0f, 0.18).SetTrans(Tween.TransitionType.Cubic);
+        // a barra de tempo escoa da esquerda para a direita ao ritmo do temporizador do aviso
+        _toastClock.PivotOffset = Vector2.Zero;
+        _toastClock.Scale = Vector2.One;
+        _toastTween.TweenProperty(_toastClock, "scale:x", 0f, _toastTimer.WaitTime).SetTrans(Tween.TransitionType.Linear);
     }
 
     /// <summary>Saída do toast: desvanece antes de desaparecer, para não piscar.</summary>
@@ -342,17 +399,17 @@ public partial class Hud : CanvasLayer
         var w = _game.World;
         _subs.Add(w.Events.Subscribe<WarDeclared>(e =>
         {
-            if (Player(e.Aggressor) || Player(e.Target)) Later($"{Country(e.Aggressor)} declarou guerra a {Country(e.Target)}");
+            if (Player(e.Aggressor) || Player(e.Target)) Later($"{Country(e.Aggressor)} declarou guerra a {Country(e.Target)}", Sfx.Kind.Drum);
         }));
         _subs.Add(w.Events.Subscribe<RegionCaptured>(e =>
         {
-            if (Player(e.NewController)) Later($"Capturaste {RegionName(e.RegionId)}");
-            else if (Player(e.OldController)) Later($"Perdeste {RegionName(e.RegionId)} para {Country(e.NewController)}");
+            if (Player(e.NewController)) Later($"Capturaste {RegionName(e.RegionId)}", Sfx.Kind.Chime);
+            else if (Player(e.OldController)) Later($"Perdeste {RegionName(e.RegionId)} para {Country(e.NewController)}", Sfx.Kind.Siren);
         }));
-        _subs.Add(w.Events.Subscribe<BattleStarted>(e => { if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}"); }));
+        _subs.Add(w.Events.Subscribe<BattleStarted>(e => { if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}", Sfx.Kind.Drum); }));
         _subs.Add(w.Events.Subscribe<BattleEnded>(e =>
         {
-            if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}: {(e.AttackerWon ? "atacante venceu" : "defesa aguentou")}");
+            if (Mine(e.RegionId)) Later($"Batalha em {RegionName(e.RegionId)}: {(e.AttackerWon ? "atacante venceu" : "defesa aguentou")}", Sfx.Kind.Drum);
         }));
         _subs.Add(w.Events.Subscribe<BattleLost>(e =>
         {
@@ -363,41 +420,41 @@ public partial class Hud : CanvasLayer
         }));
         _subs.Add(w.Events.Subscribe<TechResearched>(e =>
         {
-            if (Player(e.CountryId)) Later($"Investigação concluída: {(w.Techs.TryGetValue(e.TechId, out var t) ? t.Name : e.TechId)}");
+            if (Player(e.CountryId)) Later($"Investigação concluída: {(w.Techs.TryGetValue(e.TechId, out var t) ? t.Name : e.TechId)}", Sfx.Kind.Bell);
         }));
         _subs.Add(w.Events.Subscribe<NukeStruck>(e =>
-            Later($"☢ {Country(e.AttackerId)} lançou uma ogiva sobre {RegionName(e.RegionId)} ({Country(e.TargetCountryId)})")));
+            Later($"☢ {Country(e.AttackerId)} lançou uma ogiva sobre {RegionName(e.RegionId)} ({Country(e.TargetCountryId)})", Sfx.Kind.Siren)));
         _subs.Add(w.Events.Subscribe<DivisionDestroyed>(e =>
         {
             if (!w.Divisions.TryGetValue(e.DivisionId, out var d) || !Player(d.CountryId)) return;
             string name; try { name = w.Units.GetTemplate(d.TemplateId).Name; } catch { name = "divisão"; }
-            Later($"{name} destruída em {RegionName(d.RegionId)}");
+            Later($"{name} destruída em {RegionName(d.RegionId)}", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<NewsFired>(e =>
         {
             if (w.NewsEvents.TryGetValue(e.EventId, out var n) && (n.CountryId is null || Player(n.CountryId.Value)))
-                Later($"📰 {n.Title} — {n.Body}");
+                Later($"📰 {n.Title} — {n.Body}", Sfx.Kind.Bell);
         }));
         _subs.Add(w.Events.Subscribe<NewsChoiceRequired>(e =>
             Callable.From(() => ShowNewsChoice(e.EventId)).CallDeferred()));
         _subs.Add(w.Events.Subscribe<WarJustifyStarted>(e =>
         {
-            if (Player(e.TargetCountryId)) Later($"{Country(e.CountryId)} está a justificar guerra contra ti!");
+            if (Player(e.TargetCountryId)) Later($"{Country(e.CountryId)} está a justificar guerra contra ti!", Sfx.Kind.Siren);
             else if (Player(e.CountryId)) Later($"A justificar guerra contra {Country(e.TargetCountryId)}");
         }));
         _subs.Add(w.Events.Subscribe<FocusCompleted>(e =>
         {
-            if (Player(e.CountryId)) Later($"Foco concluído: {(w.Focuses.TryGetValue(e.FocusId, out var f) ? f.Name : e.FocusId)}");
+            if (Player(e.CountryId)) Later($"Foco concluído: {(w.Focuses.TryGetValue(e.FocusId, out var f) ? f.Name : e.FocusId)}", Sfx.Kind.Chime);
         }));
         _subs.Add(w.Events.Subscribe<FactionJoinedWar>(e =>
         {
             if (Player(e.MemberCountryId) || Player(e.AgainstCountryId) || _game.PlayerId is int p2 && w.AreAtWar(p2, e.AgainstCountryId))
-                Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)");
+                Later($"{Country(e.MemberCountryId)} entrou na guerra contra {Country(e.AgainstCountryId)} (facção)", Sfx.Kind.Drum);
         }));
         _subs.Add(w.Events.Subscribe<InfrastructureBuilt>(e =>
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
-                Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})");
+                Later($"Infraestrutura melhorada em {r.Name} (×{r.Infrastructure:0.00})", Sfx.Kind.Coin);
         }));
         _subs.Add(w.Events.Subscribe<DecisionExpired>(e =>
         {
@@ -414,11 +471,11 @@ public partial class Hud : CanvasLayer
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p
                 && _game.World.BuildingDefs.TryGetValue(e.BuildingId, out var bd))
-                Later($"{bd.Name} nível {e.Level} em {r.Name}");
+                Later($"{bd.Name} nível {e.Level} em {r.Name}", Sfx.Kind.Coin);
         }));
         _subs.Add(w.Events.Subscribe<PeaceOfferRejected>(e =>
         {
-            if (Player(e.FromCountryId)) Later($"{Country(e.ToCountryId)} recusou a paz — ainda acha que ganha");
+            if (Player(e.FromCountryId)) Later($"{Country(e.ToCountryId)} recusou a paz — ainda acha que ganha", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<MoneyTransferred>(e =>
         {
@@ -427,7 +484,7 @@ public partial class Hud : CanvasLayer
         }));
         _subs.Add(w.Events.Subscribe<PactSigned>(e =>
         {
-            if (Player(e.A) || Player(e.B)) Later($"Pacto de não-agressão com {Country(Player(e.A) ? e.B : e.A)} até ao dia {e.UntilDay}");
+            if (Player(e.A) || Player(e.B)) Later($"Pacto de não-agressão com {Country(Player(e.A) ? e.B : e.A)} até ao dia {e.UntilDay}", Sfx.Kind.Chime);
         }));
         _subs.Add(w.Events.Subscribe<PactRejected>(e =>
         {
@@ -436,7 +493,7 @@ public partial class Hud : CanvasLayer
         _subs.Add(w.Events.Subscribe<BattleRetreat>(e =>
         {
             if (Player(e.CountryId) && _game.World.Regions.TryGetValue(e.RegionId, out var r))
-                Later($"{e.Divisions} divisões retiraram de {r.Name}");
+                Later($"{e.Divisions} divisões retiraram de {r.Name}", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<SpyOpStarted>(e =>
         {
@@ -447,12 +504,12 @@ public partial class Hud : CanvasLayer
         {
             var op = _game.World.SpyOps.GetValueOrDefault(e.OpId);
             if (Player(e.CountryId)) Later($"Operação \"{op?.Name ?? e.OpId}\" concluída contra {Country(e.TargetCountryId)}");
-            else if (Player(e.TargetCountryId)) Later($"Fomos alvo de espionagem: {op?.Name ?? e.OpId} ({Country(e.CountryId)})");
+            else if (Player(e.TargetCountryId)) Later($"Fomos alvo de espionagem: {op?.Name ?? e.OpId} ({Country(e.CountryId)})", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<FortBuilt>(e =>
         {
             if (_game.PlayerId is int p && _game.World.Regions.TryGetValue(e.RegionId, out var r) && r.OwnerId == p)
-                Later($"Fortificação nível {e.Level} em {r.Name}");
+                Later($"Fortificação nível {e.Level} em {r.Name}", Sfx.Kind.Coin);
         }));
         _subs.Add(w.Events.Subscribe<TradeDealCreated>(e =>
         {
@@ -471,11 +528,11 @@ public partial class Hud : CanvasLayer
         {
             if (_game.PlayerId is not int p || !w.Regions.TryGetValue(e.RegionId, out var r)) return;
             if (r.OwnerId == p) Later($"{r.Name} revoltou-se e voltou para nós");
-            else if (e.OldController == p) Later($"Perdemos {r.Name} para uma revolta popular");
+            else if (e.OldController == p) Later($"Perdemos {r.Name} para uma revolta popular", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<LawChanged>(e =>
         {
-            if (Player(e.CountryId) && w.Laws.TryGetValue(e.LawId, out var l)) Later($"Nova lei: {l.Name}");
+            if (Player(e.CountryId) && w.Laws.TryGetValue(e.LawId, out var l)) Later($"Nova lei: {l.Name}", Sfx.Kind.Chime);
         }));
         _subs.Add(w.Events.Subscribe<FactionCreated>(e =>
         {
@@ -507,8 +564,8 @@ public partial class Hud : CanvasLayer
         _subs.Add(w.Events.Subscribe<PeaceSigned>(e =>
         {
             _negotiated.Add((e.Winner, e.Loser));
-            if (Player(e.Winner)) Later($"🕊 Paz com {Country(e.Loser)} — ficas com {e.Regions} regiões");
-            else if (Player(e.Loser)) Later($"🕊 Paz com {Country(e.Winner)} — cedes-lhe {e.Regions} regiões");
+            if (Player(e.Winner)) Later($"🕊 Paz com {Country(e.Loser)} — ficas com {e.Regions} regiões", Sfx.Kind.Fanfare);
+            else if (Player(e.Loser)) Later($"🕊 Paz com {Country(e.Winner)} — cedes-lhe {e.Regions} regiões", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<WarEnded>(e =>
         {
@@ -525,7 +582,7 @@ public partial class Hud : CanvasLayer
         }));
         _subs.Add(w.Events.Subscribe<WarGoalAchieved>(e =>
         {
-            if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz");
+            if (Player(e.CountryId)) Later($"🎯 Objectivo cumprido contra {Country(e.TargetCountryId)} — dá para exigir a paz", Sfx.Kind.Chime);
             else if (Player(e.TargetCountryId)) Later($"⚠ {Country(e.CountryId)} já tem o que veio buscar");
         }));
         // Tabela mundial: só o lugar do jogador, e só quando ele muda mesmo (a contagem é de dias a dias).
@@ -539,7 +596,7 @@ public partial class Hud : CanvasLayer
         _subs.Add(w.Events.Subscribe<GeneralPromoted>(e =>
         {
             if (!Player(e.CountryId) || !w.GeneralDefs.TryGetValue(e.GeneralId, out var gdef)) return;
-            Later($"🎖 {gdef.Name} promovido a {e.RankName}");
+            Later($"🎖 {gdef.Name} promovido a {e.RankName}", Sfx.Kind.Fanfare);
         }));
         // Condecoração: só as do jogador, e só as de peso (as primeiras chegam às centenas num exército grande).
         _subs.Add(w.Events.Subscribe<MedalAwarded>(e =>
@@ -547,7 +604,7 @@ public partial class Hud : CanvasLayer
             if (!Player(e.CountryId) || !w.MedalDefs.TryGetValue(e.MedalId, out var m) || m.Sort < 3) return;
             string unit = w.Divisions.TryGetValue(e.DivisionId, out var d)
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
-            Later($"🎖 {unit}: {m.Name}");
+            Later($"🎖 {unit}: {m.Name}", Sfx.Kind.Fanfare);
         }));
         // Nome de guerra: uma divisão só ganha honra umas poucas vezes por campanha — vai toda para as notícias.
         _subs.Add(w.Events.Subscribe<DivisionHonoured>(e =>
@@ -555,7 +612,7 @@ public partial class Hud : CanvasLayer
             if (!Player(e.CountryId)) return;
             string unit = w.Divisions.TryGetValue(e.DivisionId, out var d)
                 ? d.Name ?? SafeTemplate(w, d) : "Divisão " + e.DivisionId;
-            Later($"▮ {unit} passa a chamar-se «{e.Title}»");
+            Later($"▮ {unit} passa a chamar-se «{e.Title}»", Sfx.Kind.Fanfare);
         }));
         // Prisioneiros: só as levas grandes (uma divisão desfeita por dia numa guerra grande enche o ecrã).
         _subs.Add(w.Events.Subscribe<PrisonersTaken>(e =>
@@ -563,7 +620,7 @@ public partial class Hud : CanvasLayer
             if (e.Men < (int)w.Rule("prisoner_news_men", 20000f)) return;
             string foe = w.Countries.TryGetValue(e.FromCountryId, out var fc) ? fc.Name : "o inimigo";
             if (Player(e.CaptorId)) Later($"⛓ {e.Men:N0} prisioneiros de {foe} nas nossas mãos");
-            else if (Player(e.FromCountryId)) Later($"⛓ {e.Men:N0} dos nossos caem prisioneiros");
+            else if (Player(e.FromCountryId)) Later($"⛓ {e.Men:N0} dos nossos caem prisioneiros", Sfx.Kind.Siren);
         }));
         // Propostas do outro lado: a IA bate à porta e o jogador tem de responder alguma coisa.
         _subs.Add(w.Events.Subscribe<OfferMade>(e =>
@@ -595,7 +652,7 @@ public partial class Hud : CanvasLayer
         // Sabotagem na retaguarda: interessa quando é nossa ou quando é contra nós.
         _subs.Add(w.Events.Subscribe<RegionSabotaged>(e =>
         {
-            if (Player(e.CountryId)) Later($"💥 Sabotagem nossa: {e.Damage}");
+            if (Player(e.CountryId)) Later($"💥 Sabotagem nossa: {e.Damage}", Sfx.Kind.Coin);
             else if (Player(e.TargetCountryId)) Later($"💥 Sabotagem inimiga na retaguarda: {e.Damage}");
         }));
         _subs.Add(w.Events.Subscribe<SabotageFoiled>(e =>
@@ -648,8 +705,8 @@ public partial class Hud : CanvasLayer
         _subs.Add(w.Events.Subscribe<CountryCapitulated>(e =>
         {
             if (Player(e.CountryId)) Callable.From(() => _end.Show(CampaignReport.Defeat)).CallDeferred();
-            else if (Player(e.WinnerId)) Later($"Vitória! {Country(e.CountryId)} capitulou — as regiões dele são tuas");
-            else Later($"{Country(e.CountryId)} capitulou! Regiões passam para {Country(e.WinnerId)}");
+            else if (Player(e.WinnerId)) Later($"Vitória! {Country(e.CountryId)} capitulou — as regiões dele são tuas", Sfx.Kind.Fanfare);
+            else Later($"{Country(e.CountryId)} capitulou! Regiões passam para {Country(e.WinnerId)}", Sfx.Kind.Siren);
         }));
         _subs.Add(w.Events.Subscribe<WorldDominated>(e => Callable.From(() =>
         {
@@ -700,7 +757,8 @@ public partial class Hud : CanvasLayer
 
 
 
-    private void Later(string msg) => Callable.From(() => Toast(msg)).CallDeferred();
+    private void Later(string msg) => Later(msg, Sfx.Kind.Blip);
+    private void Later(string msg, Sfx.Kind kind) => Callable.From(() => Toast(msg, kind)).CallDeferred();
     private bool Player(int countryId) => _game.PlayerId == countryId;
     /// <summary>Põe a proposta do inimigo à frente do jogador: um Sim/Não com os números do dia. Recusar
     /// não é castigo nenhum — a proposta sai da mesa e eles voltam a insistir mais tarde. Quem quiser
@@ -1191,7 +1249,15 @@ public partial class Hud : CanvasLayer
         var lanes = _map.Convoys.Smoke();                                 // rotas de comboio tracejadas no mapa
         var line = _map.Fronts.Smoke();                                   // e a linha da frente, com dentes e buracos
         var theatres = TheatreSystem.Of(w, pid);                          // os teatros que o painel da Guerra mostra
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, estado-maior de {c.Generals.Count} (de casa: {ourGeneral}), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
+        // sonoplastia: um aviso com voz de fanfarra (para o cartão apanhar chapa, moldura e barra de tempo),
+        // depois a caixa toda de vozes e o botão do altifalante a calar e a voltar
+        Toast("Prova de sonoplastia", Sfx.Kind.Fanfare);
+        string plate = $"{_toastIcon.Text} {Sfx.Voice(_toastKind)}";
+        string bank = _sfx.Smoke();
+        ToggleSound(); bool hushed = _sfx.Muted; ToggleSound();
+        string sound = $"{bank}, cartão com a chapa {plate}, "
+                     + $"altifalante {(hushed && !_sfx.Muted ? "cala e volta" : "preso")}";
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, estado-maior de {c.Generals.Count} (de casa: {ourGeneral}), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente, {line.Holes} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0})");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
