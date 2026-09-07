@@ -23,6 +23,8 @@ public partial class MainMenuScreen : Control
     private Game _game = null!;
     private ScrollContainer _scroll = null!;
     private VBoxContainer _body = null!, _stack = null!, _rowsBox = null!;
+    private Control? _title;
+    private Label _titleName = null!, _titleTag = null!;
     private LineEdit _search = null!;
 
     private enum Step { Country, Difficulty }
@@ -31,7 +33,27 @@ public partial class MainMenuScreen : Control
     private int? _chosenCountry;
     private string _chosenDifficulty = "normal";
 
-    private const float Wide = 480f;
+    /// <summary>Em paisagem o cartão não passa disto: um menu com 1400 de largo e uma linha de país por
+    /// linha ficava uma tira de texto perdida no meio do ecrã.</summary>
+    private const float WideMax = 560f;
+
+    private const int Margin = 20;   // respiro entre o cartão e a borda do ecrã
+    private const int CardPad = 16;  // moldura do PanelContainer (Ui.Box), de cada lado
+
+    /// <summary>Largura útil do conteúdo do cartão, tirada do ecrã e não de um número fixo — e lida na hora,
+    /// que rodar o telemóvel muda-a. Em retrato leva a largura toda menos as margens e a moldura (com o 480
+    /// fixo de antes, num viewport de 1152 sobravam 320 de vazio de cada lado e o menu parecia um cartão de
+    /// visita); em paisagem trava no WideMax e fica centrado. Descontar a moldura é o que impede o cartão de
+    /// ficar 32 mais largo do que o ecrã: o que se mede aqui é o miolo, não o painel.</summary>
+    private float Wide
+    {
+        get
+        {
+            var v = GetViewportRect().Size;
+            float cabe = MathF.Max(240f, v.X - 2 * (Margin + CardPad));
+            return v.Y > v.X ? cabe : MathF.Min(WideMax, cabe);
+        }
+    }
 
     public override void _Ready()
     {
@@ -49,22 +71,42 @@ public partial class MainMenuScreen : Control
             backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
             AddChild(backdrop);
 
-            var title = new VBoxContainer();
-            title.SetAnchorsPreset(LayoutPreset.CenterTop);
-            title.AddThemeConstantOverride("separation", 2);
-            var name = Ui.Lbl("WARGAME", 34); name.AddThemeColorOverride("font_color", Ui.Accent); title.AddChild(name);
-            var tag = Ui.Lbl("uma campanha por escolher", 15); title.AddChild(tag);
-            AddChild(title);
-            title.Position = new Vector2(-title.GetCombinedMinimumSize().X / 2f, 48);
+            // Tudo dentro de contentores, sem contas de posição à mão. Antes o título levava
+            // Position = (-largura/2, 48) — e Position é o canto superior esquerdo em coordenadas do pai, não
+            // um deslocamento a partir da âncora: ia parar a x negativo e via-se "AME". O cartão levava
+            // SetAnchorsAndOffsetsPreset(Center) enquanto ainda media 0, o que lhe pregava o canto ao meio do
+            // ecrã e o fazia crescer para fora pela direita. Num ecrã largo quase não se notava; em retrato era
+            // metade do menu de fora.
+            var margin = new MarginContainer();
+            margin.SetAnchorsPreset(LayoutPreset.FullRect);
+            foreach (var side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+                margin.AddThemeConstantOverride(side, Margin);
+            AddChild(margin);
 
-            var card = new PanelContainer();
-            card.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-            card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.07f, 0.08f, 0.11f, 0.99f), 16));
-            AddChild(card);
+            var column = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+            column.AddThemeConstantOverride("separation", 24);
+            margin.AddChild(column);
+
+            var title = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+            title.AddThemeConstantOverride("separation", 2);
+            var name = Ui.Lbl("WARGAME"); name.AddThemeColorOverride("font_color", Ui.Accent);
+            name.HorizontalAlignment = HorizontalAlignment.Center; title.AddChild(name);
+            var tag = Ui.Lbl("uma campanha por escolher");
+            tag.HorizontalAlignment = HorizontalAlignment.Center; title.AddChild(tag);
+            _titleName = name; _titleTag = tag;
+            column.AddChild(title);
+            _title = title;
+
+            var card = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+            card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.07f, 0.08f, 0.11f, 0.99f), CardPad));
+            column.AddChild(card);
+
+            // Rodar o ecrã muda a largura que cabe e a altura que sobra para a lista.
+            GetViewport().SizeChanged += OnResize;
 
             _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
             card.AddChild(_scroll);
-            var v = new VBoxContainer { CustomMinimumSize = new Vector2(Wide, 0) };
+            var v = new VBoxContainer();
             v.AddThemeConstantOverride("separation", 10);
             v.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             _scroll.AddChild(v);
@@ -80,10 +122,30 @@ public partial class MainMenuScreen : Control
         catch (Exception ex) { GD.PushError("MainMenuScreen._Ready: " + ex); }
     }
 
+    /// <summary>Altura livre para o cartão: o que sobra do ecrã depois do título e das margens. Sem isto a
+    /// lista de 235 países empurrava o título para fora do ecrã em vez de rolar dentro do cartão.</summary>
     private void Fit()
     {
+        float wide = Wide;
+        // O título acompanha o cartão em vez de ficar preso a 34: num ecrã de telemóvel ao alto isso dava
+        // um letreiro do tamanho de uma etiqueta em cima de um painel que ocupa o ecrã todo.
+        int fs = (int)Math.Clamp(wide / 13f, 30f, 64f);
+        _titleName.AddThemeFontSizeOverride("font_size", fs);
+        _titleTag.AddThemeFontSizeOverride("font_size", (int)Math.Clamp(fs / 2.2f, 14f, 26f));
+
+        _stack.CustomMinimumSize = new Vector2(wide, 0);
         float tall = _stack.GetCombinedMinimumSize().Y;
-        _scroll.CustomMinimumSize = new Vector2(Wide, MathF.Min(tall, GetViewportRect().Size.Y * 0.8f));
+        float livre = GetViewportRect().Size.Y - (_title?.GetCombinedMinimumSize().Y ?? 0f) - 120f;
+        _scroll.CustomMinimumSize = new Vector2(wide, MathF.Min(tall, MathF.Max(200f, livre)));
+    }
+
+    /// <summary>Ecrã rodado ou janela mudada: a largura que cabe é outra. Na lista chega ajustar (refazê-la
+    /// perdia o que estivesse escrito na pesquisa); na dificuldade refaz-se, que o texto das linhas é
+    /// quebrado à largura do cartão.</summary>
+    private void OnResize()
+    {
+        if (_stack is null) return;
+        if (_step == Step.Difficulty) Fill(); else Fit();
     }
 
     private void Fill()
