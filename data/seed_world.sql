@@ -140,6 +140,15 @@ INSERT INTO rule (key,value,note) VALUES
  ('fort_build_days',20,'dias de obra por nível'),
  ('fort_defense_per_level',0.15,'bónus de força dos defensores por nível');
 
+-- Entrincheiramento (EntrenchSystem): a tropa parada cava, e o que cavou só vale a defender. Marchar zera,
+-- assaltar gasta, e o forte da região levanta o tecto do que ali se pode cavar.
+INSERT INTO rule (key,value,note) VALUES
+ ('entrench_per_day',0.5,'degraus de trincheira ganhos por dia parado'),
+ ('entrench_max',5,'tecto de trincheira em campo aberto'),
+ ('entrench_per_fort',1,'degraus a mais no tecto por nível de forte'),
+ ('entrench_defense_per_level',0.06,'bónus de força a defender por degrau'),
+ ('entrench_attack_loss',1.5,'degraus perdidos por dia de assalto');
+
 -- Largura de frente (Frontage + CombatSystem): quantas divisões de cada lado tocam no inimigo por dia. O que
 -- não cabe fica em reserva, sem bater nem apanhar, e rende a linha quando ela se parte. Terreno sem regra
 -- própria usa front_width.

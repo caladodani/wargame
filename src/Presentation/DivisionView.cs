@@ -95,6 +95,14 @@ public static class DivisionView
         var sup = Ui.Lbl($"Sup {d.Supply:0.0}", 15);
         if (d.Supply < 1f) sup.AddThemeColorOverride("font_color", Ui.Danger);
         h.AddChild(sup);
+        // trincheira: o que os dias de mãos quietas neste chão já valem a defender (EntrenchSystem)
+        if (d.Entrench > 0f)
+        {
+            var dug = Ui.Lbl($"⛏ {d.Entrench:0.#}  (+{EntrenchSystem.Bonus(w, d) - 1f:P0} a defender)", 15);
+            dug.AddThemeColorOverride("font_color", new Color(0.85f, 0.75f, 0.45f));
+            dug.TooltipText = $"cava-se {w.Rule("entrench_per_day", 0.5f):0.#} por dia parado, até {EntrenchSystem.Max(w, d):0.#} nesta região; marchar perde tudo";
+            h.AddChild(dug);
+        }
         return h;
     }
 

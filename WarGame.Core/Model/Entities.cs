@@ -412,6 +412,9 @@ public sealed class Division
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;
     public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
+    /// <summary>Trincheira cavada nesta posição (0..entrench_max + fortes): sobe a cada dia parado, zera ao
+    /// mudar de região e gasta-se a assaltar. Só conta a defender (EntrenchSystem).</summary>
+    public float Entrench { get; set; }
     /// <summary>Batalhas em que esteve e de que saiu viva (CombatSystem, ao fechar a batalha).</summary>
     public int Battles { get; set; }
     /// <summary>Regiões inimigas que tomou, por assalto ou entrando em região vazia.</summary>

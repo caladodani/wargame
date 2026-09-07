@@ -314,6 +314,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_general", "wound_until", "INTEGER NOT NULL DEFAULT 0"),
         ("s_army_group", "planning", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "army_xp", "REAL NOT NULL DEFAULT 0"),
+        ("s_division", "entrench", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -443,7 +444,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -456,6 +457,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["battles"] is not null) d.Battles = Convert.ToInt32(r["battles"]);
             if (r["captures"] is not null) d.Captures = Convert.ToInt32(r["captures"]);
             if (r["honour"] is string hon && hon.Length > 0) { d.Honour = hon; d.HonourName = r["honour_name"] as string; }
+            if (r["entrench"] is not null) d.Entrench = Convert.ToSingle(r["entrench"]);
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
@@ -627,10 +629,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var d in w.Divisions.Values)
         {
             // colunas nomeadas: a tabela cresce por migração e um INSERT posicional partia-se à coluna seguinte
-            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
-                d.Battles, d.Captures, d.Honour, d.HonourName);
+                d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
         }

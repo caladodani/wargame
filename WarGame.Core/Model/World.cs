@@ -467,6 +467,7 @@ public sealed class World
     /// <summary>Muda a divisão de região (sem custo nem regras — MovementSystem decide quando).</summary>
     public void PlaceDivision(Division d, int regionId)
     {
+        if (d.RegionId != regionId) d.Entrench = 0f;   // trincheira não se leva às costas
         Regions[d.RegionId].DivisionIds.Remove(d.Id);
         d.RegionId = regionId;
         Regions[regionId].DivisionIds.Add(d.Id);

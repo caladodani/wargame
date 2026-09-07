@@ -34,7 +34,13 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, Tween> _pulses = new();        // região em batalha → animação do marcador
     private readonly Dictionary<int, float> _area = new();          // região → área do polígono (peso do centróide do país)
     private readonly Dictionary<int, Node2D> _countryNames = new();  // país → etiqueta com o nome no mapa
+    private readonly Dictionary<int, UnitCounter> _counters = new();  // região → contador NATO (só de perto)
+    /// <summary>Zoom a partir do qual os contadores substituem o número da pastilha: de longe o mapa é
+    /// político e não militar, e cem caixas ao mesmo tempo não se leem.</summary>
+    private const float CounterZoom = 0.7f;
+    private bool _countersOn;
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
+    private Node2D _counterRoot = null!;
     private Node2D _frontierRoot = null!;
     private float _zoom = 1f;
     // Modo de mapa (MapModes): o político pinta pelo controlador, os outros pela conta escolhida.
@@ -79,6 +85,7 @@ public partial class RegionRenderer : Node2D
         _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
         _nameRoot = new Node2D { Name = "CountryNames", Modulate = new Color(1, 1, 1, 0.9f) }; AddChild(_nameRoot);
         _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);   // números por cima dos nomes
+        _counterRoot = new Node2D { Name = "Counters", Visible = false }; AddChild(_counterRoot);   // e os contadores por cima de tudo
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
         // Capitulação transfere regiões em bloco sem RegionCaptured — pinta tudo de novo.
         game.World.Events.Subscribe<CountryCapitulated>(_ => Callable.From(RecolorAll).CallDeferred());
@@ -372,6 +379,11 @@ public partial class RegionRenderer : Node2D
         _zoom = zoom;
         _markerScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var m in _markers.Values) m.Scale = Vector2.One * _markerScale;
+        foreach (var c in _counters.Values) c.Scale = Vector2.One * _markerScale;
+        // cruzar o limiar troca a leitura do mapa: os contadores acendem e a pastilha larga o número
+        bool on = zoom >= CounterZoom;
+        _counterRoot.Visible = on;
+        if (on != _countersOn) { _countersOn = on; Refresh(); }
         foreach (var n in _countryNames.Values)
         {
             n.Scale = Vector2.One * _markerScale;
@@ -412,7 +424,7 @@ public partial class RegionRenderer : Node2D
                 label.Text = (goal ? GoalMark : "")
                            + (capital ? CapitalMark : "")
                            + (fighting ? BattleMark : "")
-                           + (shown > 0 ? shown.ToString() : "")
+                           + (shown > 0 && !_countersOn ? shown.ToString() : "")   // de perto, quem conta é o contador
                            + (r.Fort > 0 ? FortMark : "")
                            + (port ? PortMark : "")
                            + (resisting ? ResistMark : "");
@@ -420,13 +432,52 @@ public partial class RegionRenderer : Node2D
                 pill.AddThemeStyleboxOverride("panel", PillFor(r.ControllerId));
                 Pulse(r.Id, pill, fighting);
                 m.Visible = true;
+                if (_countersOn && shown > 0) FillCounter(w, r, shown);
+                else if (_counters.TryGetValue(r.Id, out var off)) off.Visible = false;
             }
             foreach (var (id, m) in _markers)
                 if (!seen.Contains(id)) { m.Visible = false; Pulse(id, null, false); }
+            foreach (var (id, ct) in _counters)
+                if (!seen.Contains(id)) ct.Visible = false;
             RefreshCountryNames(w);
         }
         catch (Exception ex) { GD.PushError("RegionRenderer.Refresh: " + ex); }
     }
+
+    /// <summary>Enche o contador desta região com a maior força que lá está: cor e bandeira do dono, símbolo
+    /// do tipo de tropa, quantas divisões, e — só se a tropa for nossa ou de aliado — o estado em que ela
+    /// está. Do inimigo vê-se o que se vê de fora: quantos são e de que género, nunca as barras.</summary>
+    private void FillCounter(World w, Region r, int shown)
+    {
+        var divs = r.DivisionIds.Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>().ToList();
+        if (divs.Count == 0) { if (_counters.TryGetValue(r.Id, out var none)) none.Visible = false; return; }
+        // a maior pilha manda no contador; empate desempata pelo id, para a caixa não andar aos saltos
+        var group = divs.GroupBy(d => d.CountryId).OrderByDescending(g => g.Count()).ThenBy(g => g.Key).First().ToList();
+        int owner = group[0].CountryId;
+        bool known = _game.PlayerId is int pid && (owner == pid || w.SameFaction(pid, owner));
+
+        var tags = new HashSet<string>();
+        try { foreach (string t in w.Stats.Get(group[0].TemplateId).Tags) tags.Add(t); } catch { /* modelo sem etiquetas */ }
+
+        if (!_counters.TryGetValue(r.Id, out var counter))
+        {
+            _counters[r.Id] = counter = new UnitCounter { Scale = Vector2.One * _markerScale };
+            _counterRoot.AddChild(counter);
+        }
+        counter.Position = new Vector2(r.CenterX, r.CenterY);
+        counter.Set(_countryColor.GetValueOrDefault(owner, Colors.Gray),
+                    w.Countries.TryGetValue(owner, out var oc) ? Flags.Of(oc.Tag) : null,
+                    UnitCounter.KindOf(tags),
+                    known ? group.Count : shown,
+                    group.Average(d => d.Org) / 100f,
+                    group.Average(d => d.Hp) / 100f,
+                    known ? group.Average(d => d.Entrench) : 0f,
+                    known);
+        counter.Visible = true;
+    }
+
+    /// <summary>--smoke: quantos contadores estão desenhados no mapa (o zoom de perto tem de estar ligado).</summary>
+    public int Counters() => _counters.Values.Count(c => c.Visible);
 
     /// <summary>Nome de cada país escrito por cima do território que controla, no centro de gravidade das
     /// regiões dele (pesadas pela área, para o nome cair na massa principal e não num arquipélago).
