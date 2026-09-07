@@ -295,7 +295,16 @@ INSERT INTO rule (key,value,note) VALUES
  ('ai_retreat_ratio',0.25,'limiar de org relativa abaixo do qual a IA retira da batalha');
 
 -- Comércio de recursos (TradeSystem)
-INSERT INTO rule VALUES ('trade_price_per_unit', 2, 'pontos por dia por unidade de recurso alugada');
+INSERT INTO rule VALUES ('trade_price_per_unit', 2, 'preço de tabela por unidade de recurso alugada');
+-- Mercado de recursos (TradeSystem.Price): o preço sobe com o que o vendedor já prometeu a terceiros e com
+-- a guerra dele; o contrato trava-o até ao fim do prazo.
+INSERT INTO rule (key,value,note) VALUES
+ ('trade_price_scarcity',1.5,'peso da fatia já vendida no preço do vendedor'),
+ ('trade_war_premium',1.4,'prémio de quem vende a meio de uma guerra'),
+ ('trade_price_min',1,'chão do preço por unidade'),
+ ('trade_price_max',12,'tecto do preço por unidade'),
+ ('trade_deal_days',180,'prazo de um tratado longo, em dias'),
+ ('trade_deal_deposit_days',10,'dias de contrato que o cofre tem de cobrir à assinatura');
 
 -- Reserva de dinheiro abaixo da qual a IA não propõe pactos de não-agressão.
 INSERT INTO rule (key,value,note) VALUES

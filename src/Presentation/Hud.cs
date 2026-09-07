@@ -56,6 +56,7 @@ public partial class Hud : CanvasLayer
     private readonly HashSet<(int, int)> _whitePeace = new();   // guerras fechadas por paz branca (o WarEnded seguinte muda o toast)
     private readonly HashSet<(int, int)> _negotiated = new();   // idem para a paz negociada: a notícia sai no PeaceSigned
     private bool _smoke, _smoked;
+    private int _frames;                                        // painéis vestidos com a moldura de metal
     private ulong _backAt;   // Time.GetTicksMsec do último "voltar" sem painel aberto
 
     public override void _Ready()
@@ -98,6 +99,10 @@ public partial class Hud : CanvasLayer
                              || _game.World.Regions.GetValueOrDefault(b.RegionId)?.ControllerId == _game.PlayerId) is Battle mine)
                     _battle.Open(mine.RegionId);
             };
+
+            // Caixilharia de metal: todos os painéis flutuantes ganham cantoneiras e rebites de uma vez. Fica
+            // de fora a barra de topo (o texto encosta às arestas) e a tira de avisos, que é fina de propósito.
+            _frames = PanelFrame.DressAll(this, _alerts, GetNode<PanelContainer>("Top"));
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
@@ -1033,7 +1038,26 @@ public partial class Hud : CanvasLayer
         int counters = _map.Regions.Counters();
         float dug = w.Divisions.Values.Where(d => d.CountryId == pid).Select(d => d.Entrench).DefaultIfEmpty(0f).Average();
         _map.Focus(eye, 0.2f);
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0})");
+        // mercado: assina-se um tratado com o primeiro país que tenha alguma coisa por vender, para o preço
+        // travado, o depósito e o prazo passarem todos pelo ecrã do painel do País
+        string trade = "ninguém vende";
+        int term = (int)w.Rule("trade_deal_days", 180f);
+        foreach (var seller in w.Countries.Values.Where(x => x.Id != pid && !w.AreAtWar(pid, x.Id)).OrderBy(x => x.Id))
+        {
+            var rd = w.ResourceDefs.Values.OrderBy(d => d.Id).FirstOrDefault(d =>
+                ResourceSystem.Controlled(w, seller.Id, d.Id) - TradeSystem.Sold(w, seller.Id, d.Id) >= 1f
+                && !w.TradeDeals.Any(t => t.BuyerId == pid && t.SellerId == seller.Id && t.ResourceId == d.Id));
+            if (rd is null) continue;
+            var buy = new CreateTradeDealCommand(pid, seller.Id, rd.Id, 1f, term);
+            if (buy.Validate(w) is string why) { trade = $"{rd.Name} de {seller.Name} recusado: {why}"; continue; }
+            _game.Dispatch(buy);
+            var signed = w.TradeDeals.FirstOrDefault(t => t.BuyerId == pid && t.SellerId == seller.Id && t.ResourceId == rd.Id);
+            trade = signed is null ? $"{rd.Name} de {seller.Name} por assinar"
+                  : $"{rd.Name} de {seller.Name} a {signed.PricePerUnit:0.0}/un por {TradeSystem.DaysLeft(w, signed)} dias";
+            break;
+        }
+        _countryPanel.Open(pid); _countryPanel.Close();                   // o mercado desenhado no painel do País
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

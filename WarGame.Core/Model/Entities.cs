@@ -193,15 +193,20 @@ public sealed class ActiveDecision
 /// a história só contava coisas contáveis e a subida de um império industrial não se via em lado nenhum.</summary>
 public sealed record HistorySample(int Day, int CountryId, float Money, int Divisions, int Regions, float Power = 0f);
 
-/// <summary>Acordo de comércio (World.TradeDeals): o comprador conta Units dos depósitos do vendedor
-/// e paga Units × rule trade_price_per_unit por dia (TradeSystem). Cai com guerra, falta de depósitos
-/// ou falta de dinheiro.</summary>
+/// <summary>Acordo de comércio (World.TradeDeals): o comprador conta Units dos depósitos do vendedor e
+/// paga-lhe Units × PricePerUnit por dia (TradeSystem). O preço é o do mercado no dia da assinatura e fica
+/// travado até ao fim do contrato — é isso que faz um tratado valer alguma coisa quando o mercado aperta.
+/// Cai com guerra, falta de depósitos, falta de dinheiro, ou no dia em que o prazo acaba.</summary>
 public sealed class TradeDeal
 {
     public int BuyerId { get; init; }
     public int SellerId { get; init; }
     public string ResourceId { get; init; } = "";
     public float Units { get; init; }
+    /// <summary>Preço por unidade travado à assinatura (0 nos acordos velhos: lê-se a regra do dia).</summary>
+    public float PricePerUnit { get; init; }
+    /// <summary>Dia em que o contrato acaba (0 = sem prazo, como eram todos antes dos tratados).</summary>
+    public int UntilDay { get; init; }
 }
 
 /// <summary>Tipo de recurso estratégico (tabela resource): cada unidade controlada multiplica

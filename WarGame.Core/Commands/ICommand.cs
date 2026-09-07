@@ -835,9 +835,13 @@ public sealed record RetreatFromBattleCommand(int CountryId, int RegionId) : ICo
     }
 }
 
-/// <summary>Cria um acordo de comércio: o comprador aluga Units dos depósitos do vendedor
-/// (paga por dia no TradeSystem). Vendedor precisa de unidades livres; nada entre inimigos.</summary>
-public sealed record CreateTradeDealCommand(int CountryId, int SellerId, string ResourceId, float Units) : ICommand
+/// <summary>Cria um acordo de comércio: o comprador aluga Units dos depósitos do vendedor e paga-lhas todos
+/// os dias (TradeSystem). O preço do dia fica travado no contrato, e `Days` marca-lhe prazo — 0 mantém o
+/// acordo aberto até alguém o cancelar, como eram todos antes dos tratados. Um contrato longo obriga o
+/// comprador a mostrar cofre para o prazo inteiro (trade_deal_deposit_days de estadia), porque prender
+/// preço barato sem ter com que o pagar era comprar mercado a crédito.
+/// Vendedor precisa de unidades livres; nada entre inimigos.</summary>
+public sealed record CreateTradeDealCommand(int CountryId, int SellerId, string ResourceId, float Units, int Days = 0) : ICommand
 {
     public string? Validate(World w)
     {
@@ -845,18 +849,28 @@ public sealed record CreateTradeDealCommand(int CountryId, int SellerId, string 
         if (!w.Countries.TryGetValue(SellerId, out var seller) || seller.Capitulated) return "vendedor inválido";
         if (CountryId == SellerId) return "não podes comprar a ti próprio";
         if (Units <= 0f) return "unidades inválidas";
+        if (Days < 0) return "prazo inválido";
         if (!w.ResourceDefs.ContainsKey(ResourceId)) return "recurso desconhecido";
         if (w.AreAtWar(CountryId, SellerId)) return "estão em guerra";
+        if (w.TradeDeals.Any(d => d.BuyerId == CountryId && d.SellerId == SellerId && d.ResourceId == ResourceId))
+            return "já há contrato desse recurso com esse país";
         float free = ResourceSystem.Controlled(w, SellerId, ResourceId) - TradeSystem.Sold(w, SellerId, ResourceId);
         if (free < Units - 1e-3f) return "o vendedor não tem unidades livres";
-        float price = Units * w.Rule("trade_price_per_unit", 2f);
-        if (buyer.Money < price) return "sem pontos para o primeiro dia";
+        float day = Units * TradeSystem.Price(w, SellerId, ResourceId);
+        float need = day * (Days > 0 ? MathF.Min(Days, w.Rule("trade_deal_deposit_days", 10f)) : 1f);
+        if (buyer.Money < need) return $"o contrato precisa de {need:0} no cofre ({day:0.0} por dia)";
         return null;
     }
 
     public void Execute(World w)
     {
-        w.TradeDeals.Add(new TradeDeal { BuyerId = CountryId, SellerId = SellerId, ResourceId = ResourceId, Units = Units });
+        var deal = new TradeDeal
+        {
+            BuyerId = CountryId, SellerId = SellerId, ResourceId = ResourceId, Units = Units,
+            PricePerUnit = TradeSystem.Price(w, SellerId, ResourceId),
+            UntilDay = Days > 0 ? w.Clock.Day + Days : 0,
+        };
+        w.TradeDeals.Add(deal);
         w.Events.Publish(new TradeDealCreated(CountryId, SellerId, ResourceId, Units));
     }
 }

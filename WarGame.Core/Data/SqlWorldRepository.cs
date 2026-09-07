@@ -315,6 +315,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_army_group", "planning", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "army_xp", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "entrench", "REAL NOT NULL DEFAULT 0"),
+        ("s_trade_deal", "price_per_unit", "REAL NOT NULL DEFAULT 0"),
+        ("s_trade_deal", "until_day", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -408,9 +410,11 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.History.Add(new HistorySample(Convert.ToInt32(r["day"]), Convert.ToInt32(r["country_id"]),
                 Convert.ToSingle(r["money"]), Convert.ToInt32(r["divisions"]), Convert.ToInt32(r["regions"]),
                 Convert.ToSingle(r["power"])));
-        foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units FROM s_trade_deal"))
+        foreach (var r in save.Query("SELECT buyer_id,seller_id,resource,units,price_per_unit,until_day FROM s_trade_deal"))
             w.TradeDeals.Add(new TradeDeal { BuyerId = Convert.ToInt32(r["buyer_id"]), SellerId = Convert.ToInt32(r["seller_id"]),
-                ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]) });
+                ResourceId = (string)r["resource"]!, Units = Convert.ToSingle(r["units"]),
+                PricePerUnit = r["price_per_unit"] is null ? 0f : Convert.ToSingle(r["price_per_unit"]),
+                UntilDay = r["until_day"] is null ? 0 : Convert.ToInt32(r["until_day"]) });
         foreach (var r in save.Query("SELECT from_id,to_id,kind,men,region_id,day,expires_day FROM s_offer"))
             w.Offers.Add(new PendingOffer { FromId = Convert.ToInt32(r["from_id"]), ToId = Convert.ToInt32(r["to_id"]),
                 Kind = (string)r["kind"]!, Men = Convert.ToInt32(r["men"]), RegionId = Convert.ToInt32(r["region_id"]),
@@ -554,7 +558,8 @@ public sealed class SqlWorldRepository : IWorldRepository
                 i, e.Day, e.Kind, e.Text, e.CountryId, e.RegionId);
         }
         foreach (var d in w.TradeDeals)
-            save.Execute("INSERT INTO s_trade_deal VALUES (?,?,?,?)", d.BuyerId, d.SellerId, d.ResourceId, d.Units);
+            save.Execute("INSERT INTO s_trade_deal (buyer_id,seller_id,resource,units,price_per_unit,until_day) VALUES (?,?,?,?,?,?)",
+                d.BuyerId, d.SellerId, d.ResourceId, d.Units, d.PricePerUnit, d.UntilDay);
         foreach (var o in w.ActiveSpyOps)
             save.Execute("INSERT INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
                 o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
