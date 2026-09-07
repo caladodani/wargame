@@ -140,7 +140,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('USA_ar','Asas Globais','🗽',11,'USA','ar');
+ ('USA_ar','Asas Globais','🎯',11,'USA','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('USA_ar_supremacia','USA_ar','Supremacia Aérea','Primeiro limpa-se o céu; a guerra em terra vem depois e vem fácil.',50,NULL,1,'USA'),
  ('USA_ar_tanker','USA_ar','Reabastecimento em Voo','Um avião que não pousa chega a qualquer sítio do planeta.',110,'USA_ar_supremacia',2,'USA'),
@@ -152,7 +152,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('USA_mar','Força-Tarefa','🗽',12,'USA','mar');
+ ('USA_mar','Força-Tarefa','🦈',12,'USA','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('USA_mar_carrier','USA_mar','Grupo de Porta-Aviões','Onde chega o grupo de porta-aviões, o mar passa a ser dele.',50,NULL,1,'USA'),
  ('USA_mar_logistica_mar','USA_mar','Reabastecimento no Mar','A esquadra que se abastece a andar não precisa de porto nenhum.',110,'USA_mar_carrier',2,'USA'),

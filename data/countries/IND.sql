@@ -154,7 +154,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('IND_mar','Guarda do Índico','🕉',12,'IND','mar');
+ ('IND_mar','Guarda do Índico','🐋',12,'IND','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('IND_mar_oceano','IND_mar','Domínio do Índico','O oceano tem o nome do país: alguém tem de fazer jus a isso.',50,NULL,1,'IND'),
  ('IND_mar_vikrant','IND_mar','Porta-Aviões Nacional','Construído em casa, com aço de casa, e a esquadra deixou de pedir emprestado.',110,'IND_mar_oceano',2,'IND'),

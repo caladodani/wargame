@@ -159,7 +159,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('FRA_mar','Marinha Nacional','⚜',12,'FRA','mar');
+ ('FRA_mar','Marinha Nacional','⛵',12,'FRA','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('FRA_mar_porta_avioes','FRA_mar','Grupo Aeronaval','Um porta-aviões nuclear é a única pista que ninguém pode negar.',50,NULL,1,'FRA'),
  ('FRA_mar_ssbn','FRA_mar','Patrulha Permanente','Há sessenta anos que há sempre um submarino no mar, sem falhar um dia.',110,'FRA_mar_porta_avioes',2,'FRA'),

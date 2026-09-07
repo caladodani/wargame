@@ -163,7 +163,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('PRK_mar','Esquadra Escondida','☭',12,'PRK','mar');
+ ('PRK_mar','Esquadra Escondida','⛵',12,'PRK','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('PRK_mar_tuneis_mar','PRK_mar','Bases em Túnel','Navios que entram na montanha não aparecem em fotografia nenhuma.',50,NULL,1,'PRK'),
  ('PRK_mar_sang_o','PRK_mar','Submarinos Costeiros','Submarinos pequenos que largam gente na praia do vizinho.',110,'PRK_mar_tuneis_mar',2,'PRK'),

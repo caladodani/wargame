@@ -149,7 +149,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('RUS_ar','Asas da Pátria','🐻',11,'RUS','ar');
+ ('RUS_ar','Asas da Pátria','🛫',11,'RUS','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('RUS_ar_frontal','RUS_ar','Aviação Frontal','O avião pertence à frente e à frente obedece.',50,NULL,1,'RUS'),
  ('RUS_ar_pvo','RUS_ar','Defesa Antiaérea Integrada','O céu de casa defende-se de baixo e de cima ao mesmo tempo.',110,'RUS_ar_frontal',2,'RUS'),
@@ -161,7 +161,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('RUS_mar','Esquadra do Norte','🐻',12,'RUS','mar');
+ ('RUS_mar','Esquadra do Norte','🚢',12,'RUS','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('RUS_mar_bastiao','RUS_mar','Bastião do Norte','Um mar de casa fechado a ferrolho, com o que interessa lá dentro.',50,NULL,1,'RUS'),
  ('RUS_mar_quebra_gelo','RUS_mar','Rota do Gelo','Quem tem quebra-gelos tem um oceano que mais ninguém usa.',110,'RUS_mar_bastiao',2,'RUS'),

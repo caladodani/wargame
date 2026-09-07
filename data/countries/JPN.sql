@@ -165,7 +165,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('JPN_mar','Esquadra Combinada','⛩',12,'JPN','mar');
+ ('JPN_mar','Esquadra Combinada','⚓',12,'JPN','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('JPN_mar_kantai','JPN_mar','Batalha Decisiva','Cem anos a preparar um dia só de combate de esquadras.',50,NULL,1,'JPN'),
  ('JPN_mar_long_lance','JPN_mar','Torpedo de Longo Alcance','Atacar de vinte quilómetros à noite, quando ninguém acha que dá.',110,'JPN_mar_kantai',2,'JPN'),

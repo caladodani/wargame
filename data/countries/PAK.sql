@@ -162,7 +162,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('PAK_mar','Guarda de Gwadar','🌙',12,'PAK','mar');
+ ('PAK_mar','Guarda de Gwadar','🌊',12,'PAK','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('PAK_mar_karachi','PAK_mar','Defesa de Karachi','Um só porto grande: perdido ele, perde-se o mar todo.',50,NULL,1,'PAK'),
  ('PAK_mar_agosta','PAK_mar','Escola de Submarinos','Um submarino silencioso é a resposta de quem tem menos navios.',110,'PAK_mar_karachi',2,'PAK'),

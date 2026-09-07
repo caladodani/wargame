@@ -170,7 +170,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('ESP_mar','Escola de Armada','🏰',12,'ESP','mar');
+ ('ESP_mar','Escola de Armada','🧭',12,'ESP','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('ESP_mar_estreito_mar','ESP_mar','Guarda do Estreito','Catorze quilómetros decidem quem entra e quem sai do Mediterrâneo.',50,NULL,1,'ESP'),
  ('ESP_mar_lhd','ESP_mar','Projecção Anfíbia','Um navio que leva tropa e aviões vale por uma base que não se tem.',110,'ESP_mar_estreito_mar',2,'ESP'),

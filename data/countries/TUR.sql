@@ -164,7 +164,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('TUR_mar','Pátria Azul','☾',12,'TUR','mar');
+ ('TUR_mar','Pátria Azul','🐋',12,'TUR','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('TUR_mar_estreitos_tur','TUR_mar','Guarda dos Estreitos','Bósforo e Dardanelos: duas portas de um mar inteiro, ambas nossas.',50,NULL,1,'TUR'),
  ('TUR_mar_milgem','TUR_mar','Corvetas Nacionais','Desenhadas e construídas em casa: sem licença de ninguém para navegar.',110,'TUR_mar_estreitos_tur',2,'TUR'),

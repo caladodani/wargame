@@ -166,7 +166,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('GBR_mar','Escola do Almirantado','👑',12,'GBR','mar');
+ ('GBR_mar','Escola do Almirantado','🚢',12,'GBR','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('GBR_mar_comboio_gbr','GBR_mar','Sistema de Comboios','Descobriu-se duas vezes que o comboio salva o que a caça ao submarino não salva.',50,NULL,1,'GBR'),
  ('GBR_mar_bloqueio_gbr','GBR_mar','Bloqueio Distante','Não se fecha o porto do inimigo: fecha-se o mar todo à volta dele.',110,'GBR_mar_comboio_gbr',2,'GBR'),

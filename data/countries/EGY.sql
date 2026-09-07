@@ -158,7 +158,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('EGY_mar','Guarda do Canal','🛶',12,'EGY','mar');
+ ('EGY_mar','Guarda do Canal','🌊',12,'EGY','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('EGY_mar_canal_mar','EGY_mar','Passagem do Canal','A passagem mais importante do mundo guarda-se dos dois lados ao mesmo tempo.',50,NULL,1,'EGY'),
  ('EGY_mar_mar_vermelho','EGY_mar','Patrulha do Mar Vermelho','Um mar estreito vigia-se de ponta a ponta com poucos navios.',110,'EGY_mar_canal_mar',2,'EGY'),

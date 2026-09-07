@@ -163,7 +163,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('POL_mar','Guarda do Báltico','🦬',12,'POL','mar');
+ ('POL_mar','Guarda do Báltico','🧭',12,'POL','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('POL_mar_baltico','POL_mar','Patrulha do Báltico','Um mar fechado e estreito onde toda a gente se vê.',50,NULL,1,'POL'),
  ('POL_mar_orzel','POL_mar','Fuga do Orzeł','O submarino que fugiu sem cartas nem sextante e chegou a Inglaterra.',110,'POL_mar_baltico',2,'POL'),

@@ -153,7 +153,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('UKR_ar','Asas Teimosas','🌻',11,'UKR','ar');
+ ('UKR_ar','Asas Teimosas','☁',11,'UKR','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('UKR_ar_fantasma','UKR_ar','Voo Baixo','A dez metros do chão não há míssil que aponte.',50,NULL,1,'UKR'),
  ('UKR_ar_improviso','UKR_ar','Improviso de Armamento','Pendurou-se num caça soviético uma arma ocidental, e resultou.',110,'UKR_ar_fantasma',2,'UKR'),
@@ -166,7 +166,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('UKR_mar','Mar Teimoso','🌻',12,'UKR','mar');
+ ('UKR_mar','Mar Teimoso','🏴',12,'UKR','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('UKR_mar_neptune','UKR_mar','Míssil Costeiro','Afundar o navio-almirante da esquadra inimiga sem se ter esquadra.',50,NULL,1,'UKR'),
  ('UKR_mar_drone_mar','UKR_mar','Drone de Superfície','Um barco sem ninguém dentro entra no porto do outro e não volta.',110,'UKR_mar_neptune',2,'UKR'),

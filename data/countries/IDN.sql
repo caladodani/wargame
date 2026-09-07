@@ -161,7 +161,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('IDN_mar','Mar Interior','🌋',12,'IDN','mar');
+ ('IDN_mar','Mar Interior','🐟',12,'IDN','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('IDN_mar_estreitos_idn','IDN_mar','Guarda dos Estreitos','Malaca, Sunda, Lombok: três portas e todo o comércio do mundo a passar.',50,NULL,1,'IDN'),
  ('IDN_mar_arquipelago_mar','IDN_mar','Navegação de Arquipélago','Dezassete mil ilhas fazem pilotos que não precisam de carta.',110,'IDN_mar_estreitos_idn',2,'IDN'),

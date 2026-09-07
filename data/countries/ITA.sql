@@ -162,7 +162,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('ITA_mar','Mar Nosso','🍀',12,'ITA','mar');
+ ('ITA_mar','Mar Nosso','🌀',12,'ITA','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('ITA_mar_maiale','ITA_mar','Assaltadores de Porto','Dois homens num torpedo tripulado afundaram uma esquadra inteira em Alexandria.',50,NULL,1,'ITA'),
  ('ITA_mar_sicilia','ITA_mar','Estreito da Sicília','O meio do Mediterrâneo é uma porta e a porta é nossa.',110,'ITA_mar_maiale',2,'ITA'),

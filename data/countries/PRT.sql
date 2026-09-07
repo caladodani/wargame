@@ -165,7 +165,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('PRT_ar','Asas do Atlântico','🇵🇹',11,'PRT','ar');
+ ('PRT_ar','Asas do Atlântico','🛩',11,'PRT','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('PRT_ar_lajes','PRT_ar','Placa dos Açores','Uma pista no meio do oceano vale por uma esquadra.',50,NULL,1,'PRT'),
  ('PRT_ar_busca','PRT_ar','Busca e Salvamento','A maior área de busca da Europa treina quem voa longe de terra.',110,'PRT_ar_lajes',2,'PRT'),

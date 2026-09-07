@@ -141,7 +141,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('ISR_ar','Asas do Golpe','✡',11,'ISR','ar');
+ ('ISR_ar','Asas do Golpe','✈',11,'ISR','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('ISR_ar_focus','ISR_ar','Operação Foco','Numa manhã destruiu-se no chão uma força aérea inteira; nunca mais se esqueceu.',50,NULL,1,'ISR'),
  ('ISR_ar_bekaa','ISR_ar','Vale do Bekaa','Cegar a defesa antes de entrar é entrar sem ninguém a ver.',110,'ISR_ar_focus',2,'ISR'),
@@ -154,7 +154,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('ISR_mar','Esquadra Curta','✡',12,'ISR','mar');
+ ('ISR_mar','Esquadra Curta','🦈',12,'ISR','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('ISR_mar_missil_isr','ISR_mar','Corveta Lança-Mísseis','Latakia provou que o navio pequeno com míssil ganha ao grande sem ele.',50,NULL,1,'ISR'),
  ('ISR_mar_flotilha13','ISR_mar','Flotilha de Comandos','Homens-rã que entram no porto do outro e voltam a sair.',110,'ISR_mar_missil_isr',2,'ISR'),

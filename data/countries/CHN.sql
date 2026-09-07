@@ -155,7 +155,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('CHN_mar','Mar Próximo','🐉',12,'CHN','mar');
+ ('CHN_mar','Mar Próximo','⚓',12,'CHN','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('CHN_mar_negacao_mar','CHN_mar','Negação do Mar Próximo','Não é preciso ter o mar: chega que o outro não entre nele.',50,NULL,1,'CHN'),
  ('CHN_mar_estaleiro_chn','CHN_mar','Estaleiros em Massa','Meia frota mundial sai dos mesmos cais todos os anos.',110,'CHN_mar_negacao_mar',2,'CHN'),

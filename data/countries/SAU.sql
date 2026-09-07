@@ -142,7 +142,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do ar (army_doctrine_branch.domain=ar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('SAU_ar','Asas do Reino','🕋',11,'SAU','ar');
+ ('SAU_ar','Asas do Reino','🕊',11,'SAU','ar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('SAU_ar_compra','SAU_ar','Frota Comprada','O que falta em oficina compra-se em contrato de manutenção.',50,NULL,1,'SAU'),
  ('SAU_ar_awacs','SAU_ar','Olhos no Alto','Um avião que vê trezentos quilómetros manda em todos os outros.',110,'SAU_ar_compra',2,'SAU'),
@@ -154,7 +154,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('SAU_mar','Guarda do Mar Vermelho','🕋',12,'SAU','mar');
+ ('SAU_mar','Guarda do Mar Vermelho','🐟',12,'SAU','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('SAU_mar_jeddah','SAU_mar','Guarda de Jidá','A porta de Meca e do petróleo do oeste guarda-se com esquadra própria.',50,NULL,1,'SAU'),
  ('SAU_mar_bab','SAU_mar','Estreito de Bab el-Mandeb','Vinte e nove quilómetros por onde passa tudo o que vem do oriente.',110,'SAU_mar_jeddah',2,'SAU'),

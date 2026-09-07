@@ -164,7 +164,7 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
 
 -- ===== escola nacional do mar (army_doctrine_branch.domain=mar) =====
 INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag,domain) VALUES
- ('IRN_mar','Enxame do Golfo','☪',12,'IRN','mar');
+ ('IRN_mar','Enxame do Golfo','🏴',12,'IRN','mar');
 INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
  ('IRN_mar_enxame','IRN_mar','Ataque em Enxame','Quarenta lanchas rápidas contra um cruzador: alguma passa.',50,NULL,1,'IRN'),
  ('IRN_mar_ormuz','IRN_mar','Fecho de Ormuz','Um estreito de trinta e três quilómetros com um quinto do petróleo do mundo.',110,'IRN_mar_enxame',2,'IRN'),
