@@ -981,6 +981,15 @@ public sealed record BuyWarshipCommand(int CountryId) : ICommand
     }
 }
 
+/// <summary>Assinar a política de ocupação que se aplica ao povo de um país ocupado (occupation_policy).
+/// Vale para toda a terra que lhe tomámos e só se pode trocar passados occupation_switch_days.</summary>
+public sealed record SetOccupationPolicyCommand(int CountryId, int TargetId, string PolicyId) : ICommand
+{
+    public string? Validate(World w) => OccupationSystem.Block(w, CountryId, TargetId, PolicyId);
+
+    public void Execute(World w) => OccupationSystem.Set(w, CountryId, TargetId, PolicyId);
+}
+
 /// <summary>Mandar construir um comboio mercante. Não vai para o mar nem se destaca: engrossa a marinha
 /// mercante que carrega o abastecimento por mar e as importações, e que a guerra ao comércio vai afundando.</summary>
 public sealed record BuyConvoyCommand(int CountryId) : ICommand

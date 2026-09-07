@@ -75,7 +75,12 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            // ocupação: a política que aplicamos a este povo e quanto lhe ferve a rua entram na chave, senão
+            // o cartão fica com a política velha depois de a assinarmos
+            string occKey = _game.PlayerId is int po && po != c.Id
+                ? $"{OccupationSystem.Regions(w, po, c.Id)}:{OccupationSystem.Policy(w, po, c.Id).Id}:{(int)(OccupationSystem.Heat(w, po, c.Id) * 20f)}:{OccupationSystem.Since(w, po, c.Id)}"
+                : "";
+            var key = $"{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -224,6 +229,15 @@ public partial class CountryPanel : PanelContainer
             {
                 Header("Prisioneiros de guerra");
                 _body.AddChild(camps);
+            }
+
+            // ocupação: a lei que aplicamos ao povo desta terra enquanto lhe mandarmos nela. Aparece no
+            // painel de quem é dono da terra — é o povo dele que sofre a política, não o nosso
+            if (!mine && _game.PlayerId is int occupier
+                && OccupationView.Card(w, occupier, c.Id, id => Faction(new SetOccupationPolicyCommand(occupier, c.Id, id))) is PanelContainer occ)
+            {
+                Header("Ocupação");
+                _body.AddChild(occ);
             }
 
             // decisões nacionais (só o jogador decide)

@@ -20,6 +20,9 @@ public partial class MapView : Node2D
     /// <summary>Camada dos planos de batalha: as setas dos exércitos, por cima do mapa.</summary>
     public PlanOverlay Plans => _plans;
 
+    /// <summary>Camada das rotas de comboio: as travessias que a marinha mercante faz hoje.</summary>
+    public ConvoyRoutes Convoys => _convoys;
+
     private const float TapMaxDrag = 14f;      // arrasto acumulado (px) a partir do qual deixa de ser toque curto
     private const ulong LongPressMs = 450;     // dedo parado neste tempo = toque longo
     private const ulong DoubleTapMs = 320;     // segundo toque dentro desta janela = duplo toque
@@ -28,6 +31,7 @@ public partial class MapView : Node2D
     private Camera2D _cam = null!;
     private RegionRenderer _regions = null!;
     private PlanOverlay _plans = null!;
+    private ConvoyRoutes _convoys = null!;
     private readonly Dictionary<int, Vector2> _touches = new();
     private float _lastPinch, _dragDist;
     private bool _multi, _longFired;
@@ -41,6 +45,8 @@ public partial class MapView : Node2D
         var game = GetNode<Game>("/root/Game");
         _regions.Build(game.WorldRepo, game.StaticDb, game);
         // as setas dos planos entram depois das regiões: desenham-se por cima do mapa
+        // as rotas de comboio entram antes das setas: os planos mandam mais e ficam por cima delas
+        _convoys = new ConvoyRoutes { Name = "Convoys" }; AddChild(_convoys); _convoys.Setup(game);
         _plans = new PlanOverlay { Name = "Plans" }; AddChild(_plans); _plans.Setup(game);
         SetZoom(GetViewportRect().Size.X / 8400f);   // arranque: mapa inteiro (8000 un. de largura) visível
         SetProcess(true);
@@ -138,6 +144,7 @@ public partial class MapView : Node2D
         z = Mathf.Clamp(z, 0.1f, 8f); _cam.Zoom = new Vector2(z, z);
         _regions.SetZoom(z);
         _plans.SetZoom(z);
+        _convoys.SetZoom(z);
         EmitSignal(SignalName.ZoomChanged, z);
     }
 }

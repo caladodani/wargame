@@ -135,6 +135,11 @@ public sealed class World
     public Dictionary<string, NavalMissionDef> NavalMissionDefs { get; } = new();
     public List<NavalMission> NavalMissions { get; } = new();
 
+    /// <summary>Políticas de ocupação (tabela occupation_policy) e a que cada ocupante assinou sobre cada
+    /// povo que tem debaixo de si (save s_occupation; OccupationSystem).</summary>
+    public Dictionary<string, OccupationPolicyDef> OccupationPolicyDefs { get; } = new();
+    public List<Occupation> Occupations { get; } = new();
+
     /// <summary>País metido em alguma guerra a sério (é a guerra dele que ensina o adido).</summary>
     public bool AtWar(int countryId) =>
         Countries.TryGetValue(countryId, out var c) && !c.Capitulated && c.AtWarWith.Count > 0;

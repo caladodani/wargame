@@ -3,7 +3,7 @@ using WarGame.Core.Model;
 namespace WarGame.Core.Systems;
 
 /// <summary>Rendimento diário em pontos de produção → Country.Money (HoI4: fábricas; aqui população × infra).
-/// Região controlada rende pop/1e6 × points_per_million × infra; ocupada (controlador ≠ dono) rende × occupied_yield × stat occupied_yield do ocupante (leis de ocupação) × (1 − resistência × resistance_output_hit).
+/// Região controlada rende pop/1e6 × points_per_million × infra; ocupada (controlador ≠ dono) rende × occupied_yield × stat occupied_yield do ocupante (leis de ocupação) × a política de ocupação daquele povo (OccupationSystem) × (1 − resistência × resistance_output_hit).
 /// Terreno pesa no rendimento (regras terrain_income_&lt;terreno&gt;, 1 = neutro) e a costa soma coastal_income_bonus.
 /// Total × country_stat industry (1 = neutro; automático por PIB per capita no import). Regras: points_per_million, occupied_yield.</summary>
 public sealed class EconomySystem : ISystem
@@ -37,7 +37,8 @@ public sealed class EconomySystem : ISystem
 
     private static float Yield(World w, Region r, float perMillion, float occupied, float resistHit) =>
         r.Population / 1e6f * perMillion * r.Infrastructure * TerrainMult(w, r)
-        * (r.ControllerId == r.OwnerId ? 1f : occupied * (1f - r.Resistance * resistHit));
+        // a política de ocupação (OccupationSystem) diz se se espreme a terra tomada ou se se a deixa em paz
+        * (r.ControllerId == r.OwnerId ? 1f : occupied * OccupationSystem.YieldMult(w, r) * (1f - r.Resistance * resistHit));
 
     /// <summary>Peso económico do terreno (regra terrain_income_&lt;terreno&gt;) e da costa (coastal_income_bonus).</summary>
     public static float TerrainMult(World w, Region r) =>

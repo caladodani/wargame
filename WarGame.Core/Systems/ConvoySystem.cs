@@ -87,4 +87,59 @@ public sealed class ConvoySystem : ISystem
     /// <summary>Tratados deste comprador parados hoje por falta de mercantes (o painel mostra-os).</summary>
     public static int GroundedCount(World w, int countryId) =>
         w.TradeDeals.Count(d => d.BuyerId == countryId && Grounded(w, d));
+
+    /// <summary>As travessias que os mercantes deste país fazem hoje, para o mapa as desenhar: as que
+    /// alimentam o exército do outro lado do mar (um cais nosso até à costa nossa que ele alcança) e as que
+    /// trazem o que se comprou (a costa do vendedor até à nossa). Ordem fixa: abastecimento primeiro, e
+    /// dentro de cada tipo por região, para o desenho não bailar de tick para tick.</summary>
+    public static List<ConvoyRoute> Routes(World w, int countryId)
+    {
+        var list = new List<ConvoyRoute>();
+        if (!w.Countries.ContainsKey(countryId)) return list;
+        var seen = new HashSet<(int, int)>();
+        float perDiv = w.Rule("convoy_per_sea_division", 1f), perUnit = w.Rule("convoy_per_trade_unit", 2f);
+
+        void Add(int from, int to, bool trade, float holds, bool blocked)
+        {
+            if (from == to || !seen.Add((Math.Min(from, to), Math.Max(from, to)))) return;
+            list.Add(new ConvoyRoute(from, to, trade, holds, blocked));
+        }
+
+        // 1. abastecimento: cais nosso → costa nossa dentro do alcance dele. É a travessia que o
+        // SupplySystem usa; a carga é a tropa que está do outro lado, que é quem bebe por mar.
+        foreach (var port in w.Regions.Values.Where(r => r.ControllerId == countryId && r.Buildings.Count > 0)
+                     .OrderBy(r => r.Id))
+        {
+            float reach = port.Buildings.Sum(kv => w.BuildingDefs.TryGetValue(kv.Key, out var d) ? d.SupplyRange * kv.Value : 0f);
+            if (reach <= 0f) continue;
+            foreach (var (dst, km) in port.SeaNeighbours.OrderBy(kv => kv.Key))
+            {
+                if (km > reach || !w.Regions.TryGetValue(dst, out var far) || far.ControllerId != countryId) continue;
+                float troops = w.Divisions.Values.Count(d => d.RegionId == dst) * perDiv;
+                Add(port.Id, dst, false, troops,
+                    NavalMissionSystem.Blockaded(w, port.Id) || NavalMissionSystem.Blockaded(w, dst));
+            }
+        }
+
+        // 2. comércio: a travessia mais curta entre a costa de quem vende e a nossa. Sem mar entre os dois
+        // não há rota nenhuma que desenhar — a mercadoria vai por terra e não ocupa comboio à vista.
+        foreach (var deal in w.TradeDeals.Where(d => d.BuyerId == countryId)
+                     .OrderBy(d => d.SellerId).ThenBy(d => d.ResourceId, StringComparer.Ordinal))
+        {
+            int from = -1, to = -1; float best = float.MaxValue;
+            foreach (var mine in w.Regions.Values.Where(r => r.ControllerId == countryId && r.SeaNeighbours.Count > 0))
+                foreach (var (dst, km) in mine.SeaNeighbours)
+                    if (km < best && w.Regions.TryGetValue(dst, out var far) && far.ControllerId == deal.SellerId)
+                    { best = km; from = dst; to = mine.Id; }
+            if (from < 0) continue;
+            Add(from, to, true, deal.Units * perUnit,
+                Grounded(w, deal) || NavalMissionSystem.Blockaded(w, from) || NavalMissionSystem.Blockaded(w, to));
+        }
+        return list;
+    }
 }
+
+/// <summary>Uma travessia de comboios pronta a desenhar: de onde a que região, se leva comércio (senão é
+/// abastecimento do exército), quantos mercantes ocupa e se hoje está cortada — por bloqueio no mar ou por
+/// não haver navios que a façam.</summary>
+public readonly record struct ConvoyRoute(int FromId, int ToId, bool Trade, float Holds, bool Blocked);

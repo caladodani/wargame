@@ -197,6 +197,21 @@ public sealed record HistorySample(int Day, int CountryId, float Money, int Divi
 /// paga-lhe Units × PricePerUnit por dia (TradeSystem). O preço é o do mercado no dia da assinatura e fica
 /// travado até ao fim do contrato — é isso que faz um tratado valer alguma coisa quando o mercado aperta.
 /// Cai com guerra, falta de depósitos, falta de dinheiro, ou no dia em que o prazo acaba.</summary>
+/// <summary>Política de ocupação (tabela occupation_policy; OccupationSystem): o que se faz ao povo da terra
+/// tomada. Resistance/Yield/Manpower são multiplicadores (1 = como era antes de haver políticas).</summary>
+public sealed record OccupationPolicyDef(string Id, string Name, string Icon, float Resistance, float Yield,
+                                         float Manpower, string Note, int Sort);
+
+/// <summary>Política que um ocupante aplica ao povo de um país (save: s_occupation).</summary>
+public sealed class Occupation
+{
+    public int CountryId { get; init; }
+    public int TargetId { get; init; }
+    public string PolicyId { get; set; } = "";
+    /// <summary>Dia em que foi assinada: trava a troca seguinte por occupation_switch_days.</summary>
+    public int SinceDay { get; set; }
+}
+
 public sealed class TradeDeal
 {
     public int BuyerId { get; init; }

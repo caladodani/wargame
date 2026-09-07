@@ -468,6 +468,21 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort) VALUES
  ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1),
  ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2);
 
+-- Políticas de ocupação (tabela occupation_policy; OccupationSystem): o que se faz ao povo da terra tomada.
+-- A de sort mais baixo é a de partida, e é neutra nas três contas (multiplicadores a 1).
+CREATE TABLE IF NOT EXISTS occupation_policy (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  resistance_mult REAL NOT NULL,             -- peso no crescimento da resistência
+  yield_mult REAL NOT NULL,                  -- peso no rendimento da região ocupada
+  manpower_mult REAL NOT NULL,               -- fatia daquela população que dá recrutas ao ocupante
+  note TEXT NOT NULL, sort INTEGER NOT NULL);
+INSERT INTO occupation_policy (id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort) VALUES
+ ('supervisao_civil','Supervisão civil','🏛',1,1,1,'A administração de sempre, com os nossos por cima. Nem aperta nem alivia: é o que acontece a quem não decide nada.',0),
+ ('policia_local','Polícia local','🤝',0.55,0.7,0.3,'A ordem fica com gente da terra. Rende menos e dá poucos recrutas, mas a resistência quase não pega.',1),
+ ('governo_militar','Governo militar','🎖',0.75,1.15,0.6,'O exército administra. Cobra melhor do que os civis e mantém a rua calada, à conta de prender gente.',2),
+ ('quotas_duras','Quotas duras','⚙',1.6,1.4,1.2,'A terra ocupada trabalha para a nossa guerra. Rende bem — e a população organiza-se depressa.',3),
+ ('trabalho_forcado','Trabalho forçado','⛓',2.3,1.8,1.6,'Espremer até ao fim: fábricas nossas, homens nossos, e uma revolta à espera de acontecer.',4);
+
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law VALUES
  ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),
@@ -537,7 +552,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('convoy_cost',25,'custo de um comboio mercante'),
  ('convoy_per_sea_division',1,'mercantes presos por cada divisão abastecida por mar'),
  ('convoy_per_trade_unit',2,'mercantes presos por cada unidade importada num tratado'),
- ('convoy_raid_sink',0.25,'mercantes afundados por dia, por navio de um bloqueio que a escolta não desfaz');
+ ('convoy_raid_sink',0.25,'mercantes afundados por dia, por navio de um bloqueio que a escolta não desfaz'),
+ ('occupation_switch_days',30,'dias que uma política de ocupação tem de durar antes de se poder trocar'),
+ ('occupation_ai_calm',0.5,'resistência média a partir da qual a IA alivia a ocupação'),
+ ('occupation_ai_broke',200,'cofre abaixo do qual a IA em guerra aperta a terra ocupada');
 
 -- Integração de território ocupado (IntegrationSystem)
 INSERT INTO rule VALUES ('integration_days', 150, 'dias de ocupação calma até a região mudar de dono');

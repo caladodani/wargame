@@ -235,6 +235,13 @@ CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   ships REAL NOT NULL, since_day INTEGER NOT NULL,
   PRIMARY KEY (country_id, region_id));
+CREATE TABLE IF NOT EXISTS occupation_policy ( -- políticas de ocupação (OccupationSystem); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  resistance_mult REAL NOT NULL, yield_mult REAL NOT NULL, manpower_mult REAL NOT NULL,
+  note TEXT NOT NULL, sort INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS s_occupation (     -- política que cada ocupante aplica a cada povo (save)
+  country_id INTEGER, target_id INTEGER, policy_id TEXT NOT NULL, since_day INTEGER NOT NULL,
+  PRIMARY KEY (country_id, target_id));
 CREATE TABLE IF NOT EXISTS s_attache (        -- adidos militares destacados (AttacheSystem)
   country_id INTEGER PRIMARY KEY, host_id INTEGER NOT NULL, since_day INTEGER NOT NULL,
   learned REAL NOT NULL DEFAULT 0);

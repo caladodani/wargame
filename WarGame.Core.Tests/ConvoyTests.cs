@@ -226,6 +226,54 @@ public class ConvoyTests
     }
 
     [Fact]
+    public void TheMapGetsOneLaneForEachCrossingTheConvoysMake()
+    {
+        var w = Build();
+        w.Regions[3].Buildings["porto"] = 1;                        // cais nosso a alcançar a ilha (900 > 500 km)
+        w.Regions[Island].ControllerId = 1;                         // desembarque nosso: a ilha bebe por mar
+        TestWorld.AddDivision(w, 20, 1, TestWorld.Inf, Island);
+
+        var lane = Assert.Single(ConvoySystem.Routes(w, 1));
+        Assert.Equal(3, lane.FromId);
+        Assert.Equal(Island, lane.ToId);
+        Assert.False(lane.Trade);                                   // é a travessia que alimenta a tropa
+        Assert.Equal(w.Rule("convoy_per_sea_division"), lane.Holds, 3);
+        Assert.False(lane.Blocked);
+        Assert.Empty(ConvoySystem.Routes(w, 2));                    // eles não têm cais nenhum a alcançar nada
+    }
+
+    [Fact]
+    public void ABlockadeCutsTheLaneOnTheMap()
+    {
+        var w = Build();
+        w.Regions[3].Buildings["porto"] = 1;
+        w.Regions[Island].ControllerId = 1;
+        NavalMissionSystem.Assign(w, 2, Island, "bloqueio", 4f);    // a esquadra deles em cima da nossa travessia
+
+        var lane = Assert.Single(ConvoySystem.Routes(w, 1));
+        Assert.True(lane.Blocked);
+    }
+
+    [Fact]
+    public void WhatWeBuyGetsItsOwnLaneAndItGoesRedWhenTheShipsAreGone()
+    {
+        var w = Build();
+        w.ResourceDefs["aco"] = new ResourceDef("aco", "Aço", "production_speed", 0.02f, 10f);
+        w.Regions[4].Resources["aco"] = 20f;
+        new CreateTradeDealCommand(1, 2, "aco", 2f).Execute(w);
+
+        var lane = Assert.Single(ConvoySystem.Routes(w, 1));        // sem cais nosso, só há a rota do comércio
+        Assert.True(lane.Trade);
+        Assert.Equal(Island, lane.FromId);                          // costa deles, a travessia mais curta
+        Assert.Equal(3, lane.ToId);
+        Assert.Equal(2f * w.Rule("convoy_per_trade_unit"), lane.Holds, 3);
+        Assert.False(lane.Blocked);
+
+        w.Countries[1].Convoys = -20f;                              // marinha mercante no fundo
+        Assert.True(ConvoySystem.Routes(w, 1)[0].Blocked);
+    }
+
+    [Fact]
     public void TheMerchantMarineSurvivesSaveAndLoad()
     {
         var (w, staticDb) = TestWorld.Build();

@@ -104,6 +104,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort FROM occupation_policy ORDER BY sort"))
+            w.OccupationPolicyDefs[(string)r["id"]!] = new OccupationPolicyDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["icon"]!, Convert.ToSingle(r["resistance_mult"]), Convert.ToSingle(r["yield_mult"]),
+                Convert.ToSingle(r["manpower_mult"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,icon,weight FROM chronicle_kind"))
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToInt32(r["weight"]));
@@ -450,6 +454,12 @@ public sealed class SqlWorldRepository : IWorldRepository
                 MissionId = (string)r["mission_id"]!, Ships = Convert.ToSingle(r["ships"]),
                 SinceDay = Convert.ToInt32(r["since_day"]),
             });
+        foreach (var r in save.Query("SELECT country_id,target_id,policy_id,since_day FROM s_occupation"))
+            w.Occupations.Add(new Occupation
+            {
+                CountryId = Convert.ToInt32(r["country_id"]), TargetId = Convert.ToInt32(r["target_id"]),
+                PolicyId = (string)r["policy_id"]!, SinceDay = Convert.ToInt32(r["since_day"]),
+            });
         foreach (var r in save.Query("SELECT country_id,host_id,since_day,learned FROM s_attache"))
             w.Attaches[Convert.ToInt32(r["country_id"])] = new Attache
             {
@@ -554,7 +564,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -600,6 +610,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var m in w.NavalMissions)
             save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day) VALUES (?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay);
+        foreach (var o in w.Occupations)
+            save.Execute("INSERT INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
+                o.CountryId, o.TargetId, o.PolicyId, o.SinceDay);
         foreach (var a in w.Attaches.Values)
             save.Execute("INSERT INTO s_attache (country_id,host_id,since_day,learned) VALUES (?,?,?,?)",
                 a.CountryId, a.HostId, a.SinceDay, a.Learned);
