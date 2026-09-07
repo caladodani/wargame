@@ -21,15 +21,15 @@ public partial class PlanOverlay : Node2D
     /// <summary>Uma seta pronta a desenhar, já em coordenadas de mundo.</summary>
     private readonly record struct Arrow(Vector2 From, Vector2 To, float Planning, Color Tint, bool Advance, string Text);
 
-    private const float ShaftWidth = 26f;      // largura do corpo da seta, em unidades de mundo
-    private const float HeadWidth = 66f;
-    private const float HeadLength = 90f;
+    private const float ShaftWidth = 18f;      // largura do corpo da seta, em unidades de mundo
+    private const float HeadWidth = 44f;
+    private const float HeadLength = 58f;
 
     private Game _game = null!;
     private Node2D _tagRoot = null!;
     private readonly List<Arrow> _arrows = new();
     private string _painted = "";
-    private float _tagScale = 1f;
+    private float _tagScale = 1f, _thick = 1f;
 
     public void Setup(Game game)
     {
@@ -39,11 +39,19 @@ public partial class PlanOverlay : Node2D
         AddChild(_tagRoot);
     }
 
-    /// <summary>As etiquetas mantêm-se legíveis ao afastar, como os marcadores do RegionRenderer.</summary>
+    /// <summary>As etiquetas mantêm-se legíveis ao afastar, como os marcadores do RegionRenderer — e as
+    /// setas encolhem ao aproximar. Uma seta desenhada em unidades de mundo cresce com o mapa: ao aproximar
+    /// para ver uma frente, a seta do plano tapava as regiões que ela atravessa. Com a grossura dividida
+    /// pelo zoom fica do mesmo tamanho no ecrã, e ao afastar não engorda para lá do tamanho de origem, senão
+    /// no mapa inteiro eram manchas.</summary>
     public void SetZoom(float zoom)
     {
         _tagScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var c in _tagRoot.GetChildren()) if (c is Node2D n) n.Scale = Vector2.One * _tagScale;
+        float thick = Mathf.Clamp(_tagScale, 0.3f, 1f);
+        if (Mathf.IsEqualApprox(thick, _thick)) return;
+        _thick = thick;
+        QueueRedraw();
     }
 
     /// <summary>Recalcula as setas (e só redesenha se alguma coisa mudou).</summary>
@@ -127,9 +135,9 @@ public partial class PlanOverlay : Node2D
     {
         var dir = (a.To - a.From).Normalized();
         float len = a.From.DistanceTo(a.To);
-        float head = MathF.Min(HeadLength, len * 0.45f);
-        var body = Body(a.From, dir, len, head);
-        var tip = Head(a.From + dir * (len - head), dir, head);
+        float head = MathF.Min(HeadLength * _thick, len * 0.45f);
+        var body = Body(a.From, dir, len, head, _thick);
+        var tip = Head(a.From + dir * (len - head), dir, head, _thick);
 
         var faint = a.Tint with { A = a.Advance ? 0.28f : 0.18f };
         DrawColoredPolygon(body, faint);
@@ -140,24 +148,24 @@ public partial class PlanOverlay : Node2D
         if (ready > 0.01f)
         {
             float fill = (len - head) * ready;
-            DrawColoredPolygon(Body(a.From, dir, fill + head, head), a.Tint with { A = 0.7f });
+            DrawColoredPolygon(Body(a.From, dir, fill + head, head, _thick), a.Tint with { A = 0.7f });
         }
 
         var edge = a.Tint.Lightened(0.35f) with { A = 0.9f };
-        DrawPolyline(body.Append(body[0]).ToArray(), edge, 3f);
-        DrawPolyline(tip.Append(tip[0]).ToArray(), edge, 3f);
+        DrawPolyline(body.Append(body[0]).ToArray(), edge, 3f * _thick);
+        DrawPolyline(tip.Append(tip[0]).ToArray(), edge, 3f * _thick);
     }
 
-    private static Vector2[] Body(Vector2 from, Vector2 dir, float len, float head)
+    private static Vector2[] Body(Vector2 from, Vector2 dir, float len, float head, float thick)
     {
-        var side = new Vector2(-dir.Y, dir.X) * (ShaftWidth / 2f);
+        var side = new Vector2(-dir.Y, dir.X) * (ShaftWidth * thick / 2f);
         var end = from + dir * MathF.Max(0f, len - head);
         return new[] { from + side, end + side, end - side, from - side };
     }
 
-    private static Vector2[] Head(Vector2 at, Vector2 dir, float head)
+    private static Vector2[] Head(Vector2 at, Vector2 dir, float head, float thick)
     {
-        var side = new Vector2(-dir.Y, dir.X) * (HeadWidth / 2f);
+        var side = new Vector2(-dir.Y, dir.X) * (HeadWidth * thick / 2f);
         return new[] { at + side, at + dir * head, at - side };
     }
 

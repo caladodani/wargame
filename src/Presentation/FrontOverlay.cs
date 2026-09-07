@@ -37,7 +37,7 @@ public partial class FrontOverlay : Node2D
     private readonly List<Strand> _strands = new();
     private int _contacts;
     private string _painted = "";
-    private float _tagScale = 1f;
+    private float _tagScale = 1f, _thick = 1f;
 
     public void Setup(Game game, RegionRenderer shapes)
     {
@@ -57,6 +57,12 @@ public partial class FrontOverlay : Node2D
     {
         _tagScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var c in _tagRoot.GetChildren()) if (c is Node2D n) n.Scale = Vector2.One * _tagScale;
+        // a linha e os dentes são desenhados em unidades de mundo: sem isto engrossavam com o mapa e ao
+        // aproximar a frente ficava uma faixa por cima das regiões em vez de um traço na fronteira
+        float thick = Mathf.Clamp(_tagScale, 0.3f, 1f);
+        if (Mathf.IsEqualApprox(thick, _thick)) return;
+        _thick = thick;
+        QueueRedraw();
     }
 
     /// <summary>Recalcula os teatros (e só redesenha quando a frente mexeu). A chave só se grava depois de o
@@ -205,24 +211,25 @@ public partial class FrontOverlay : Node2D
     private void DrawStrand(Strand s)
     {
         var p = s.Points;
+        float w = Width * _thick;
         if (p.Length == 1)
         {
             // contacto solto (uma ilha, um enclave): não há fio nenhum, fica a barra atravessada de dantes
             var dir = s.Normals[0];
             var side = new Vector2(-dir.Y, dir.X);
-            var a = p[0] - side * Bar * 0.5f; var b = p[0] + side * Bar * 0.5f;
-            DrawLine(a, b, Ui.Ink with { A = 0.45f }, Width + 4f);
-            if (s.Hole[0]) for (int i = 0; i < 3; i++) DrawLine(a.Lerp(b, i * 0.36f), a.Lerp(b, i * 0.36f + 0.18f), s.Tint, Width);
-            else DrawLine(a, b, s.Tint, Width);
+            var a = p[0] - side * Bar * _thick * 0.5f; var b = p[0] + side * Bar * _thick * 0.5f;
+            DrawLine(a, b, Ui.Ink with { A = 0.45f }, w + 4f * _thick);
+            if (s.Hole[0]) for (int i = 0; i < 3; i++) DrawLine(a.Lerp(b, i * 0.36f), a.Lerp(b, i * 0.36f + 0.18f), s.Tint, w);
+            else DrawLine(a, b, s.Tint, w);
             DrawTooth(p[0], dir, s.Tint);
             return;
         }
 
-        DrawPolyline(p, Ui.Ink with { A = 0.45f }, Width + 4f);
+        DrawPolyline(p, Ui.Ink with { A = 0.45f }, w + 4f * _thick);
         for (int i = 0; i + 1 < p.Length; i++)
         {
-            if (!s.Hole[i]) DrawLine(p[i], p[i + 1], s.Tint, Width);
-            else DrawLine(p[i].Lerp(p[i + 1], 0.15f), p[i].Lerp(p[i + 1], 0.55f), s.Tint, Width);
+            if (!s.Hole[i]) DrawLine(p[i], p[i + 1], s.Tint, w);
+            else DrawLine(p[i].Lerp(p[i + 1], 0.15f), p[i].Lerp(p[i + 1], 0.55f), s.Tint, w);
         }
 
         // dentes: um a cada ToothStep de linha andada, e sempre pelo menos um, senão um fio curto ficava
@@ -243,7 +250,8 @@ public partial class FrontOverlay : Node2D
     private void DrawTooth(Vector2 at, Vector2 dir, Color tint)
     {
         var side = new Vector2(-dir.Y, dir.X);
-        DrawColoredPolygon(new[] { at + dir * Tooth, at + side * 7f, at - side * 7f }, tint with { A = 0.95f });
+        DrawColoredPolygon(new[] { at + dir * Tooth * _thick, at + side * 7f * _thick, at - side * 7f * _thick },
+                           tint with { A = 0.95f });
     }
 
     /// <summary>--smoke: quantos contactos ficaram desenhados, quantos deles são buraco na frente e em

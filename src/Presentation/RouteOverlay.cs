@@ -24,10 +24,10 @@ public partial class RouteOverlay : Node2D
     /// <summary>Uma rota já em coordenadas de mundo, pronta a desenhar.</summary>
     private readonly record struct Lane(Vector2[] Points, Vector2 Head, bool BySea, bool Fighting, string Text);
 
-    private const float Width = 6f;          // grossura da linha, em unidades de mundo
-    private const float HeadWidth = 46f;     // ponta da seta no destino
-    private const float HeadLength = 62f;
-    private const float Stop = 9f;           // losango das paragens do meio
+    private const float Width = 5f;          // grossura da linha, em unidades de mundo
+    private const float HeadWidth = 30f;     // ponta da seta no destino
+    private const float HeadLength = 40f;
+    private const float Stop = 7f;           // losango das paragens do meio
     private const float Ask = 0.15f;         // de quanto em quanto tempo se volta a perguntar quem está escolhido
 
     private Game _game = null!;
@@ -36,7 +36,7 @@ public partial class RouteOverlay : Node2D
     private Node2D _tagRoot = null!;
     private readonly List<Lane> _lanes = new();
     private string _painted = "";
-    private float _tagScale = 1f, _since;
+    private float _tagScale = 1f, _thick = 1f, _since;
 
     public void Setup(Game game)
     {
@@ -50,11 +50,17 @@ public partial class RouteOverlay : Node2D
     /// <summary>O Hud liga a selecção depois de a criar (os overlays nascem primeiro, no MapView).</summary>
     public void Watch(RegionPanel region, ArmySelect select) { _region = region; _select = select; }
 
-    /// <summary>As etiquetas mantêm-se legíveis ao afastar, como as dos planos.</summary>
+    /// <summary>As etiquetas mantêm-se legíveis ao afastar, como as dos planos — e a seta encolhe ao
+    /// aproximar. Desenhada em unidades de mundo crescia com o mapa: aproximar para ver uma região deixava
+    /// a ponta da seta maior do que a terra para onde ela aponta.</summary>
     public void SetZoom(float zoom)
     {
         _tagScale = Mathf.Clamp(1f / Mathf.Max(zoom, 0.001f), 0.05f, 6f);
         foreach (var c in _tagRoot.GetChildren()) if (c is Node2D n) n.Scale = Vector2.One * _tagScale;
+        float thick = Mathf.Clamp(_tagScale, 0.3f, 1f);
+        if (Mathf.IsEqualApprox(thick, _thick)) return;
+        _thick = thick;
+        QueueRedraw();
     }
 
     /// <summary>Ninguém avisa quando a selecção muda — pergunta-se. Com o mundo parado, que o tick corre
@@ -150,7 +156,8 @@ public partial class RouteOverlay : Node2D
     private void DrawLane(Lane l)
     {
         var tint = l.Fighting ? Ui.Danger : Ui.Accent;
-        DrawPolyline(l.Points, Ui.Ink with { A = 0.5f }, Width + 4f);
+        float w = Width * _thick, stop = Stop * _thick;
+        DrawPolyline(l.Points, Ui.Ink with { A = 0.5f }, w + 4f * _thick);
 
         // primeiro salto: o que já foi andado fica pálido, o resto vai cheio como os outros
         DrawSeg(l.Points[0], l.Head, tint with { A = 0.25f }, l.BySea);
@@ -160,19 +167,19 @@ public partial class RouteOverlay : Node2D
         for (int i = 1; i + 1 < l.Points.Length; i++)
         {
             var c = l.Points[i];
-            DrawColoredPolygon(new[] { c + Vector2.Up * Stop, c + Vector2.Right * Stop, c + Vector2.Down * Stop, c + Vector2.Left * Stop },
+            DrawColoredPolygon(new[] { c + Vector2.Up * stop, c + Vector2.Right * stop, c + Vector2.Down * stop, c + Vector2.Left * stop },
                                tint with { A = 0.85f });
         }
 
         // onde vai a coluna neste momento
-        DrawCircle(l.Head, Width * 1.4f, tint.Lightened(0.4f));
+        DrawCircle(l.Head, w * 1.4f, tint.Lightened(0.4f));
 
         var last = l.Points[^2]; var end = l.Points[^1];
         var dir = (end - last).Normalized();
         if (dir.LengthSquared() < 0.5f) return;
-        float len = MathF.Min(HeadLength, last.DistanceTo(end) * 0.6f);
+        float len = MathF.Min(HeadLength * _thick, last.DistanceTo(end) * 0.6f);
         var at = end - dir * len;
-        var side = new Vector2(-dir.Y, dir.X) * (HeadWidth / 2f);
+        var side = new Vector2(-dir.Y, dir.X) * (HeadWidth * _thick / 2f);
         DrawColoredPolygon(new[] { at + side, end, at - side }, tint with { A = 0.9f });
     }
 
@@ -180,10 +187,11 @@ public partial class RouteOverlay : Node2D
     private void DrawSeg(Vector2 a, Vector2 b, Color tint, bool sea)
     {
         if (a.DistanceSquaredTo(b) < 1f) return;
-        if (!sea) { DrawLine(a, b, tint, Width); return; }
-        float len = a.DistanceTo(b), step = 26f;
+        float w = Width * _thick;
+        if (!sea) { DrawLine(a, b, tint, w); return; }
+        float len = a.DistanceTo(b), step = 26f * _thick;
         for (float at = 0; at < len; at += step)
-            DrawLine(a.Lerp(b, at / len), a.Lerp(b, MathF.Min(1f, (at + step * 0.55f) / len)), tint, Width);
+            DrawLine(a.Lerp(b, at / len), a.Lerp(b, MathF.Min(1f, (at + step * 0.55f) / len)), tint, w);
     }
 
     /// <summary>--smoke: quantas rotas ficaram desenhadas e o que diz a primeira.</summary>

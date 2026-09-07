@@ -104,7 +104,8 @@ public partial class Hud : CanvasLayer
             _alerts.OnOpen = id =>
             {
                 if (id == "offers") OpenWar();
-                else if (id == "research" || id == "queue") OpenCountry();
+                else if (id == "queue") OpenProduction();      // fila parada: abre-se a fila, não o país
+                else if (id == "research") OpenCountry();
                 else if (id == "battle" && _game.World.ActiveBattles.FirstOrDefault(b =>
                              b.AttackerCountryId == _game.PlayerId
                              || _game.World.Regions.GetValueOrDefault(b.RegionId)?.ControllerId == _game.PlayerId) is Battle mine)
@@ -239,6 +240,10 @@ public partial class Hud : CanvasLayer
         var tabs = new HBoxContainer(); tabs.AddThemeConstantOverride("separation", 8); nav.AddChild(tabs);
         tabs.AddChild(Ui.Btn("Frente", DefendBorders));
         tabs.AddChild(Ui.Btn("País", OpenCountry));
+        // A produção só se alcançava por dentro do painel de uma região, no botão "Produzir": quem não
+        // soubesse disso não tinha como chegar à fila — e a fila é onde se ganha a guerra antes de ela
+        // começar. Passa a ter chapa própria na barra, como no HoI4.
+        tabs.AddChild(Ui.Btn("Produção", OpenProduction));
         tabs.AddChild(Ui.Btn("Mundo", () => _worldPanel.Open()));
         tabs.AddChild(Ui.Btn("Guerra", OpenWar));
         // Distintivo das propostas: só aparece quando o inimigo tem alguma coisa em cima da mesa, e
@@ -281,6 +286,13 @@ public partial class Hud : CanvasLayer
         if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
         _region.Close(); _production.Close(); _countryPanel.Close(); _worldPanel.Close();
         _warPanel.Open();
+    }
+
+    private void OpenProduction()
+    {
+        if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        _region.Close(); _warPanel.Close(); _countryPanel.Close(); _worldPanel.Close();
+        _production.Open();
     }
 
     private void OpenCountry()

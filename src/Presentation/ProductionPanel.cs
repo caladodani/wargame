@@ -5,50 +5,95 @@ using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
-/// <summary>Painel de produção do jogador (45% inferior): bancada de fábricas militares, templates com custo
-/// e "+", fila com % e "×". A bancada é a fila de lâmpadas do HoI4: quantas linhas de montagem existem e
-/// quantas estão a trabalhar hoje — e a fila marca as encomendas que estão à espera de fábrica, que antes
-/// pareciam simplesmente paradas sem explicação. Lê o World só em Fill (mundo parado); muta só por
-/// Game.Dispatch.</summary>
+/// <summary>Painel de produção do jogador: bancada de fábricas militares, modelos com custo e "+", fila com
+/// % e "×". A bancada é a fila de lâmpadas do HoI4: quantas linhas de montagem existem e quantas estão a
+/// trabalhar hoje — e a fila marca as encomendas que estão à espera de fábrica, que antes pareciam
+/// simplesmente paradas sem explicação.
+///
+/// A fila e os modelos vivem em abas de metal próprias, e não uma debaixo da outra. Empilhados, numa fila
+/// com uma dúzia de encomendas — cada uma com barra, quadro de fábricas e mostrador de ritmo — não se
+/// chegava ao fim da lista sem passar por tudo o resto, e num telemóvel não se via a fila de todo. Cada aba
+/// desliza sozinha e o painel abre naquela que interessa: a fila, ou os modelos quando não há nada
+/// encomendado.
+///
+/// Lê o World só em Fill (mundo parado); muta só por Game.Dispatch.</summary>
 public partial class ProductionPanel : PanelContainer
 {
+    private static readonly string[] Sections = { "Fila", "Modelos" };
+
     private Game _game = null!;
-    private Label _title = null!;
-    private VBoxContainer _templates = null!, _queue = null!;
+    private HBoxContainer _crest = null!, _tabs = null!;
+    private VBoxContainer _templates = null!, _queue = null!, _queueBox = null!, _tmplBox = null!;
     private HBoxContainer _bench = null!;
+    private ScrollContainer _scroll = null!;
+    private Label _tally = null!;
+    private int _tab;
     private string _lastKey = "";
 
     public void Setup(Game game)
     {
         _game = game;
         Visible = false;
-        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.55f; AnchorBottom = 1;
+        AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0.30f; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.10f, 0.11f, 0.14f, 0.95f)));
         var v = new VBoxContainer(); AddChild(v);
         var head = new HBoxContainer(); v.AddChild(head);
-        _title = Ui.Grow(Ui.Lbl("", 22)); head.AddChild(_title);
+        _crest = new HBoxContainer(); head.AddChild(Ui.Grow(_crest));   // brasão do nosso país, enchido no Fill
         head.AddChild(Ui.Btn("Fechar", Close));
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        v.AddChild(scroll);
-        var body = Ui.Grow(new VBoxContainer()); scroll.AddChild(body);
-        // Bancada: ⚙ + lâmpadas + a conta em palavras. Fica por cima dos modelos porque é o tecto de tudo
-        // o que se encomenda a seguir.
-        _bench = new HBoxContainer(); _bench.AddThemeConstantOverride("separation", 8); body.AddChild(_bench);
-        body.AddChild(Ui.Rule());
-        var mhead = new HBoxContainer(); body.AddChild(mhead);
-        mhead.AddChild(Ui.Grow(Ui.Lbl("Modelos", 20)));
-        mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
-        _templates = new VBoxContainer(); body.AddChild(_templates);
-        var qhead = new HBoxContainer(); body.AddChild(qhead);
-        qhead.AddChild(Ui.Grow(Ui.Lbl("Fila", 20)));
+        // Bancada: ⚙ + lâmpadas + a conta em palavras. Fica fora do deslizador e por cima das abas porque é
+        // o tecto de tudo o que se encomenda — vale para as duas secções.
+        _bench = new HBoxContainer(); _bench.AddThemeConstantOverride("separation", 8); v.AddChild(_bench);
+        _tabs = new HBoxContainer(); v.AddChild(_tabs);                 // abas de metal, enchidas no Fill
+        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        v.AddChild(_scroll);
+        var body = Ui.Grow(new VBoxContainer()); _scroll.AddChild(body);
+
+        _queueBox = Ui.Grow(new VBoxContainer()); body.AddChild(_queueBox);
+        var qhead = new HBoxContainer(); _queueBox.AddChild(qhead);
+        qhead.AddChild(Ui.Grow(Ui.Head("Fila de produção")));
         var hint = Ui.Lbl("arrasta uma encomenda para lhe dar prioridade", 14);
         hint.AddThemeColorOverride("font_color", Ui.TextDim);
         qhead.AddChild(hint);
-        _queue = new VBoxContainer(); body.AddChild(_queue);
+        _queue = new VBoxContainer(); _queueBox.AddChild(_queue);
+
+        _tmplBox = Ui.Grow(new VBoxContainer()); body.AddChild(_tmplBox);
+        var mhead = new HBoxContainer(); _tmplBox.AddChild(mhead);
+        mhead.AddChild(Ui.Grow(Ui.Head("Modelos de divisão")));
+        mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
+        _templates = new VBoxContainer(); _tmplBox.AddChild(_templates);
+        _tally = Ui.Lbl("", 14); _tally.AddThemeColorOverride("font_color", Ui.TextDim);
+        _tmplBox.AddChild(_tally);
+        Show(0);
     }
 
-    public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+    /// <summary>Troca de secção. As duas ficam montadas e só se acende uma: assim a fila fica com o
+    /// deslizador inteiro para ela, e voltar atrás não a manda desenhar outra vez.</summary>
+    private void Show(int tab)
+    {
+        _tab = Math.Clamp(tab, 0, Sections.Length - 1);
+        _queueBox.Visible = _tab == 0;
+        _tmplBox.Visible = _tab == 1;
+        _scroll.ScrollVertical = 0;
+    }
+
+    private void Pick(int i) { Show(i); _lastKey = ""; _game.RunWhenIdle(Fill); }
+
+    /// <summary>Abre na fila; com a fila vazia abre nos modelos, que é onde está o "+" de quem vem do
+    /// alarme da fila parada.</summary>
+    public void Open()
+    {
+        _lastKey = "";
+        _game.RunWhenIdle(() =>
+        {
+            bool empty = _game.PlayerId is int pid && _game.World.Countries.TryGetValue(pid, out var c) && c.Queue.Count == 0;
+            Show(empty ? 1 : 0);
+            Fill();
+            Visible = true;
+            Ui.FadeIn(this);
+        });
+    }
+
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 
@@ -58,14 +103,18 @@ public partial class ProductionPanel : PanelContainer
         {
             var w = _game.World;
             if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c)) { Close(); return; }
-            _title.Text = $"Produção — {c.Name}   {c.Money:0.0} pts   ·   {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens";
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
             var y = Industry.Of(w, pid);
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
+            var key = _tab + "#" + string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
             if (key == _lastKey) return;
             _lastKey = key;
 
+            Ui.CrestInto(_crest, c.Tag, "Produção",
+                $"{c.Money:0.0} pts no cofre  ·  {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens"
+                + $"  ·  {c.Queue.Count} na fila");
+            Ui.Clear(_tabs);
+            _tabs.AddChild(Ui.Tabs(new[] { $"Fila ({c.Queue.Count})", $"Modelos ({tmpls.Count})" }, _tab, Pick));
             Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench);
             var gear = Ui.Lbl("⚙", 18); gear.AddThemeColorOverride("font_color", Ui.Accent); _bench.AddChild(gear);
             _bench.AddChild(Ui.Pips(y.MilitaryBusy, y.Military));
@@ -86,6 +135,9 @@ public partial class ProductionPanel : PanelContainer
                 _templates.AddChild(row);
             }
             if (tmpls.Count == 0) _templates.AddChild(Ui.Lbl("Sem modelos de divisão"));
+            _tally.Text = c.Queue.Count == 0
+                ? "Nada encomendado — carrega no + de um modelo para o pôr na fila."
+                : $"{c.Queue.Count} encomenda{(c.Queue.Count == 1 ? "" : "s")} na fila, na aba ao lado.";
             for (int i = 0; i < c.Queue.Count; i++)
             {
                 var o = c.Queue[i]; int idx = i, tid = o.TemplateId;
@@ -220,13 +272,14 @@ public partial class ProductionPanel : PanelContainer
         else { _lastKey = ""; Refresh(); }
     });
 
-    /// <summary>--smoke: enche a fila com dois modelos, arrasta o último para a cabeça e carrega no quadro
-    /// de fábricas da encomenda da frente, para os dois caminhos novos (arrasto e dedicação de fábricas)
-    /// correrem sem ecrã nem dedo.</summary>
+    /// <summary>--smoke: enche a fila com dois modelos, arrasta o último para a cabeça, carrega no quadro
+    /// de fábricas da encomenda da frente e passa pelas duas abas, para os caminhos todos (arrasto,
+    /// dedicação de fábricas, troca de secção) correrem sem ecrã nem dedo.</summary>
     public string Smoke()
     {
         var w = _game.World;
         if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c)) return "sem fila de produção";
+        Pick(1); Pick(0);                    // as duas abas desenhadas, e volta-se à fila
         IReadOnlyList<DivisionTemplate> tmpls;
         try { tmpls = w.Units.GetTemplates(pid); } catch { tmpls = Array.Empty<DivisionTemplate>(); }
         foreach (var t in tmpls.Take(2)) _game.Dispatch(new BuildDivisionCommand(pid, t.Id));
@@ -269,7 +322,16 @@ public partial class ProductionPanel : PanelContainer
                    + $" (tecto {w.Rule("line_efficiency_max", 1.5f):P0}) depois de {lead.Delivered} entrega"
                    + (lead.Delivered == 1 ? "" : "s");
         }
-        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged}, {yards}, {rhythm})";
+        // a fila tem de caber no deslizador: se a altura pedida passar a janela, o painel desliza mesmo.
+        // A janela mede-se pelo ecrã e pela âncora do painel, que é o que o Godot lhe vai dar — as medidas
+        // dos containers só existem depois de um frame de layout, e o --smoke não desenha nenhum.
+        float tall = _queue.GetCombinedMinimumSize().Y;
+        float window = GetViewportRect().Size.Y * (1f - AnchorTop) - _bench.GetCombinedMinimumSize().Y - 120f;
+        string roll = window <= 0f ? "sem janela medida"
+                    : tall > window ? $"desliza ({tall:0}px de fila em {window:0}px de janela)"
+                    : $"cabe inteira ({tall:0}px em {window:0}px)";
+        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção em {Sections.Length} abas"
+             + $", {roll} ({dragged}, {yards}, {rhythm})";
     }
 
     /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>
