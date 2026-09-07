@@ -16,9 +16,9 @@ namespace WarGame.Presentation;
 /// tracejada, que aquilo não é uma estrada. Uma divisão presa numa batalha diz que está presa, em vez de
 /// mentir com uma marcha que não avança.
 ///
-/// A escolha vem de dois sítios — as divisões marcadas no painel da região e as regiões marcadas por toque
-/// longo — e nenhum deles avisa ninguém quando muda. Por isso isto pergunta sozinho, umas vezes por segundo
-/// e sempre com o mundo parado (Game.RunWhenIdle), e só redesenha quando a resposta é outra.</summary>
+/// A escolha vem da ArmySelect (toque simples ou toque longo no mapa), que não avisa ninguém quando muda.
+/// Por isso isto pergunta sozinho, umas vezes por segundo e sempre com o mundo parado (Game.RunWhenIdle),
+/// e só redesenha quando a resposta é outra.</summary>
 public partial class RouteOverlay : Node2D
 {
     /// <summary>Uma rota já em coordenadas de mundo, pronta a desenhar.</summary>
@@ -31,7 +31,6 @@ public partial class RouteOverlay : Node2D
     private const float Ask = 0.15f;         // de quanto em quanto tempo se volta a perguntar quem está escolhido
 
     private Game _game = null!;
-    private RegionPanel _region = null!;
     private ArmySelect _select = null!;
     private Node2D _tagRoot = null!;
     private readonly List<Lane> _lanes = new();
@@ -48,7 +47,7 @@ public partial class RouteOverlay : Node2D
     }
 
     /// <summary>O Hud liga a selecção depois de a criar (os overlays nascem primeiro, no MapView).</summary>
-    public void Watch(RegionPanel region, ArmySelect select) { _region = region; _select = select; }
+    public void Watch(ArmySelect select) { _select = select; }
 
     /// <summary>As etiquetas mantêm-se legíveis ao afastar, como as dos planos — e a seta encolhe ao
     /// aproximar. Desenhada em unidades de mundo crescia com o mapa: aproximar para ver uma região deixava
@@ -73,8 +72,8 @@ public partial class RouteOverlay : Node2D
         if (_game is not null) _game.RunWhenIdle(Refresh);
     }
 
-    /// <summary>Divisões escolhidas: as marcadas no painel da região aberta (ou todas as minhas que lá estão,
-    /// se o painel está aberto sem nenhuma marcada) mais as das regiões marcadas por toque longo.</summary>
+    /// <summary>Divisões escolhidas: as das regiões marcadas na ArmySelect (toque simples ou toque longo —
+    /// é a única selecção que o jogo tem agora).</summary>
     private List<int> Chosen()
     {
         var ids = new List<int>();
@@ -88,11 +87,6 @@ public partial class RouteOverlay : Node2D
                 if (w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid) ids.Add(id);
         }
 
-        if (_region is not null && _region.Visible)
-        {
-            if (_region.SelectedDivisions.Count > 0) ids.AddRange(_region.SelectedDivisions);
-            else FromRegion(_region.OpenRegionId);
-        }
         if (_select is not null) foreach (int rid in _select.RegionIds) FromRegion(rid);
         return ids;
     }

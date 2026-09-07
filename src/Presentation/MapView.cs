@@ -128,8 +128,10 @@ public partial class MapView : Node2D
         bool doubled = now - _lastTapAt < DoubleTapMs && pos.DistanceTo(_lastTapPos) < DoubleTapMaxDist;
         _lastTapAt = doubled ? 0 : now;    // um duplo toque não encadeia com o toque seguinte
         _lastTapPos = pos;
-        EmitSignal(SignalName.RegionTapped, rid);
+        // o duplo toque sai primeiro: quem o trata decide mover com a selecção ainda como estava antes
+        // deste toque, e só depois o toque simples mexe na selecção (o Hud suprime-o quando já houve duplo)
         if (doubled) EmitSignal(SignalName.RegionDoubleTapped, rid);
+        EmitSignal(SignalName.RegionTapped, rid);
     }
 
     /// <summary>Centra a câmara em `worldPos` com o zoom dado (ex.: capital ao escolher país).</summary>

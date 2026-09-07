@@ -5,18 +5,14 @@ using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
-/// <summary>Painel da região tocada (45% inferior do ecrã): estado, divisões presentes e ordens do jogador
-/// (Mover, Parar, Declarar guerra, Produzir) ou "Jogar como" enquanto não há jogador.
+/// <summary>Ficha da região, aberta por duplo toque quando não há nada seleccionado (a ArmySelect trata do
+/// toque simples e do movimento). Mostra o estado e as divisões presentes, e dá as ordens que não cabem no
+/// toque no mapa: declarar guerra, atacar com a bomba, jogar como este país, ver a batalha, retirar e
+/// sabotar a retaguarda inimiga. Mover, parar, dissolver e construir saem daqui — vivem na barra de selecção
+/// e no menu Construir, sem tapar o mapa.
 /// Lê o World só em Fill (mundo parado) e muta só por Game.Dispatch.</summary>
 public partial class RegionPanel : PanelContainer
 {
-    /// <summary>O próximo toque numa região é o destino das divisões seleccionadas.</summary>
-    public bool MoveMode { get; private set; }
-
-    /// <summary>A região aberta e as divisões marcadas nela: o mapa desenha-lhes a rota (RouteOverlay).</summary>
-    public int OpenRegionId => _regionId;
-    public IReadOnlyCollection<int> SelectedDivisions => _selected;
-
     private Game _game = null!;
     private MapView _map = null!;
     private ProductionPanel _production = null!;
@@ -27,20 +23,15 @@ public partial class RegionPanel : PanelContainer
     /// <summary>O Hud liga isto ao ecrã de batalha (o painel não conhece os outros painéis todos).</summary>
     public Action<int>? OnBattle;
 
-    private Button _play = null!, _all = null!, _move = null!, _stop = null!, _disband = null!, _war = null!, _produce = null!, _build = null!, _fort = null!, _retreat = null!, _auto = null!;
+    private Button _play = null!, _war = null!, _produce = null!, _retreat = null!;
     private Button _battle = null!;
-    private HFlowContainer _bld = null!;      // botões de edifícios (tabela building)
     private VBoxContainer _sab = null!;       // sabotagem na retaguarda (operações spy_op de scope region)
     private string _sabKey = "";
-    private string _bldKey = "";
     private ConfirmationDialog _warDialog = null!;
     private Button _nuke = null!;
     private ConfirmationDialog _nukeDialog = null!;
     private int _nukeTarget;
     private readonly Dictionary<string, string> _terrainNames = new();
-    private readonly HashSet<int> _selected = new();
-    private readonly Dictionary<int, CheckBox> _boxes = new();
-    private readonly List<int> _mine = new();
     private int _regionId, _warTarget;
     private string _lastKey = "";
 
@@ -65,21 +56,13 @@ public partial class RegionPanel : PanelContainer
         _rows = Ui.Grow(new VBoxContainer()); scroll.AddChild(_rows);
 
         var actions = new HFlowContainer(); v.AddChild(actions);
-        _bld = new HFlowContainer(); v.AddChild(_bld);
         _sab = new VBoxContainer(); v.AddChild(_sab);          // sabotagem: só aparece em região inimiga
         _play = Ui.Btn("", () => _game.RunWhenIdle(OnPlay)); actions.AddChild(_play);
-        _all = Ui.Btn("Todas", SelectAll); actions.AddChild(_all);
-        _move = Ui.Btn("Mover", BeginMove); actions.AddChild(_move);
-        _stop = Ui.Btn("Parar", () => _game.RunWhenIdle(OnStop)); actions.AddChild(_stop);
-        _disband = Ui.Btn("Dissolver", () => _game.RunWhenIdle(OnDisband)); actions.AddChild(_disband);
         _war = Ui.Btn("", () => _warDialog.PopupCentered()); actions.AddChild(_war);
         _produce = Ui.Btn("Produzir", () => { Close(); _production.Open(); }); actions.AddChild(_produce);
-        _build = Ui.Btn("", () => _game.RunWhenIdle(OnBuild)); actions.AddChild(_build);
-        _fort = Ui.Btn("", () => _game.RunWhenIdle(OnFort)); actions.AddChild(_fort);
         _retreat = Ui.Btn("Retirar", () => _game.RunWhenIdle(OnRetreat)); actions.AddChild(_retreat);
         _battle = Ui.Btn("⚔ Ver batalha", () => { int id = _regionId; Close(); OnBattle?.Invoke(id); }, 0f, Ui.Kind.Primary);
         actions.AddChild(_battle);
-        _auto = Ui.Btn("⚑ Avanço auto", () => _game.RunWhenIdle(OnAutoAdvance)); actions.AddChild(_auto);
         _nuke = Ui.Btn("☢ Ataque nuclear", () => _nukeDialog.PopupCentered()); actions.AddChild(_nuke);
         actions.AddChild(Ui.Btn("País", () => _game.RunWhenIdle(() =>
         {
@@ -92,7 +75,7 @@ public partial class RegionPanel : PanelContainer
 
     public void Open(int regionId)
     {
-        _regionId = regionId; _selected.Clear(); MoveMode = false; _lastKey = "";
+        _regionId = regionId; _lastKey = "";
         _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); });
     }
 
@@ -101,77 +84,8 @@ public partial class RegionPanel : PanelContainer
 
     public void Close()
     {
-        Visible = false; MoveMode = false; _selected.Clear();
+        Visible = false;
         _map.Regions.Highlight(null);
-    }
-
-    /// <summary>Alterna: todas as divisões do jogador seleccionadas ↔ nenhuma.</summary>
-    public void SelectAll()
-    {
-        bool all = _mine.Count > 0 && _mine.All(_selected.Contains);
-        _selected.Clear();
-        if (!all) _selected.UnionWith(_mine);
-        foreach (var (id, cb) in _boxes) cb.SetPressedNoSignal(_selected.Contains(id));
-        UpdateButtons();
-    }
-
-    public void BeginMove()
-    {
-        if (_selected.Count == 0) return;
-        MoveMode = true; UpdateButtons();
-        _game.Notify("Toca na região de destino");
-    }
-
-    /// <summary>Destino escolhido: uma ordem por divisão seleccionada; o primeiro erro vai ao toast.</summary>
-    public void MoveTo(int targetRegionId) => _game.RunWhenIdle(() =>
-    {
-        MoveMode = false;
-        if (_game.PlayerId is not int pid) return;
-        string? first = null;
-        foreach (var id in _selected.ToList())
-            first ??= _game.Dispatch(new MoveDivisionCommand(pid, id, targetRegionId));
-        if (first is not null) _game.Notify(first);
-        Refresh();
-    });
-
-    /// <summary>Liga/desliga o avanço automático nas divisões escolhidas: se alguma ainda não o tem,
-    /// liga em todas; se já o têm todas, desliga.</summary>
-    private void OnAutoAdvance()
-    {
-        if (_game.PlayerId is not int pid) return;
-        var w = _game.World;
-        bool on = _selected.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance);
-        string? first = null;
-        foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new SetAutoAdvanceCommand(pid, id, on));
-        if (first is not null) _game.Notify(first);
-        Refresh();
-    }
-
-    private void OnStop()
-    {
-        if (_game.PlayerId is not int pid) return;
-        string? first = null;
-        foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new StopDivisionCommand(pid, id));
-        if (first is not null) _game.Notify(first);
-        Refresh();
-    }
-
-    private void OnDisband()
-    {
-        if (_game.PlayerId is not int pid) return;
-        string? first = null;
-        foreach (var id in _selected.ToList()) first ??= _game.Dispatch(new DisbandDivisionCommand(pid, id));
-        if (first is not null) _game.Notify(first);
-        _selected.Clear();
-        Refresh();
-    }
-
-    private void OnBuilding(string buildingId)
-    {
-        if (_game.PlayerId is not int pid) return;
-        var err = _game.Dispatch(new BuildBuildingCommand(pid, _regionId, buildingId));
-        if (err is not null) _game.Notify(err);
-        Refresh();
     }
 
     /// <summary>Manda uma equipa rebentar alguma coisa nesta região inimiga.</summary>
@@ -181,22 +95,6 @@ public partial class RegionPanel : PanelContainer
         var err = _game.Dispatch(new StartSpyOpCommand(pid, r.ControllerId, opId, r.Id));
         _game.Notify(err ?? "Equipa a caminho.");
         _sabKey = "";
-        Refresh();
-    }
-
-    private void OnBuild()
-    {
-        if (_game.PlayerId is not int pid) return;
-        var err = _game.Dispatch(new BuildInfrastructureCommand(pid, _regionId));
-        if (err is not null) _game.Notify(err);
-        Refresh();
-    }
-
-    private void OnFort()
-    {
-        if (_game.PlayerId is not int pid) return;
-        var err = _game.Dispatch(new BuildFortCommand(pid, _regionId));
-        if (err is not null) _game.Notify(err);
         Refresh();
     }
 
@@ -283,24 +181,22 @@ public partial class RegionPanel : PanelContainer
                 info += $"\n{RegionRenderer.BattleMark}batalha ({battle.Days} dias): {attTag} ataca — org {attOrg:0} vs {defOrg:0}"
                       + (r.Fort > 0 ? $" (forte {r.Fort})" : "");
             }
-            if (MoveMode) info += "\nToca na região de destino";
             _info.Text = info;
 
-            // Divisões: as do jogador primeiro (com caixa), depois as outras.
+            // Divisões presentes: as do jogador primeiro, depois as outras — sem caixa de selecção, é
+            // a ArmySelect quem escolhe agora (toque simples no mapa).
             // nevoeiro: fora do que temos como ver, a guarnição alheia não se conta
             bool fogged = pid is int viewer && !Vision.Sees(w, viewer, r);
             var divs = (pid is int seer ? Vision.DivisionsIn(w, seer, r)
                                        : r.DivisionIds.Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>())
                         .OrderByDescending(d => d.CountryId == pid).ThenBy(d => d.Id).ToList();
-            _mine.Clear(); _mine.AddRange(divs.Where(d => d.CountryId == pid).Select(d => d.Id));
-            _selected.IntersectWith(_mine);
-            var lines = divs.Select(d => (d.Id, mine: d.CountryId == pid, text: Line(w, d), d.Hp, d.Org)).ToList();
+            var lines = divs.Select(d => (d.Id, text: Line(w, d), d.Hp, d.Org)).ToList();
             var key = (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
-                Ui.Clear(_rows); _boxes.Clear();
-                foreach (var (id, mine, text, hp, org) in lines) _rows.AddChild(Row(id, mine, text, hp, org));
+                Ui.Clear(_rows);
+                foreach (var (_, text, hp, org) in lines) _rows.AddChild(Row(text, hp, org));
                 if (fogged)
                 {
                     var fog = Ui.Lbl($"🌫 {Vision.Why(w, pid!.Value, r)}", 16);
@@ -311,10 +207,9 @@ public partial class RegionPanel : PanelContainer
                 else if (lines.Count == 0) _rows.AddChild(Ui.Lbl("Sem divisões"));
             }
 
-            bool hasPlayer = pid is not null, anyMine = _mine.Count > 0;
+            bool hasPlayer = pid is not null;
             _play.Visible = !hasPlayer && ctrl is not null;
             if (_play.Visible) _play.Text = $"Jogar como {ctrl!.Name}";
-            _all.Visible = _move.Visible = _stop.Visible = _disband.Visible = hasPlayer && anyMine;
             bool canWar = hasPlayer && ctrl is not null && ctrl.Id != pid && !w.AreAtWar(pid!.Value, ctrl.Id);
             _war.Visible = canWar;
             if (canWar) { _war.Text = $"Justificar guerra a {ctrl!.Name}"; _warTarget = ctrl.Id; _warDialog.DialogText = $"Justificar objectivo de guerra contra {ctrl.Name}? A guerra declara-se sozinha ao fim da justificação."; }
@@ -323,38 +218,9 @@ public partial class RegionPanel : PanelContainer
             _nuke.Visible = canNuke;
             if (canNuke) { _nukeTarget = r.Id; _nukeDialog.DialogText = $"Lançar uma ogiva nuclear sobre {r.Name}? As divisões e a infra-estrutura de lá ficam arrasadas; a tua estabilidade também sofre (opinião mundial)."; }
             _produce.Visible = hasPlayer;
-            bool canBuild = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.Building
-                            && r.Infrastructure < w.Rule("infra_max", 2f) - 1e-4f;
-            _build.Visible = canBuild;
-            if (canBuild) _build.Text = $"Melhorar infra ({w.Rule("infra_build_cost", 40f):0})";
             _battle.Visible = battle is not null;     // o ecrã dos dois lados só faz sentido com batalha a decorrer
             _retreat.Visible = hasPlayer && battle is not null
                 && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid);
-            _auto.Visible = hasPlayer && _selected.Count > 0;
-            if (_auto.Visible)
-                _auto.Text = _selected.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance)
-                    ? "⚑ Avanço auto" : "⚑ Parar avanço";
-            bool canFort = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && !r.FortBuilding
-                           && r.Fort < (int)w.Rule("fort_max", 5f);
-            _fort.Visible = canFort;
-            if (canFort) _fort.Text = $"Fortificar ({w.Rule("fort_build_cost", 30f):0})";
-            bool canBld = hasPlayer && r.OwnerId == pid && r.ControllerId == pid && r.Project is null;
-            var bldKey = !canBld ? "" : r.Id + "|" + string.Join(",", w.BuildingDefs.Values
-                .Where(d => (!d.Coastal || r.Coastal) && r.Buildings.GetValueOrDefault(d.Id) < d.MaxLevel).Select(d => d.Id + ":" + r.Buildings.GetValueOrDefault(d.Id)));
-            if (bldKey != _bldKey)
-            {
-                _bldKey = bldKey;
-                Ui.Clear(_bld);
-                if (canBld)
-                    foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
-                    {
-                        if (d.Coastal && !r.Coastal) continue;      // porto só na costa: nem se oferece o botão
-                        if (r.Buildings.GetValueOrDefault(d.Id) >= d.MaxLevel) continue;
-                        var bid = d.Id;
-                        _bld.AddChild(Ui.Btn($"{d.Name} {r.Buildings.GetValueOrDefault(bid) + 1} ({d.Cost:0}, {d.Days:0} d)",
-                            () => _game.RunWhenIdle(() => OnBuilding(bid))));
-                    }
-            }
             // sabotagem na retaguarda: o que se pode mandar rebentar aqui, e a equipa que já vai a caminho
             var running = pid is int me ? SabotageView.Running(w, me, r.Id) : null;
             var sabKey = pid is int p2
@@ -368,7 +234,6 @@ public partial class RegionPanel : PanelContainer
                 // a nossa própria retaguarda: quem guarda isto e o que apanhamos aqui
                 if (pid is int p4 && SabotageView.Rear(w, p4, r) is VBoxContainer rear) _sab.AddChild(rear);
             }
-            UpdateButtons();
         }
         catch (Exception ex) { GD.PushError("RegionPanel.Fill: " + ex); }
     }
@@ -397,37 +262,19 @@ public partial class RegionPanel : PanelContainer
         return s;
     }
 
-    // Divisão do jogador = CheckBox com o texto (linha inteira é alvo de toque); outras = Label.
-    /// <summary>Linha da divisão: o texto (caixa de selecção se for nossa) e, por baixo, duas barras finas —
-    /// verde para os efectivos, azul para a organização. Ver o estado da tropa sem ler números.</summary>
-    private Control Row(int id, bool mine, string text, float hp, float org)
+    /// <summary>Linha da divisão: o texto e, por baixo, duas barras finas — verde para os efectivos, azul
+    /// para a organização. Ver o estado da tropa sem ler números.</summary>
+    private static Control Row(string text, float hp, float org)
     {
         var v = new VBoxContainer();
         v.AddThemeConstantOverride("separation", 2);
-        if (mine)
-        {
-            var cb = Ui.Grow(new CheckBox { Text = text, ButtonPressed = _selected.Contains(id), CustomMinimumSize = new Vector2(0, 48) });
-            cb.AddThemeFontSizeOverride("font_size", Ui.Font);
-            cb.Toggled += on => { try { if (on) _selected.Add(id); else _selected.Remove(id); UpdateButtons(); } catch (Exception ex) { GD.PushError(ex.ToString()); } };
-            _boxes[id] = cb;
-            v.AddChild(cb);
-        }
-        else
-        {
-            var l = Ui.Grow(Ui.Lbl(text)); l.CustomMinimumSize = new Vector2(0, 40);
-            v.AddChild(l);
-        }
+        var l = Ui.Grow(Ui.Lbl(text)); l.CustomMinimumSize = new Vector2(0, 40);
+        v.AddChild(l);
         var bars = new HBoxContainer();
         bars.AddThemeConstantOverride("separation", 8);
         bars.AddChild(Ui.Grow(Ui.Bar(hp / 100f, Ui.Good)));
         bars.AddChild(Ui.Grow(Ui.Bar(org / 100f, Ui.Accent)));
         v.AddChild(bars);
         return v;
-    }
-
-    private void UpdateButtons()
-    {
-        _move.Disabled = _selected.Count == 0 || MoveMode;
-        _stop.Disabled = _disband.Disabled = _selected.Count == 0;
     }
 }

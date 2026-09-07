@@ -42,6 +42,9 @@ public partial class Hud : CanvasLayer
     private int _offersShown = -1;
     private RegionPanel _region = null!;
     private ArmySelect _multiSel = null!;
+    private RegionFooter _footer = null!;
+    private BuildBar _buildBar = null!;
+    private bool _suppressTapSelect;   // duplo toque já tratado: o toque simples a seguir não mexe na selecção
     private GameMenu _menu = null!;
     private ProductionPanel _production = null!;
     private CountryPanel _countryPanel = null!;
@@ -90,8 +93,10 @@ public partial class Hud : CanvasLayer
             _journal = new JournalPanel(); AddChild(_journal); _journal.Setup(_game);
             _region = new RegionPanel(); AddChild(_region); _region.Setup(_game, _map, _production, _countryPanel);
             _multiSel = new ArmySelect(); AddChild(_multiSel); _multiSel.Setup(_game, _map);
+            _footer = new RegionFooter(); AddChild(_footer); _footer.Setup(_game);
+            _buildBar = new BuildBar(); AddChild(_buildBar); _buildBar.Setup(_game);
             _armyPanel = new ArmyPanel(); AddChild(_armyPanel); _armyPanel.Setup(_game, _map, _multiSel);
-            _map.Routes.Watch(_region, _multiSel);   // o mapa nasce antes dos painéis: a selecção liga-se aqui
+            _map.Routes.Watch(_multiSel);   // o mapa nasce antes dos painéis: a selecção liga-se aqui
             _end = new EndScreen(); AddChild(_end); _end.Setup(_game);
             _slots = new SlotsPanel(); AddChild(_slots); _slots.Setup(_game);
             _menu = new GameMenu(); AddChild(_menu); _menu.Setup(_game, OpenSlots, () => _end.Show(CampaignReport.Ongoing));
@@ -138,7 +143,7 @@ public partial class Hud : CanvasLayer
 
             _map.RegionTapped += OnRegionTapped;
             _map.RegionLongPressed += rid => _multiSel.LongPress(rid);
-            _map.RegionDoubleTapped += rid => _multiSel.DoubleTap(rid);
+            _map.RegionDoubleTapped += OnRegionDoubleTapped;
             _game.TickCompleted += OnTick;
             _game.StateChanged += RefreshAll;
             _game.CommandFailed += Toast;
@@ -168,6 +173,7 @@ public partial class Hud : CanvasLayer
         if (_end.Visible) { _end.Close(); return; }
         if (_slots.Visible) { _slots.Close(); return; }
         if (_menu.Visible) { _menu.Close(); return; }
+        if (_buildBar.Visible) { _buildBar.Close(); return; }
         if (_multiSel.Active) { _game.RunWhenIdle(_multiSel.Clear); return; }
         if (_region.Visible) { _region.Close(); return; }
         if (_production.Visible) { _production.Close(); return; }
@@ -272,6 +278,9 @@ public partial class Hud : CanvasLayer
         // soubesse disso não tinha como chegar à fila — e a fila é onde se ganha a guerra antes de ela
         // começar. Passa a ter chapa própria na barra, como no HoI4.
         tabs.AddChild(Ui.Btn("Produção", OpenProduction));
+        // Construir: escolhe-se o tipo aqui e depois toca-se no mapa, região a região — o menu não tapa o
+        // jogo (ao contrário dos outros separadores) e fica aberto para se construir em várias regiões seguidas.
+        tabs.AddChild(Ui.Btn("Construir", OpenBuild));
         tabs.AddChild(Ui.Btn("Mundo", OpenWorld));
         tabs.AddChild(Ui.Btn("Guerra", OpenWar));
         // Distintivo das propostas: só aparece quando o inimigo tem alguma coisa em cima da mesa, e
@@ -344,6 +353,13 @@ public partial class Hud : CanvasLayer
     private void OpenArmies() { ClosePanels(); _armyPanel.Open(); }
     private void OpenJournal() { ClosePanels(); _journal.Open(); }
 
+    /// <summary>Não fecha os outros painéis nem o mapa: é uma chapa pequena no canto, não um véu a tapar o jogo.</summary>
+    private void OpenBuild()
+    {
+        if (_game.PlayerId is not int) { Toast("Toca num país e escolhe-o primeiro"); return; }
+        if (_buildBar.Visible) _buildBar.Close(); else _buildBar.Open();
+    }
+
     private void BuildToast()
     {
         // Toast: caixa centrada por baixo da barra; Ignore no wrapper para o toque passar ao mapa.
@@ -401,6 +417,7 @@ public partial class Hud : CanvasLayer
         if (_hintRow is not null) { _hintRow.OffsetTop = y + 70f; _hintRow.OffsetBottom = y + 130f; }
         _alerts?.PlaceUnder(y);
         _multiSel?.PlaceUnder(y - 4f);
+        _buildBar?.PlaceUnder(y + 4f);
     }
 
     private void OpenSlots() => _game.RunWhenIdle(_slots.Open);
@@ -908,6 +925,8 @@ public partial class Hud : CanvasLayer
                            || _battle.Visible || _focusTree.Visible || _doctrines.Visible;
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
+            _footer.SetCovered(covered);   // já relê o World sozinho quando não está tapado
+            _buildBar.SetCovered(covered);
         }
         catch (Exception ex) { GD.PushError("Hud.RefreshAll: " + ex); }
     }
@@ -1077,16 +1096,35 @@ public partial class Hud : CanvasLayer
         OnRegionTapped(regionId);
     }
 
+    /// <summary>Toque simples: nunca tapa o jogo. Mostra a ficha breve no rodapé, e ou entrega o toque à
+    /// obra armada (menu Construir), ou troca a selecção (a ArmySelect ignora-o se a região não é nossa) —
+    /// salvo se o mesmo gesto já foi tratado como duplo toque (_suppressTapSelect, posto pelo MapView, que
+    /// manda primeiro o sinal de duplo toque e só depois o simples).</summary>
     private void OnRegionTapped(int regionId)
     {
         try
         {
-            if (_region.MoveMode) { _region.MoveTo(regionId); return; }
-            _production.Close(); _countryPanel.Close();
-            _map.Regions.Highlight(regionId);
-            _region.Open(regionId);
+            _footer.Show(regionId);
+            if (_buildBar.Armed) { _buildBar.HandleTap(regionId); return; }
+            if (_suppressTapSelect) { _suppressTapSelect = false; return; }
+            _multiSel.Tap(regionId);
         }
         catch (Exception ex) { GD.PushError("Hud.OnRegionTapped: " + ex); }
+    }
+
+    /// <summary>Duplo toque: com selecção activa, é o destino da marcha (a ordem parte, a marca e a rota
+    /// ficam); sem selecção, abre a ficha completa da região. Marca _suppressTapSelect porque o MapView
+    /// emite este sinal antes do toque simples do mesmo gesto — sem a marca, o toque simples a seguir trocava
+    /// a selecção antes de MoveTo a poder usar.</summary>
+    private void OnRegionDoubleTapped(int regionId)
+    {
+        try
+        {
+            _suppressTapSelect = true;
+            if (_multiSel.Active) _multiSel.DoubleTap(regionId);
+            else { _footer.Show(regionId); _region.Open(regionId); }
+        }
+        catch (Exception ex) { GD.PushError("Hud.OnRegionDoubleTapped: " + ex); }
     }
 
     /// <summary>--smoke: monta um exército com frente e plano a meio, só para as setas do mapa serem
@@ -1123,7 +1161,7 @@ public partial class Hud : CanvasLayer
         if (to == 0) return "capital sem vizinha nossa";
         if (mine.Path.Count == 0 && _game.Dispatch(new MoveDivisionCommand(pid, mine.Id, to)) is string err) return "ordem recusada: " + err;
         if (mine.Path.Count == 0) return "sem caminho";
-        _region.Open(from.Id);                                            // painel aberto: a rota lê a selecção dele
+        _multiSel.Tap(from.Id);                                           // marca-se aqui: a rota lê a ArmySelect
         return _map.Routes.Smoke();
     }
 
@@ -1132,10 +1170,10 @@ public partial class Hud : CanvasLayer
     {
         var w = _game.World;
         if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c) || !w.Regions.TryGetValue(c.CapitalRegionId, out var cap)) return;
-        OnRegionTapped(cap.Id); _region.SelectAll(); _region.BeginMove();
+        OnRegionTapped(cap.Id);   // toque simples: rodapé pintado, capital marcada na ArmySelect (tem divisões)
         GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos, "
                + $"{_map.Regions.FrontierLines()} tiras de fronteira");
-        if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _region.MoveTo(own);
+        if (cap.Neighbours.FirstOrDefault(n => w.Regions.TryGetValue(n, out var nr) && nr.ControllerId == pid) is int own && own != 0) _multiSel.MoveTo(own);
         // uma leva de prisioneiros, para os campos e a balança do painel Guerra terem o que desenhar
         if (c.Prisoners.Count == 0 && w.Countries.Values.FirstOrDefault(x => x.Id != pid) is Country foe)
         {
@@ -1256,8 +1294,8 @@ public partial class Hud : CanvasLayer
                 c.Money = MathF.Max(c.Money, raid.Cost);                 // o smoke adianta o custo da operação
                 _game.Dispatch(new StartSpyOpCommand(pid, rear.ControllerId, raid.Id, rear.Id));
             }
-            OnRegionTapped(rear.Id);                                    // painel da região inimiga, com o cartão novo
-            OnRegionTapped(cap.Id);                                     // e de volta à capital: cartão da nossa retaguarda
+            _region.Open(rear.Id);                                      // painel da região inimiga, com o cartão novo
+            _region.Open(cap.Id);                                       // e de volta à capital: cartão da nossa retaguarda
         }
         // campos cheios dos dois lados, para a mesa da troca ter números, veredicto e botão
         int swap = 0;
@@ -1497,7 +1535,9 @@ public partial class Hud : CanvasLayer
                      + $"altifalante {(hushed && !_sfx.Muted ? "cala e volta" : "preso")}";
         string bar = SmokeTopBar();                                       // barra de topo medida, chapa a chapa
         string pocket = SmokePocket(pid);                                 // e o cerco: chapa ⛓ e aviso, com bolsa fingida
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, cerco: {pocket}, material: {lend}");
+        string footer = _footer.Smoke(cap.Id);                            // rodapé passivo: nome, tempo e obra da capital
+        string build = _buildBar.Smoke();                                 // menu Construir: tipos armados e desarmados
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), tratado de {trade}, {_frames} painéis com moldura de metal, guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, cerco: {pocket}, material: {lend}, rodapé: {footer}, construir: {build}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
