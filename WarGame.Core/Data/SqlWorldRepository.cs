@@ -60,9 +60,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.NewsOptionEffects.TryGetValue(oid, out var olist)) w.NewsOptionEffects[oid] = olist = new();
             olist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
-        foreach (var r in _static.Query("SELECT id,grp,name,description,sort,is_default FROM law ORDER BY grp,sort"))
+        foreach (var r in _static.Query("SELECT id,grp,name,description,sort,is_default,country_tag FROM law ORDER BY grp,sort"))
             w.Laws[(string)r["id"]!] = new Law((string)r["id"]!, (string)r["grp"]!, (string)r["name"]!,
-                r["description"] as string ?? "", Convert.ToInt32(r["sort"]), Convert.ToInt32(r["is_default"]) == 1);
+                r["description"] as string ?? "", Convert.ToInt32(r["sort"]), Convert.ToInt32(r["is_default"]) == 1,
+                r["country_tag"] as string);
+        foreach (var r in _static.Query("SELECT id,name,icon,sort,country_tag FROM law_group ORDER BY sort,id"))
+            w.LawGroupDefs[(string)r["id"]!] = new LawGroupDef((string)r["id"]!, (string)r["name"]!,
+                r["icon"] as string ?? "", Convert.ToInt32(r["sort"]), r["country_tag"] as string);
         foreach (var r in _static.Query("SELECT law_id,stat_key,value FROM law_effect"))
         {
             var lid = (string)r["law_id"]!;

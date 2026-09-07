@@ -103,3 +103,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('ARG_adv_pampas','export_price',1.15);
 INSERT INTO advisor_effect VALUES ('ARG_adv_pampas','industry',1.05);
 INSERT INTO advisor_effect VALUES ('ARG_adv_atlantico','port_capacity',1.2);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('ARG_atlantico_sul','Questão do Atlântico Sul','🐧',10,'ARG');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('ARG_law_reclamacao','ARG_atlantico_sul','Reclamação diplomática','A questão vive nos foros internacionais e nos manuais da escola.',0,1,'ARG'),
+ ('ARG_law_guarnicoes','ARG_atlantico_sul','Guarnições reforçadas','A Patagónia deixa de ser retaguarda e passa a fronteira.',1,0,'ARG'),
+ ('ARG_law_projeccao','ARG_atlantico_sul','Projecção sobre as ilhas','Aviação naval e desembarque treinados à vista de todos.',2,0,'ARG');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('ARG_law_reclamacao','research_speed',1.05),
+ ('ARG_law_guarnicoes','defense',1.08),
+ ('ARG_law_guarnicoes','conscription',1.05),
+ ('ARG_law_projeccao','attack',1.1),
+ ('ARG_law_projeccao','org_regain',1.05),
+ ('ARG_law_projeccao','industry',0.97);

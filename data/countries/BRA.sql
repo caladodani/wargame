@@ -135,3 +135,16 @@ INSERT INTO advisor_effect VALUES ('BRA_adv_aeronautica','research_speed',1.14);
 INSERT INTO advisor_effect VALUES ('BRA_adv_aeronautica','production_speed',1.05);
 INSERT INTO advisor_effect VALUES ('BRA_adv_amazonia','move_speed',1.12);
 INSERT INTO advisor_effect VALUES ('BRA_adv_amazonia','defense',1.05);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('BRA_amazonia','Soberania da Amazónia','🌳',10,'BRA');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('BRA_law_vigilancia','BRA_amazonia','Vigilância aérea','Radares e satélites olham a floresta de cima.',0,1,'BRA'),
+ ('BRA_law_selva','BRA_amazonia','Batalhões de selva','Quem vive lá defende-a, com a doutrina que a mata pede.',1,0,'BRA'),
+ ('BRA_law_interior','BRA_amazonia','Ocupação do interior','Estradas, quartéis e povoamento: a floresta passa a ter dono à vista.',2,0,'BRA');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('BRA_law_vigilancia','counter_intel',1.15),
+ ('BRA_law_selva','defense',1.1),
+ ('BRA_law_selva','org_regain',1.05),
+ ('BRA_law_interior','industry',1.06),
+ ('BRA_law_interior','conscription',1.1);

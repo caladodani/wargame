@@ -119,3 +119,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('KOR_adv_chaebol','industry',1.15);
 INSERT INTO advisor_effect VALUES ('KOR_adv_chaebol','production_speed',1.06);
 INSERT INTO advisor_effect VALUES ('KOR_adv_semicondutores','research_speed',1.24);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('KOR_chaebol','Conglomerados','🏢',10,'KOR');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('KOR_law_livres','KOR_chaebol','Conglomerados livres','Vendem ao mundo o que quiserem e ao preço que quiserem.',0,1,'KOR'),
+ ('KOR_law_defesa','KOR_chaebol','Contratos de defesa','As mesmas fábricas passam a fazer obuses e blindados.',1,0,'KOR'),
+ ('KOR_law_dirigida','KOR_chaebol','Indústria dirigida','O Estado escolhe o que se produz e fica com a prioridade.',2,0,'KOR');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('KOR_law_livres','export_share',1.15),
+ ('KOR_law_livres','industry',1.05),
+ ('KOR_law_defesa','production_speed',1.1),
+ ('KOR_law_defesa','industry',1.05),
+ ('KOR_law_dirigida','production_speed',1.15),
+ ('KOR_law_dirigida','industry',1.1),
+ ('KOR_law_dirigida','export_share',0.85);

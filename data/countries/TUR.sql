@@ -117,3 +117,16 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('TUR_adv_estreitos','port_capacity',1.2);
 INSERT INTO advisor_effect VALUES ('TUR_adv_estreitos','defense',1.06);
 INSERT INTO advisor_effect VALUES ('TUR_adv_aparelhos','research_speed',1.16);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('TUR_estreitos','Convenção dos Estreitos','☾',10,'TUR');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('TUR_law_livre','TUR_estreitos','Passagem livre','Mercante que pague passa, seja de quem for.',0,1,'TUR'),
+ ('TUR_law_beligerantes','TUR_estreitos','Fecho aos beligerantes','Navio de guerra em guerra não entra no Bósforo.',1,0,'TUR'),
+ ('TUR_law_drones','TUR_estreitos','Indústria de drones','O país exporta o que fabrica e fabrica o que usa.',2,0,'TUR');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('TUR_law_livre','export_share',1.1),
+ ('TUR_law_beligerantes','defense',1.08),
+ ('TUR_law_beligerantes','export_price',1.1),
+ ('TUR_law_drones','production_speed',1.12),
+ ('TUR_law_drones','research_speed',1.06);

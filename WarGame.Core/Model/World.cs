@@ -78,6 +78,8 @@ public sealed class World
     public List<PowerTier> PowerTiers { get; } = new();
     public List<ActiveDecision> ActiveDecisions { get; } = new();
     public Dictionary<string, Law> Laws { get; } = new();
+    /// <summary>Cabeçalhos das escadas de leis (tabela law_group): nome e chapa de cada grupo.</summary>
+    public Dictionary<string, LawGroupDef> LawGroupDefs { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
 
     /// <summary>Escolas de doutrina de exército (tabela army_doctrine_branch), pela ordem em que se mostram.</summary>
@@ -265,7 +267,7 @@ public sealed class World
         foreach (var d in c.Doctrines)          // escolas de guerra: entram no mesmo bolo das tecnologias
             if (DoctrineEffects.TryGetValue(d, out var deffs))
                 foreach (var (key, mul) in deffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
-        foreach (var grp in Laws.Values.Select(l => l.Group).Distinct())
+        foreach (var grp in LawGroups(c))
             if (ActiveLaw(c, grp) is Law law && LawEffects.TryGetValue(law.Id, out var leffs))
                 foreach (var (key, mul) in leffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var e in NewsEvents.Values)   // eventos noticiosos já disparados (NewsSystem)
@@ -396,11 +398,23 @@ public sealed class World
         return false;
     }
 
-    /// <summary>Lei activa de um grupo: a escolhida em Country.Laws, senão a is_default do grupo.</summary>
+    /// <summary>A lei é deste país? As de country_tag null são de toda a gente; as outras só de quem lá está
+    /// escrito — a questão nacional de um país não se vota no parlamento do vizinho.</summary>
+    public static bool LawIsFor(Law l, Country c) => l.CountryTag is null || l.CountryTag == c.Tag;
+
+    /// <summary>As escadas de leis que este país tem: as de toda a gente mais as suas, por ordem de
+    /// law_group.sort (o que a base de dados não nomear vai atrás, por id).</summary>
+    public List<string> LawGroups(Country c) =>
+        Laws.Values.Where(l => LawIsFor(l, c)).Select(l => l.Group).Distinct()
+            .OrderBy(g => LawGroupDefs.TryGetValue(g, out var d) ? d.Sort : 999).ThenBy(g => g).ToList();
+
+    /// <summary>Lei activa de um grupo: a escolhida em Country.Laws, senão a is_default do grupo. Uma lei de
+    /// outro país nunca conta, nem escolhida à mão nem como default.</summary>
     public Law? ActiveLaw(Country c, string group) =>
-        c.Laws.TryGetValue(group, out var id) && Laws.TryGetValue(id, out var chosen) && chosen.Group == group
+        c.Laws.TryGetValue(group, out var id) && Laws.TryGetValue(id, out var chosen)
+            && chosen.Group == group && LawIsFor(chosen, c)
             ? chosen
-            : Laws.Values.FirstOrDefault(l => l.Group == group && l.IsDefault);
+            : Laws.Values.FirstOrDefault(l => l.Group == group && l.IsDefault && LawIsFor(l, c));
 
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);

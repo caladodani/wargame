@@ -15,7 +15,14 @@ public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title,
 public sealed record NewsOption(string Id, string EventId, string Title, int Sort);
 /// <summary>Lei nacional (tabela law): grupos (conscrição, economia…) com uma lei activa por grupo.
 /// Sort maior = mais mobilizada (a IA escala em guerra). Efeitos em law_effect.</summary>
-public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault);
+/// <summary>Lei nacional (tabela law). CountryTag null = lei de toda a gente; com tag, só esse país a tem
+/// na escada — é assim que cada país ganha a sua questão nacional sem a emprestar aos vizinhos.</summary>
+public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault,
+                         string? CountryTag = null);
+
+/// <summary>Cabeçalho de um grupo de leis (tabela law_group): como se chama a escada e que chapa leva. O
+/// painel deixou de saber os nomes de cor — vêm da base de dados como tudo o resto.</summary>
+public sealed record LawGroupDef(string Id, string Name, string Icon, int Sort, string? CountryTag = null);
 
 /// <summary>Operação de espionagem (tabela spy_op): one-shot, paga à partida, efeito ao concluir.</summary>
 public sealed record SpyOp(string Id, string Name, string Description, float Cost, int Days, string Effect, float Magnitude, string Scope = "country")

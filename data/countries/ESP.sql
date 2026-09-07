@@ -121,3 +121,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('ESP_adv_ferrol','port_capacity',1.25);
 INSERT INTO advisor_effect VALUES ('ESP_adv_ferrol','production_speed',1.06);
 INSERT INTO advisor_effect VALUES ('ESP_adv_plazas','occupied_yield',1.22);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('ESP_autonomias','Estado das Autonomias','🏰',10,'ESP');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('ESP_law_alargada','ESP_autonomias','Autonomia alargada','Cada comunidade manda em quase tudo o que é seu.',0,1,'ESP'),
+ ('ESP_law_equilibrio','ESP_autonomias','Equilíbrio constitucional','Madrid e as regiões repartem o que custa e o que rende.',1,0,'ESP'),
+ ('ESP_law_centralizacao','ESP_autonomias','Centralização de Madrid','O Estado chama a si os recursos e o recenseamento.',2,0,'ESP');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('ESP_law_alargada','research_speed',1.05),
+ ('ESP_law_alargada','conscription',0.95),
+ ('ESP_law_equilibrio','industry',1.05),
+ ('ESP_law_equilibrio','counter_intel',1.05),
+ ('ESP_law_centralizacao','conscription',1.15),
+ ('ESP_law_centralizacao','counter_intel',1.12),
+ ('ESP_law_centralizacao','research_speed',0.95);

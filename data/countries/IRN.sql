@@ -116,3 +116,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('IRN_adv_bazar','export_price',1.18);
 INSERT INTO advisor_effect VALUES ('IRN_adv_guardioes','counter_intel',1.3);
 INSERT INTO advisor_effect VALUES ('IRN_adv_guardioes','conscription',1.08);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('IRN_resistencia','Economia de Resistência','☪',10,'IRN');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('IRN_law_vizinhos','IRN_resistencia','Comércio pelos vizinhos','O que não entra pela porta entra pela fronteira do lado.',0,1,'IRN'),
+ ('IRN_law_contorno','IRN_resistencia','Contorno das sanções','Frota fantasma, bancos amigos e contabilidade criativa.',1,0,'IRN'),
+ ('IRN_law_autarcia','IRN_resistencia','Autarcia revolucionária','Fecha-se a economia e fabrica-se tudo, mesmo mal.',2,0,'IRN');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('IRN_law_vizinhos','export_share',1.1),
+ ('IRN_law_contorno','industry',1.06),
+ ('IRN_law_contorno','counter_intel',1.1),
+ ('IRN_law_autarcia','production_speed',1.1),
+ ('IRN_law_autarcia','counter_intel',1.15),
+ ('IRN_law_autarcia','research_speed',0.92);

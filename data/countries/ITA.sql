@@ -115,3 +115,16 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('ITA_adv_turim','production_speed',1.16);
 INSERT INTO advisor_effect VALUES ('ITA_adv_mare','conscription',1.12);
 INSERT INTO advisor_effect VALUES ('ITA_adv_mare','occupied_yield',1.1);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('ITA_mediterraneo','Nosso Mar','🍋',10,'ITA');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('ITA_law_humanitarias','ITA_mediterraneo','Missões humanitárias','A marinha salva náufragos e faz boa figura.',0,1,'ITA'),
+ ('ITA_law_guarda','ITA_mediterraneo','Guarda do Mediterrâneo','Patrulha permanente do Adriático à Sicília.',1,0,'ITA'),
+ ('ITA_law_projeccao','ITA_mediterraneo','Projecção no Norte de África','Bases do outro lado do mar e tropa pronta a embarcar.',2,0,'ITA');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('ITA_law_humanitarias','research_speed',1.05),
+ ('ITA_law_guarda','defense',1.08),
+ ('ITA_law_guarda','industry',1.04),
+ ('ITA_law_projeccao','attack',1.08),
+ ('ITA_law_projeccao','occupied_yield',1.1);

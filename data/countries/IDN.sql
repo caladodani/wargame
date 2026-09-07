@@ -115,3 +115,16 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('IDN_adv_transmigracao','IDN','propaganda','Comissário da Transmigração','📣',170,'Move povo e com ele os quartéis.');
 INSERT INTO advisor_effect VALUES ('IDN_adv_arquipelago','port_capacity',1.25);
 INSERT INTO advisor_effect VALUES ('IDN_adv_transmigracao','conscription',1.16);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('IDN_arquipelago','Doutrina do Arquipélago','🌋',10,'IDN');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('IDN_law_cabotagem','IDN_arquipelago','Cabotagem livre','Dezassete mil ilhas ligadas por quem quiser navegar.',0,1,'IDN'),
+ ('IDN_law_eixo','IDN_arquipelago','Eixo marítimo mundial','Portos, estaleiros e uma marinha que os defende.',1,0,'IDN'),
+ ('IDN_law_estreitos','IDN_arquipelago','Fecho dos estreitos','Malaca e Sunda passam a ser porta com chave.',2,0,'IDN');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('IDN_law_cabotagem','export_share',1.1),
+ ('IDN_law_eixo','industry',1.06),
+ ('IDN_law_eixo','org_regain',1.05),
+ ('IDN_law_estreitos','defense',1.12),
+ ('IDN_law_estreitos','export_price',1.15);

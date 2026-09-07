@@ -129,3 +129,17 @@ INSERT INTO advisor_effect VALUES ('PRT_adv_estaleiros','port_capacity',1.25);
 INSERT INTO advisor_effect VALUES ('PRT_adv_estaleiros','industry',1.08);
 INSERT INTO advisor_effect VALUES ('PRT_adv_ultramar','org_regain',1.12);
 INSERT INTO advisor_effect VALUES ('PRT_adv_ultramar','defense',1.05);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('PRT_mar','Economia do Mar','⚓',10,'PRT');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('PRT_law_pescas','PRT_mar','Pesca e cabotagem','A frota pesca e o cais despacha o que houver.',0,1,'PRT'),
+ ('PRT_law_plataforma','PRT_mar','Plataforma continental alargada','O mar do país passa a ser quatro vezes o continente.',1,0,'PRT'),
+ ('PRT_law_acores','PRT_mar','Base atlântica dos Açores','A meio do oceano, quem lá está manda na travessia.',2,0,'PRT');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('PRT_law_pescas','export_share',1.1),
+ ('PRT_law_plataforma','research_speed',1.08),
+ ('PRT_law_plataforma','industry',1.05),
+ ('PRT_law_acores','defense',1.1),
+ ('PRT_law_acores','org_regain',1.06),
+ ('PRT_law_acores','export_price',1.1);

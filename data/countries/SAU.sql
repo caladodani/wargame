@@ -107,3 +107,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('SAU_adv_petroleo','export_price',1.25);
 INSERT INTO advisor_effect VALUES ('SAU_adv_petroleo','industry',1.06);
 INSERT INTO advisor_effect VALUES ('SAU_adv_guarda','org_regain',1.12);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('SAU_visao','Visão do Reino','🕋',10,'SAU');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('SAU_law_renda','SAU_visao','Renda do petróleo','Um barril paga o orçamento inteiro.',0,1,'SAU'),
+ ('SAU_law_diversificacao','SAU_visao','Diversificação','Cidades novas, turismo e laboratórios pagos a bruto.',1,0,'SAU'),
+ ('SAU_law_defesa','SAU_visao','Indústria de defesa própria','Metade do material tem de sair de fábrica do reino.',2,0,'SAU');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('SAU_law_renda','export_share',1.2),
+ ('SAU_law_diversificacao','industry',1.08),
+ ('SAU_law_diversificacao','research_speed',1.08),
+ ('SAU_law_defesa','production_speed',1.1),
+ ('SAU_law_defesa','industry',1.06),
+ ('SAU_law_defesa','export_share',0.9);

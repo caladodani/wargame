@@ -112,3 +112,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('RUS_adv_gosplan','industry',1.15);
 INSERT INTO advisor_effect VALUES ('RUS_adv_gosplan','conscription',1.08);
 INSERT INTO advisor_effect VALUES ('RUS_adv_orgaos','counter_intel',1.35);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('RUS_hidrocarbonetos','Renda dos Hidrocarbonetos','🐻',10,'RUS');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('RUS_law_exportacao','RUS_hidrocarbonetos','Exportação livre','Gás e petróleo vendidos a quem pagar.',0,1,'RUS'),
+ ('RUS_law_gasodutos','RUS_hidrocarbonetos','Gasodutos como arma','A torneira abre e fecha conforme a política do mês.',1,0,'RUS'),
+ ('RUS_law_complexo','RUS_hidrocarbonetos','Complexo militar-industrial','A renda toda vai para as linhas de montagem.',2,0,'RUS');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('RUS_law_exportacao','export_share',1.2),
+ ('RUS_law_exportacao','industry',1.03),
+ ('RUS_law_gasodutos','export_price',1.15),
+ ('RUS_law_gasodutos','counter_intel',1.05),
+ ('RUS_law_complexo','production_speed',1.12),
+ ('RUS_law_complexo','industry',1.08),
+ ('RUS_law_complexo','export_share',0.7);

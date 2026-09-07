@@ -15,6 +15,9 @@ STAT_KEYS = {'industry', 'production_speed', 'org_regain', 'start_army_mult', 'r
 MOD_STATS = {'str', 'str_attacker', 'str_defender', 'command'}
 UNIT_STATS = {'soft_atk', 'hard_atk', 'defense', 'breakthrough', 'armor', 'piercing', 'hardness', 'hp'}
 COND_KEYS = {'terrain', 'river', 'country'}
+LAW_STATS = {'attack', 'conscription', 'counter_intel', 'defense', 'export_price', 'export_share', 'industry',
+             'integration_speed', 'occupied_yield', 'org_regain', 'production_speed', 'research_speed',
+             'resistance_growth'}
 
 
 def norm(s):
@@ -38,7 +41,8 @@ def check(path, static):
         db.execute('ATTACH DATABASE ? AS st', (str(static),))
         if not db.execute('SELECT 1 FROM st.country WHERE tag=?', (tag,)).fetchone():
             errs.append(f'tag {tag} não existe na tabela country')
-    TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier')
+    TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier',
+                  'advisor', 'law', 'law_group')
     base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
@@ -100,6 +104,30 @@ def check(path, static):
             if a not in own or b not in own: errs.append(f'{table}: {a} → {b} mistura focos de outro país')
             if a == b: errs.append(f'{table}: {a} aponta para si próprio')
 
+    # leis próprias: escada com grupo do país, ids prefixados, um degrau de arranque e efeitos conhecidos
+    own_groups = {r[0] for r in db.execute('SELECT id FROM law_group WHERE country_tag=?', (tag,))}
+    for gid in own_groups:
+        if not gid.startswith(tag + '_'): errs.append(f'law_group {gid}: id deve começar por {tag}_')
+        steps = db.execute('SELECT id,is_default,country_tag FROM law WHERE grp=?', (gid,)).fetchall()
+        if len(steps) < 2: errs.append(f'law_group {gid}: {len(steps)} degrau(s) — uma escada precisa de dois ou mais')
+        if sum(d for _, d, _ in steps) != 1: errs.append(f'law_group {gid}: tem de haver exactamente um is_default')
+        for lid, _, ctag in steps:
+            if ctag != tag: errs.append(f'law {lid}: está no grupo {gid} de {tag} mas country_tag={ctag}')
+    for lid, grp in db.execute('SELECT id,grp FROM law WHERE country_tag=?', (tag,)):
+        if not lid.startswith(tag + '_'): errs.append(f'law {lid}: id deve começar por {tag}_')
+        if grp not in own_groups: errs.append(f'law {lid}: grupo {grp} não é uma escada de {tag} (lei própria em grupo comum)')
+        effs = db.execute('SELECT stat_key,value FROM law_effect WHERE law_id=?', (lid,)).fetchall()
+        if not effs: warns.append(f'law {lid}: sem efeitos (law_effect)')
+        for k, v in effs:
+            if k not in LAW_STATS: errs.append(f'law {lid}: stat_key {k} desconhecido (usa {sorted(LAW_STATS)})')
+            if not (0.5 <= v <= 1.6): warns.append(f'law {lid}: {k}={v} fora de 0.5..1.6')
+
+    # conselheiros próprios: id prefixado e uma pasta que exista
+    slots = {r[0] for r in db.execute('SELECT id FROM cabinet_slot')}
+    for aid, slot in db.execute('SELECT id,slot FROM advisor WHERE country_tag=?', (tag,)):
+        if not aid.startswith(tag + '_'): errs.append(f'advisor {aid}: id deve começar por {tag}_')
+        if slot not in slots: errs.append(f'advisor {aid}: pasta {slot} não existe (cabinet_slot)')
+
     # stats de país
     for k, v in db.execute('SELECT key,value FROM country_stat WHERE country_tag=?', (tag,)):
         if k not in STAT_KEYS: errs.append(f'country_stat {k}: chave desconhecida (usa {sorted(STAT_KEYS)})')
@@ -126,7 +154,9 @@ def check(path, static):
         n_units += 1
         if norm(tname) not in tnames: errs.append(f'country_unit "{name}": template "{tname}" não existe')
         if rname and region_names and norm(rname) not in region_names: warns.append(f'country_unit "{name}": região "{rname}" não existe (vai para a capital)')
-    summary = (f'{tag}: {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
+    n_laws = db.execute('SELECT COUNT(*) FROM law WHERE country_tag=?', (tag,)).fetchone()[0]
+    n_adv = db.execute('SELECT COUNT(*) FROM advisor WHERE country_tag=?', (tag,)).fetchone()[0]
+    summary = (f'{tag}: {len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
                f'{n_units} brigadas nomeadas, stats {dict(db.execute("SELECT key,value FROM country_stat WHERE country_tag=?", (tag,)).fetchall())}')
     print(summary)

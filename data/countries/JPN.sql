@@ -115,3 +115,19 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('JPN_adv_conglomerado','production_speed',1.18);
 INSERT INTO advisor_effect VALUES ('JPN_adv_robotica','research_speed',1.18);
 INSERT INTO advisor_effect VALUES ('JPN_adv_robotica','industry',1.05);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('JPN_artigo9','Artigo 9.º','⛩',10,'JPN');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('JPN_law_estrita','JPN_artigo9','Autodefesa estrita','A constituição proíbe a guerra e a economia agradece.',0,1,'JPN'),
+ ('JPN_law_reinterpretacao','JPN_artigo9','Reinterpretação','Defesa colectiva: pode-se ajudar quem nos ajuda.',1,0,'JPN'),
+ ('JPN_law_revisao','JPN_artigo9','Revisão constitucional','As Forças de Autodefesa passam a exército, com o nome e tudo.',2,0,'JPN');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('JPN_law_estrita','industry',1.08),
+ ('JPN_law_estrita','research_speed',1.05),
+ ('JPN_law_estrita','conscription',0.85),
+ ('JPN_law_reinterpretacao','conscription',1.1),
+ ('JPN_law_reinterpretacao','defense',1.08),
+ ('JPN_law_revisao','attack',1.12),
+ ('JPN_law_revisao','conscription',1.2),
+ ('JPN_law_revisao','industry',0.95);

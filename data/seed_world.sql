@@ -118,6 +118,14 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('law_change_cost',30,'pontos de produção por mudança de lei'),
  ('ai_law_escalate_money',120,'a IA em guerra sobe de lei com dinheiro acima disto');
+-- Cabeçalho de cada escada (law_group): o nome e a chapa do cartão vêm daqui e não do código do painel.
+INSERT INTO law_group (id,name,icon,sort) VALUES
+ ('conscription','Conscrição','🎖',0),
+ ('economy','Economia','🏭',1),
+ ('trade','Comércio','⚓',2),
+ ('security','Segurança','🕵',3),
+ ('occupation','Ocupação','🏴',4),
+ ('doctrine','Doutrina','⚔',5);
 INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
  ('consc_volunteer','conscription','Exército voluntário','Só voluntários: sem penalizações.',0,1),
  ('consc_limited','conscription','Conscrição limitada','Serviço militar parcial.',1,0),
@@ -486,11 +494,11 @@ INSERT INTO occupation_policy (id,name,icon,resistance_mult,yield_mult,manpower_
  ('trabalho_forcado','Trabalho forçado','⛓',2.3,1.8,1.6,'Espremer até ao fim: fábricas nossas, homens nossos, e uma revolta à espera de acontecer.',4);
 
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
-INSERT INTO law VALUES
+INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
  ('doc_defensiva','doctrine','Doutrina defensiva','Prioridade à defesa: mais defesa e recuperação, menos ataque.',0,0),
  ('doc_combinada','doctrine','Armas combinadas','Equilíbrio ofensivo-defensivo.',1,1),
  ('doc_ofensiva','doctrine','Doutrina ofensiva','Tudo no ataque: mais ataque, menos defesa.',2,0);
-INSERT INTO law_effect VALUES
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('doc_defensiva','defense',1.12),('doc_defensiva','attack',0.95),('doc_defensiva','org_regain',1.05),
  ('doc_ofensiva','attack',1.10),('doc_ofensiva','defense',0.95);
 

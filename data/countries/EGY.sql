@@ -109,3 +109,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('EGY_adv_canal','export_price',1.15);
 INSERT INTO advisor_effect VALUES ('EGY_adv_canal','port_capacity',1.2);
 INSERT INTO advisor_effect VALUES ('EGY_adv_deserto','move_speed',1.14);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('EGY_canal','Canal do Suez','🛶',10,'EGY');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('EGY_law_portagem','EGY_canal','Taxa de passagem','O mundo paga para atravessar e o Estado cobra.',0,1,'EGY'),
+ ('EGY_law_alargamento','EGY_canal','Alargamento do canal','Segunda via e docas novas: passa o dobro por dia.',1,0,'EGY'),
+ ('EGY_law_fechado','EGY_canal','Canal fechado ao inimigo','Quem está em guerra connosco dá a volta a África.',2,0,'EGY');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('EGY_law_portagem','export_price',1.1),
+ ('EGY_law_portagem','industry',1.04),
+ ('EGY_law_alargamento','industry',1.08),
+ ('EGY_law_alargamento','export_share',1.1),
+ ('EGY_law_fechado','export_price',1.25),
+ ('EGY_law_fechado','research_speed',0.95);

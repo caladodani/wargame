@@ -105,3 +105,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('IND_adv_provincias','IND','propaganda','Recrutador das Províncias','📣',175,'Traz homens de onde ninguém julgava haver.');
 INSERT INTO advisor_effect VALUES ('IND_adv_aco','industry',1.14);
 INSERT INTO advisor_effect VALUES ('IND_adv_provincias','conscription',1.22);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('IND_autossuficiencia','Índia Autossuficiente','🕉',10,'IND');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('IND_law_compras','IND_autossuficiencia','Compras no estrangeiro','O melhor material do mundo, pago a peso de ouro.',0,1,'IND'),
+ ('IND_law_fabricar','IND_autossuficiencia','Fabricar na Índia','Quem vende tem de montar cá dentro e ensinar a fazer.',1,0,'IND'),
+ ('IND_law_total','IND_autossuficiencia','Autossuficiência total','Da espingarda ao caça, tudo sai de fábrica nacional.',2,0,'IND');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('IND_law_compras','research_speed',1.08),
+ ('IND_law_compras','export_share',1.1),
+ ('IND_law_fabricar','industry',1.08),
+ ('IND_law_fabricar','production_speed',1.05),
+ ('IND_law_total','production_speed',1.12),
+ ('IND_law_total','industry',1.08),
+ ('IND_law_total','export_share',0.75);

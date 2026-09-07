@@ -103,3 +103,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('USA_adv_arsenal','industry',1.18);
 INSERT INTO advisor_effect VALUES ('USA_adv_arsenal','production_speed',1.08);
 INSERT INTO advisor_effect VALUES ('USA_adv_laboratorios','research_speed',1.25);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('USA_arsenal','Arsenal da Democracia','🗽',10,'USA');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('USA_law_paz','USA_arsenal','Orçamento de paz','Laboratórios cheios e linhas de montagem a meio gás.',0,1,'USA'),
+ ('USA_law_emprestimo','USA_arsenal','Empréstimo e cedência','O material sai daqui para quem se bate lá fora.',1,0,'USA'),
+ ('USA_law_mobilizacao','USA_arsenal','Mobilização industrial','Fábricas de automóveis passam a fazer blindados.',2,0,'USA');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('USA_law_paz','research_speed',1.08),
+ ('USA_law_paz','industry',1.05),
+ ('USA_law_emprestimo','production_speed',1.08),
+ ('USA_law_emprestimo','export_share',1.15),
+ ('USA_law_mobilizacao','industry',1.12),
+ ('USA_law_mobilizacao','production_speed',1.12),
+ ('USA_law_mobilizacao','export_share',0.85);

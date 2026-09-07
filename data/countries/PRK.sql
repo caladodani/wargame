@@ -115,3 +115,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('PRK_adv_juche','conscription',1.25);
 INSERT INTO advisor_effect VALUES ('PRK_adv_tuneis','defense',1.12);
 INSERT INTO advisor_effect VALUES ('PRK_adv_tuneis','counter_intel',1.1);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('PRK_byungjin','Marcha Paralela','☭',10,'PRK');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('PRK_law_economia','PRK_byungjin','Prioridade à economia','Mercados tolerados e fábricas a andar.',0,1,'PRK'),
+ ('PRK_law_paralela','PRK_byungjin','Economia e defesa a par','Os dois carris ao mesmo tempo, sem largar nenhum.',1,0,'PRK'),
+ ('PRK_law_songun','PRK_byungjin','Primeiro o exército','O quartel come antes da aldeia.',2,0,'PRK');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('PRK_law_economia','industry',1.08),
+ ('PRK_law_paralela','production_speed',1.08),
+ ('PRK_law_paralela','conscription',1.1),
+ ('PRK_law_songun','conscription',1.3),
+ ('PRK_law_songun','attack',1.08),
+ ('PRK_law_songun','industry',0.9);

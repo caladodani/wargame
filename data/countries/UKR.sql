@@ -118,3 +118,17 @@ INSERT INTO advisor_effect VALUES ('UKR_adv_celeiro','industry',1.1);
 INSERT INTO advisor_effect VALUES ('UKR_adv_celeiro','export_price',1.05);
 INSERT INTO advisor_effect VALUES ('UKR_adv_oficinas','research_speed',1.14);
 INSERT INTO advisor_effect VALUES ('UKR_adv_oficinas','production_speed',1.06);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('UKR_mobilizacao','Mobilização','🌻',10,'UKR');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('UKR_law_contrato','UKR_mobilizacao','Contrato voluntário','Quem quer servir assina; os outros trabalham.',0,1,'UKR'),
+ ('UKR_law_geral','UKR_mobilizacao','Mobilização geral','Idades chamadas por decreto, província a província.',1,0,'UKR'),
+ ('UKR_law_nacao','UKR_mobilizacao','Nação em guerra','Não há retaguarda: toda a gente está na frente ou a servi-la.',2,0,'UKR');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('UKR_law_contrato','org_regain',1.05),
+ ('UKR_law_geral','conscription',1.25),
+ ('UKR_law_geral','defense',1.06),
+ ('UKR_law_nacao','conscription',1.4),
+ ('UKR_law_nacao','attack',1.08),
+ ('UKR_law_nacao','industry',0.92);

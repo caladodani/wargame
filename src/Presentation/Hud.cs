@@ -1152,17 +1152,23 @@ public partial class Hud : CanvasLayer
         // leis nacionais: sobe-se um degrau na primeira escada que o cofre pague, para o cartão do painel do
         // País mostrar o degrau em vigor a mudar de sítio, e diz-se o que a lei de comércio deixa sair do país
         string laws = "sem leis na base de dados";
-        var ladders = LawsView.Order(w);
+        var ladders = LawsView.Order(w, c);
         if (ladders.Count > 0)
         {
             foreach (var grp in ladders)
             {
                 var cur = w.ActiveLaw(c, grp);
-                var next = w.Laws.Values.FirstOrDefault(l => l.Group == grp && l.Sort == (cur?.Sort ?? 0) + 1);
+                var next = w.Laws.Values.FirstOrDefault(l => l.Group == grp && World.LawIsFor(l, c)
+                                                          && l.Sort == (cur?.Sort ?? 0) + 1);
                 if (next is not null && _game.Dispatch(new ChangeLawCommand(pid, next.Id)) is null) break;
             }
+            // a escada que é só deste país tem de aparecer no meio das outras: é o que o cartão de latão mostra
+            string ownLadder = ladders.FirstOrDefault(g => w.LawGroupDefs.TryGetValue(g, out var d) && d.CountryTag == c.Tag)
+                               is string mineGrp
+                               ? $"escada própria \"{LawsView.GroupName(w, mineGrp)}\" em {w.ActiveLaw(c, mineGrp)?.Name ?? "—"}"
+                               : "sem escada própria";
             laws = $"{ladders.Count} escadas de leis ({string.Join(", ", ladders.Select(g => w.ActiveLaw(c, g)?.Name ?? "—"))}), "
-                 + $"exporta até {c.Stat("export_share", 1f):P0} dos depósitos";
+                 + $"{ownLadder}, exporta até {c.Stat("export_share", 1f):P0} dos depósitos";
         }
         // alarme de derrota: perdem-se de propósito as batalhas seguidas que a regra exige, para a série
         // subir, o desgaste de guerra pagar a conta, a faixa acender o aviso e o klaxon tocar

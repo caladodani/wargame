@@ -364,10 +364,10 @@ public sealed class AiSystem : ISystem
     private static void Laws(World w, Country c)
     {
         if (c.AtWarWith.Count == 0 || c.Money < w.Rule("ai_law_escalate_money", 120f)) return;
-        foreach (var grp in w.Laws.Values.Select(l => l.Group).Distinct())
+        foreach (var grp in w.LawGroups(c))
         {
             var cur = w.ActiveLaw(c, grp);
-            var next = w.Laws.Values.Where(l => l.Group == grp && l.Sort == (cur?.Sort ?? 0) + 1)
+            var next = w.Laws.Values.Where(l => l.Group == grp && l.Sort == (cur?.Sort ?? 0) + 1 && World.LawIsFor(l, c))
                         .OrderBy(l => l.Id).FirstOrDefault();
             if (next is null) continue;
             var cmd = new ChangeLawCommand(c.Id, next.Id);

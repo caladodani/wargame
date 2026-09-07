@@ -102,3 +102,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('MOZ_adv_gas','export_price',1.2);
 INSERT INTO advisor_effect VALUES ('MOZ_adv_gas','industry',1.05);
 INSERT INTO advisor_effect VALUES ('MOZ_adv_milicias','conscription',1.14);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('MOZ_gas','Gás de Cabo Delgado','🔥',10,'MOZ');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('MOZ_law_concessoes','MOZ_gas','Concessões estrangeiras','As multinacionais fazem a obra e levam o gás.',0,1,'MOZ'),
+ ('MOZ_law_seguranca','MOZ_gas','Segurança dos projectos','Um cordão militar à volta de cada plataforma.',1,0,'MOZ'),
+ ('MOZ_law_renda','MOZ_gas','Renda nacional do gás','A fatia do Estado cresce e paga fábrica em terra.',2,0,'MOZ');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('MOZ_law_concessoes','export_share',1.2),
+ ('MOZ_law_concessoes','industry',0.97),
+ ('MOZ_law_seguranca','defense',1.1),
+ ('MOZ_law_seguranca','industry',1.05),
+ ('MOZ_law_renda','industry',1.12),
+ ('MOZ_law_renda','export_price',1.1);

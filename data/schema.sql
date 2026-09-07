@@ -202,7 +202,12 @@ CREATE TABLE IF NOT EXISTS s_faction_member (     -- fotografia da composição;
 CREATE TABLE IF NOT EXISTS law (              -- leis nacionais (grupos: conscription, economy…); World.Laws
   id TEXT PRIMARY KEY, grp TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
   sort INTEGER NOT NULL DEFAULT 0,            -- maior = mais mobilizada (a IA escala em guerra)
-  is_default INTEGER NOT NULL DEFAULT 0);
+  is_default INTEGER NOT NULL DEFAULT 0,
+  country_tag TEXT REFERENCES country(tag));  -- NULL = de toda a gente; com tag, só esse país a tem
+CREATE TABLE IF NOT EXISTS law_group (        -- cabeçalho de cada escada de leis (nome e chapa do cartão)
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '',
+  sort INTEGER NOT NULL DEFAULT 0,
+  country_tag TEXT REFERENCES country(tag));  -- NULL = grupo de toda a gente; com tag, questão nacional
 CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
   law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (law_id, stat_key));

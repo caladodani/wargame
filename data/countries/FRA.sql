@@ -111,3 +111,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('FRA_adv_plano','industry',1.13);
 INSERT INTO advisor_effect VALUES ('FRA_adv_plano','production_speed',1.06);
 INSERT INTO advisor_effect VALUES ('FRA_adv_atomico','research_speed',1.22);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('FRA_force','Força de Dissuasão','⚜',10,'FRA');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('FRA_law_minima','FRA_force','Dissuasão mínima','O suficiente para ninguém tentar, e nem um franco a mais.',0,1,'FRA'),
+ ('FRA_law_triade','FRA_force','Tríade modernizada','Submarinos, aviões e mísseis renovados ao mesmo tempo.',1,0,'FRA'),
+ ('FRA_law_autonomia','FRA_force','Autonomia estratégica','A França arma-se sozinha e decide sozinha.',2,0,'FRA');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('FRA_law_minima','defense',1.06),
+ ('FRA_law_triade','research_speed',1.08),
+ ('FRA_law_triade','defense',1.08),
+ ('FRA_law_autonomia','attack',1.08),
+ ('FRA_law_autonomia','industry',1.06),
+ ('FRA_law_autonomia','export_share',0.9);

@@ -525,6 +525,7 @@ public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (!w.Laws.TryGetValue(LawId, out var law)) return "lei desconhecida";
+        if (!World.LawIsFor(law, c)) return "essa lei é de outro país";
         if (w.ActiveLaw(c, law.Group)?.Id == LawId) return "já é a lei activa";
         if (c.Money < w.Rule("law_change_cost", 30f)) return $"faltam pontos de produção ({w.Rule("law_change_cost", 30f):0})";
         return null;

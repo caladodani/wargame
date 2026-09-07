@@ -14,57 +14,70 @@ namespace WarGame.Presentation;
 /// e os efeitos escritos em português por baixo do nome. Cada degrau por ocupar leva a chapa "Subir" com o
 /// preço, apagada com a razão no tooltip quando o cofre não chega.
 ///
+/// A escada que é só de um país (law.country_tag) vem emoldurada de outra maneira: cabeçalho com a bandeira
+/// e o selo "⚜ TAG", moldura em latão e o aviso de que mais nenhum país tem aquela escada. O nome e a chapa
+/// de cada grupo já não estão escritos aqui — vêm da tabela law_group, como manda a arquitectura.
+///
 /// Só lê o World; mudar de lei é de quem sabe despachar comandos.</summary>
 public static class LawsView
 {
-    /// <summary>Nome e chapa de cada grupo de leis. A base de dados guarda o id do grupo (uma palavra em
-    /// inglês, que é a chave); o painel é que sabe como se diz cá.</summary>
-    private static readonly Dictionary<string, (string Icon, string Name)> Groups = new()
-    {
-        ["conscription"] = ("🎖", "Conscrição"),
-        ["economy"] = ("🏭", "Economia"),
-        ["trade"] = ("⚓", "Comércio"),
-        ["security"] = ("🕵", "Segurança"),
-        ["occupation"] = ("🏴", "Ocupação"),
-        ["doctrine"] = ("⚔", "Doutrina"),
-    };
+    /// <summary>Ordem por que os cartões deste país aparecem (o World já ordena por law_group.sort e já
+    /// deixa de fora as escadas que são de outro país).</summary>
+    public static List<string> Order(World w, Country c) => w.LawGroups(c);
 
-    /// <summary>Ordem por que os cartões aparecem: primeiro os grupos conhecidos, depois o que a base de
-    /// dados trouxer de novo, por ordem alfabética.</summary>
-    public static List<string> Order(World w)
-    {
-        var groups = w.Laws.Values.Select(l => l.Group).Distinct().ToList();
-        return groups.OrderBy(g => Groups.Keys.ToList().IndexOf(g) is int i && i >= 0 ? i : 99).ThenBy(g => g).ToList();
-    }
+    /// <summary>Nome de painel do grupo: chapa e nome vêm da tabela law_group; um grupo que a base de dados
+    /// não descreva fica com a chave à vista, que é melhor do que uma linha vazia.</summary>
+    public static string GroupName(World w, string group) =>
+        w.LawGroupDefs.TryGetValue(group, out var d)
+            ? (d.Icon.Length > 0 ? $"{d.Icon} {d.Name}" : d.Name)
+            : group;
 
-    public static string GroupName(string group) =>
-        Groups.TryGetValue(group, out var meta) ? $"{meta.Icon} {meta.Name}" : group;
-
-    /// <summary>A escada toda: um cartão por grupo de leis. Null quando a base de dados não traz leis.</summary>
+    /// <summary>A escada toda: um cartão por grupo de leis do país. Null quando não há leis nenhumas.</summary>
     public static VBoxContainer? Cards(World w, Country c, bool mine, Action<string> onChange)
     {
-        if (w.Laws.Count == 0) return null;
+        var groups = Order(w, c);
+        if (groups.Count == 0) return null;
         var box = new VBoxContainer();
         box.AddThemeConstantOverride("separation", 6);
-        foreach (var grp in Order(w)) box.AddChild(Card(w, c, grp, mine, onChange));
+        foreach (var grp in groups) box.AddChild(Card(w, c, grp, mine, onChange));
         return box;
     }
 
-    /// <summary>Um grupo: cabeçalho com a lei em vigor e a escada dos degraus por baixo.</summary>
+    /// <summary>Um grupo: cabeçalho com a lei em vigor e a escada dos degraus por baixo. A escada própria do
+    /// país troca o cabeçalho por um brasão e ganha moldura de latão.</summary>
     private static PanelContainer Card(World w, Country c, string group, bool mine, Action<string> onChange)
     {
-        var card = new PanelContainer();
-        card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.12f, 0.13f, 0.18f, 0.94f), 10));
-        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
-
-        var steps = w.Laws.Values.Where(l => l.Group == group).OrderBy(l => l.Sort).ThenBy(l => l.Id).ToList();
+        var steps = w.Laws.Values.Where(l => l.Group == group && World.LawIsFor(l, c))
+                          .OrderBy(l => l.Sort).ThenBy(l => l.Id).ToList();
+        bool national = w.LawGroupDefs.TryGetValue(group, out var def) && def.CountryTag == c.Tag
+                        || steps.Any(l => l.CountryTag == c.Tag);
         var active = w.ActiveLaw(c, group);
         float cost = w.Rule("law_change_cost", 30f);
 
+        var card = new PanelContainer();
+        var plate = Ui.Box(national ? new Color(0.15f, 0.14f, 0.11f, 0.96f) : new Color(0.12f, 0.13f, 0.18f, 0.94f), 10);
+        if (national)
+        {
+            plate.SetBorderWidthAll(2);
+            plate.BorderColor = Ui.Accent with { A = 0.75f };
+        }
+        card.AddThemeStyleboxOverride("panel", plate);
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
+
         var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 8); v.AddChild(head);
-        var title = Ui.Lbl($"{GroupName(group)}: {active?.Name ?? "—"}", 17);
-        title.AddThemeColorOverride("font_color", Ui.Accent);
-        head.AddChild(Ui.Grow(title));
+        if (national)
+        {
+            // escada que é só deste país: entra com bandeira, como as folhas de estado-maior
+            head.AddChild(Ui.Grow(Ui.Crest(c.Tag, $"{GroupName(w, group)}: {active?.Name ?? "—"}",
+                                           $"escada própria de {c.Name} — mais nenhum país a tem", 17)));
+            head.AddChild(Seal(c));
+        }
+        else
+        {
+            var title = Ui.Lbl($"{GroupName(w, group)}: {active?.Name ?? "—"}", 17);
+            title.AddThemeColorOverride("font_color", Ui.Accent);
+            head.AddChild(Ui.Grow(title));
+        }
         // a que altura da escada é que o país está: um país desmobilizado acende uma lâmpada, um em pé de guerra acende-as todas
         head.AddChild(Ui.Pips(steps.FindIndex(l => l.Id == active?.Id) + 1, steps.Count));
 
@@ -110,6 +123,19 @@ public static class LawsView
             v.AddChild(step);
         }
         return card;
+    }
+
+    /// <summary>Selo da escada que é do país e de mais nenhum (o mesmo que o gabinete põe nos conselheiros
+    /// próprios, para as duas coisas se lerem como a mesma ideia).</summary>
+    private static PanelContainer Seal(Country c)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Accent with { A = 0.18f }, 4));
+        var l = Ui.Lbl($"⚜ {c.Tag}", 13);
+        l.AddThemeColorOverride("font_color", Ui.Accent);
+        l.TooltipText = $"leis próprias de {c.Name}: nenhum outro país as pode votar";
+        chip.AddChild(l);
+        return chip;
     }
 
     /// <summary>O que a lei muda, em texto curto: "indústria +10%, ciência −10%". A fatia de exportação não

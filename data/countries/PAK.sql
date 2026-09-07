@@ -115,3 +115,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('PAK_adv_interarmas','PAK','seguranca','Chefe dos Serviços Inter-Armas','🕵',180,'Manda mais do que quem manda.');
 INSERT INTO advisor_effect VALUES ('PAK_adv_canais','industry',1.11);
 INSERT INTO advisor_effect VALUES ('PAK_adv_interarmas','counter_intel',1.3);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('PAK_corredor','Corredor Económico','🌙',10,'PAK');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('PAK_law_portagens','PAK_corredor','Portagens do corredor','A carga passa e deixa taxa em cada província.',0,1,'PAK'),
+ ('PAK_law_gwadar','PAK_corredor','Obra de Gwadar','Porto de águas profundas, estrada e via-férrea de uma vez.',1,0,'PAK'),
+ ('PAK_law_guarnicao','PAK_corredor','Guarnição do corredor','Uma divisão inteira só para guardar a estrada.',2,0,'PAK');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('PAK_law_portagens','industry',1.05),
+ ('PAK_law_portagens','export_share',1.1),
+ ('PAK_law_gwadar','industry',1.08),
+ ('PAK_law_gwadar','production_speed',1.05),
+ ('PAK_law_guarnicao','defense',1.1),
+ ('PAK_law_guarnicao','counter_intel',1.1);

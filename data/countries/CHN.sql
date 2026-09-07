@@ -106,3 +106,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('CHN_adv_massas','CHN','propaganda','Comissário das Massas','📣',185,'Chama à tropa aldeias inteiras.');
 INSERT INTO advisor_effect VALUES ('CHN_adv_plano','industry',1.16);
 INSERT INTO advisor_effect VALUES ('CHN_adv_massas','conscription',1.2);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('CHN_planos','Planos Quinquenais','🏮',10,'CHN');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('CHN_law_abertura','CHN_planos','Reforma e abertura','As zonas económicas vendem ao mundo inteiro.',0,1,'CHN'),
+ ('CHN_law_fabrico','CHN_planos','Fabrico avançado','O Estado escolhe os sectores e paga-lhes a fábrica.',1,0,'CHN'),
+ ('CHN_law_dirigida','CHN_planos','Economia dirigida','Tudo o que sai das linhas serve o plano, não o comprador.',2,0,'CHN');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('CHN_law_abertura','export_share',1.15),
+ ('CHN_law_abertura','industry',1.05),
+ ('CHN_law_fabrico','industry',1.1),
+ ('CHN_law_fabrico','research_speed',1.08),
+ ('CHN_law_dirigida','industry',1.18),
+ ('CHN_law_dirigida','production_speed',1.08),
+ ('CHN_law_dirigida','export_share',0.7);

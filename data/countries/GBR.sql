@@ -117,3 +117,17 @@ INSERT INTO advisor_effect VALUES ('GBR_adv_almirantado','port_capacity',1.3);
 INSERT INTO advisor_effect VALUES ('GBR_adv_almirantado','defense',1.04);
 INSERT INTO advisor_effect VALUES ('GBR_adv_colonias','occupied_yield',1.2);
 INSERT INTO advisor_effect VALUES ('GBR_adv_colonias','integration_speed',1.2);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('GBR_commonwealth','Commonwealth','👑',10,'GBR');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('GBR_law_lacos','GBR_commonwealth','Laços simbólicos','Uma coroa, muitos parlamentos e pouco comércio combinado.',0,1,'GBR'),
+ ('GBR_law_global','GBR_commonwealth','Grã-Bretanha global','Acordos por todo o lado e uma frota que os acompanha.',1,0,'GBR'),
+ ('GBR_law_mercado','GBR_commonwealth','Mercado imperial','Preferência aduaneira dentro da família, tarifa para o resto.',2,0,'GBR');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('GBR_law_lacos','export_share',1.1),
+ ('GBR_law_global','export_price',1.1),
+ ('GBR_law_global','research_speed',1.05),
+ ('GBR_law_mercado','industry',1.08),
+ ('GBR_law_mercado','export_share',1.2),
+ ('GBR_law_mercado','research_speed',0.97);

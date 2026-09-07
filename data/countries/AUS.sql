@@ -109,3 +109,16 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('AUS_adv_minas','industry',1.13);
 INSERT INTO advisor_effect VALUES ('AUS_adv_minas','export_price',1.1);
 INSERT INTO advisor_effect VALUES ('AUS_adv_costa','port_capacity',1.22);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('AUS_pacifico','Aliança do Pacífico','🦘',10,'AUS');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('AUS_law_continental','AUS_pacifico','Defesa continental','O deserto e o mar fazem o trabalho; a força fica em casa.',0,1,'AUS'),
+ ('AUS_law_submarinos','AUS_pacifico','Submarinos e tecnologia aliada','Estaleiros e laboratórios trabalham com Londres e Washington.',1,0,'AUS'),
+ ('AUS_law_expedicionario','AUS_pacifico','Expedicionário no Índico','A frota patrulha longe de casa e a tropa embarca com ela.',2,0,'AUS');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('AUS_law_continental','defense',1.08),
+ ('AUS_law_submarinos','research_speed',1.1),
+ ('AUS_law_submarinos','industry',1.05),
+ ('AUS_law_expedicionario','attack',1.08),
+ ('AUS_law_expedicionario','org_regain',1.06);

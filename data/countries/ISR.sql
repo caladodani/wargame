@@ -106,3 +106,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('ISR_adv_oficinas','ISR','ciencia','Fundador de Oficinas','💡',195,'Meia dúzia de homens e uma ideia por semana.');
 INSERT INTO advisor_effect VALUES ('ISR_adv_servicos','counter_intel',1.4);
 INSERT INTO advisor_effect VALUES ('ISR_adv_oficinas','research_speed',1.2);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('ISR_reserva','Exército de Reserva','✡',10,'ISR');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('ISR_law_regular','ISR_reserva','Serviço regular','A tropa da linha chega para o dia a dia.',0,1,'ISR'),
+ ('ISR_law_mobilizacao','ISR_reserva','Mobilização em 48 horas','Meio país tem farda em casa e sabe onde se apresentar.',1,0,'ISR'),
+ ('ISR_law_nacao','ISR_reserva','Nação em armas','A economia pára quando o exército chama, e chama sempre.',2,0,'ISR');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('ISR_law_regular','conscription',1.05),
+ ('ISR_law_mobilizacao','conscription',1.2),
+ ('ISR_law_mobilizacao','org_regain',1.05),
+ ('ISR_law_nacao','conscription',1.35),
+ ('ISR_law_nacao','attack',1.05),
+ ('ISR_law_nacao','industry',0.95);

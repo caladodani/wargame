@@ -114,3 +114,17 @@ INSERT INTO advisor_effect VALUES ('POL_adv_vistula','industry',1.12);
 INSERT INTO advisor_effect VALUES ('POL_adv_vistula','production_speed',1.05);
 INSERT INTO advisor_effect VALUES ('POL_adv_territorial','conscription',1.15);
 INSERT INTO advisor_effect VALUES ('POL_adv_territorial','defense',1.05);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('POL_flanco','Flanco Oriental','🦬',10,'POL');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('POL_law_aliada','POL_flanco','Presença aliada','Batalhões de fora rodam pelas bases do Leste.',0,1,'POL'),
+ ('POL_law_muro','POL_flanco','Muro do Leste','Fossos, arame e sensores em toda a fronteira.',1,0,'POL'),
+ ('POL_law_trezentos','POL_flanco','Exército de trezentos mil','O maior exército de terra da Europa, pago a crédito.',2,0,'POL');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('POL_law_aliada','defense',1.06),
+ ('POL_law_muro','defense',1.12),
+ ('POL_law_muro','industry',1.04),
+ ('POL_law_trezentos','conscription',1.25),
+ ('POL_law_trezentos','attack',1.06),
+ ('POL_law_trezentos','industry',0.96);

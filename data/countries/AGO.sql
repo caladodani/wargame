@@ -104,3 +104,18 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('AGO_adv_petrolifera','export_price',1.22);
 INSERT INTO advisor_effect VALUES ('AGO_adv_matas','move_speed',1.12);
 INSERT INTO advisor_effect VALUES ('AGO_adv_matas','org_regain',1.06);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('AGO_petroleo','Renda do Petróleo','⛽',10,'AGO');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('AGO_law_concessoes','AGO_petroleo','Concessões abertas','As companhias estrangeiras levam o bruto e deixam a taxa.',0,1,'AGO'),
+ ('AGO_law_partilha','AGO_petroleo','Contratos de partilha','Sonangol fica com metade de cada barril que sai.',1,0,'AGO'),
+ ('AGO_law_nacionalizacao','AGO_petroleo','Nacionalização do bruto','O petróleo é do Estado: a refinaria cresce, o comprador foge.',2,0,'AGO');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('AGO_law_concessoes','export_share',1.15),
+ ('AGO_law_concessoes','industry',0.97),
+ ('AGO_law_partilha','industry',1.06),
+ ('AGO_law_partilha','export_price',1.05),
+ ('AGO_law_nacionalizacao','industry',1.12),
+ ('AGO_law_nacionalizacao','export_share',0.85),
+ ('AGO_law_nacionalizacao','research_speed',0.95);

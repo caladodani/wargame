@@ -111,3 +111,17 @@ INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
 INSERT INTO advisor_effect VALUES ('DEU_adv_ruhr','industry',1.16);
 INSERT INTO advisor_effect VALUES ('DEU_adv_engenharia','research_speed',1.15);
 INSERT INTO advisor_effect VALUES ('DEU_adv_engenharia','production_speed',1.06);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('DEU_zeitenwende','Viragem de Época','🦅',10,'DEU');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('DEU_law_fundo','DEU_zeitenwende','Fundo especial','Cem mil milhões votados de uma vez, gastos devagar.',0,1,'DEU'),
+ ('DEU_law_rearmamento','DEU_zeitenwende','Rearmamento da Bundeswehr','As encomendas saem e os quartéis voltam a encher.',1,0,'DEU'),
+ ('DEU_law_lideranca','DEU_zeitenwende','Liderança europeia','A Alemanha paga a defesa do continente e comanda-a.',2,0,'DEU');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('DEU_law_fundo','industry',1.05),
+ ('DEU_law_rearmamento','production_speed',1.1),
+ ('DEU_law_rearmamento','conscription',1.1),
+ ('DEU_law_lideranca','attack',1.06),
+ ('DEU_law_lideranca','org_regain',1.08),
+ ('DEU_law_lideranca','industry',1.05);

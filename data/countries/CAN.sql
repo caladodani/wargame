@@ -104,3 +104,16 @@ INSERT INTO advisor_effect VALUES ('CAN_adv_recursos','industry',1.12);
 INSERT INTO advisor_effect VALUES ('CAN_adv_recursos','export_price',1.08);
 INSERT INTO advisor_effect VALUES ('CAN_adv_artico','move_speed',1.12);
 INSERT INTO advisor_effect VALUES ('CAN_adv_artico','defense',1.05);
+
+-- ===== escada de leis própria do país (law.country_tag / law_group.country_tag) =====
+INSERT INTO law_group (id,name,icon,sort,country_tag) VALUES ('CAN_artico','Passagem do Ártico','❄',10,'CAN');
+INSERT INTO law (id,grp,name,description,sort,is_default,country_tag) VALUES
+ ('CAN_law_patrulha','CAN_artico','Patrulha simbólica','Uma bandeira no gelo e pouco mais.',0,1,'CAN'),
+ ('CAN_law_quebragelos','CAN_artico','Rangers e quebra-gelos','O Norte ganha portos, pistas e gente fardada.',1,0,'CAN'),
+ ('CAN_law_noroeste','CAN_artico','Domínio do Noroeste','A passagem é rota interna e cobra-se como tal.',2,0,'CAN');
+INSERT INTO law_effect (law_id,stat_key,value) VALUES
+ ('CAN_law_patrulha','research_speed',1.05),
+ ('CAN_law_quebragelos','defense',1.08),
+ ('CAN_law_quebragelos','industry',1.04),
+ ('CAN_law_noroeste','industry',1.08),
+ ('CAN_law_noroeste','export_share',1.1);
