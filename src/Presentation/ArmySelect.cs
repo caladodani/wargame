@@ -5,10 +5,11 @@ namespace WarGame.Presentation;
 
 /// <summary>Selecção de regiões — a única do jogo: um toque simples troca a marca para a região tocada (se
 /// tiver divisões minhas); um toque longo (ou botão direito no PC) acrescenta/tira uma marca sem apagar as
-/// outras, para mover vários exércitos de uma vez; duplo toque num destino sem marcas move as divisões todas
-/// para lá SEM apagar a selecção — a seta da rota e as marcas ficam, como pede o jogo original. Só um toque
-/// simples noutra região com divisões minhas é que troca a selecção. Barra no topo mostra o total e dá
-/// Parar/Dissolver/Avanço automático/Limpar sem abrir painel nenhum.
+/// outras, para mover vários exércitos de uma vez; duplo toque no destino move as divisões todas para lá SEM
+/// apagar a selecção — a seta da rota e as marcas ficam, como pede o jogo original. O destino pode ter tropas
+/// nossas: juntar divisões numa região onde já está gente é movimento normal (o núcleo nunca o recusou), e é
+/// como se empilha no jogo original. Só um toque simples noutra região com divisões minhas é que troca a
+/// selecção. Barra no topo mostra o total e dá Parar/Dissolver/Avanço automático/Limpar sem abrir painel nenhum.
 /// Lê o World só via RunWhenIdle e muta só por Dispatch.</summary>
 public partial class ArmySelect : PanelContainer
 {
@@ -17,6 +18,11 @@ public partial class ArmySelect : PanelContainer
     private Label _label = null!;
     private Button _stop = null!, _disband = null!, _auto = null!;
     private readonly HashSet<int> _sel = new();
+    private readonly HashSet<int> _prev = new();   // marcação de antes do último toque simples (ver DoubleTap)
+    private ulong _prevAt;                          // e quando foi: fora da janela do duplo toque não se desfaz nada
+
+    // Folga sobre a janela do duplo toque: entre os dois toques corre o RunWhenIdle de cada um.
+    private const ulong RestoreMs = MapView.DoubleTapMs + 120;
 
     public bool Active => _sel.Count > 0;
     /// <summary>Regiões marcadas — o painel Exércitos usa a mesma marcação para recrutar divisões para um grupo.</summary>
@@ -52,6 +58,9 @@ public partial class ArmySelect : PanelContainer
     public void Tap(int regionId) => _game.RunWhenIdle(() =>
     {
         if (!Mine(regionId)) return;
+        // guarda-se a marcação que está a ser trocada: se este toque for o primeiro de um duplo em cima de
+        // tropas nossas, é ela que o DoubleTap tem de repor para a marcha poder partir.
+        _prev.Clear(); _prev.UnionWith(_sel); _prevAt = Time.GetTicksMsec();
         _sel.Clear(); _sel.Add(regionId);
         Refresh();
     });
@@ -64,11 +73,19 @@ public partial class ArmySelect : PanelContainer
         Refresh();
     });
 
-    /// <summary>Duplo toque: com regiões marcadas, é o destino; sem marcas não faz nada (o duplo toque sem
-    /// selecção abre a ficha da região, decisão do Hud).</summary>
+    /// <summary>Duplo toque: com regiões marcadas, é o destino — mesmo que lá estejam divisões nossas.
+    /// O primeiro toque do par já passou pelo Tap e, num destino com tropas nossas, trocou a marca para ele;
+    /// sem desfazer essa troca o segundo toque só via o próprio destino marcado e a ordem nunca partia (era
+    /// isto que impedia juntar tropas a tropas). Desfaz-se dentro da janela do duplo toque e só aí.
+    /// Sem marcas não faz nada — o duplo toque sem selecção abre a ficha da região, decisão do Hud.</summary>
     public void DoubleTap(int regionId) => _game.RunWhenIdle(() =>
     {
-        if (Active && !_sel.Contains(regionId)) MoveTo(regionId);
+        if (_sel.Count == 1 && _sel.Contains(regionId) && _prev.Count > 0
+            && Time.GetTicksMsec() - _prevAt < RestoreMs)
+        {
+            _sel.Clear(); _sel.UnionWith(_prev);
+        }
+        if (Active) MoveTo(regionId);
     });
 
     private bool Mine(int regionId)
@@ -96,7 +113,9 @@ public partial class ArmySelect : PanelContainer
             }
         }
         string dest = w.Regions.TryGetValue(targetRegionId, out var t) ? t.Name : "R" + targetRegionId;
-        _game.Notify(first ?? $"{n} divisões a caminho de {dest}");
+        // n==0 sem erro nenhum = só o próprio destino estava marcado; dizê-lo, que o silêncio parece avaria
+        _game.Notify(first ?? (n > 0 ? $"{n} divisões a caminho de {dest}"
+                                     : $"{dest} já é onde estão as divisões marcadas — marca primeiro a região de partida"));
         Refresh();
     }
 
@@ -148,7 +167,7 @@ public partial class ArmySelect : PanelContainer
         Refresh();
     }
 
-    public void Clear() { _sel.Clear(); Refresh(); }
+    public void Clear() { _sel.Clear(); _prev.Clear(); Refresh(); }
 
     private void Refresh()
     {

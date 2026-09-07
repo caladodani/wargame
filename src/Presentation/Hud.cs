@@ -188,7 +188,7 @@ public partial class Hud : CanvasLayer
         if (_warPanel.Visible) { _warPanel.Close(); return; }
         if (_armyPanel.Visible) { _armyPanel.Close(); return; }
         var now = Time.GetTicksMsec();
-        if (now - _backAt < 2000) { _game.Save(); GetTree().Quit(); return; }
+        if (now - _backAt < 2000) { _game.QuitSafely(); return; }
         _backAt = now;
         Toast("Prime outra vez para gravar e sair");
     }
@@ -1554,6 +1554,34 @@ public partial class Hud : CanvasLayer
             if (withDivs.Neighbours.FirstOrDefault() is int nb && nb != 0) _multiSel.DoubleTap(nb);
             GD.Print($"smoke: duplo toque → selecção {(_multiSel.Active ? "por usar" : "consumida")}");
         }
+        // O gesto que estava partido: com tropas marcadas num sítio, o duplo toque numa região que TAMBÉM tem
+        // tropas nossas tem de mandar marchar. O primeiro toque do par rouba a marca para o destino (o Tap
+        // troca-a em qualquer região com divisões nossas) e, sem a reposição da ArmySelect, a ordem morria em
+        // silêncio. Prova-se com duas regiões nossas ligadas por caminho.
+        var mineRegions = w.Regions.Values.Where(r => r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var md) && md.CountryId == pid)).ToList();
+        var src = mineRegions.FirstOrDefault();
+        var dst = src is null ? null : mineRegions.FirstOrDefault(r => r.Id != src.Id && MoveDivisionCommand.FindPath(w, src.Id, r.Id, pid) is not null);
+        if (src is not null && dst is not null)
+        {
+            var movers = src.DivisionIds.Where(id => w.Divisions.TryGetValue(id, out var md) && md.CountryId == pid && !w.InBattle(id)).ToList();
+            foreach (var id in movers) _game.Dispatch(new StopDivisionCommand(pid, id));   // apaga rotas de ordens anteriores do smoke
+            _multiSel.Clear();
+            _multiSel.Tap(src.Id);                  // marca a origem
+            _multiSel.Tap(dst.Id);                  // 1.º toque do duplo: rouba a marca, que o destino tem tropas nossas
+            _multiSel.DoubleTap(dst.Id);            // 2.º toque: repõe a origem e manda marchar
+            int marching = movers.Count(id => w.Divisions.TryGetValue(id, out var md) && md.Path.Count > 0);
+            GD.Print($"smoke: duplo toque em {dst.Name} (já com tropas nossas) → {marching}/{movers.Count} divisões de {src.Name} a marchar");
+            // e o mesmo destino com origem E destino marcados por toque longo — juntar tropas a uma região que
+            // já está na selecção. É o caso que a guarda "destino não pode estar marcado" recusava.
+            foreach (var id in movers) _game.Dispatch(new StopDivisionCommand(pid, id));
+            _multiSel.Clear();
+            _multiSel.LongPress(src.Id); _multiSel.LongPress(dst.Id);
+            _multiSel.Tap(dst.Id); _multiSel.DoubleTap(dst.Id);
+            int joined = movers.Count(id => w.Divisions.TryGetValue(id, out var md) && md.Path.Count > 0);
+            GD.Print($"smoke: duplo toque em {dst.Name} com origem e destino marcados → {joined}/{movers.Count} divisões a juntar-se");
+            _multiSel.Clear();
+        }
+        else GD.Print("smoke: duplo toque sobre tropas por provar — sem duas regiões nossas ligadas");
         string menu = _menu.Smoke();                        // menu de jogo: secções, botões e filas de chapas medidas
         int saves = _slots.Smoke();                          // e as fichas dos jogos guardados
         GD.Print($"smoke: menu de jogo com {menu}, dificuldade {(_game.World.Difficulty ?? "por escolher")}, "

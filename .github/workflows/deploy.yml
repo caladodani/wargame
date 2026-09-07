@@ -1,3 +1,12 @@
+# Portão de qualidade, e só isso: testes + smoke. Não constrói nem publica APK nenhum.
+#
+# Porquê: o APK é assinado com o keystore de debug LOCAL (~/.android/debug.keystore), que só existe
+# na máquina do servidor e não entra aqui. Se o CI assinasse com outro keystore, a assinatura mudava
+# e o Android recusava a actualização por cima da instalada — os jogadores tinham de desinstalar
+# primeiro e perdiam os saves. Por isso o job build-android foi removido: a publicação (export,
+# apksigner, cópia para /var/www/vilarongacalado/downloads/ e só depois o manifesto) é local, pelo
+# tools/publicar.sh. O que o CI garante é que o que se publica compila, passa nos testes e arranca.
+
 name: Deploy WarGame
 
 on:
@@ -8,11 +17,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - name: Restore dependencies
@@ -25,43 +34,56 @@ jobs:
   smoke-test:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build .NET
+        # Sem os assemblies C# o jogo não arranca — tem de vir antes do godot.
+        run: dotnet build WarGame.sln -nologo -v q
       - name: Setup Godot
         run: |
-          sudo wget -O - https://downloads.tuxfamily.org/godotengine/4.3/stable/4.3-stable-linux.x86_64.tar.xz |
-          sudo tar xfJ - -C /usr/local/bin godot
-          sudo ln -sf /usr/local/bin/godot-4.3-stable /usr/local/bin/godot
+          # Precisa da build mono (com suporte C#) — a build normal não corre este projecto.
+          # O tuxfamily deixou de servir o 4.3 (pasta godotengine/ vazia); usa-se o asset do release no GitHub.
+          curl -fsSL -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          sudo unzip -q -o /tmp/godot.zip -d /usr/local/bin
+          sudo ln -sf /usr/local/bin/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /usr/local/bin/godot
+          godot --headless --version
+      - name: Setup godot-sqlite
+        run: |
+          # Os binários do addon não estão no git (66 MB, todas as plataformas): vêm da release, e só
+          # o .so de Linux. Sem eles o ClassDB.Instantiate("SQLite") devolve null e o jogo não arranca
+          # — era isto, e não só o URL morto do Godot, que mantinha este job vermelho.
+          curl -fsSL -o /tmp/sqlite-bin.zip https://github.com/2shady4u/godot-sqlite/releases/download/v4.4/bin.zip
+          mkdir -p addons/godot-sqlite/bin
+          unzip -j -o /tmp/sqlite-bin.zip 'bin/libgdsqlite.linux.*' -d addons/godot-sqlite/bin
+          ls -la addons/godot-sqlite/bin
       - name: Run smoke test
         run: |
-          mkdir -p /tmp/x
-          /usr/local/bin/godot --headless --path ./wargame -- --smoke
-      - name: Notify on failure
-        if: failure()
-        run: echo "Smoke test failed"
-
-  build-android:
-    needs: smoke-test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Setup environment
-        run: |
-          export DOTNET_ROOT=$HOME/.dotnet
-          export JAVA_HOME=$JAVA_HOME
-          export PATH=$HOME/.dotnet:$PATH:$JAVA_HOME/bin
-      - name: Build .NET
-        run: dotnet build WarGame.sln -nologo -v q
-      - name: Export Android
-        run: godot --headless --path ./wargame --export-debug Android build/wargame.apk
-      - name: Verify APK
-        run: apksigner verify build/wargame.apk
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: wargame.apk
-          path: build/wargame.apk
+          set -o pipefail   # sem isto o tee tapava o código de saída do godot
+          timeout 300 godot --headless --path . -- --smoke 2>&1 | tee /tmp/smoke.log
+          # O código de saída não chega: um jogo que arranca e fica calado saía a 0 na mesma.
+          # Exige-se que tenha mesmo dito o que fez — as linhas "smoke: " são hoje 6 ou mais.
+          linhas=$(grep -c '^smoke: ' /tmp/smoke.log || true)
+          echo "linhas smoke: $linhas"
+          if [ "$linhas" -lt 6 ]; then
+            echo "::error::o smoke imprimiu $linhas linhas 'smoke: ' (esperadas pelo menos 6) — arrancou mas não fez o percurso"
+            exit 1
+          fi
+          # E tem de ter chegado ao fim. A linha final só sai depois de gravar e de esperar o tick que
+          # estivesse a correr; sem ela, o processo morreu à saída — que é o que acontecia no arranque
+          # limpo, o único que o CI faz.
+          if ! grep -q '^smoke: dia .* guardado, a sair' /tmp/smoke.log; then
+            echo "::error::o smoke não chegou ao fim (falta 'guardado, a sair') — rebentou à saída"
+            exit 1
+          fi
+          if grep -qE '(SCRIPT|USER) ERROR' /tmp/smoke.log; then
+            grep -nE '(SCRIPT|USER) ERROR' /tmp/smoke.log | head -5
+            echo "::error::o smoke deixou erros de script no log"
+            exit 1
+          fi

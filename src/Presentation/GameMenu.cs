@@ -35,7 +35,7 @@ public partial class GameMenu : PanelContainer
 
         _confirmNew = Ui.Dialog(this, () => { Close(); _game.NewGame(); });
         _confirmNew.DialogText = "Começar um jogo novo? O jogo actual perde-se.";
-        _confirmQuit = Ui.Dialog(this, () => { _game.Save(); GetTree().Quit(); });
+        _confirmQuit = Ui.Dialog(this, () => _game.QuitSafely());
         _confirmQuit.DialogText = "Guardar e sair do jogo?";
 
         _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };

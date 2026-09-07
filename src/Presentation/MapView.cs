@@ -29,7 +29,7 @@ public partial class MapView : Node2D
 
     private const float TapMaxDrag = 14f;      // arrasto acumulado (px) a partir do qual deixa de ser toque curto
     private const ulong LongPressMs = 450;     // dedo parado neste tempo = toque longo
-    private const ulong DoubleTapMs = 320;     // segundo toque dentro desta janela = duplo toque
+    public const ulong DoubleTapMs = 320;      // segundo toque dentro desta janela = duplo toque (a ArmySelect lê-a)
     private const float DoubleTapMaxDist = 60f;
 
     private Camera2D _cam = null!;

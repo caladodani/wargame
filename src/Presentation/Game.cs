@@ -50,6 +50,8 @@ public partial class Game : Node
     private readonly Queue<Action> _pending = new();    // corre na main thread quando o tick acaba, antes de TickCompleted
     private int _lastSaveDay;
     private bool _smoke;
+    private const int SmokeDays = 6;   // dias que a prova corre a partir do dia em que entrou
+    private int _smokeUntil;
 
     /// <summary>Estamos no arranque de prova (--smoke)? Quem fala com a rede não o faz aqui.</summary>
     public bool IsSmoke => _smoke;
@@ -271,6 +273,10 @@ public partial class Game : Node
 
     public override void _Process(double delta)
     {
+        // Cinto da prova: nela o relógio não pode ficar parado. Quem quer que peça pausa (a fita das
+        // velocidades, o menu) deixava o processo pendurado até ao timeout, e era o SIGTERM — não o jogo —
+        // que desmontava o motor com o tick a correr: "Thread destroyed without completion" e sinal 11.
+        if (_smoke && PlayerId is not null && World.Clock.Paused) World.Clock.Speed = 4;
         if (World.Clock.Paused || _ticking) return;
         _accum += delta;
         if (_accum < SpeedSeconds[Mathf.Clamp(World.Clock.Speed, 0, SpeedSeconds.Length - 1)]) return;
@@ -294,7 +300,7 @@ public partial class Game : Node
         while (_pending.Count > 0) Safe(_pending.Dequeue());
         if (World.Clock.Day - _lastSaveDay >= AutoSaveDays) Save();
         EmitSignal(SignalName.TickCompleted, World.Clock.Day);
-        if (_smoke && World.Clock.Day >= 6) { Save(); GD.Print($"smoke: dia {World.Clock.Day} guardado, a sair"); GetTree().Quit(); }
+        if (_smoke && World.Clock.Day >= _smokeUntil) { GD.Print($"smoke: dia {World.Clock.Day} guardado, a sair"); QuitSafely(); }
     }
 
     /// <summary>Aplica o comando já (mundo parado) e devolve o erro. Com tick a correr fica em fila, devolve null
@@ -321,6 +327,18 @@ public partial class Game : Node
     /// <summary>Aviso curto para o jogador (toast do Hud).</summary>
     public void Notify(string msg) => EmitSignal(SignalName.CommandFailed, msg);
 
+    /// <summary>Única saída do jogo: pára o relógio, espera o tick que estiver a correr, grava e só então larga
+    /// a árvore. Antes cada sítio fazia Save()+Quit() à sua maneira e o tick a meio ficava de fora — o motor
+    /// podia desmontar-se com a thread viva ("A Thread object is being destroyed without its completion having
+    /// been realized" e, atrás disso, sinal 11). É o que se via quando a prova era morta pelo timeout.</summary>
+    public void QuitSafely()
+    {
+        World.Clock.Speed = 0;        // Paused deriva daqui: ninguém começa outro tick a partir de agora
+        WaitTick();                   // e o que já está a correr acaba antes de a árvore ir abaixo
+        Save();
+        GetTree().Quit();
+    }
+
     private void RefreshPlayer() => PlayerId = World.Countries.Values.FirstOrDefault(c => c.IsPlayer)?.Id;
 
     private void WaitTick()
@@ -331,8 +349,11 @@ public partial class Game : Node
 
     private static void Safe(Action a) { try { a(); } catch (Exception ex) { GD.PushError(ex.ToString()); } }
 
-    /// <summary>`godot --headless --path . -- --smoke`: escolhe o país com mais divisões, corre a 4× e guarda ao dia 6.
-    /// Verificação sem ecrã dos caminhos tick → fila → save; o Hud abre os painéis no 1º tick.</summary>
+    /// <summary>`godot --headless --path . -- --smoke`: escolhe o país com mais divisões, corre a 4× e guarda ao fim
+    /// de SmokeDays dias. Verificação sem ecrã dos caminhos tick → fila → save; o Hud abre os painéis no 1º tick.
+    /// A conta é a partir do dia em que se entrou, não do dia 6 do calendário: com um save carregado o jogo já ia
+    /// muito além do 6 e a prova saía ao primeiro tick, ou seja o CI (que arranca sempre limpo) corria seis vezes
+    /// mais mundo do que a prova local — e só lá é que os defeitos apareciam.</summary>
     private void Smoke()
     {
         GD.Print($"smoke: dia {World.Clock.Day}, jogador {PlayerId?.ToString() ?? "nenhum"}, {World.Divisions.Count} divisões");
@@ -343,6 +364,7 @@ public partial class Game : Node
             var err = Dispatch(new ChoosePlayerCommand(best));
             if (err is not null) GD.PushError("smoke: " + err);
         }
+        _smokeUntil = World.Clock.Day + SmokeDays;
         World.Clock.Speed = 4;
     }
 

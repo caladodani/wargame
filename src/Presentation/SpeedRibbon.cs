@@ -99,7 +99,9 @@ public partial class SpeedRibbon : PanelContainer
     {
         int was = _game.World.Clock.Speed;
         for (int i = 0; i < _cells.Length; i++) Set(i);
-        Set(was);
+        // A varredura acaba na casa mais alta; se `was` for essa, um Set(was) apanha o toggle da casa acesa e
+        // devolve pausa em vez do andamento de partida. Passa-se pelo 0 primeiro, que nunca faz toggle.
+        Set(0); if (was != 0) Set(was);
         int at = Mathf.Clamp(_game.World.Clock.Speed, 0, _cells.Length - 1);
         return $"{Names[at]} ({Pace(at)})";
     }

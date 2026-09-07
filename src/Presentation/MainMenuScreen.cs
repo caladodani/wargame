@@ -38,7 +38,9 @@ public partial class MainMenuScreen : Control
         try
         {
             _game = GetNode<Game>("/root/Game");
-            if (_game.PlayerId is not null) { GetTree().ChangeSceneToFile(GameScene); return; }
+            // Adiada: o ChangeSceneToFile tira já a cena actual, e aqui o /root ainda está a metê-la —
+            // dava "Parent node is busy adding/removing children, remove_child() can't be called at this time".
+            if (_game.PlayerId is not null) { Callable.From(() => GetTree().ChangeSceneToFile(GameScene)).CallDeferred(); return; }
 
             Settings.Apply(GetWindow());
             GetTree().Root.Theme = Ui.Theme();

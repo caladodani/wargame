@@ -9,8 +9,10 @@ obj/
 build/
 *.apk
 *.aab
-# Addon binário (instalado a partir da release do godot-sqlite)
-addons/godot-sqlite/
+# Addon do godot-sqlite: os binários (~66 MB, todas as plataformas) vêm da release e ficam de fora;
+# os três ficheiros de configuração (2 KB) ficam no git, senão nem o CI nem ninguém que clone o repo
+# consegue arrancar o jogo — o ClassDB.Instantiate("SQLite") devolvia null e o arranque rebentava.
+addons/godot-sqlite/bin/
 # SO
 .DS_Store
 Thumbs.db
