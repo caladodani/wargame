@@ -15,7 +15,10 @@ STAT_KEYS = {'industry', 'production_speed', 'org_regain', 'start_army_mult', 'r
 MOD_STATS = {'str', 'str_attacker', 'str_defender', 'command'}
 UNIT_STATS = {'soft_atk', 'hard_atk', 'defense', 'breakthrough', 'armor', 'piercing', 'hardness', 'hp'}
 COND_KEYS = {'terrain', 'river', 'country'}
-GENERAL_STATS = {'attack', 'defense', 'org_regain', 'move_speed', 'industry'}
+# comandantes: cada arma comanda o que é do ofício dela — um almirante não melhora a marcha da infantaria
+GENERAL_STATS = {'exercito': {'attack', 'defense', 'org_regain', 'move_speed', 'industry'},
+                 'ar': {'air_losses', 'air_bombing', 'air_upkeep'},
+                 'mar': {'naval_losses', 'naval_upkeep', 'naval_blockade', 'naval_escort', 'naval_patrol'}}
 # o que cada arma pode melhorar: uma escola de caça não dá recrutamento e uma de infantaria não dá bloqueio
 DOCTRINE_STATS = {'exercito': {'attack', 'conscription', 'defense', 'industry', 'move_speed', 'org_regain', 'production_speed'},
                   'ar': {'air_losses', 'air_bombing', 'air_upkeep'},
@@ -131,11 +134,19 @@ def check(path, static):
             if not (0.5 <= v <= 1.6): warns.append(f'law {lid}: {k}={v} fora de 0.5..1.6')
 
     # comandantes de casa: id prefixado, stat que o motor conheça e força dentro da gama dos mercenários
-    for gid, gname, gstat, gmult, gcost, gicon in db.execute(
-            'SELECT id,name,stat_key,mult,cost,icon FROM general WHERE country_tag=?', (tag,)):
+    for gid, gname, gstat, gmult, gcost, gicon, gdom, gxp in db.execute(
+            'SELECT id,name,stat_key,mult,cost,icon,domain,xp FROM general WHERE country_tag=?', (tag,)):
         if not gid.startswith(tag + '_'): errs.append(f'general {gid}: id deve começar por {tag}_')
-        if gstat not in GENERAL_STATS: errs.append(f'general {gid}: stat_key {gstat} desconhecido (usa {sorted(GENERAL_STATS)})')
-        if not (1.05 <= gmult <= 1.20): warns.append(f'general {gid}: mult {gmult} fora de 1.05..1.20')
+        if gdom not in GENERAL_STATS:
+            errs.append(f'general {gid}: arma {gdom} desconhecida (usa {sorted(GENERAL_STATS)})')
+        elif gstat not in GENERAL_STATS[gdom]:
+            errs.append(f'general {gid}: stat_key {gstat} não é da arma {gdom} (usa {sorted(GENERAL_STATS[gdom])})')
+        if gstat in LOWER_IS_BETTER:
+            if gmult >= 1: errs.append(f'general {gid}: {gstat}={gmult} — aqui menos é melhor, o valor tem de ser < 1')
+            if not (0.85 <= gmult): warns.append(f'general {gid}: mult {gmult} abaixo de 0.85')
+        elif not (1.05 <= gmult <= 1.20): warns.append(f'general {gid}: mult {gmult} fora de 1.05..1.20')
+        if gdom != 'exercito' and gxp <= 0:
+            warns.append(f'general {gid}: comandante de {gdom} sem experiência a pagar (general.xp)')
         if not (100 <= gcost <= 160): warns.append(f'general {gid}: custo {gcost} fora de 100..160')
         if not gicon: warns.append(f'general {gid}: sem chapa (o retrato do estado-maior fica vazio)')
 

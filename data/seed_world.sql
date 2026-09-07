@@ -706,14 +706,29 @@ CREATE TABLE IF NOT EXISTS general (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL, cost REAL NOT NULL,
   country_tag TEXT REFERENCES country(tag),   -- NULL = mercenário, contrata-o quem quiser; com tag, é da casa
   icon TEXT NOT NULL DEFAULT '🎖',             -- a chapa do retrato no estado-maior
-  note TEXT NOT NULL DEFAULT '');             -- a linha da folha de serviço que o painel mostra
+  note TEXT NOT NULL DEFAULT '',              -- a linha da folha de serviço que o painel mostra
+  domain TEXT NOT NULL DEFAULT 'exercito',    -- a arma que ele comanda: exercito | ar | mar
+  xp REAL NOT NULL DEFAULT 0);                -- experiência dessa arma que a nomeação custa (além do dinheiro)
 INSERT INTO general (id,name,stat_key,mult,cost,icon,note) VALUES
  ('gen_ofensiva','Mestre da ofensiva','attack',1.10,120,'⚔','Ensina a atacar onde o inimigo tem menos gente.'),
  ('gen_defesa','Muralha','defense',1.10,120,'🛡','Onde ele manda, a linha não parte.'),
  ('gen_logistica','Logístico','org_regain',1.10,100,'🚚','Os comboios chegam a horas e a tropa recompõe-se.'),
  ('gen_manobra','Manobrador','move_speed',1.15,110,'🐎','Chega sempre primeiro ao sítio que interessa.'),
  ('gen_industria','Organizador industrial','industry',1.08,140,'🏭','Fez a guerra na retaguarda e sabe o que a fábrica aguenta.');
-INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
+-- Comandantes de asa e de esquadra: o estado-maior deixa de ser só de terra. Cada um serve a sua arma,
+-- ocupa uma cadeira dessa arma e paga-se com o dinheiro E com a experiência dela — um chefe de caça
+-- tira-se das horas de voo que o país tem, não do nada.
+INSERT INTO general (id,name,stat_key,mult,cost,icon,note,domain,xp) VALUES
+ ('gen_ar_caca','Comandante de Caça','air_losses',0.92,120,'✈','Manda subir na hora certa e traz de volta quem levou.','ar',30),
+ ('gen_ar_bomba','Chefe de Bombardeamento','air_bombing',1.10,130,'💣','Escolhe o alvo que dói e não o alvo que se vê.','ar',30),
+ ('gen_ar_material','Chefe de Material','air_upkeep',0.90,110,'🔧','Os aparelhos voam porque a oficina dele não dorme.','ar',20),
+ ('gen_mar_esquadra','Almirante de Esquadra','naval_losses',0.92,130,'⚓','Governa a linha de batalha e não perde navios por vaidade.','mar',30),
+ ('gen_mar_corso','Chefe de Corso','naval_blockade',1.12,120,'🏴','Sabe por onde passa o comércio do inimigo e espera lá.','mar',30),
+ ('gen_mar_escolta','Comodoro de Escolta','naval_escort',1.12,110,'🛟','Leva o comboio inteiro ao porto, que é a única conta que interessa.','mar',25);
+INSERT INTO rule VALUES ('general_slots', 3, 'comandantes de terra ao serviço por país');
+INSERT INTO rule (key,value,note) VALUES
+ ('air_general_slots', 2, 'comandantes de asa ao serviço por país'),
+ ('navy_general_slots', 2, 'comandantes de esquadra ao serviço por país');
 INSERT INTO rule VALUES ('general_command_bonus', 2, 'quanto vale o bónus de um comandante quando é destacado para um grupo de exércitos em vez de servir o país todo');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');
 INSERT INTO rule (key,value,note) VALUES

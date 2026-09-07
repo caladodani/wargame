@@ -178,9 +178,14 @@ public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<
 
 /// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.
 /// CountryTag null = mercenário, serve quem o pagar; com tag, é o comandante de casa e mais nenhum país o
-/// chama. Icon é a chapa do retrato e Note a linha da folha de serviço que o estado-maior mostra.</summary>
+/// chama. Icon é a chapa do retrato e Note a linha da folha de serviço que o estado-maior mostra.
+///
+/// Domain é a arma que ele comanda (exercito | ar | mar): ocupa uma cadeira dessa arma e o que multiplica
+/// é do ofício dela. Xp é a experiência dessa arma que a nomeação custa além do dinheiro — um chefe de
+/// caça tira-se das horas de voo do país, e essa experiência é a mesma com que se pagam as escolas.</summary>
 public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost,
-                                string? CountryTag = null, string Icon = "🎖", string Note = "");
+                                string? CountryTag = null, string Icon = "🎖", string Note = "",
+                                string Domain = "exercito", float Xp = 0f);
 
 /// <summary>Pasta do gabinete civil (tabela cabinet_slot): uma cadeira por pasta e por país.</summary>
 public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort);

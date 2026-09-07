@@ -135,10 +135,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT difficulty_id,rule_key,value FROM difficulty_effect"))
             if (w.DifficultyDefs.TryGetValue((string)r["difficulty_id"]!, out var dd))
                 dd.Effects[(string)r["rule_key"]!] = Convert.ToSingle(r["value"]);
-        foreach (var r in _static.Query("SELECT id,name,stat_key,mult,cost,country_tag,icon,note FROM general"))
+        foreach (var r in _static.Query("SELECT id,name,stat_key,mult,cost,country_tag,icon,note,domain,xp FROM general"))
             w.GeneralDefs[(string)r["id"]!] = new GeneralDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["mult"]), Convert.ToSingle(r["cost"]),
-                r["country_tag"] as string, r["icon"] as string ?? "🎖", r["note"] as string ?? "");
+                r["country_tag"] as string, r["icon"] as string ?? "🎖", r["note"] as string ?? "",
+                r["domain"] as string ?? World.Land, r["xp"] is null ? 0f : Convert.ToSingle(r["xp"]));
         w.CabinetSlots.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,sort FROM cabinet_slot ORDER BY sort"))
             w.CabinetSlots.Add(new CabinetSlotDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!, Convert.ToInt32(r["sort"])));

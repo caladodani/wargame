@@ -32,6 +32,8 @@ public partial class CountryPanel : PanelContainer
     /// <summary>Aba aberta (índice em Sections). Entra na chave do cache: sem isso, trocar de aba não
     /// mudava nada no ecrã.</summary>
     private int _tab;
+    /// <summary>Arma do estado-maior à vista (índice em World.Domains): terra, ar ou mar.</summary>
+    private int _staffArm;
     private int _countryId;
     private string _lastKey = "";
 
@@ -81,11 +83,19 @@ public partial class CountryPanel : PanelContainer
     /// <summary>Carregar numa aba: guarda-a e volta a encher (o mundo pode estar a correr, daí o RunWhenIdle).</summary>
     private void Pick(int i) { _tab = i; _lastKey = ""; _game.RunWhenIdle(Fill); }
 
-    /// <summary>--smoke: passa por todas as abas para nenhuma secção ficar por desenhar, e volta à primeira.</summary>
+    /// <summary>Troca a arma do estado-maior sem sair do separador da guerra.</summary>
+    private void PickArm(int i) { _staffArm = i; _lastKey = ""; _game.RunWhenIdle(Fill); }
+
+    /// <summary>--smoke: passa por todas as abas para nenhuma secção ficar por desenhar (e, na da guerra,
+    /// pelas três armas do estado-maior), e volta ao princípio.</summary>
     public int SmokeTabs()
     {
-        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); }
-        _tab = 0; _lastKey = "";
+        for (int i = 0; i < Sections.Length; i++)
+        {
+            _tab = i;
+            for (int arm = 0; arm < World.Domains.Length; arm++) { _staffArm = arm; _lastKey = ""; Fill(); }
+        }
+        _tab = 0; _staffArm = 0; _lastKey = "";
         return Sections.Length;
     }
 
@@ -101,7 +111,7 @@ public partial class CountryPanel : PanelContainer
             string occKey = _game.PlayerId is int po && po != c.Id
                 ? $"{OccupationSystem.Regions(w, po, c.Id)}:{OccupationSystem.Policy(w, po, c.Id).Id}:{(int)(OccupationSystem.Heat(w, po, c.Id) * 20f)}:{OccupationSystem.Since(w, po, c.Id)}"
                 : "";
-            var key = $"{_tab}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{_tab}:{_staffArm}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -219,10 +229,11 @@ public partial class CountryPanel : PanelContainer
             // estado-maior: a folha de comandantes (retratos, divisas, carreira) e quem falta contratar
             if (tWar && mine && w.GeneralDefs.Count > 0)
             {
-                Header($"Estado-maior ({c.Generals.Count}/{(int)w.Rule("general_slots", 3f)})");
-                if (CommanderView.Roster(w, c, mine,
+                Header($"Estado-maior ({string.Join(" · ", World.Domains.Select(d => $"{w.GeneralsInService(c, d)}/{w.GeneralSlots(d)}"))})");
+                string arm = World.Domains[Math.Clamp(_staffArm, 0, World.Domains.Length - 1)];
+                if (CommanderView.Roster(w, c, mine, arm,
                         gid => Faction(new HireGeneralCommand(c.Id, gid)),
-                        gid => Faction(new DismissGeneralCommand(c.Id, gid))) is PanelContainer staff)
+                        gid => Faction(new DismissGeneralCommand(c.Id, gid)), PickArm) is PanelContainer staff)
                     _body.AddChild(staff);
                 // a enfermaria só aparece quando há quem lá esteja: é o aviso de que há exércitos por comandar
                 if (CommanderView.Infirmary(w, c.Id) is PanelContainer sick) _body.AddChild(sick);

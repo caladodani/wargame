@@ -347,14 +347,19 @@ public sealed class AiSystem : ISystem
     /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
     /// (o próximo sort do grupo). Em paz não mexe — voltar atrás não compensa o custo.</summary>
     /// <summary>Preenche o estado-maior enquanto sobrar dinheiro acima de ai_general_reserve: em guerra
-    /// procura primeiro ataque/defesa, em paz o mais barato. Um comandante por ronda.</summary>
+    /// procura primeiro ataque/defesa, em paz o mais barato. Um comandante por ronda.
+    ///
+    /// As três armas têm cadeiras próprias e bolsos próprios: a IA só chama um comandante de asa se tiver
+    /// cadeira de asa livre e horas de voo para lhe pagar, e o comando de terra cheio não a impede de
+    /// nomear um almirante.</summary>
     private static void Generals(World w, Country c)
     {
-        if (c.Generals.Count >= (int)w.Rule("general_slots", 3f)) return;
         float reserve = w.Rule("ai_general_reserve", 200f);
         bool atWar = c.AtWarWith.Count > 0;
         var pick = w.GeneralDefs.Values
-            .Where(g => World.GeneralIsFor(g, c) && !c.Generals.Contains(g.Id) && c.Money >= g.Cost + reserve)
+            .Where(g => World.GeneralIsFor(g, c) && !c.Generals.Contains(g.Id) && c.Money >= g.Cost + reserve
+                        && w.GeneralsInService(c, g.Domain) < w.GeneralSlots(g.Domain)
+                        && World.Xp(c, g.Domain) >= g.Xp)
             .OrderByDescending(g => atWar && (g.StatKey == "attack" || g.StatKey == "defense"))
             .ThenByDescending(g => g.CountryTag is not null)   // o de casa primeiro: é o que vale mais
             .ThenBy(g => g.Cost)

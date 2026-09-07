@@ -482,6 +482,25 @@ public sealed class World
     /// pagar; os outros são de casa e mais nenhum estado-maior os chama.</summary>
     public static bool GeneralIsFor(GeneralDef g, Country c) => g.CountryTag is null || g.CountryTag == c.Tag;
 
+    /// <summary>A regra que diz quantas cadeiras tem o estado-maior desta arma. São três escadas
+    /// separadas: encher o comando de terra não tira lugar a um almirante.</summary>
+    public static string GeneralSlotRule(string domain) => domain switch
+    {
+        Air => "air_general_slots",
+        Sea => "navy_general_slots",
+        _ => "general_slots",
+    };
+
+    public int GeneralSlots(string domain) => (int)Rule(GeneralSlotRule(domain), domain == Land ? 3f : 2f);
+
+    /// <summary>Quantos comandantes desta arma já servem este país.</summary>
+    public int GeneralsInService(Country c, string domain) =>
+        c.Generals.Count(id => GeneralDefs.TryGetValue(id, out var g) && g.Domain == domain);
+
+    /// <summary>A arma de um comandante contratado (por omissão, terra: é o que o save antigo tem).</summary>
+    public string DomainOfGeneral(string generalId) =>
+        GeneralDefs.TryGetValue(generalId, out var g) ? g.Domain : Land;
+
     /// <summary>A folha de comandantes deste país: os de casa primeiro (é a marca do país, e é o que vale
     /// mais), depois os mercenários, cada bloco do mais barato ao mais caro.</summary>
     public List<GeneralDef> GeneralPool(Country c) =>

@@ -112,23 +112,46 @@ public static class CommanderView
     /// os que faltam contratar aparecem por baixo, separados em dois blocos — os de casa (com o selo ⚜ e a
     /// bandeira do país) e os mercenários, que qualquer estado-maior pode chamar.
     ///
+    /// Agora com as três armas em abas de metal, como o HoI4 separa o comando de terra, o do ar e o do mar:
+    /// cada arma tem as suas cadeiras (regras general_slots/air_general_slots/navy_general_slots) e o seu
+    /// bolso de experiência, e uma nomeação de asa paga-se com horas de voo além do dinheiro. Encher o
+    /// comando de terra deixou de impedir que se chame um almirante.
+    ///
     /// Só lê o World; contratar e dispensar é de quem sabe despachar comandos.</summary>
-    public static PanelContainer? Roster(World w, Country c, bool mine, Action<string> onHire, Action<string> onDismiss)
+    public static PanelContainer? Roster(World w, Country c, bool mine, string domain,
+                                         Action<string> onHire, Action<string> onDismiss, Action<int>? onArm = null)
     {
-        var pool = w.GeneralPool(c);
-        if (pool.Count == 0) return null;
-        int slots = (int)w.Rule("general_slots", 3f);
+        if (w.GeneralPool(c).Count == 0) return null;
+        var pool = w.GeneralPool(c).Where(g => g.Domain == domain).ToList();
+        int slots = w.GeneralSlots(domain);
+        int serving = w.GeneralsInService(c, domain);
         int top = TopLevel(w);
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.14f, 0.13f, 0.10f, 0.94f), 10));
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 5); card.AddChild(v);
 
-        int home = c.Generals.Count(id => w.GeneralDefs.TryGetValue(id, out var g) && g.CountryTag is not null);
-        var head = Ui.Lbl($"🎖 Estado-maior: {c.Generals.Count}/{slots} ao serviço"
-                          + (home > 0 ? $" · {home} de casa" : ""), 17);
+        if (onArm is not null)
+        {
+            var tabs = new MetalTabs();
+            tabs.Set(Ui.Arms, Math.Max(0, Array.IndexOf(World.Domains, domain)), onArm);
+            v.AddChild(tabs);
+        }
+
+        int home = c.Generals.Count(id => w.GeneralDefs.TryGetValue(id, out var g)
+                                          && g.CountryTag is not null && g.Domain == domain);
+        var head = Ui.Lbl($"{Ui.Arms[Math.Max(0, Array.IndexOf(World.Domains, domain))]} · {serving}/{slots} ao serviço"
+                          + (home > 0 ? $" · {home} de casa" : "")
+                          + $"   ·   {World.Xp(c, domain):0} de {World.XpName(domain)}", 17);
         head.AddThemeColorOverride("font_color", Ui.Accent);
         v.AddChild(head);
+        if (pool.Count == 0)
+        {
+            var none = Ui.Lbl("ainda não há comandantes desta arma para chamar", 14);
+            none.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(none);
+            return card;
+        }
 
         foreach (var def in pool.Where(g => c.Generals.Contains(g.Id))
                                 .OrderByDescending(g => w.RankOf(c.Id, g.Id)?.Level ?? 1).ThenBy(g => g.Name))
@@ -194,7 +217,8 @@ public static class CommanderView
                 foreach (var g in men)
                 {
                     string id = g.Id;
-                    var b = Ui.Btn($"{g.Icon} {g.Name}   —   {Ui.StatName(g.StatKey)} ×{g.Mult:0.00}   ·   {g.Cost:0} pp",
+                    var b = Ui.Btn($"{g.Icon} {g.Name}   —   {Ui.StatName(g.StatKey)} ×{g.Mult:0.00}   ·   {g.Cost:0} pp"
+                                   + (g.Xp > 0f ? $" + {g.Xp:0} xp" : ""),
                                    () => onHire(id), 0, group ? Ui.Kind.Primary : Ui.Kind.Normal);
                     string? why = new HireGeneralCommand(c.Id, id).Validate(w);
                     b.Disabled = why is not null;

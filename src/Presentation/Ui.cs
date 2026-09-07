@@ -92,6 +92,10 @@ internal static class Ui
         return plate;
     }
 
+    /// <summary>As três armas pela ordem do World.Domains, com a chapa de cada uma. É a mesma fila de
+    /// abas nas escolas de guerra e no estado-maior — o jogo tem de chamar as armas sempre o mesmo.</summary>
+    public static readonly string[] Arms = { "⚔ Exército", "✈ Ar", "⚓ Mar" };
+
     /// <summary>Faz de um mostrador (ou de qualquer cartão) um botão: o dedo carrega em cima e abre-se o
     /// painel de que ele fala. É a maneira dos jogos de grande estratégia — na barra de cima nada é só
     /// enfeite, tudo o que mostra um número leva ao sítio onde esse número se gasta.</summary>

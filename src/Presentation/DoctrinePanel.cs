@@ -64,8 +64,8 @@ public partial class DoctrinePanel : PanelContainer
         _canvas.AddChild(_links);
     }
 
-    /// <summary>As três abas, pela ordem do World.Domains.</summary>
-    private static readonly string[] TabNames = { "⚔ Exército", "✈ Ar", "⚓ Mar" };
+    /// <summary>As três abas, pela ordem do World.Domains (as mesmas do estado-maior).</summary>
+    private static readonly string[] TabNames = Ui.Arms;
 
     /// <summary>Troca de arma: outra árvore, outra experiência, outra escolha.</summary>
     private void Pick(int i)

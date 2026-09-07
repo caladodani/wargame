@@ -1326,15 +1326,21 @@ public sealed record HireGeneralCommand(int CountryId, string GeneralId) : IComm
         if (!w.GeneralDefs.TryGetValue(GeneralId, out var def)) return "comandante desconhecido";
         if (!World.GeneralIsFor(def, c)) return "esse comandante é de outro país";
         if (c.Generals.Contains(GeneralId)) return "já serve neste exército";
-        if (c.Generals.Count >= (int)w.Rule("general_slots", 3f)) return "estado-maior completo";
+        if (w.GeneralsInService(c, def.Domain) >= w.GeneralSlots(def.Domain)) return "estado-maior completo";
         if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        // um comandante de asa ou de esquadra também se paga com a experiência da arma dele: é a mesma
+        // moeda das escolas de guerra, e é por isso que ter os dois obriga a escolher
+        float have = World.Xp(c, def.Domain);
+        if (def.Xp > 0f && have < def.Xp) return $"faltam {def.Xp - have:0} de {World.XpName(def.Domain)}";
         return null;
     }
 
     public void Execute(World w)
     {
         var c = w.Countries[CountryId];
-        c.Money -= w.GeneralDefs[GeneralId].Cost;
+        var hired = w.GeneralDefs[GeneralId];
+        c.Money -= hired.Cost;
+        if (hired.Xp > 0f) World.SpendXp(c, hired.Domain, hired.Xp);
         c.Generals.Add(GeneralId);
         World.ApplyGenerals(w, c);
         w.Events.Publish(new GeneralHired(CountryId, GeneralId));

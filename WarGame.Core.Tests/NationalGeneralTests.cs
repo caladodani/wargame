@@ -20,12 +20,15 @@ public class NationalGeneralTests
     public void EveryCountryBringsItsOwnCommandersAndTheMercenariesStayForEveryone()
     {
         var w = FactionTests.BuildReal();
-        var mercs = w.GeneralDefs.Values.Where(g => g.CountryTag is null).ToList();
+        // os mercenários de terra são os cinco de sempre; a asa e a esquadra têm os seus, à parte
+        var mercs = w.GeneralDefs.Values.Where(g => g.CountryTag is null && g.Domain == World.Land).ToList();
         Assert.Equal(5, mercs.Count);
+        Assert.Equal(6, w.GeneralDefs.Values.Count(g => g.CountryTag is null && g.Domain != World.Land));
         Assert.All(mercs, g => Assert.NotEqual("", g.Icon));
 
         var home = w.GeneralDefs.Values.Where(g => g.CountryTag is not null).ToList();
-        Assert.Equal(56, home.Count);                       // 28 países × 2
+        Assert.Equal(56, home.Count);                       // 28 países × 2, todos de terra
+        Assert.All(home, g => Assert.Equal(World.Land, g.Domain));
         foreach (var g in home)
         {
             Assert.StartsWith(g.CountryTag + "_", g.Id);
@@ -42,10 +45,12 @@ public class NationalGeneralTests
         var w = FactionTests.BuildReal();
         var prt = ByTag(w, "PRT");
         var pool = w.GeneralPool(prt);
+        var land = pool.Where(g => g.Domain == World.Land).ToList();
 
-        Assert.Equal(7, pool.Count);                        // 2 de casa + 5 mercenários
-        Assert.All(pool.Take(2), g => Assert.Equal("PRT", g.CountryTag));
-        Assert.All(pool.Skip(2), g => Assert.Null(g.CountryTag));
+        Assert.Equal(13, pool.Count);                       // as três armas: 7 de terra + 3 de asa + 3 de esquadra
+        Assert.Equal(7, land.Count);                        // 2 de casa + 5 mercenários
+        Assert.All(land.Take(2), g => Assert.Equal("PRT", g.CountryTag));
+        Assert.All(land.Skip(2), g => Assert.Null(g.CountryTag));
         Assert.DoesNotContain(pool, g => g.CountryTag == "RUS");
         // e o russo tem os dele, que não são os nossos
         Assert.Contains(w.GeneralPool(ByTag(w, "RUS")), g => g.Id == "RUS_gen_inverno");
