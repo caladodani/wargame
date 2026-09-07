@@ -805,6 +805,14 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO rule (key,value,note) VALUES ('production_queue_max',30,'encomendas em fila por país');
 INSERT INTO rule (key,value,note) VALUES ('order_factories_max',8,'fábricas militares que se podem dedicar a uma só encomenda');
 
+-- Ritmo da linha de montagem (HoI4: production efficiency). A primeira unidade de um modelo é um protótipo e
+-- sai ao ritmo de origem; da segunda em diante a linha ganha jeito todos os dias em que produz, até ao tecto,
+-- e arrefece nos dias em que fica parada sem cofre ou sem fábrica. Trocar de modelo é abrir linha nova.
+INSERT INTO rule (key,value,note) VALUES
+ ('line_efficiency_gain',0.03,'ritmo que a linha ganha por dia de produção em série'),
+ ('line_efficiency_decay',0.02,'ritmo que a linha perde por dia parada'),
+ ('line_efficiency_max',1.5,'tecto do ritmo de uma linha de montagem');
+
 -- Desembarques da IA: bater da praia é caro, por isso exige mais vantagem do que um ataque por terra
 -- e reserva organização para a travessia.
 INSERT INTO rule (key,value,note) VALUES

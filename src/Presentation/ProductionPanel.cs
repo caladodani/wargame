@@ -62,7 +62,7 @@ public partial class ProductionPanel : PanelContainer
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
             var y = Industry.Of(w, pid);
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories)) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
+            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -72,7 +72,8 @@ public partial class ProductionPanel : PanelContainer
             var lines = Ui.Lbl(y.Military == 0 ? "sem fábricas militares"
                                : $"{y.MilitaryBusy} de {y.Military} linhas de montagem a trabalhar"
                                  + (y.FreeMilitary > 0 ? $"  ·  {y.FreeMilitary} por atribuir"
-                                    : Industry.LinesBusy(w, c) > y.Military ? "  ·  o resto da fila espera vez" : ""), 16);
+                                    : Industry.LinesBusy(w, c) > y.Military ? "  ·  o resto da fila espera vez" : "")
+                                 + (c.Queue.Count > 0 ? $"  ·  ritmo médio {c.Queue.Average(o => o.Efficiency):P0}" : ""), 16);
             lines.AddThemeColorOverride("font_color", Ui.TextDim);
             _bench.AddChild(Ui.Grow(lines));
             foreach (var t in tmpls)
@@ -120,6 +121,9 @@ public partial class ProductionPanel : PanelContainer
                 lot.AddThemeColorOverride("font_color", mine > 1 ? Ui.Accent : Ui.TextDim);
                 dial.AddChild(Ui.Grow(lot));
                 cell.AddChild(dial);
+                // ritmo da linha de montagem: a série que anda há semanas produz mais depressa do que a que
+                // acabou de abrir, e é isto que o diz sem se ter de fazer a conta
+                cell.AddChild(Rhythm(w, o, working: !waitingLine && !waitingMen));
                 line.AddChild(cell);
                 var up = Ui.Btn("▲", () => Move(idx, idx - 1), 56); up.Disabled = idx == 0; line.AddChild(up);
                 var down = Ui.Btn("▼", () => Move(idx, idx + 1), 56); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
@@ -145,16 +149,50 @@ public partial class ProductionPanel : PanelContainer
         return n;
     }
 
+    /// <summary>O ritmo da linha, à maneira dos mostradores de fábrica do HoI4: uma calha escura com a
+    /// agulha de latão a subir do ritmo de origem (100%) até ao tecto, o número por extenso e a seta a dizer
+    /// para que lado vai hoje. Uma linha que ainda não entregou nada é protótipo e diz-se isso — é a mesma
+    /// informação que explica porque é que a segunda unidade sai mais depressa do que a primeira.</summary>
+    private static Control Rhythm(World w, ProductionOrder o, bool working)
+    {
+        float max = MathF.Max(1.01f, w.Rule("line_efficiency_max", 1.5f));
+        float t = Math.Clamp((o.Efficiency - 1f) / (max - 1f), 0f, 1f);
+        bool proto = o.Delivered <= 0;
+        var tint = proto ? Ui.TextDim : Ui.Heat(0.25f + t * 0.5f);
+
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+        var chip = Ui.Lbl(proto ? "⚙ protótipo" : working ? "▲ a ganhar ritmo" : "▼ a arrefecer", 13);
+        chip.AddThemeColorOverride("font_color", proto ? Ui.TextDim : working ? Ui.Good : Ui.Danger);
+        row.AddChild(chip);
+
+        var track = new PanelContainer { CustomMinimumSize = new Vector2(120, 12) };
+        track.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink, 2));
+        var fill = new ColorRect { Color = tint, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        fill.CustomMinimumSize = new Vector2(MathF.Max(2f, 116f * t), 8);
+        var pad = new MarginContainer();
+        pad.AddThemeConstantOverride("margin_left", 2); pad.AddThemeConstantOverride("margin_top", 2);
+        pad.AddChild(fill);
+        track.AddChild(pad);
+        row.AddChild(track);
+
+        var num = Ui.Lbl($"ritmo {o.Efficiency:P0} (tecto {max:P0})"
+                         + (o.Delivered > 0 ? $"  ·  {o.Delivered} entregue{(o.Delivered == 1 ? "" : "s")} nesta linha" : ""), 13);
+        num.AddThemeColorOverride("font_color", proto ? Ui.TextDim : Ui.Text);
+        row.AddChild(Ui.Grow(num));
+        return row;
+    }
+
     /// <summary>Quando é que esta encomenda sai da fábrica, ao ritmo de hoje — com as fábricas que hoje
-    /// tem, que é o que faz a data encolher quando se lhe dedicam mais. Uma encomenda sem linha de montagem
-    /// nenhuma (lines = 0) não tem data: está parada, e dizer-lhe dias seria mentir.</summary>
+    /// tem, que é o que faz a data encolher quando se lhe dedicam mais, e com o jeito que a linha já tem.
+    /// Uma encomenda sem linha de montagem nenhuma (lines = 0) não tem data: está parada, e dizer-lhe dias
+    /// seria mentir.</summary>
     private static string Eta(World w, Country c, ProductionOrder o, int lines)
     {
         float cost; try { cost = w.TemplateCost(o.TemplateId); } catch { return "—"; }
         float left = cost - o.Progress;
         if (left <= 1e-3f) return "pronta";
         if (lines <= 0) return "à espera de vez";
-        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed") * lines;
+        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed") * lines * o.Efficiency;
         if (perDay <= 0f) return "parada";
         int days = Mathf.CeilToInt(left / perDay);
         return days == 1 ? "amanhã" : $"~{days} dias";
@@ -217,7 +255,21 @@ public partial class ProductionPanel : PanelContainer
             int got = c.Queue.Count > 0 ? c.Queue[0].Factories : 0;
             yards = got == 1 ? "cabeça da fila com uma fábrica" : $"cabeça da fila com {got} fábricas dedicadas";
         }
-        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged}, {yards})";
+        // ritmo: dá-se à mão à encomenda da frente o jeito de uma dúzia de dias de série, para o mostrador
+        // acender — o motor faz isto sozinho ao fim de uma série, mas o --smoke não corre semanas
+        string rhythm = "sem linha";
+        if (c.Queue.Count > 0)
+        {
+            var lead = c.Queue[0];
+            lead.Repeat = true;
+            lead.Delivered = Math.Max(1, lead.Delivered);
+            for (int i = 0; i < 12; i++) ProductionSystem.Age(w, lead, worked: true);
+            _lastKey = ""; Fill();
+            rhythm = $"linha da frente a {lead.Efficiency:P0} do ritmo de origem"
+                   + $" (tecto {w.Rule("line_efficiency_max", 1.5f):P0}) depois de {lead.Delivered} entrega"
+                   + (lead.Delivered == 1 ? "" : "s");
+        }
+        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged}, {yards}, {rhythm})";
     }
 
     /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>

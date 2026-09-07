@@ -349,6 +349,13 @@ public sealed class ProductionOrder
     /// vale um dia de trabalho por dia; uma encomenda com três anda três vezes mais depressa e tira duas
     /// fábricas ao resto da fila. Por omissão uma, que é o que sempre foi.</summary>
     public int Factories { get; set; } = 1;
+    /// <summary>Ritmo da linha de montagem (HoI4: production efficiency). Uma linha nova anda ao ritmo de
+    /// origem (1) e só ganha jeito depois de a primeira unidade sair — a primeira é sempre um protótipo. A
+    /// partir daí sobe todos os dias em que produz, até ao tecto (line_efficiency_max), e arrefece nos dias
+    /// em que fica parada. Mudar de modelo é uma linha nova: começa outra vez em 1.</summary>
+    public float Efficiency { get; set; } = 1f;
+    /// <summary>Quantas unidades esta linha já entregou (a série que a torna eficiente).</summary>
+    public int Delivered { get; set; }
 }
 
 public sealed class Country
