@@ -13,6 +13,7 @@ Uso:
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -50,8 +51,11 @@ def main():
     if v != n:
         sys.exit(f'project.godot diz {v} e export_presets.cfg diz {n}: sobe-se a versão nos dois')
     notes = sys.argv[2] if len(sys.argv) > 2 else ''
+    # a data sai do próprio APK (não da hora a que isto corre): assim o manifesto é o mesmo
+    # ficheiro se se voltar a gerar, e a página de download tem uma data em que se pode confiar
+    built = datetime.fromtimestamp(apk.stat().st_mtime, timezone.utc).isoformat(timespec='seconds')
     print(json.dumps({'version': v, 'code': code(), 'apk': URL,
-                      'size': apk.stat().st_size, 'notes': notes},
+                      'size': apk.stat().st_size, 'built': built, 'notes': notes},
                      ensure_ascii=False, indent=1))
 
 
