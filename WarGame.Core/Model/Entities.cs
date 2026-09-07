@@ -332,6 +332,10 @@ public sealed class ProductionOrder
     public float Progress { get; set; }
     /// <summary>Produção em série: ao ser entregue, a encomenda volta ao fim da fila (ProductionSystem).</summary>
     public bool Repeat { get; set; }
+    /// <summary>Fábricas militares dedicadas a esta encomenda (HoI4: linhas de produção atribuídas). Cada uma
+    /// vale um dia de trabalho por dia; uma encomenda com três anda três vezes mais depressa e tira duas
+    /// fábricas ao resto da fila. Por omissão uma, que é o que sempre foi.</summary>
+    public int Factories { get; set; } = 1;
 }
 
 public sealed class Country

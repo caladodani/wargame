@@ -62,7 +62,7 @@ public partial class ProductionPanel : PanelContainer
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
             var y = Industry.Of(w, pid);
-            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : ""))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
+            var key = string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories)) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -71,7 +71,8 @@ public partial class ProductionPanel : PanelContainer
             _bench.AddChild(Ui.Pips(y.MilitaryBusy, y.Military));
             var lines = Ui.Lbl(y.Military == 0 ? "sem fábricas militares"
                                : $"{y.MilitaryBusy} de {y.Military} linhas de montagem a trabalhar"
-                                 + (c.Queue.Count > y.Military ? "  ·  o resto da fila espera vez" : ""), 16);
+                                 + (y.FreeMilitary > 0 ? $"  ·  {y.FreeMilitary} por atribuir"
+                                    : Industry.LinesBusy(w, c) > y.Military ? "  ·  o resto da fila espera vez" : ""), 16);
             lines.AddThemeColorOverride("font_color", Ui.TextDim);
             _bench.AddChild(Ui.Grow(lines));
             foreach (var t in tmpls)
@@ -90,8 +91,10 @@ public partial class ProductionPanel : PanelContainer
                 string name; try { name = w.Units.GetTemplate(tid).Name; } catch { name = "T" + tid; }
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
-                // a encomenda só anda se tiver linha: as que estão para lá das fábricas ficam à espera
-                bool waitingLine = !waitingMen && Working(w, c, i) >= y.Military;
+                // as fábricas repartem-se de cima para baixo: quem chega e já não há nenhuma livre, espera
+                int ahead = FactoriesAhead(w, c, i);
+                int mine = Math.Clamp(o.Factories, 1, Math.Max(1, y.Military - ahead));
+                bool waitingLine = !waitingMen && ahead >= y.Military;
                 bool rep = o.Repeat;
 
                 // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
@@ -104,9 +107,19 @@ public partial class ProductionPanel : PanelContainer
                 line.AddChild(place);
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
-                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, !waitingLine && !waitingMen)}" + (rep ? "   🔁" : "")
+                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
                                      + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : "")));
                 cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent)));
+                // quadro de fábricas desta encomenda: chapa acesa = fábrica dedicada, e o que se lhe dá
+                // tira-se a quem vem atrás na fila
+                var dial = new HBoxContainer(); dial.AddThemeConstantOverride("separation", 8);
+                var knob = new FactoryDial();
+                knob.Bind(mine, SetOrderFactoriesCommand.Cap(w, pid), y.FreeMilitary, n => SetFactories(idx, tid, n));
+                dial.AddChild(knob);
+                var lot = Ui.Lbl(mine == 1 ? "uma fábrica" : $"{mine} fábricas dedicadas", 14);
+                lot.AddThemeColorOverride("font_color", mine > 1 ? Ui.Accent : Ui.TextDim);
+                dial.AddChild(Ui.Grow(lot));
+                cell.AddChild(dial);
                 line.AddChild(cell);
                 var up = Ui.Btn("▲", () => Move(idx, idx - 1), 56); up.Disabled = idx == 0; line.AddChild(up);
                 var down = Ui.Btn("▼", () => Move(idx, idx + 1), 56); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
@@ -119,32 +132,43 @@ public partial class ProductionPanel : PanelContainer
         catch (Exception ex) { GD.PushError("ProductionPanel.Fill: " + ex); }
     }
 
-    /// <summary>Quantas encomendas por acabar estão à frente desta na fila: se já forem tantas como as
-    /// fábricas militares, esta não tem linha hoje.</summary>
-    private static int Working(World w, Country c, int index)
+    /// <summary>Quantas fábricas estão pedidas pelas encomendas por acabar à frente desta: se já forem
+    /// tantas como as fábricas militares do país, esta não tem linha hoje.</summary>
+    private static int FactoriesAhead(World w, Country c, int index)
     {
         int n = 0;
         for (int i = 0; i < index; i++)
         {
             float cost; try { cost = w.TemplateCost(c.Queue[i].TemplateId); } catch { cost = 0f; }
-            if (c.Queue[i].Progress < cost - 1e-3f) n++;
+            if (c.Queue[i].Progress < cost - 1e-3f) n += Math.Max(1, c.Queue[i].Factories);
         }
         return n;
     }
 
-    /// <summary>Quando é que esta encomenda sai da fábrica, ao ritmo de hoje. Uma encomenda sem linha de
-    /// montagem não tem data nenhuma: está parada, e dizer-lhe dias seria mentir.</summary>
-    private static string Eta(World w, Country c, ProductionOrder o, bool hasLine)
+    /// <summary>Quando é que esta encomenda sai da fábrica, ao ritmo de hoje — com as fábricas que hoje
+    /// tem, que é o que faz a data encolher quando se lhe dedicam mais. Uma encomenda sem linha de montagem
+    /// nenhuma (lines = 0) não tem data: está parada, e dizer-lhe dias seria mentir.</summary>
+    private static string Eta(World w, Country c, ProductionOrder o, int lines)
     {
         float cost; try { cost = w.TemplateCost(o.TemplateId); } catch { return "—"; }
         float left = cost - o.Progress;
         if (left <= 1e-3f) return "pronta";
-        if (!hasLine) return "à espera de vez";
-        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed");
+        if (lines <= 0) return "à espera de vez";
+        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed") * lines;
         if (perDay <= 0f) return "parada";
         int days = Mathf.CeilToInt(left / perDay);
         return days == 1 ? "amanhã" : $"~{days} dias";
     }
+
+    /// <summary>Dedica n fábricas militares a uma encomenda (chapa do FactoryDial).</summary>
+    private void SetFactories(int index, int templateId, int n) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid || !_game.World.Countries.TryGetValue(pid, out var c)) return;
+        if (index >= c.Queue.Count || c.Queue[index].TemplateId != templateId) { _game.Notify("A fila mudou, tenta outra vez"); Refresh(); return; }
+        var err = _game.Dispatch(new SetOrderFactoriesCommand(pid, index, n));
+        if (err is not null) _game.Notify(err);
+        else { _lastKey = ""; Refresh(); }
+    });
 
     /// <summary>Muda uma encomenda de lugar na fila (arrasto ou setas). Se a fila mexeu entretanto — uma
     /// encomenda entregue, por exemplo — não se arrasta a errada: pede-se outra vez.</summary>
@@ -158,8 +182,9 @@ public partial class ProductionPanel : PanelContainer
         else { _lastKey = ""; Refresh(); }
     });
 
-    /// <summary>--smoke: enche a fila com dois modelos e arrasta o último para a cabeça, para o caminho do
-    /// arrasto (pegar, validar o alvo, largar e despachar o comando) correr sem ecrã nem dedo.</summary>
+    /// <summary>--smoke: enche a fila com dois modelos, arrasta o último para a cabeça e carrega no quadro
+    /// de fábricas da encomenda da frente, para os dois caminhos novos (arrasto e dedicação de fábricas)
+    /// correrem sem ecrã nem dedo.</summary>
     public string Smoke()
     {
         var w = _game.World;
@@ -181,7 +206,28 @@ public partial class ProductionPanel : PanelContainer
                 dragged = $"{TemplateName(w, c.Queue[0].TemplateId)} passou à frente de {was}";
             }
         }
-        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged})";
+        string yards = "sem quadro de fábricas";
+        if (_queue.GetChildren().OfType<QueueRow>().FirstOrDefault() is QueueRow first
+            && Descendants<FactoryDial>(first).FirstOrDefault() is FactoryDial knob)
+        {
+            int want = Math.Min(2, SetOrderFactoriesCommand.Cap(w, pid));
+            // o carregar despacha o comando por si (RunWhenIdle corre já, com o mundo parado)
+            knob.Smoke(want);
+            _lastKey = ""; Fill();
+            int got = c.Queue.Count > 0 ? c.Queue[0].Factories : 0;
+            yards = got == 1 ? "cabeça da fila com uma fábrica" : $"cabeça da fila com {got} fábricas dedicadas";
+        }
+        return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção ({dragged}, {yards})";
+    }
+
+    /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>
+    private static IEnumerable<T> Descendants<T>(Node root) where T : Node
+    {
+        foreach (var child in root.GetChildren())
+        {
+            if (child is T hit) yield return hit;
+            foreach (var deep in Descendants<T>(child)) yield return deep;
+        }
     }
 
     private static string TemplateName(World w, int templateId)

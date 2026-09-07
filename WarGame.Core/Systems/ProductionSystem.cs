@@ -23,19 +23,22 @@ public sealed class ProductionSystem : ISystem
         }
     }
 
-    /// <summary>Gasto do dia: min(custo/minDays, o que falta, Money) por encomenda, e só nas primeiras
-    /// `lines` encomendas por acabar — as outras não têm fábrica militar livre. Uma encomenda já pronta à
-    /// espera de recrutas não ocupa linha: a fábrica largou-a. Money nunca fica negativo.</summary>
-    private static void Spend(World w, Country c, float minDays, int lines)
+    /// <summary>Gasto do dia: as fábricas militares são repartidas pela fila, de cima para baixo, dando a
+    /// cada encomenda as que ela pediu (ProductionOrder.Factories, uma por omissão) enquanto houver. Cada
+    /// fábrica vale um dia de trabalho: uma encomenda com três anda três vezes mais depressa e deixa duas a
+    /// menos para quem vem atrás. Quem fica sem fábrica nenhuma não anda. Uma encomenda já pronta à espera
+    /// de recrutas não ocupa linha: a fábrica largou-a. Money nunca fica negativo.</summary>
+    private static void Spend(World w, Country c, float minDays, int factories)
     {
-        int used = 0;
+        int free = factories;
         foreach (var o in c.Queue)
         {
-            if (c.Money <= 0f || used >= lines) break;
+            if (c.Money <= 0f || free <= 0) break;
             float cost = w.TemplateCost(o.TemplateId);
             if (o.Progress >= cost - 1e-3f) continue;      // pronta: espera homens, não linha
-            used++;
-            float spend = MathF.Min(MathF.Min(cost / minDays * c.Stat("production_speed"), cost - o.Progress), c.Money);
+            int mine = Math.Clamp(o.Factories, 1, free);
+            free -= mine;
+            float spend = MathF.Min(MathF.Min(cost / minDays * c.Stat("production_speed") * mine, cost - o.Progress), c.Money);
             if (spend <= 0f) continue;
             o.Progress += spend; c.Money -= spend;
         }
@@ -65,7 +68,7 @@ public sealed class ProductionSystem : ISystem
             c.Queue.RemoveAt(i);
             // produção em série: a encomenda entregue volta ao fim da fila, do zero
             if (o.Repeat && c.Queue.Count < w.Rule("production_queue_max", 30f))
-                c.Queue.Add(new ProductionOrder { TemplateId = o.TemplateId, Repeat = true });
+                c.Queue.Add(new ProductionOrder { TemplateId = o.TemplateId, Repeat = true, Factories = o.Factories });
         }
     }
 

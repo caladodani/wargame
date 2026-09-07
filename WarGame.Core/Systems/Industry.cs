@@ -51,7 +51,7 @@ public static class Industry
                         levels.GetValueOrDefault("militar") * per);
         int naval = Count(0f, 0f, levels.GetValueOrDefault("naval") * per);
 
-        int lines = Math.Min(mil, Unfinished(w, c));
+        int lines = Math.Min(mil, LinesBusy(w, c));
         float perYard = MathF.Max(1f, w.Rule("yard_divisions", 3f));
         int yardsAtSea = Math.Min(naval, (int)MathF.Ceiling(c.SeaSupplied / perYard));
         return new Yards(civil, Math.Min(civil, sites), mil, lines, naval, yardsAtSea);
@@ -66,6 +66,16 @@ public static class Industry
     {
         int n = 0;
         foreach (var o in c.Queue) if (o.Progress < w.TemplateCost(o.TemplateId) - 1e-3f) n++;
+        return n;
+    }
+
+    /// <summary>Fábricas militares que a fila pede hoje: a soma das dedicadas a cada encomenda por acabar
+    /// (ProductionOrder.Factories). Uma encomenda com três fábricas acende três lâmpadas na bancada.</summary>
+    public static int LinesBusy(World w, Country c)
+    {
+        int n = 0;
+        foreach (var o in c.Queue)
+            if (o.Progress < w.TemplateCost(o.TemplateId) - 1e-3f) n += Math.Max(1, o.Factories);
         return n;
     }
 

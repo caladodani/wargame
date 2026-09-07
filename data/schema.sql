@@ -292,7 +292,8 @@ CREATE TABLE IF NOT EXISTS s_battle (region_id INTEGER PRIMARY KEY, attacker_cou
 CREATE TABLE IF NOT EXISTS s_battle_division (region_id INTEGER, division_id INTEGER, side TEXT CHECK (side IN ('att','def')), PRIMARY KEY (region_id, division_id));
 CREATE TABLE IF NOT EXISTS s_production_queue (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, template_id INTEGER NOT NULL, progress REAL NOT NULL,
-  repeat_order INTEGER NOT NULL DEFAULT 0   -- produção em série: volta à fila ao ser entregue
+  repeat_order INTEGER NOT NULL DEFAULT 0,  -- produção em série: volta à fila ao ser entregue
+  factories INTEGER NOT NULL DEFAULT 1      -- fábricas militares dedicadas a esta encomenda
 );
 CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qty INTEGER NOT NULL, PRIMARY KEY (country_id, unit_type_id));
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada

@@ -789,6 +789,7 @@ INSERT INTO rule (key,value,note) VALUES
 
 -- Produção em série: a encomenda marcada volta ao fim da fila quando é entregue, até ao tecto da fila.
 INSERT INTO rule (key,value,note) VALUES ('production_queue_max',30,'encomendas em fila por país');
+INSERT INTO rule (key,value,note) VALUES ('order_factories_max',8,'fábricas militares que se podem dedicar a uma só encomenda');
 
 -- Desembarques da IA: bater da praia é caro, por isso exige mais vantagem do que um ataque por terra
 -- e reserva organização para a travessia.

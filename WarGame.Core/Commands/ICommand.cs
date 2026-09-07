@@ -326,6 +326,36 @@ public sealed record SetProductionRepeatCommand(int CountryId, int Index, bool O
     public void Execute(World w) => w.Countries[CountryId].Queue[Index].Repeat = On;
 }
 
+/// <summary>Dedica fábricas militares a uma encomenda (HoI4: linhas de produção atribuídas).
+///
+/// As fábricas militares sempre serviram a fila de cima para baixo, uma por encomenda: com três fábricas
+/// andavam as três primeiras encomendas ao mesmo ritmo e mais nada se podia fazer. Uma coluna blindada
+/// urgente demorava o mesmo que a infantaria ao lado, e as fábricas de um império industrial ficavam a
+/// dividir-se por encomendas que ninguém tinha pressa nenhuma em receber.
+///
+/// Agora concentram-se: cada encomenda diz quantas fábricas quer, cada fábrica vale um dia de trabalho por
+/// dia, e o que se dá a uma tira-se ao resto da fila. O tecto é o número de fábricas militares do país e a
+/// regra order_factories_max, o que for menor.</summary>
+public sealed record SetOrderFactoriesCommand(int CountryId, int Index, int Factories) : ICommand
+{
+    /// <summary>Quantas fábricas se podem dedicar a uma só encomenda: as que o país tem, sem passar o tecto
+    /// da regra order_factories_max.</summary>
+    public static int Cap(World w, int countryId) =>
+        Math.Max(1, Math.Min(Industry.Of(w, countryId).Military, (int)w.Rule("order_factories_max", 8f)));
+
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "país inválido";
+        if (Index < 0 || Index >= c.Queue.Count) return "Encomenda inexistente";
+        if (Factories < 1) return "Uma encomenda leva pelo menos uma fábrica";
+        int cap = Cap(w, CountryId);
+        if (Factories > cap) return $"Só podes dedicar {cap} fábricas a uma encomenda";
+        if (c.Queue[Index].Factories == Factories) return "A encomenda já tem essas fábricas";
+        return null;
+    }
+    public void Execute(World w) => w.Countries[CountryId].Queue[Index].Factories = Factories;
+}
+
 /// <summary>Muda uma encomenda de lugar na fila de produção (de `Index` para `ToIndex`).
 ///
 /// A ordem da fila é a prioridade: o ProductionSystem gasta o cofre de cima para baixo e só as primeiras
