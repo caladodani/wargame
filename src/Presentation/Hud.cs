@@ -23,7 +23,7 @@ public partial class Hud : CanvasLayer
     private PanelContainer _season = null!;
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
-    private Button _pause = null!;
+    private SpeedRibbon _speed = null!;
     private PanelContainer _toastBox = null!;
     private ColorRect _accent = null!;
     private Timer _toastTimer = null!;
@@ -166,9 +166,7 @@ public partial class Hud : CanvasLayer
         _playerFlag = Flags.Rect(22); _playerFlag.Visible = false; row.AddChild(_playerFlag);
         _country = Ui.Lbl("", 20); _country.AddThemeColorOverride("font_color", Ui.Accent); row.AddChild(_country);
         _date = Ui.Lbl("2030-01-01", 22); row.AddChild(_date);
-        row.AddChild(Ui.Btn("<", () => Speed(-1), 56));
-        _pause = Ui.Btn("||", () => Speed(0), 72); row.AddChild(_pause);
-        row.AddChild(Ui.Btn(">", () => Speed(+1), 56));
+        _speed = new SpeedRibbon(); row.AddChild(_speed); _speed.Setup(_game);
         _season = SeasonView.Badge(_game.World); row.AddChild(_season);
         row.AddChild(Ui.Grow(new Control()));
         // Fila de mostradores à direita, à maneira dos jogos de grande estratégia: dinheiro, homens e
@@ -245,15 +243,6 @@ public partial class Hud : CanvasLayer
     {
         if (_game.PlayerId is not int pid) { Toast("Toca num país e escolhe-o primeiro"); return; }
         _region.Close(); _production.Close(); _countryPanel.Open(pid);
-    }
-
-    // delta 0 = alternar pausa. Sem jogador o relógio fica parado (Speed 0 é o Game que o põe).
-    private void Speed(int delta)
-    {
-        if (_game.PlayerId is null) { Toast("Toca num país e escolhe-o primeiro"); return; }
-        var c = _game.World.Clock;
-        c.Speed = delta == 0 ? (c.Speed == 0 ? 1 : 0) : Mathf.Clamp(c.Speed + delta, 0, 4);
-        _game.RunWhenIdle(RefreshTop);
     }
 
     private void BuildToast()
@@ -797,8 +786,8 @@ public partial class Hud : CanvasLayer
     private void RefreshTop()
     {
         var w = _game.World; var c = w.Clock;
-        _date.Text = c.Date.ToString("yyyy-MM-dd") + (c.Paused ? "  ⏸" : "  " + new string('\u25b6', Math.Max(1, c.Speed)));
-        _pause.Text = c.Paused ? "Play" : "||";
+        _date.Text = c.Date.ToString("yyyy-MM-dd");   // o andamento vive na fita, não em setas atrás da data
+        _speed.Refresh();
         // a estação muda quatro vezes por ano: só se redesenha a chapa (e se relava o mapa) quando muda
         string season = w.Season?.Id ?? "";
         if (season != _seasonPainted)
@@ -1024,7 +1013,20 @@ public partial class Hud : CanvasLayer
         int tree = _focusTree.Smoke();                                   // árvore de focos: grelha, traços e ramos rivais
         int plans = SmokePlans();                                        // planos de batalha: setas desenhadas no mapa
         int schools = _doctrines.Smoke();                                 // escolas de guerra: ramos e degraus da árvore
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência)");
+        // adido militar: quantos anfitriões há, e a missão despachada quando houver guerra alheia para ver
+        string attache = "sem guerra alheia";
+        if (AttacheSystem.Pick(w, pid) is int hostId)
+        {
+            _game.Dispatch(new SendAttacheCommand(pid, hostId));
+            attache = w.Attaches.TryGetValue(pid, out var mission)
+                    ? $"junto de {w.Countries[mission.HostId].Name}" : "cofre curto";
+        }
+        else if (w.AtWar(pid)) attache = "a nossa guerra vê-se de dentro";
+        _warPanel.Open();
+        int hosts = _warPanel.SmokeAttache();                             // cartão do adido e lista de anfitriões
+        _warPanel.Close();
+        string speed = _speed.Smoke();                                    // fita das velocidades: as cinco casas acesas à vez
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência), adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

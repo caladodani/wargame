@@ -6,8 +6,9 @@ using WarGame.Core.Systems;
 namespace WarGame.Presentation;
 
 /// <summary>Painel "Guerra": o saldo de cada guerra do jogador (regiões tomadas, batalhas ganhas,
-/// divisões perdidas) em barras de comparação lado a lado, mais o arquivo das guerras já terminadas
-/// (World.WarHistory). Só lê o World — quem conta é o WarStatsSystem.</summary>
+/// divisões perdidas) em barras de comparação lado a lado, a seguir o adido militar destacado na guerra
+/// alheia, e por fim o arquivo das guerras já terminadas (World.WarHistory). Só lê o World e despacha
+/// comandos — quem conta é o WarStatsSystem, quem paga o adido é o AttacheSystem.</summary>
 public partial class WarPanel : PanelContainer
 {
     private Game _game = null!;
@@ -16,6 +17,11 @@ public partial class WarPanel : PanelContainer
     /// <summary>Levar o mapa a uma região (o Hud é que sabe mexer na câmara): usado pelo "Ver no mapa" das
     /// cedências, para ninguém assinar terra que não viu.</summary>
     public Action<int>? OnShowRegion;
+
+    /// <summary>Só para o --smoke: desenha a lista de anfitriões do adido mesmo com a nossa guerra a
+    /// bloquear a missão, para o caminho do desenho (bandeiras, guerras deles, botão) correr sem ecrã.
+    /// Aceita qualquer beligerante, inimigos incluídos: o mundo do smoke tem uma guerra só, a nossa.</summary>
+    private bool _smokeHosts;
 
     /// <summary>Guerra com a mesa de negociação aberta (id do inimigo), e o que lhe estamos a exigir.</summary>
     private int? _deal;
@@ -69,6 +75,7 @@ public partial class WarPanel : PanelContainer
                       string.Join(",", mine.Select(x => $"p{PrisonerView.HeldBy(w, pid, x.EnemyOf(pid))}/{PrisonerView.HeldBy(w, x.EnemyOf(pid), pid)}")) + "|" +
                       string.Join(",", mine.Select(x => $"t{PrisonerExchange.Evaluate(w, pid, x.EnemyOf(pid)).Accepted}")) + "|" +
                       string.Join(",", w.Offers.Where(o => o.ToId == pid).Select(o => $"o{o.FromId}{o.Kind}:{o.Men}:{o.RegionId}:{o.ExpiresDay}")) + "|" +
+                      AttacheKey(w, pid) + "|" +
                       string.Join(",", mine.Select(x => $"{x.EnemyOf(pid)}:{x.Side(pid).RegionsTaken}:{x.Enemy(pid).RegionsTaken}:{x.Side(pid).DivisionsLost}:{x.Enemy(pid).DivisionsLost}:{x.Side(pid).BattlesWon}:{x.Enemy(pid).BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
@@ -119,6 +126,8 @@ public partial class WarPanel : PanelContainer
                 _body.AddChild(box);
             }
 
+            Attaches(w, pid);
+
             if (past.Count > 0)
             {
                 Header("Guerras terminadas");
@@ -140,6 +149,105 @@ public partial class WarPanel : PanelContainer
         }
         catch (Exception ex) { GD.PushError("WarPanel.Fill: " + ex); }
     }
+
+    /// <summary>O que muda o desenho da secção do adido: a missão em curso (anfitrião e o que já aprendeu),
+    /// quem está em guerra lá fora e o cofre — o botão acende no dia em que dá para pagar a estadia.</summary>
+    private string AttacheKey(World w, int pid) =>
+        (w.Attaches.TryGetValue(pid, out var a) ? $"a{a.HostId}:{a.Learned:0.0}" : "a-")
+        + ":" + string.Join("-", Hosts(w, pid).Select(h => h.Id))
+        + ":" + (int)(w.Countries.TryGetValue(pid, out var me) ? me.Money : 0f);
+
+    /// <summary>Anfitriões possíveis: quem se está a bater e nos deixa lá pôr um observador (o Core é que
+    /// decide, em World.AttacheBlock — o painel só pergunta).</summary>
+    private List<Country> Hosts(World w, int pid) =>
+        w.Countries.Values.Where(h => w.AttacheBlock(pid, h.Id) is null
+                                   || (_smokeHosts && h.Id != pid && w.AtWar(h.Id)))
+            .OrderBy(h => h.Id).ToList();
+
+    /// <summary>Adido militar: um oficial nosso a ver a guerra dos outros de dentro. Vive aqui, no painel da
+    /// guerra, porque é onde estão as guerras — as nossas em cima, as alheias a seguir. Sem esta secção a
+    /// missão só existia para a IA e um país em paz nunca chegava ao primeiro degrau de doutrina.</summary>
+    private void Attaches(World w, int pid)
+    {
+        float cost = w.Rule("attache_cost_per_day", 0.5f);
+        float gain = w.Rule("attache_xp_per_day", 0.3f);
+        float days = w.Rule("attache_min_days", 10f);
+        var me = w.Countries[pid];
+        Header("Adido militar");
+        var (box, card) = Card();
+
+        if (w.Attaches.TryGetValue(pid, out var a))
+        {
+            var title = new HBoxContainer();
+            var fl = Flags.Rect(22);
+            if (w.Countries.TryGetValue(a.HostId, out var hc)) { fl.Texture = Flags.Of(hc.Tag); fl.Visible = fl.Texture is not null; }
+            title.AddChild(fl);
+            title.AddChild(Ui.Grow(Ui.Lbl($"🎖 destacado junto de {Name(w, a.HostId)}", 20)));
+            title.AddChild(Ui.Lbl($"{w.Clock.Day - a.SinceDay} dias", 16));
+            card.AddChild(title);
+            card.AddChild(Ui.Lbl($"Trouxe {a.Learned:0.0} de experiência   ·   custa {cost:0.0} por dia   ·   " +
+                                 $"cofre {me.Money:0}", 16));
+            card.AddChild(Ui.Btn("Chamar adido de volta", () => Recall(pid), 240));
+            _body.AddChild(box);
+            return;
+        }
+
+        var hosts = Hosts(w, pid);
+        if (hosts.Count == 0)
+        {
+            card.AddChild(Ui.Lbl(w.AtWar(pid)
+                ? "A nossa guerra já a vemos de dentro: o adido só parte quando houver paz"
+                : "Ninguém se bate lá fora: não há guerra alheia para observar", 16));
+            _body.AddChild(box);
+            return;
+        }
+
+        bool rich = me.Money >= cost * days;
+        card.AddChild(Ui.Lbl($"Um oficial junto de um exército estrangeiro traz {gain:0.0} de experiência por dia " +
+                             $"e custa {cost:0.0} — a mesa da missão pede {cost * days:0} no cofre.", 16));
+        foreach (var h in hosts)
+        {
+            int hid = h.Id;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+            var fl = Flags.Rect(20); fl.Texture = Flags.Of(h.Tag); fl.Visible = fl.Texture is not null;
+            row.AddChild(fl);
+            row.AddChild(Ui.Grow(Ui.Lbl($"{h.Name} contra {string.Join(", ", h.AtWarWith.OrderBy(x => x).Select(x => Name(w, x)))}", 16)));
+            var b = Ui.Btn("Enviar adido", () => Send(pid, hid), 170, rich ? Ui.Kind.Primary : Ui.Kind.Normal);
+            b.Disabled = !rich;
+            b.TooltipText = rich ? $"a estadia sai a {cost:0.0} por dia, até ser chamado de volta"
+                                 : $"faltam {cost * days - me.Money:0} no cofre";
+            row.AddChild(b);
+            card.AddChild(row);
+        }
+        _body.AddChild(box);
+    }
+
+    private void Send(int pid, int hostId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new SendAttacheCommand(pid, hostId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Adido a caminho de {Name(_game.World, hostId)}");
+        _lastKey = ""; Fill();
+    });
+
+    /// <summary>--smoke: desenha a secção do adido com a lista de anfitriões cheia e diz quantos ficaram.</summary>
+    public int SmokeAttache()
+    {
+        if (_game.PlayerId is not int pid) return 0;
+        _smokeHosts = true;
+        int hosts = Hosts(_game.World, pid).Count;
+        _lastKey = ""; Fill();
+        _smokeHosts = false; _lastKey = "";
+        return hosts;
+    }
+
+    private void Recall(int pid) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new RecallAttacheCommand(pid));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify("Adido chamado de volta");
+        _lastKey = ""; Fill();
+    });
 
     /// <summary>Mesa de negociação: escolhem-se as regiões a exigir e vê-se, antes de propor, se o outro
     /// lado assina — a pressão que sofre (ocupação, exércitos, desgaste, capital) contra o preço do que se

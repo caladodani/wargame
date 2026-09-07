@@ -726,6 +726,32 @@ public sealed record DisbandDivisionCommand(int CountryId, int DivisionId) : ICo
 /// <summary>Propor pacto de não-agressão. A IA aceita se não está a justificar guerra contra o
 /// proponente e (é mais fraca em divisões ou partilha um inimigo); senão PactRejected.
 /// Aceite = sem DeclareWar entre os dois durante nap_days.</summary>
+/// <summary>Destaca um adido militar junto de um país em guerra: paga-se todos os dias e traz experiência
+/// de exército enquanto a guerra dele durar (AttacheSystem). Um país só tem um adido de cada vez.</summary>
+public sealed record SendAttacheCommand(int CountryId, int HostId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (w.AttacheBlock(CountryId, HostId) is string why) return why;
+        float cost = w.Rule("attache_cost_per_day", 0.5f), days = w.Rule("attache_min_days", 10f);
+        if (w.Countries[CountryId].Money < cost * days)
+            return $"a missão precisa de {cost * days:0} no cofre ({days:0} dias de estadia)";
+        return null;
+    }
+
+    public void Execute(World w) => AttacheSystem.Send(w, CountryId, HostId);
+}
+
+/// <summary>Chama o adido de volta: acaba a despesa e acaba a aprendizagem.</summary>
+public sealed record RecallAttacheCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Countries.ContainsKey(CountryId) ? "país inválido"
+        : !w.Attaches.ContainsKey(CountryId) ? "não há adido destacado" : null;
+
+    public void Execute(World w) => w.Attaches.Remove(CountryId);
+}
+
 public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountryId) : ICommand
 {
     public string? Validate(World w)

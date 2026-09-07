@@ -203,6 +203,14 @@ INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
  ('mas_3','defense',1.05),('mas_3','org_regain',1.05),
  ('mas_4','conscription',1.15),('mas_4','industry',1.03);
 
+-- Adidos militares (AttacheSystem + SendAttacheCommand): observar a guerra dos outros custa dinheiro por
+-- dia e traz experiência de exército, que é o que paga as escolas de guerra a quem vive em paz.
+INSERT INTO rule (key,value,note) VALUES
+ ('attache_cost_per_day',0.5,'estadia diária do adido militar destacado'),
+ ('attache_xp_per_day',0.3,'experiência de exército por dia de missão, enquanto o anfitrião estiver em guerra'),
+ ('attache_min_days',10,'dias de estadia que o cofre tem de aguentar para a missão poder partir'),
+ ('attache_ai_money',60,'cofre a partir do qual a IA em paz manda um adido observar guerra alheia');
+
 -- Apoio financeiro entre aliados de facção (TransferMoneyCommand).
 INSERT INTO rule (key,value,note) VALUES
  ('ai_aid_reserve',300,'a IA só envia apoio com dinheiro acima disto'),

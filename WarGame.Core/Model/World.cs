@@ -122,6 +122,26 @@ public sealed class World
     /// <summary>Pactos de não-agressão: (a,b) com a&lt;b → último dia em vigor. Bloqueia DeclareWar.</summary>
     public Dictionary<(int A, int B), int> Pacts { get; } = new();
     public bool HasPact(int a, int b) => Pacts.TryGetValue(WarKey(a, b), out var until) && until >= Clock.Day;
+    /// <summary>Adidos militares destacados: quem manda → missão. Um por país (AttacheSystem).</summary>
+    public Dictionary<int, Attache> Attaches { get; } = new();
+
+    /// <summary>País metido em alguma guerra a sério (é a guerra dele que ensina o adido).</summary>
+    public bool AtWar(int countryId) =>
+        Countries.TryGetValue(countryId, out var c) && !c.Capitulated && c.AtWarWith.Count > 0;
+
+    /// <summary>Porque é que este país não pode receber um adido nosso (null = pode).</summary>
+    public string? AttacheBlock(int countryId, int hostId)
+    {
+        if (!Countries.TryGetValue(countryId, out var c) || c.Capitulated) return "país inválido";
+        if (!Countries.TryGetValue(hostId, out var h) || h.Capitulated) return "anfitrião inválido";
+        if (countryId == hostId) return "a nossa guerra já a vemos de dentro";
+        if (AreAtWar(countryId, hostId)) return $"estamos em guerra com {h.Name}";
+        if (!AtWar(hostId)) return $"{h.Name} não está em guerra";
+        if (Attaches.TryGetValue(countryId, out var have))
+            return $"o adido já está com {(Countries.TryGetValue(have.HostId, out var oh) ? oh.Name : have.HostId.ToString())}";
+        return null;
+    }
+
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();

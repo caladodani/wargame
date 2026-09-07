@@ -217,6 +217,9 @@ CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (ef
 CREATE TABLE IF NOT EXISTS s_pact (           -- pactos de não-agressão (a<b, até `until_day`)
   a INTEGER, b INTEGER, until_day INTEGER NOT NULL,
   PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS s_attache (        -- adidos militares destacados (AttacheSystem)
+  country_id INTEGER PRIMARY KEY, host_id INTEGER NOT NULL, since_day INTEGER NOT NULL,
+  learned REAL NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS s_region (
   id INTEGER PRIMARY KEY, controller_id INTEGER NOT NULL, infrastructure REAL NOT NULL,
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)

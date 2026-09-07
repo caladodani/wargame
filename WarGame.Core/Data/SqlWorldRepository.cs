@@ -421,6 +421,12 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var r in save.Query("SELECT a,b,until_day FROM s_pact"))
             w.Pacts[(Convert.ToInt32(r["a"]), Convert.ToInt32(r["b"]))] = Convert.ToInt32(r["until_day"]);
+        foreach (var r in save.Query("SELECT country_id,host_id,since_day,learned FROM s_attache"))
+            w.Attaches[Convert.ToInt32(r["country_id"])] = new Attache
+            {
+                CountryId = Convert.ToInt32(r["country_id"]), HostId = Convert.ToInt32(r["host_id"]),
+                SinceDay = Convert.ToInt32(r["since_day"]), Learned = Convert.ToSingle(r["learned"]),
+            };
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
         foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration FROM s_region"))
         {
@@ -518,7 +524,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -557,6 +563,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var ((pa, pb), until) in w.Pacts)
             if (until >= w.Clock.Day) save.Execute("INSERT INTO s_pact VALUES (?,?,?)", pa, pb, until);
+        foreach (var a in w.Attaches.Values)
+            save.Execute("INSERT INTO s_attache (country_id,host_id,since_day,learned) VALUES (?,?,?,?)",
+                a.CountryId, a.HostId, a.SinceDay, a.Learned);
         foreach (var id in w.CustomFactionIds)
         {
             var f = w.Factions[id];

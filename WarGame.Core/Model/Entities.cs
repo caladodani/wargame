@@ -250,6 +250,17 @@ public sealed record WarRecord(int A, int B, int StartDay, int EndDay,
     public int? Winner => ARegions == BRegions ? null : ARegions > BRegions ? A : B;
 }
 
+/// <summary>Um adido militar destacado junto de outro país (AttacheSystem): quem o manda paga todos os dias
+/// e aprende com a guerra dos outros enquanto ela durar.</summary>
+public sealed class Attache
+{
+    public int CountryId { get; init; }
+    public int HostId { get; init; }
+    public int SinceDay { get; init; }
+    /// <summary>Experiência já trazida por esta missão (o painel mostra-a; o save guarda-a).</summary>
+    public float Learned { get; set; }
+}
+
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
 public sealed class ProductionOrder
 {
