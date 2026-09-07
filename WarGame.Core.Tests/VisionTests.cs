@@ -119,6 +119,26 @@ public class VisionTests
         Assert.True(Vision.Sees(w, 1, w.Regions[6]));
     }
 
+    /// <summary>O mapa liga costas até 3200 km para se poder navegar e abastecer. Isso não é fronteira: com
+    /// todas as ligações a valerem para a vista, quem tem costa numa bacia fechada via a bacia inteira.</summary>
+    [Fact]
+    public void ACoastOnTheFarSideOfOpenSeaStaysInTheFog()
+    {
+        var w = Setup();
+        w.Regions[6].SeaNeighbours[1] = 900f;                 // navega-se até lá; não se vê de cá
+        Assert.False(Vision.Sees(w, 1, w.Regions[6]));
+        Assert.Equal("sem olhos nossos: só se sabe de quem é a terra", Vision.Why(w, 1, w.Regions[6]));
+    }
+
+    [Fact]
+    public void TheReachOfASeaBorderIsARule()
+    {
+        var w = Setup();
+        w.Regions[6].SeaNeighbours[1] = 900f;
+        w.Rules["vision_sea_km"] = 1000f;
+        Assert.True(Vision.Sees(w, 1, w.Regions[6]));
+    }
+
     [Fact]
     public void WithTheRuleOffTheMapIsOpenAgain()
     {

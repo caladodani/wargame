@@ -622,7 +622,8 @@ INSERT INTO rule (key,value,note) VALUES
 
 -- Nevoeiro de guerra (Vision): 1 = só se vêem as guarnições que temos como ver; 0 = mapa aberto.
 INSERT INTO rule (key,value,note) VALUES
- ('fog_of_war',1,'nevoeiro de guerra ligado: guarnições alheias só à vista de fronteira, aliado ou espionagem');
+ ('fog_of_war',1,'nevoeiro de guerra ligado: guarnições alheias só à vista de fronteira, aliado ou espionagem'),
+ ('vision_sea_km',250,'alcance de uma fronteira de mar para efeitos de vista: acima disto é mar aberto e não se vê a outra costa');
 
 -- Poder aéreo abstrato: esquadrões por país, pesam no combate terrestre.
 INSERT INTO rule (key,value,note) VALUES

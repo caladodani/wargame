@@ -10,7 +10,8 @@ namespace WarGame.Core.Systems;
 /// Uma região está à vista quando há razão física para lá haver olhos nossos:
 /// • é nossa (controlamos) ou temos lá tropa;
 /// • é de um aliado da mesma facção — os aliados partilham o que vêem;
-/// • faz fronteira (por terra ou por mar) com terreno nosso — as patrulhas de fronteira vêem o vizinho;
+/// • faz fronteira com terreno nosso — as patrulhas de fronteira vêem o vizinho. Por terra, qualquer
+///   fronteira; por mar, só a costa em frente (regra vision_sea_km), que o mar aberto não se vigia da praia;
 /// • temos uma patrulha naval no mar daquela costa (NavalMissionSystem);
 /// • temos rede de informações montada sobre quem a controla (EspionageSystem: World.HasIntel);
 /// • temos uma operação a decorrer nessa própria região.
@@ -50,13 +51,20 @@ public static class Vision
     public static bool Sees(World w, int viewerId, int regionId) =>
         !Enabled(w) || (w.Regions.TryGetValue(regionId, out var r) && Sees(w, viewerId, r));
 
-    /// <summary>Faz fronteira com terreno nosso (ou de um aliado), por terra ou por mar?</summary>
+    /// <summary>Faz fronteira com terreno nosso (ou de um aliado), por terra ou por mar?
+    ///
+    /// A fronteira de mar tem alcance (regra vision_sea_km) e a de terra não. As ligações marítimas do mapa
+    /// chegam aos 3200 km porque servem para navegar e abastecer, e enquanto valeram todas para a vista o
+    /// nevoeiro não tapava nada numa bacia fechada: Israel tem 146 costas ligadas pelo Mediterrâneo — Itália,
+    /// França, Argélia, Ucrânia — e via as guarnições de todas como se fizessem fronteira com a Galileia. Um
+    /// posto de vigia vê a costa em frente, não o outro lado do mar.</summary>
     private static bool Adjacent(World w, int viewerId, Region r)
     {
         foreach (int n in r.Neighbours)
             if (Held(w, viewerId, n)) return true;
-        foreach (int n in r.SeaNeighbours.Keys)
-            if (Held(w, viewerId, n)) return true;
+        float reach = w.Rule("vision_sea_km", 250f);
+        foreach (var (n, km) in r.SeaNeighbours)
+            if (km <= reach && Held(w, viewerId, n)) return true;
         return false;
     }
 
