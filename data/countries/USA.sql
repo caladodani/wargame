@@ -123,3 +123,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('USA_gen_logistica_usa','Mestre da Logística','org_regain',1.17,145,'USA','🗽','Põe combustível e munição em qualquer sítio do planeta em dias.'),
  ('USA_gen_portaviao','Comandante da Força-Tarefa','attack',1.15,155,'USA','🦅','Onde chega a força-tarefa, a guerra passa a ser dela.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('USA_escola','Guerra Logística','🗽',10,'USA');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('USA_doc_logistica','USA_escola','Escola Logística','Combustível e munição em qualquer sítio do planeta em dias.',50,NULL,1,'USA'),
+ ('USA_doc_armas_combinadas','USA_escola','Armas Combinadas','Nada anda sozinho: infantaria, carros, artilharia e ar na mesma ordem.',110,'USA_doc_logistica',2,'USA'),
+ ('USA_doc_projecao','USA_escola','Projecção Global','Onde chega a força-tarefa, a guerra passa a ser dela.',190,'USA_doc_armas_combinadas',3,'USA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('USA_doc_logistica','org_regain',1.08),
+ ('USA_doc_armas_combinadas','attack',1.07),
+ ('USA_doc_armas_combinadas','defense',1.05),
+ ('USA_doc_projecao','move_speed',1.08),
+ ('USA_doc_projecao','production_speed',1.06);

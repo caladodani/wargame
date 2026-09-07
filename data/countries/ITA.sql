@@ -133,3 +133,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('ITA_gen_alpini','Chefe dos Alpini','defense',1.16,130,'ITA','🏔','Guerra de montanha desde 1872, e ainda se ganham medalhas por lá.'),
  ('ITA_gen_mediterraneo_ita','Comandante do Mediterrâneo','move_speed',1.16,130,'ITA','🍋','Embarca a brigada num dia e desembarca-a do outro lado no seguinte.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('ITA_escola','Escola de Montanha','🏔',10,'ITA');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ITA_doc_alpini','ITA_escola','Alpini','Guerra de montanha desde 1872, e ainda se ganham medalhas por lá.',50,NULL,1,'ITA'),
+ ('ITA_doc_mediterraneo','ITA_escola','Manobra Mediterrânica','Embarca-se num dia e desembarca-se do outro lado no seguinte.',110,'ITA_doc_alpini',2,'ITA'),
+ ('ITA_doc_bersaglieri','ITA_escola','Bersaglieri','Infantaria que corre ao passo de carga há cento e cinquenta anos.',190,'ITA_doc_mediterraneo',3,'ITA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ITA_doc_alpini','defense',1.07),
+ ('ITA_doc_mediterraneo','move_speed',1.07),
+ ('ITA_doc_mediterraneo','attack',1.05),
+ ('ITA_doc_bersaglieri','move_speed',1.08),
+ ('ITA_doc_bersaglieri','org_regain',1.06);

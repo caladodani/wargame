@@ -1303,6 +1303,7 @@ public sealed record AdoptDoctrineCommand(int CountryId, string DoctrineId) : IC
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (!w.ArmyDoctrines.TryGetValue(DoctrineId, out var d)) return "doutrina desconhecida";
+        if (!World.DoctrineIsFor(d, c)) return "essa escola é de outro país";
         if (c.Doctrines.Contains(DoctrineId)) return "já é doutrina do exército";
         if (w.DoctrineBlock(c, DoctrineId) is string block)
             return block.StartsWith('!')

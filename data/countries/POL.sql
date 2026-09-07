@@ -133,3 +133,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('POL_gen_hussardo','Herdeiro dos Hussardos','attack',1.15,140,'POL','🦬','Cavalaria alada há quatrocentos anos, blindada agora.'),
  ('POL_gen_flanco_pol','Comandante do Flanco Oriental','defense',1.16,135,'POL','🛡','A fronteira do Leste é a dele, e ele prepara-a há uma década.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('POL_escola','Escola do Flanco Oriental','🦬',10,'POL');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('POL_doc_flanco','POL_escola','Guarda do Flanco','A fronteira do Leste é preparada há uma década, metro a metro.',50,NULL,1,'POL'),
+ ('POL_doc_hussardo','POL_escola','Herança dos Hussardos','Cavalaria alada há quatrocentos anos, blindada agora.',110,'POL_doc_flanco',2,'POL'),
+ ('POL_doc_mobilizacao','POL_escola','Mobilização Nacional','Um país que já foi apagado do mapa não discute o recrutamento.',190,'POL_doc_hussardo',3,'POL');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('POL_doc_flanco','defense',1.07),
+ ('POL_doc_hussardo','attack',1.07),
+ ('POL_doc_hussardo','move_speed',1.05),
+ ('POL_doc_mobilizacao','conscription',1.1),
+ ('POL_doc_mobilizacao','org_regain',1.06);

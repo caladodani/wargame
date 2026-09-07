@@ -125,3 +125,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('ISR_gen_reserva_isr','Chefe da Mobilização','org_regain',1.18,135,'ISR','✡','Meio país fardado em dois dias, e cada um sabe a que unidade vai.'),
  ('ISR_gen_blindados_isr','Mestre da Manobra Blindada','attack',1.15,145,'ISR','🎯','Guerra curta, decidida ao terceiro dia — é a única que se pode dar.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('ISR_escola','Guerra Curta','✡',10,'ISR');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ISR_doc_reserva','ISR_escola','Mobilização de Reserva','Meio país fardado em dois dias, cada um na sua unidade.',50,NULL,1,'ISR'),
+ ('ISR_doc_preventivo','ISR_escola','Golpe Preventivo','Quem espera pelo primeiro golpe combate no seu próprio quintal.',110,'ISR_doc_reserva',2,'ISR'),
+ ('ISR_doc_decisao','ISR_escola','Decisão ao Terceiro Dia','Guerra curta é a única que um país pequeno pode dar.',190,'ISR_doc_preventivo',3,'ISR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ISR_doc_reserva','org_regain',1.09),
+ ('ISR_doc_preventivo','attack',1.08),
+ ('ISR_doc_decisao','attack',1.07),
+ ('ISR_doc_decisao','move_speed',1.07);

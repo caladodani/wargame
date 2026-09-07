@@ -73,12 +73,13 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.LawEffects.TryGetValue(lid, out var llist)) w.LawEffects[lid] = llist = new();
             llist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
-        foreach (var r in _static.Query("SELECT id,name,icon,sort FROM army_doctrine_branch ORDER BY sort,id"))
+        foreach (var r in _static.Query("SELECT id,name,icon,sort,country_tag FROM army_doctrine_branch ORDER BY sort,id"))
             w.DoctrineBranches[(string)r["id"]!] = new DoctrineBranch((string)r["id"]!, (string)r["name"]!,
-                (string)r["icon"]! , Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,branch,name,description,cost,requires,sort FROM army_doctrine ORDER BY branch,sort"))
+                (string)r["icon"]! , Convert.ToInt32(r["sort"]), r["country_tag"] as string);
+        foreach (var r in _static.Query("SELECT id,branch,name,description,cost,requires,sort,country_tag FROM army_doctrine ORDER BY branch,sort"))
             w.ArmyDoctrines[(string)r["id"]!] = new ArmyDoctrine((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!,
-                r["description"] as string ?? "", Convert.ToSingle(r["cost"]), r["requires"] as string, Convert.ToInt32(r["sort"]));
+                r["description"] as string ?? "", Convert.ToSingle(r["cost"]), r["requires"] as string,
+                Convert.ToInt32(r["sort"]), r["country_tag"] as string);
         foreach (var r in _static.Query("SELECT doctrine_id,stat_key,value FROM army_doctrine_effect"))
         {
             var did = (string)r["doctrine_id"]!;

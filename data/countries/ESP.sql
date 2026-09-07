@@ -141,3 +141,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('ESP_gen_tercio','Herdeiro dos Tércios','attack',1.15,140,'ESP','🏰','A infantaria pesada de sempre, com quinhentos anos de escola.'),
  ('ESP_gen_legion','Chefe da Legião','org_regain',1.14,130,'ESP','🐐','Tropa de choque que se recompõe sozinha e nunca fica sem chefe.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('ESP_escola','Escola dos Tércios','🏰',10,'ESP');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ESP_doc_tercio','ESP_escola','Herança dos Tércios','Quinhentos anos de infantaria que se forma e não se desfaz.',50,NULL,1,'ESP'),
+ ('ESP_doc_legion','ESP_escola','Tropa de Choque','A Legião entra primeiro e responde depois.',110,'ESP_doc_tercio',2,'ESP'),
+ ('ESP_doc_pirenaico','ESP_escola','Defesa Peninsular','Uma península com duas fronteiras defende-se nas duas ao mesmo tempo.',190,'ESP_doc_legion',3,'ESP');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ESP_doc_tercio','defense',1.07),
+ ('ESP_doc_legion','attack',1.07),
+ ('ESP_doc_legion','org_regain',1.05),
+ ('ESP_doc_pirenaico','defense',1.08),
+ ('ESP_doc_pirenaico','conscription',1.06);

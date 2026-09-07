@@ -139,3 +139,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('KOR_gen_dmz','Comandante da Linha','defense',1.18,135,'KOR','🇰🇷','Setenta anos a olhar para o mesmo arame sem pestanejar.'),
  ('KOR_gen_artilharia_kor','Mestre da Artilharia','attack',1.15,140,'KOR','💥','Contra-bateria em segundos: quem dispara primeiro não dispara segunda vez.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('KOR_escola','Escola da Linha','🇰🇷',10,'KOR');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('KOR_doc_linha','KOR_escola','Guarda da Linha','Setenta anos a olhar para o mesmo arame sem pestanejar.',50,NULL,1,'KOR'),
+ ('KOR_doc_contra_bateria','KOR_escola','Contra-Bateria','Quem dispara primeiro sobre Seul não dispara segunda vez.',110,'KOR_doc_linha',2,'KOR'),
+ ('KOR_doc_prontidao','KOR_escola','Prontidão Permanente','Um exército que vive de mochila feita não precisa de aviso.',190,'KOR_doc_contra_bateria',3,'KOR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('KOR_doc_linha','defense',1.08),
+ ('KOR_doc_contra_bateria','attack',1.08),
+ ('KOR_doc_prontidao','org_regain',1.08),
+ ('KOR_doc_prontidao','move_speed',1.05);

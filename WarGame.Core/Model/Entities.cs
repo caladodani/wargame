@@ -67,7 +67,9 @@ public sealed record CountryInfo(string CountryTag, string Government, string Le
 /// <summary>Ramo da árvore de doutrinas de exército (tabela army_doctrine_branch): a escola militar em que
 /// um país se forma. Escolhida uma, as outras fecham-se — um exército não se treina em duas maneiras
 /// contrárias de fazer a guerra ao mesmo tempo.</summary>
-public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sort);
+/// <summary>Ramo da árvore de doutrinas. Com CountryTag é a escola nacional desse país — a maneira própria
+/// de fazer a guerra que mais ninguém pode aprender.</summary>
+public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sort, string? CountryTag = null);
 
 /// <summary>Doutrina de exército (tabela army_doctrine): degrau de uma escola militar, pago com a
 /// experiência de campanha que o país juntou (Country.ArmyXp). Efeitos em army_doctrine_effect, aplicados
@@ -75,7 +77,8 @@ public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sor
 ///
 /// Nada disto se confunde com as leis do grupo doctrine: essas são decretos do governo que se trocam à
 /// vontade; estas são escolas de guerra que se aprendem com sangue e não se desaprendem.</summary>
-public sealed record ArmyDoctrine(string Id, string Branch, string Name, string Description, float Cost, string? Requires, int Sort);
+public sealed record ArmyDoctrine(string Id, string Branch, string Name, string Description, float Cost,
+                                  string? Requires, int Sort, string? CountryTag = null);
 
 /// <summary>Aliança defensiva (tabelas faction + faction_member, HoI4: facção). Um país pode pertencer a várias;
 /// declarar guerra a um membro chama os outros contra o agressor (DeclareWarCommand) — ver World.FactionsOf/Allies.</summary>

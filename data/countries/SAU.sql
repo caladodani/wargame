@@ -126,3 +126,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('SAU_gen_guarda','Chefe da Guarda Nacional','defense',1.15,140,'SAU','🕋','A tropa que guarda o reino por dentro, tribo a tribo.'),
  ('SAU_gen_deserto_sau','Comandante do Deserto','move_speed',1.16,135,'SAU','🏜','Atravessa o Rub al-Khali com a coluna abastecida.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('SAU_escola','Escola do Deserto','🕋',10,'SAU');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('SAU_doc_guarda','SAU_escola','Guarda Nacional','A tropa que guarda o reino por dentro, tribo a tribo.',50,NULL,1,'SAU'),
+ ('SAU_doc_travessia','SAU_escola','Travessia do Rub al-Khali','Atravessar o deserto vazio com a coluna abastecida é meia vitória.',110,'SAU_doc_guarda',2,'SAU'),
+ ('SAU_doc_ouro','SAU_escola','Guerra Comprada','O que falta em homens compra-se em máquina, e a máquina chega depressa.',190,'SAU_doc_travessia',3,'SAU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('SAU_doc_guarda','defense',1.07),
+ ('SAU_doc_travessia','move_speed',1.08),
+ ('SAU_doc_ouro','production_speed',1.07),
+ ('SAU_doc_ouro','attack',1.05);

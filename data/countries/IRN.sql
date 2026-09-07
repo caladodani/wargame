@@ -135,3 +135,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('IRN_gen_assimetrico','Mestre da Guerra Assimétrica','defense',1.16,125,'IRN','☪','Não dá batalha onde o inimigo quer: dá-a onde o inimigo não pode.'),
  ('IRN_gen_milicia','Chefe das Milícias','org_regain',1.15,120,'IRN','🕌','Chama cem mil voluntários e sabe onde os pôr.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('IRN_escola','Guerra Assimétrica','☪',10,'IRN');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IRN_doc_assimetrica','IRN_escola','Escola Assimétrica','Não se dá batalha onde o inimigo quer.',50,NULL,1,'IRN'),
+ ('IRN_doc_mosaico','IRN_escola','Defesa em Mosaico','Trinta comandos que não dependem uns dos outros não caem juntos.',110,'IRN_doc_assimetrica',2,'IRN'),
+ ('IRN_doc_basij','IRN_escola','Mobilização Popular','Cem mil voluntários chamados numa semana, e alguém que sabe onde os pôr.',190,'IRN_doc_mosaico',3,'IRN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IRN_doc_assimetrica','defense',1.07),
+ ('IRN_doc_mosaico','defense',1.06),
+ ('IRN_doc_mosaico','org_regain',1.06),
+ ('IRN_doc_basij','conscription',1.12),
+ ('IRN_doc_basij','attack',1.05);

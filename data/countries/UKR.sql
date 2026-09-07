@@ -137,3 +137,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('UKR_gen_drone_ukr','Chefe dos Drones','attack',1.16,130,'UKR','🌻','Guerra de vídeo e bateria: cada carro inimigo tem quem o siga.'),
  ('UKR_gen_defesa_ukr','Comandante da Defesa em Profundidade','defense',1.17,135,'UKR','🛡','Três linhas de trincheira e a certeza de que a primeira vai cair.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('UKR_escola','Guerra de Drones','🌻',10,'UKR');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('UKR_doc_drone_ukr','UKR_escola','Escola dos Drones','Cada carro inimigo tem quem o siga desde que sai do abrigo.',50,NULL,1,'UKR'),
+ ('UKR_doc_trincheira','UKR_escola','Três Linhas de Trincheira','A primeira linha é para cair: as outras duas é que contam.',110,'UKR_doc_drone_ukr',2,'UKR'),
+ ('UKR_doc_adaptacao','UKR_escola','Adaptação Contínua','O que funcionou no mês passado já não funciona: muda-se todos os meses.',190,'UKR_doc_trincheira',3,'UKR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('UKR_doc_drone_ukr','attack',1.07),
+ ('UKR_doc_trincheira','defense',1.08),
+ ('UKR_doc_adaptacao','org_regain',1.07),
+ ('UKR_doc_adaptacao','attack',1.06);

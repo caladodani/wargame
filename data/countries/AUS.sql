@@ -127,3 +127,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('AUS_gen_deserto','Comandante do Interior','move_speed',1.18,125,'AUS','🦘','Move uma brigada por mil quilómetros de nada e chega com ela inteira.'),
  ('AUS_gen_anzac','Herdeiro do ANZAC','attack',1.13,140,'AUS','🎖','A tradição do corpo expedicionário: embarca-se e vai-se, longe.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('AUS_escola','Escola do Interior','🦘',10,'AUS');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AUS_doc_outback','AUS_escola','Marcha do Interior','Mil quilómetros de nada exigem colunas que se abastecem sozinhas.',50,NULL,1,'AUS'),
+ ('AUS_doc_anzac','AUS_escola','Corpo Expedicionário','A tradição do ANZAC: embarca-se, vai-se longe e combate-se com quem lá está.',110,'AUS_doc_outback',2,'AUS'),
+ ('AUS_doc_pacifico','AUS_escola','Guarda do Pacífico','Um continente vazio defende-se no mar dos outros, não na praia própria.',190,'AUS_doc_anzac',3,'AUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AUS_doc_outback','move_speed',1.07),
+ ('AUS_doc_anzac','move_speed',1.06),
+ ('AUS_doc_anzac','attack',1.06),
+ ('AUS_doc_pacifico','attack',1.08),
+ ('AUS_doc_pacifico','defense',1.06);

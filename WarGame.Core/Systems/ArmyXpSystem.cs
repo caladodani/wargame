@@ -46,15 +46,26 @@ public sealed class ArmyXpSystem : ISystem
         }
     }
 
-    /// <summary>Degrau mais barato que este país pode adoptar já (empates pelo id), ou null.</summary>
+    /// <summary>Degrau mais barato que este país pode adoptar já (empates pelo id), ou null. A escola
+    /// nacional passa à frente das comuns quando as duas estão pagas: um exército que tem maneira própria de
+    /// fazer a guerra treina a sua, não a do vizinho.</summary>
     public static string? Next(World w, Country c)
     {
         ArmyDoctrine? best = null;
         foreach (var d in w.ArmyDoctrines.Values)
-            if (w.CanAdopt(c, d.Id)
-                && (best is null || d.Cost < best.Cost || (d.Cost == best.Cost && string.CompareOrdinal(d.Id, best.Id) < 0)))
-                best = d;
+        {
+            if (!w.CanAdopt(c, d.Id)) continue;
+            if (best is null || Better(d, best)) best = d;
+        }
         return best?.Id;
+
+        static bool Better(ArmyDoctrine a, ArmyDoctrine b)
+        {
+            bool an = a.CountryTag is not null, bn = b.CountryTag is not null;
+            if (an != bn) return an;                        // a escola de casa primeiro
+            if (a.Cost != b.Cost) return a.Cost < b.Cost;
+            return string.CompareOrdinal(a.Id, b.Id) < 0;
+        }
     }
 
     /// <summary>Adopta a doutrina: paga a experiência, aprende-a para sempre e recalcula os multiplicadores.

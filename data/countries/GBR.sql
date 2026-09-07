@@ -136,3 +136,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('GBR_gen_comando','Chefe dos Comandos','attack',1.15,140,'GBR','👑','Raide nocturno, gente pouca, alvo certo: a escola das operações combinadas.'),
  ('GBR_gen_estado_maior_imp','Estado-Maior Imperial','org_regain',1.15,135,'GBR','🎩','Coordena forças de meio mundo sem que a linha se desencontre.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('GBR_escola','Operações Combinadas','👑',10,'GBR');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('GBR_doc_combined','GBR_escola','Escola das Operações Combinadas','Mar, terra e ar numa ordem só, ou não vale a pena sair do porto.',50,NULL,1,'GBR'),
+ ('GBR_doc_commando','GBR_escola','Raide de Comandos','Gente pouca, noite escura, alvo certo.',110,'GBR_doc_combined',2,'GBR'),
+ ('GBR_doc_imperial','GBR_escola','Estado-Maior Imperial','Coordenar forças de meio mundo sem a linha se desencontrar é a arte da casa.',190,'GBR_doc_commando',3,'GBR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('GBR_doc_combined','org_regain',1.07),
+ ('GBR_doc_commando','attack',1.07),
+ ('GBR_doc_commando','move_speed',1.05),
+ ('GBR_doc_imperial','org_regain',1.08),
+ ('GBR_doc_imperial','attack',1.06);

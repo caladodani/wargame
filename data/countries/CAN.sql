@@ -122,3 +122,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('CAN_gen_artico','Comandante do Ártico','defense',1.15,130,'CAN','❄','Guerra a quarenta abaixo de zero: sabe o que congela e o que dispara.'),
  ('CAN_gen_logistica_norte','Mestre da Rota do Norte','org_regain',1.14,125,'CAN','🛷','Abastece guarnições onde não há estrada, só gelo e pista curta.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('CAN_escola','Escola do Ártico','❄',10,'CAN');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CAN_doc_frio','CAN_escola','Guerra a Quarenta Abaixo','A quarenta abaixo, o inimigo é o termómetro; quem o domina combate à vontade.',50,NULL,1,'CAN'),
+ ('CAN_doc_rota_norte','CAN_escola','Rota do Norte','Abastecer guarnições sem estrada é a metade difícil da guerra polar.',110,'CAN_doc_frio',2,'CAN'),
+ ('CAN_doc_aliado','CAN_escola','Contingente Aliado','Um exército pequeno vale muito quando encaixa no de toda a gente.',190,'CAN_doc_rota_norte',3,'CAN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CAN_doc_frio','defense',1.07),
+ ('CAN_doc_rota_norte','org_regain',1.07),
+ ('CAN_doc_rota_norte','move_speed',1.05),
+ ('CAN_doc_aliado','attack',1.07),
+ ('CAN_doc_aliado','org_regain',1.06);

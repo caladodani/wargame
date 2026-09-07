@@ -126,3 +126,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('CHN_gen_massa','Comandante de Massa','attack',1.14,150,'CHN','🏮','Sabe pôr no terreno mais gente do que o inimigo consegue contar.'),
  ('CHN_gen_planalto','General do Planalto','defense',1.15,135,'CHN','🏔','Guarda a fronteira alta, onde falta o ar e sobra a distância.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('CHN_escola','Guerra Popular','🏮',10,'CHN');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('CHN_doc_popular','CHN_escola','Escola da Guerra Popular','O povo é a água e o exército o peixe: falta uma coisa, morre a outra.',50,NULL,1,'CHN'),
+ ('CHN_doc_profundidade','CHN_escola','Trocar Espaço por Tempo','Recua-se mil quilómetros e devolve-se a conta ao fim de um ano.',110,'CHN_doc_popular',2,'CHN'),
+ ('CHN_doc_milhoes','CHN_escola','Exército de Milhões','Quem põe no terreno mais gente do que o inimigo consegue contar não perde a soma.',190,'CHN_doc_profundidade',3,'CHN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('CHN_doc_popular','conscription',1.1),
+ ('CHN_doc_profundidade','defense',1.07),
+ ('CHN_doc_profundidade','org_regain',1.05),
+ ('CHN_doc_milhoes','conscription',1.12),
+ ('CHN_doc_milhoes','attack',1.06);

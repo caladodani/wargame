@@ -153,3 +153,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('BRA_gen_selva','Comandante de Selva','defense',1.16,130,'BRA','🌳','A escola de Manaus: a floresta é dele e o invasor é que se perde.'),
  ('BRA_gen_pracinha','Herdeiro dos Pracinhas','attack',1.13,140,'BRA','🐍','A cobra fumou uma vez em Itália e ninguém deixou esquecer.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('BRA_escola','Escola de Selva','🌳',10,'BRA');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('BRA_doc_selva','BRA_escola','Centro de Guerra na Selva','Manaus forma quem sabe viver onde o invasor apenas sobrevive.',50,NULL,1,'BRA'),
+ ('BRA_doc_amazonia','BRA_escola','Vigilância da Amazónia','Uma fronteira que não se guarda com arame guarda-se com movimento.',110,'BRA_doc_selva',2,'BRA'),
+ ('BRA_doc_pracinha','BRA_escola','Herança dos Pracinhas','A cobra fumou uma vez e o exército nunca mais deixou esquecer.',190,'BRA_doc_amazonia',3,'BRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('BRA_doc_selva','defense',1.07),
+ ('BRA_doc_amazonia','defense',1.06),
+ ('BRA_doc_amazonia','move_speed',1.06),
+ ('BRA_doc_pracinha','attack',1.09),
+ ('BRA_doc_pracinha','org_regain',1.06);

@@ -133,3 +133,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('IDN_gen_ilhas','Comandante das Ilhas','move_speed',1.18,125,'IDN','🌋','Salta de ilha em ilha com o que houver a flutuar.'),
  ('IDN_gen_territorial','Chefe do Comando Territorial','defense',1.15,130,'IDN','🛖','Tem gente em cada aldeia do arquipélago e ninguém desembarca à sorte.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('IDN_escola','Guerra do Arquipélago','🌋',10,'IDN');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IDN_doc_territorial','IDN_escola','Comando Territorial','Há tropa em cada aldeia: ninguém desembarca à sorte.',50,NULL,1,'IDN'),
+ ('IDN_doc_ilha_a_ilha','IDN_escola','Salto entre Ilhas','Move-se o que houver a flutuar e chega-se ao sítio onde não esperavam.',110,'IDN_doc_territorial',2,'IDN'),
+ ('IDN_doc_mar_interior','IDN_escola','Defesa do Mar Interior','Dezassete mil ilhas são uma fortaleza se o mar do meio for nosso.',190,'IDN_doc_ilha_a_ilha',3,'IDN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IDN_doc_territorial','defense',1.07),
+ ('IDN_doc_ilha_a_ilha','move_speed',1.08),
+ ('IDN_doc_mar_interior','defense',1.07),
+ ('IDN_doc_mar_interior','attack',1.06);

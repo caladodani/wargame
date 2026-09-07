@@ -130,3 +130,18 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('DEU_gen_estado_maior','Escola do Estado-Maior','org_regain',1.16,140,'DEU','🦅','A ordem de operações sai perfeita e a tropa recompõe-se a horas.'),
  ('DEU_gen_panzer','Mestre da Coluna Blindada','move_speed',1.18,145,'DEU','🛡','A tradição da manobra rápida, com os carros que a Alemanha ainda faz.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('DEU_escola','Escola do Estado-Maior','🦅',10,'DEU');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('DEU_doc_auftrag','DEU_escola','Comando por Missão','Diz-se o que se quer, não como se faz: o capitão decide no terreno.',50,NULL,1,'DEU'),
+ ('DEU_doc_kesselschlacht','DEU_escola','Batalha de Cerco','Não se empurra a linha: fecha-se-lhe as costas.',110,'DEU_doc_auftrag',2,'DEU'),
+ ('DEU_doc_panzer','DEU_escola','Punho Blindado','Os carros concentrados num ponto valem mais do que espalhados por dez.',190,'DEU_doc_kesselschlacht',3,'DEU');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('DEU_doc_auftrag','org_regain',1.08),
+ ('DEU_doc_kesselschlacht','attack',1.07),
+ ('DEU_doc_kesselschlacht','move_speed',1.05),
+ ('DEU_doc_panzer','attack',1.09),
+ ('DEU_doc_panzer','move_speed',1.07),
+ ('DEU_doc_panzer','defense',0.98);

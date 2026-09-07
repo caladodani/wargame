@@ -121,3 +121,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('MOZ_gen_costa','Comandante da Costa','defense',1.14,125,'MOZ','🔥','Cabo Delgado ensinou-lhe a guerra que se faz entre a mata e o mar.'),
  ('MOZ_gen_rio','Chefe da Força do Zambeze','move_speed',1.16,115,'MOZ','🛶','Move a coluna pelo rio quando a estrada não existe.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('MOZ_escola','Guerra do Litoral','🔥',10,'MOZ');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('MOZ_doc_mata','MOZ_escola','Escola da Mata','Cabo Delgado ensinou a guerra que se faz entre a mata e o mar.',50,NULL,1,'MOZ'),
+ ('MOZ_doc_zambeze','MOZ_escola','Coluna do Zambeze','Onde não há estrada há rio, e o rio anda mais depressa.',110,'MOZ_doc_mata',2,'MOZ'),
+ ('MOZ_doc_costeira','MOZ_escola','Defesa Costeira','Uma costa de dois mil quilómetros guarda-se por dentro, não por fora.',190,'MOZ_doc_zambeze',3,'MOZ');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('MOZ_doc_mata','defense',1.06),
+ ('MOZ_doc_zambeze','move_speed',1.07),
+ ('MOZ_doc_zambeze','org_regain',1.05),
+ ('MOZ_doc_costeira','defense',1.08),
+ ('MOZ_doc_costeira','attack',1.05);

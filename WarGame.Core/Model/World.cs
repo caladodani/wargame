@@ -96,6 +96,22 @@ public sealed class World
         return null;
     }
 
+    /// <summary>Esta escola é deste país? As três escolas comuns são de toda a gente; a nacional só do dono
+    /// da tag. Um exército não aprende a maneira de fazer a guerra de outro povo por decreto.</summary>
+    public static bool BranchIsFor(DoctrineBranch b, Country c) => b.CountryTag is null || b.CountryTag == c.Tag;
+    public static bool DoctrineIsFor(ArmyDoctrine d, Country c) => d.CountryTag is null || d.CountryTag == c.Tag;
+
+    /// <summary>As escolas que este país pode abrir, pela ordem em que a árvore as desenha: as comuns por
+    /// sort e, no fim, a nacional (que o seed põe em sort alto).</summary>
+    public List<DoctrineBranch> Branches(Country c) =>
+        DoctrineBranches.Values.Where(b => BranchIsFor(b, c))
+                        .OrderBy(b => b.CountryTag is null ? 0 : 1).ThenBy(b => b.Sort).ThenBy(b => b.Id).ToList();
+
+    /// <summary>Os degraus de uma escola, de baixo para cima, já sem o que é de outro país.</summary>
+    public List<ArmyDoctrine> DoctrineSteps(Country c, string branch) =>
+        ArmyDoctrines.Values.Where(d => d.Branch == branch && DoctrineIsFor(d, c))
+                     .OrderBy(d => d.Sort).ThenBy(d => d.Cost).ThenBy(d => d.Id).ToList();
+
     /// <summary>O que impede este país de adoptar esta doutrina, ou null se está à mão. Devolve o id da
     /// doutrina que falta, ou "!"+id da doutrina que fechou a escola — a mesma convenção do FocusBlock.
     /// A experiência não entra aqui: quem a conta é o AdoptDoctrineCommand, para a UI poder mostrar uma
@@ -103,6 +119,7 @@ public sealed class World
     public string? DoctrineBlock(Country c, string doctrineId)
     {
         if (!ArmyDoctrines.TryGetValue(doctrineId, out var d) || c.Doctrines.Contains(doctrineId)) return doctrineId;
+        if (!DoctrineIsFor(d, c)) return doctrineId;              // escola de outro povo: nem se abre
         if (d.Requires is string req && !c.Doctrines.Contains(req)) return req;
         foreach (var id in c.Doctrines.OrderBy(x => x))
             if (ArmyDoctrines.TryGetValue(id, out var have) && have.Branch != d.Branch) return "!" + id;
@@ -267,7 +284,8 @@ public sealed class World
             if (FocusEffects.TryGetValue(f, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var d in c.Doctrines)          // escolas de guerra: entram no mesmo bolo das tecnologias
-            if (DoctrineEffects.TryGetValue(d, out var deffs))
+            if (ArmyDoctrines.TryGetValue(d, out var def) && DoctrineIsFor(def, c)
+                && DoctrineEffects.TryGetValue(d, out var deffs))
                 foreach (var (key, mul) in deffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var grp in LawGroups(c))
             if (ActiveLaw(c, grp) is Law law && LawEffects.TryGetValue(law.Id, out var leffs))

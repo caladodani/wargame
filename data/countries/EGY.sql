@@ -128,3 +128,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('EGY_gen_canal_def','Guarda do Canal','defense',1.16,130,'EGY','🛶','A travessia é dele: nenhum assalto ao Suez lhe apanha o flanco.'),
  ('EGY_gen_deserto_egp','Comandante do Deserto Ocidental','move_speed',1.16,125,'EGY','🐫','Areia, sol e navegação a olho: leva a coluna onde não há caminho.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('EGY_escola','Escola do Canal','🛶',10,'EGY');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('EGY_doc_canal','EGY_escola','Guarda do Canal','A travessia é a joia e a joia guarda-se dos dois lados.',50,NULL,1,'EGY'),
+ ('EGY_doc_travessia','EGY_escola','Assalto Anfíbio de Rio','Passar um canal debaixo de fogo treina-se mil vezes antes da primeira.',110,'EGY_doc_canal',2,'EGY'),
+ ('EGY_doc_deserto_ocidental','EGY_escola','Manobra no Deserto','Areia aberta é como o mar: quem navega melhor aparece onde quer.',190,'EGY_doc_travessia',3,'EGY');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('EGY_doc_canal','defense',1.07),
+ ('EGY_doc_travessia','attack',1.07),
+ ('EGY_doc_travessia','org_regain',1.05),
+ ('EGY_doc_deserto_ocidental','move_speed',1.08),
+ ('EGY_doc_deserto_ocidental','attack',1.06);

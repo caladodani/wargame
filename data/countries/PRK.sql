@@ -134,3 +134,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('PRK_gen_tunel','Mestre dos Túneis','defense',1.18,120,'PRK','☭','Um exército debaixo de terra que não se bombardeia de cima.'),
  ('PRK_gen_especiais_prk','Chefe das Forças Especiais','move_speed',1.18,130,'PRK','🥋','Cem mil homens treinados para aparecer na retaguarda alheia.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('PRK_escola','Guerra Subterrânea','☭',10,'PRK');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRK_doc_tuneis','PRK_escola','Escola dos Túneis','Um exército debaixo de terra não se bombardeia de cima.',50,NULL,1,'PRK'),
+ ('PRK_doc_infiltracao','PRK_escola','Infiltração','Cem mil homens treinados para aparecer na retaguarda alheia.',110,'PRK_doc_tuneis',2,'PRK'),
+ ('PRK_doc_songun','PRK_escola','Exército Primeiro','O país inteiro é quartel: come-se depois.',190,'PRK_doc_infiltracao',3,'PRK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRK_doc_tuneis','defense',1.09),
+ ('PRK_doc_infiltracao','move_speed',1.08),
+ ('PRK_doc_infiltracao','attack',1.05),
+ ('PRK_doc_songun','conscription',1.12),
+ ('PRK_doc_songun','defense',1.06);

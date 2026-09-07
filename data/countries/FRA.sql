@@ -130,3 +130,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('FRA_gen_blindados_fra','Mestre dos Blindados','attack',1.15,140,'FRA','⚜','A doutrina do choque: entra pelo meio e não olha para os lados.'),
  ('FRA_gen_ultramar','Comandante do Ultramar','move_speed',1.17,130,'FRA','🌍','Intervém em três continentes com o que couber num avião.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('FRA_escola','Escola da Manobra','⚜',10,'FRA');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('FRA_doc_methodique','FRA_escola','Batalha Metódica','Nada se ataca sem fogo preparado: o método poupa homens.',50,NULL,1,'FRA'),
+ ('FRA_doc_choc','FRA_escola','Doutrina do Choque','Entra-se pelo meio e não se olha para os lados.',110,'FRA_doc_methodique',2,'FRA'),
+ ('FRA_doc_outremer','FRA_escola','Intervenção Ultramarina','Três continentes com o que couber num avião, e chega-se antes dos outros.',190,'FRA_doc_choc',3,'FRA');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('FRA_doc_methodique','defense',1.06),
+ ('FRA_doc_methodique','attack',1.04),
+ ('FRA_doc_choc','attack',1.08),
+ ('FRA_doc_outremer','move_speed',1.09),
+ ('FRA_doc_outremer','org_regain',1.06);

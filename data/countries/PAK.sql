@@ -134,3 +134,16 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('PAK_gen_montanha_pak','Comandante das Montanhas','defense',1.16,130,'PAK','🌙','A fronteira norte é um labirinto de pedra e ele tem o mapa na cabeça.'),
  ('PAK_gen_corpo_choque','Chefe do Corpo de Choque','attack',1.14,140,'PAK','⚔','A reserva blindada da planície, guardada para um só golpe.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('PAK_escola','Escola da Fronteira','🌙',10,'PAK');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PAK_doc_fronteira','PAK_escola','Guerra de Fronteira','A fronteira norte é um labirinto de pedra e o mapa está na cabeça.',50,NULL,1,'PAK'),
+ ('PAK_doc_corpo_choque','PAK_escola','Corpo de Choque','A reserva blindada da planície, guardada para um só golpe.',110,'PAK_doc_fronteira',2,'PAK'),
+ ('PAK_doc_profunda','PAK_escola','Defesa Profunda','Um país estreito não pode ceder terreno: cede tempo.',190,'PAK_doc_corpo_choque',3,'PAK');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PAK_doc_fronteira','defense',1.07),
+ ('PAK_doc_corpo_choque','attack',1.08),
+ ('PAK_doc_profunda','defense',1.07),
+ ('PAK_doc_profunda','org_regain',1.06);

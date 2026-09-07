@@ -122,3 +122,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('ARG_gen_montanha','General de Montanha','defense',1.15,130,'ARG','⛰','Formou-se nos Andes, onde o frio mata mais do que o inimigo.'),
  ('ARG_gen_anfibio','Comandante Anfíbio','attack',1.14,145,'ARG','🚤','Treinou o desembarque nas ilhas até saber a praia de cor.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('ARG_escola','Escola dos Andes','⛰',10,'ARG');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('ARG_doc_altura','ARG_escola','Escola de Altura','Treina-se onde falta o ar; no plano, o mesmo esforço custa metade.',50,NULL,1,'ARG'),
+ ('ARG_doc_cordilheira','ARG_escola','Defesa da Cordilheira','Cada desfiladeiro tem posição estudada há trinta anos.',110,'ARG_doc_altura',2,'ARG'),
+ ('ARG_doc_malvinas','ARG_escola','Projecção Ultramarina','Uma força que embarca depressa vale por duas que ficam em terra.',190,'ARG_doc_cordilheira',3,'ARG');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('ARG_doc_altura','defense',1.06),
+ ('ARG_doc_cordilheira','defense',1.07),
+ ('ARG_doc_cordilheira','org_regain',1.05),
+ ('ARG_doc_malvinas','move_speed',1.08),
+ ('ARG_doc_malvinas','attack',1.06);

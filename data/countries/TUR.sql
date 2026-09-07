@@ -135,3 +135,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('TUR_gen_estreitos_tur','Guarda dos Estreitos','defense',1.16,130,'TUR','☾','Dois mares e uma cidade no meio: a passagem fecha-se com ele lá.'),
  ('TUR_gen_drone','Mestre dos Drones','attack',1.16,140,'TUR','🛩','Vê o campo de batalha inteiro antes de mandar um homem lá.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('TUR_escola','Escola dos Estreitos','☾',10,'TUR');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('TUR_doc_estreitos','TUR_escola','Guarda dos Estreitos','Dois mares e uma cidade no meio: a passagem fecha-se por terra.',50,NULL,1,'TUR'),
+ ('TUR_doc_drone','TUR_escola','Guerra de Drones','Vê-se o campo de batalha inteiro antes de mandar um homem lá.',110,'TUR_doc_estreitos',2,'TUR'),
+ ('TUR_doc_mehmetcik','TUR_escola','Exército de Conscritos','Um exército grande de gente que serve por dever, não por soldo.',190,'TUR_doc_drone',3,'TUR');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('TUR_doc_estreitos','defense',1.08),
+ ('TUR_doc_drone','attack',1.07),
+ ('TUR_doc_drone','production_speed',1.05),
+ ('TUR_doc_mehmetcik','conscription',1.09),
+ ('TUR_doc_mehmetcik','org_regain',1.06);

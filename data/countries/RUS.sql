@@ -132,3 +132,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('RUS_gen_artilharia_rus','Deus da Guerra','attack',1.16,145,'RUS','🐻','Artilharia a metro: primeiro arrasa-se, depois é que se anda.'),
  ('RUS_gen_inverno','General Inverno','defense',1.17,135,'RUS','❄','Não precisa de ganhar a batalha: chega esperar por Janeiro.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('RUS_escola','Arte Operacional','🐻',10,'RUS');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('RUS_doc_artilharia','RUS_escola','Deus da Guerra','Primeiro arrasa-se, depois é que se anda.',50,NULL,1,'RUS'),
+ ('RUS_doc_escalao','RUS_escola','Escalões em Profundidade','O que se perde à frente reconstitui-se atrás, e a frente continua.',110,'RUS_doc_artilharia',2,'RUS'),
+ ('RUS_doc_inverno','RUS_escola','General Inverno','Não é preciso ganhar a batalha: chega esperar por Janeiro.',190,'RUS_doc_escalao',3,'RUS');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('RUS_doc_artilharia','attack',1.08),
+ ('RUS_doc_escalao','org_regain',1.07),
+ ('RUS_doc_escalao','conscription',1.06),
+ ('RUS_doc_inverno','defense',1.09),
+ ('RUS_doc_inverno','attack',1.05);

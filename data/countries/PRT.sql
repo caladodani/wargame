@@ -148,3 +148,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('PRT_gen_comandos_prt','Chefe dos Comandos','attack',1.15,135,'PRT','🇵🇹','Três guerras em África e a boina ainda se ganha a suar.'),
  ('PRT_gen_atlantico_prt','Comandante do Comando Atlântico','org_regain',1.15,130,'PRT','⚓','Sustenta forças a mil milhas de casa como quem manda um recado.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('PRT_escola','Escola Expedicionária','🇵🇹',10,'PRT');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('PRT_doc_africa','PRT_escola','Lição de África','Três guerras longe de casa ensinaram a fazer muito com pouco.',50,NULL,1,'PRT'),
+ ('PRT_doc_comandos','PRT_escola','Comandos','A boina ganha-se a suar e a companhia entra primeiro.',110,'PRT_doc_africa',2,'PRT'),
+ ('PRT_doc_atlantico','PRT_escola','Comando Atlântico','Sustentar forças a mil milhas de casa é a especialidade da casa.',190,'PRT_doc_comandos',3,'PRT');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('PRT_doc_africa','org_regain',1.07),
+ ('PRT_doc_comandos','attack',1.07),
+ ('PRT_doc_comandos','move_speed',1.05),
+ ('PRT_doc_atlantico','move_speed',1.08),
+ ('PRT_doc_atlantico','org_regain',1.06);

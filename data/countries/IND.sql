@@ -125,3 +125,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('IND_gen_himalaia','Comandante do Himalaia','defense',1.17,135,'IND','🕉','Guarda o passo mais alto do mundo com a tropa que lá vive.'),
  ('IND_gen_golpe','Mestre do Corpo de Choque','attack',1.14,145,'IND','🐅','Os corpos de ataque existem para entrar, e ele é quem os leva.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('IND_escola','Escola do Himalaia','🕉',10,'IND');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('IND_doc_altitude','IND_escola','Guerra de Altitude','A guerra mais alta do mundo faz-se com quem lá nasceu.',50,NULL,1,'IND'),
+ ('IND_doc_corpo_golpe','IND_escola','Corpos de Golpe','A reserva blindada existe para uma decisão só, e é ela que a dá.',110,'IND_doc_altitude',2,'IND'),
+ ('IND_doc_duas_frentes','IND_escola','Duas Frentes','Norte e oeste ao mesmo tempo: quem se organiza para isso não se assusta.',190,'IND_doc_corpo_golpe',3,'IND');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('IND_doc_altitude','defense',1.08),
+ ('IND_doc_corpo_golpe','attack',1.07),
+ ('IND_doc_corpo_golpe','move_speed',1.05),
+ ('IND_doc_duas_frentes','org_regain',1.07),
+ ('IND_doc_duas_frentes','conscription',1.07);

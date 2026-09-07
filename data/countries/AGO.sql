@@ -124,3 +124,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('AGO_gen_mato','Comandante do Mato','defense',1.14,130,'AGO','🌿','Vinte anos de guerra na savana: sabe onde a coluna passa e onde morre.'),
  ('AGO_gen_brigada_ligeira','Chefe da Brigada Ligeira','move_speed',1.18,120,'AGO','🏍','Camionetas e homens leves: chega à baixa do Kwanza antes de darem por ele.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('AGO_escola','Guerra da Savana','🌿',10,'AGO');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('AGO_doc_bush','AGO_escola','Escola do Mato','A coluna que não se vê da estrada é a que chega inteira ao fim do dia.',50,NULL,1,'AGO'),
+ ('AGO_doc_emboscada','AGO_escola','Emboscada em Profundidade','Deixa-se passar a ponta e bate-se no meio, onde vão os camiões.',110,'AGO_doc_bush',2,'AGO'),
+ ('AGO_doc_longa','AGO_escola','Guerra Longa','Vinte anos ensinam que quem aguenta mais tempo é que ganha.',190,'AGO_doc_emboscada',3,'AGO');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('AGO_doc_bush','defense',1.06),
+ ('AGO_doc_emboscada','defense',1.06),
+ ('AGO_doc_emboscada','attack',1.05),
+ ('AGO_doc_longa','defense',1.08),
+ ('AGO_doc_longa','org_regain',1.07);

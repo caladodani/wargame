@@ -136,3 +136,17 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
 INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
  ('JPN_gen_ilhas_jpn','Comandante da Defesa Insular','defense',1.17,135,'JPN','⛩','Cada ilha é um forte e ele conhece a maré de todas.'),
  ('JPN_gen_anfibio_jpn','Chefe da Brigada Anfíbia','attack',1.14,145,'JPN','🌊','Retoma ilha tomada, que é a única ofensiva que a lei deixa treinar.');
+
+-- ===== escola nacional de guerra (army_doctrine_branch/army_doctrine.country_tag) =====
+INSERT INTO army_doctrine_branch (id,name,icon,sort,country_tag) VALUES
+ ('JPN_escola','Defesa Insular','⛩',10,'JPN');
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort,country_tag) VALUES
+ ('JPN_doc_insular','JPN_escola','Escola da Defesa Insular','Cada ilha é um forte e a maré faz parte do plano.',50,NULL,1,'JPN'),
+ ('JPN_doc_recuperacao','JPN_escola','Recuperação de Ilhas','Retomar ilha tomada é a única ofensiva que a lei deixa treinar.',110,'JPN_doc_insular',2,'JPN'),
+ ('JPN_doc_tecnologia','JPN_escola','Exército Técnico','Poucos homens, muita máquina: é a conta que o país sabe fazer.',190,'JPN_doc_recuperacao',3,'JPN');
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('JPN_doc_insular','defense',1.08),
+ ('JPN_doc_recuperacao','attack',1.07),
+ ('JPN_doc_recuperacao','org_regain',1.05),
+ ('JPN_doc_tecnologia','production_speed',1.06),
+ ('JPN_doc_tecnologia','defense',1.07);

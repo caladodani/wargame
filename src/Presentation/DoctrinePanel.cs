@@ -5,13 +5,18 @@ using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
-/// <summary>As escolas de guerra do exército, desenhadas em árvore como as doutrinas de terra do HoI4: três
+/// <summary>As escolas de guerra do exército, desenhadas em árvore como as doutrinas de terra do HoI4: os
 /// ramos lado a lado — Guerra de Movimento, Superioridade de Fogo, Assalto em Massa — cada um com os seus
 /// degraus ligados por traços, e a experiência de campanha em cima a dizer o que se pode pagar.
 ///
-/// O ponto do desenho é mostrar a escolha antes de ela ser feita: enquanto não se adopta nada, os três ramos
-/// estão acesos; ao pagar o primeiro degrau os outros dois apagam-se de vez, e vê-se logo porquê. Um painel
-/// de lista não dizia isto — dizia apenas que havia doutrinas.
+/// O ponto do desenho é mostrar a escolha antes de ela ser feita: enquanto não se adopta nada, os ramos estão
+/// todos acesos; ao pagar o primeiro degrau os outros apagam-se de vez, e vê-se logo porquê. Um painel de
+/// lista não dizia isto — dizia apenas que havia doutrinas.
+///
+/// À direita das três escolas comuns vem a coluna que só este país tem: a escola nacional
+/// (army_doctrine_branch.country_tag), emoldurada em latão, com a bandeira no cabeçalho e o selo "⚜ TAG" —
+/// a maneira própria de fazer a guerra, que mais nenhum exército pode aprender. Cada cabeçalho leva agora a
+/// fila de lâmpadas com os degraus já aprendidos, para se ver a altura da escola de relance.
 ///
 /// Só lê o World e despacha AdoptDoctrineCommand; quem manda nas regras é o Core (World.DoctrineBlock).
 /// A camada dos traços é a mesma da árvore de focos (FocusLinks).</summary>
@@ -72,28 +77,30 @@ public partial class DoctrinePanel : PanelContainer
 
         var branch = w.DoctrineBranchOf(c);
         _title.Text = $"⚔ Escolas de guerra de {c.Name}";
+        int open = w.Branches(c).Count;
         _sub.Text = $"experiência de exército: {c.ArmyXp:0} (tecto {w.Rule("army_xp_max", 600f):0})   ·   "
                   + (branch is null
-                        ? "ramo por escolher — o primeiro degrau fecha os outros dois"
-                        : $"ramo: {w.DoctrineBranches[branch].Name} ({c.Doctrines.Count} degrau{(c.Doctrines.Count == 1 ? "" : "s")})");
+                        ? $"{open} escolas abertas — o primeiro degrau fecha as outras"
+                        : $"ramo: {(w.DoctrineBranches[branch].CountryTag == c.Tag ? "⚜ " : "")}{w.DoctrineBranches[branch].Name}"
+                          + $" ({c.Doctrines.Count} degrau{(c.Doctrines.Count == 1 ? "" : "s")})");
 
         foreach (var child in _canvas.GetChildren()) if (child != _links) child.QueueFree();
         var lines = new List<(Vector2, Vector2, Color, bool)>();
 
-        var branches = w.DoctrineBranches.Values.OrderBy(b => b.Sort).ThenBy(b => b.Id).ToList();
+        var branches = w.Branches(c);
         int cols = 0, rows = 0;
         foreach (var b in branches)
         {
-            var steps = w.ArmyDoctrines.Values.Where(d => d.Branch == b.Id)
-                .OrderBy(d => d.Sort).ThenBy(d => d.Cost).ThenBy(d => d.Id).ToList();
+            var steps = w.DoctrineSteps(c, b.Id);
             if (steps.Count == 0) continue;
             int col = cols++;
             float x = col * (NodeW + GapX);
 
             bool closed = branch is not null && branch != b.Id;
-            var head = Head(b, steps.Count, closed);
+            bool own = b.CountryTag == c.Tag;
+            var head = Head(c, b, steps, closed);
             head.Position = new Vector2(x, 0f);
-            head.Size = new Vector2(NodeW, HeadH);
+            head.Size = new Vector2(NodeW, own ? HeadH + 14f : HeadH);
             _canvas.AddChild(head);
 
             for (int i = 0; i < steps.Count; i++)
@@ -120,17 +127,57 @@ public partial class DoctrinePanel : PanelContainer
         _links.Set(lines);
     }
 
-    /// <summary>Cabeçalho do ramo: o nome com o ícone, apagado se a escolha já fechou este caminho.</summary>
-    private PanelContainer Head(DoctrineBranch b, int steps, bool closed)
+    /// <summary>Cabeçalho do ramo: o nome com o ícone, apagado se a escolha já fechou este caminho, e a fila
+    /// de lâmpadas com os degraus aprendidos. A escola nacional entra de outra maneira — moldura de latão,
+    /// bandeira do país e o selo "⚜ TAG" — porque não é uma escolha entre iguais: é a de casa.</summary>
+    private PanelContainer Head(Country c, DoctrineBranch b, List<ArmyDoctrine> steps, bool closed)
     {
+        bool own = b.CountryTag == c.Tag;
         var card = new PanelContainer();
-        card.AddThemeStyleboxOverride("panel", Ui.Box(closed ? Ui.Ink : Ui.SurfaceHi, 6));
+        var plate = Ui.Box(closed ? Ui.Ink : own ? new Color(0.15f, 0.14f, 0.11f, 0.96f) : Ui.SurfaceHi, 6);
+        if (own && !closed)
+        {
+            plate.SetBorderWidthAll(2);
+            plate.BorderColor = Ui.Accent with { A = 0.8f };
+        }
+        card.AddThemeStyleboxOverride("panel", plate);
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 0); card.AddChild(v);
-        var name = Ui.Lbl($"{b.Icon} {b.Name}", 17);
-        if (closed) name.AddThemeColorOverride("font_color", Ui.TextDim);
-        v.AddChild(name);
-        v.AddChild(Dim(closed ? "escola fechada" : $"{steps} degraus"));
+
+        if (own)
+        {
+            var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 6);
+            line.AddChild(Ui.Grow(Ui.Crest(c.Tag, $"{b.Icon} {b.Name}", $"escola de {c.Name}", 16)));
+            line.AddChild(Seal(c));
+            v.AddChild(line);
+        }
+        else
+        {
+            var name = Ui.Lbl($"{b.Icon} {b.Name}", 17);
+            if (closed) name.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(name);
+        }
+
+        int done = steps.Count(d => c.Doctrines.Contains(d.Id));
+        var foot = new HBoxContainer(); foot.AddThemeConstantOverride("separation", 8);
+        foot.AddChild(Ui.Grow(Dim(closed ? "escola fechada"
+                                 : own ? $"{steps.Count} degraus, só de {c.Tag}"
+                                       : $"{steps.Count} degraus")));
+        if (!closed) foot.AddChild(Ui.Pips(done, steps.Count, own ? Ui.Accent : null));
+        v.AddChild(foot);
         return card;
+    }
+
+    /// <summary>O mesmo selo que o gabinete e as leis põem no que é só deste país, para as três coisas se
+    /// lerem como a mesma ideia.</summary>
+    private static PanelContainer Seal(Country c)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Accent with { A = 0.18f }, 4));
+        var l = Ui.Lbl($"⚜ {c.Tag}", 13);
+        l.AddThemeColorOverride("font_color", Ui.Accent);
+        l.TooltipText = $"escola de guerra de {c.Name}: nenhum outro exército a aprende";
+        chip.AddChild(l);
+        return chip;
     }
 
     /// <summary>Um degrau: verde se já se sabe, aço com botão se dá para pagar hoje, apagado com o motivo se
@@ -144,7 +191,13 @@ public partial class DoctrinePanel : PanelContainer
         var bg = known ? Ui.Good.Darkened(0.55f) : rich ? Ui.SurfaceHi : Ui.Ink;
 
         var card = new PanelContainer();
-        card.AddThemeStyleboxOverride("panel", Ui.Box(bg, 6));
+        var plate = Ui.Box(bg, 6);
+        if (d.CountryTag == c.Tag)                             // degrau da escola de casa: moldura de latão
+        {
+            plate.SetBorderWidthAll(2);
+            plate.BorderColor = Ui.Accent with { A = known || rich ? 0.75f : 0.35f };
+        }
+        card.AddThemeStyleboxOverride("panel", plate);
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 2); card.AddChild(v);
 
         var name = Ui.Lbl(d.Name, 15);
@@ -209,13 +262,25 @@ public partial class DoctrinePanel : PanelContainer
         _lastKey = ""; Fill();
     });
 
-    /// <summary>--smoke: abre a árvore do jogador e diz quantos cartões desenhou (cabeçalhos + degraus).</summary>
-    public int Smoke()
+    /// <summary>--smoke: abre a árvore do jogador, diz quantos cartões desenhou (cabeçalhos + degraus) e
+    /// dá conta da coluna de casa — a escola nacional, quantos degraus tem e o que já se aprendeu dela.</summary>
+    public string Smoke()
     {
-        if (_game.PlayerId is not int pid) return 0;
+        if (_game.PlayerId is not int pid) return "sem país";
+        var w = _game.World;
+        var c = w.Countries[pid];
         Open(pid); Refresh();
         int nodes = _canvas.GetChildCount() - 1;    // menos a camada dos traços
         Close();
-        return nodes;
+
+        var own = w.Branches(c).FirstOrDefault(b => b.CountryTag == c.Tag);
+        string mine = own is null
+            ? "sem escola de casa"
+            : $"⚜ {own.Name} com {w.DoctrineSteps(c, own.Id).Count} degraus "
+              + $"({w.DoctrineSteps(c, own.Id).Count(d => c.Doctrines.Contains(d.Id))} aprendido"
+              + $"{(w.DoctrineSteps(c, own.Id).Count(d => c.Doctrines.Contains(d.Id)) == 1 ? "" : "s")})";
+        return $"{nodes} cartões em {w.Branches(c).Count} escolas, {mine}, ramo "
+             + $"{(w.DoctrineBranchOf(c) is string br ? w.DoctrineBranches[br].Name : "por escolher")}, "
+             + $"{c.ArmyXp:0} de experiência";
     }
 }
