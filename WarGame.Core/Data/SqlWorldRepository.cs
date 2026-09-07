@@ -69,6 +69,18 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.LawEffects.TryGetValue(lid, out var llist)) w.LawEffects[lid] = llist = new();
             llist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
+        foreach (var r in _static.Query("SELECT id,name,icon,sort FROM army_doctrine_branch ORDER BY sort,id"))
+            w.DoctrineBranches[(string)r["id"]!] = new DoctrineBranch((string)r["id"]!, (string)r["name"]!,
+                (string)r["icon"]! , Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,branch,name,description,cost,requires,sort FROM army_doctrine ORDER BY branch,sort"))
+            w.ArmyDoctrines[(string)r["id"]!] = new ArmyDoctrine((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!,
+                r["description"] as string ?? "", Convert.ToSingle(r["cost"]), r["requires"] as string, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT doctrine_id,stat_key,value FROM army_doctrine_effect"))
+        {
+            var did = (string)r["doctrine_id"]!;
+            if (!w.DoctrineEffects.TryGetValue(did, out var dlist)) w.DoctrineEffects[did] = dlist = new();
+            dlist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
+        }
         foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap FROM resource"))
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]));
@@ -301,6 +313,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "honour_name", "TEXT"),
         ("s_general", "wound_until", "INTEGER NOT NULL DEFAULT 0"),
         ("s_army_group", "planning", "REAL NOT NULL DEFAULT 0"),
+        ("s_country", "army_xp", "REAL NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -333,7 +346,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var r in factionMembers)
                 if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f)) f.Members.Add(Convert.ToInt32(r["country_id"]));
         }
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev,army_xp FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
@@ -351,11 +364,14 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["nukes"] is not null) c.Nukes = Convert.ToInt32(r["nukes"]);
             if (r["power_rank"] is not null) c.PowerRank = Convert.ToInt32(r["power_rank"]);
             if (r["power_rank_prev"] is not null) c.PowerRankPrev = Convert.ToInt32(r["power_rank_prev"]);
+            if (r["army_xp"] is not null) c.ArmyXp = Convert.ToSingle(r["army_xp"]);
         }
         foreach (var r in save.Query("SELECT country_id,tech_id FROM s_country_tech"))
             w.Countries[Convert.ToInt32(r["country_id"])].Techs.Add((string)r["tech_id"]!);
         foreach (var r in save.Query("SELECT country_id,focus_id FROM s_focus"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cf)) cf.FocusesDone.Add((string)r["focus_id"]!);
+        foreach (var r in save.Query("SELECT country_id,doctrine_id FROM s_army_doctrine"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cd)) cd.Doctrines.Add((string)r["doctrine_id"]!);
         foreach (var r in save.Query("SELECT event_id,option_id FROM s_news_choice"))
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
@@ -502,7 +518,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -560,9 +576,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         {
             // países sem estado nenhum não gastam linha; o lugar na tabela mundial não os obriga a ter uma
             // (o PowerRankingSystem refá-la em power_rank_days), mas o do jogador vai sempre com o save
-            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Nukes, c.PowerRank, c.PowerRankPrev);
+            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f)
+                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,nukes,power_rank,power_rank_prev,army_xp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp);
             // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a
             // primeira, para um save novo ainda abrir num binário anterior às ranhuras
             foreach (var (techId, progress) in c.Research)
@@ -570,6 +586,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
             foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
+            foreach (var d in c.Doctrines) save.Execute("INSERT INTO s_army_doctrine VALUES (?,?)", c.Id, d);
             foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress,repeat_order) VALUES (?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0);
             foreach (var e in c.AtWarWith)
                 if (c.Id < e)

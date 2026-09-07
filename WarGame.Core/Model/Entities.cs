@@ -57,6 +57,19 @@ public sealed record NationalSpirit(string Id, string CountryTag, string Name, s
 /// <summary>Texto do painel de país (tabela country_info).</summary>
 public sealed record CountryInfo(string CountryTag, string Government, string Leader, string Doctrine, string Alliance, string Description);
 
+/// <summary>Ramo da árvore de doutrinas de exército (tabela army_doctrine_branch): a escola militar em que
+/// um país se forma. Escolhida uma, as outras fecham-se — um exército não se treina em duas maneiras
+/// contrárias de fazer a guerra ao mesmo tempo.</summary>
+public sealed record DoctrineBranch(string Id, string Name, string Icon, int Sort);
+
+/// <summary>Doutrina de exército (tabela army_doctrine): degrau de uma escola militar, pago com a
+/// experiência de campanha que o país juntou (Country.ArmyXp). Efeitos em army_doctrine_effect, aplicados
+/// como os das tecnologias. Requires é a doutrina anterior do mesmo ramo (null = raiz da escola).
+///
+/// Nada disto se confunde com as leis do grupo doctrine: essas são decretos do governo que se trocam à
+/// vontade; estas são escolas de guerra que se aprendem com sangue e não se desaprendem.</summary>
+public sealed record ArmyDoctrine(string Id, string Branch, string Name, string Description, float Cost, string? Requires, int Sort);
+
 /// <summary>Aliança defensiva (tabelas faction + faction_member, HoI4: facção). Um país pode pertencer a várias;
 /// declarar guerra a um membro chama os outros contra o agressor (DeclareWarCommand) — ver World.FactionsOf/Allies.</summary>
 public sealed record Faction(string Id, string Name, string Description, List<int> Members);
@@ -317,6 +330,12 @@ public sealed class Country
     public float StabilityFactor => 0.5f + Stability / 100f;
     public List<ProductionOrder> Queue { get; } = new();
     public HashSet<string> Techs { get; } = new();
+    /// <summary>Doutrinas de exército adoptadas (tabela army_doctrine). Só de um ramo: a primeira escolha
+    /// fecha as outras escolas. Não se largam — o que o exército aprendeu, aprendeu.</summary>
+    public HashSet<string> Doctrines { get; } = new();
+    /// <summary>Experiência de exército por gastar (ArmyXpSystem): junta-se em campanha e em manobras,
+    /// paga-se com ela cada degrau de doutrina. Tecto na regra army_xp_max.</summary>
+    public float ArmyXp { get; set; }
     public string? CurrentFocus { get; set; }      // foco nacional em curso (FocusSystem)
     public float FocusProgress { get; set; }
     public HashSet<string> FocusesDone { get; } = new();

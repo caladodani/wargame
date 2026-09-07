@@ -162,6 +162,8 @@ CREATE TABLE IF NOT EXISTS s_country (
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
+CREATE TABLE IF NOT EXISTS s_army_doctrine (   -- doutrinas de exército adoptadas (AdoptDoctrineCommand)
+  country_id INTEGER, doctrine_id TEXT, PRIMARY KEY (country_id, doctrine_id));
 CREATE TABLE IF NOT EXISTS s_war (a INTEGER, b INTEGER, since_day INTEGER, last_progress_day INTEGER,
   a_regions INTEGER NOT NULL DEFAULT 0, b_regions INTEGER NOT NULL DEFAULT 0,   -- regiões tomadas por lado (WarStatsSystem)
   a_losses INTEGER NOT NULL DEFAULT 0, b_losses INTEGER NOT NULL DEFAULT 0,     -- divisões perdidas por lado
@@ -187,6 +189,18 @@ CREATE TABLE IF NOT EXISTS law (              -- leis nacionais (grupos: conscri
 CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
   law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (law_id, stat_key));
+CREATE TABLE IF NOT EXISTS army_doctrine_branch (  -- escolas de doutrina de exército (ramos da árvore)
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS army_doctrine (    -- doutrinas de exército, pagas com experiência de campanha
+  id TEXT PRIMARY KEY, branch TEXT NOT NULL REFERENCES army_doctrine_branch(id),
+  name TEXT NOT NULL, description TEXT,
+  cost REAL NOT NULL,                         -- experiência de exército que custa adoptar
+  requires TEXT,                              -- doutrina anterior do mesmo ramo (NULL = raiz)
+  sort INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS army_doctrine_effect (  -- multiplicadores de país (entram no ApplyTechs)
+  doctrine_id TEXT NOT NULL REFERENCES army_doctrine(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
+  PRIMARY KEY (doctrine_id, stat_key));
+
 CREATE TABLE IF NOT EXISTS spy_op (           -- operações de espionagem (StartSpyOpCommand); World.SpyOps
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,
   cost REAL NOT NULL, days INTEGER NOT NULL,  -- pontos pagos à partida; dias até concluir

@@ -1107,6 +1107,26 @@ public sealed record AssignDivisionCommand(int CountryId, int DivisionId, int? G
 
 /// <summary>Contrata um comandante (tabela general): paga o custo único e ganha o multiplicador dele
 /// enquanto servir. Limitado a general_slots comandantes por país, sem repetir arquétipos.</summary>
+/// <summary>Adopta um degrau de doutrina de exército, pago com a experiência de campanha (ArmyXpSystem).
+/// A primeira doutrina escolhe a escola e fecha as outras — daí a mensagem dizer quem fechou o quê.</summary>
+public sealed record AdoptDoctrineCommand(int CountryId, string DoctrineId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.ArmyDoctrines.TryGetValue(DoctrineId, out var d)) return "doutrina desconhecida";
+        if (c.Doctrines.Contains(DoctrineId)) return "já é doutrina do exército";
+        if (w.DoctrineBlock(c, DoctrineId) is string block)
+            return block.StartsWith('!')
+                ? $"Escola fechada por {w.ArmyDoctrines[block[1..]].Name}"
+                : $"Precisa de {(w.ArmyDoctrines.TryGetValue(block, out var need) ? need.Name : block)}";
+        if (c.ArmyXp < d.Cost) return $"faltam {d.Cost - c.ArmyXp:0} de experiência";
+        return null;
+    }
+
+    public void Execute(World w) => ArmyXpSystem.Adopt(w, w.Countries[CountryId], DoctrineId);
+}
+
 public sealed record HireGeneralCommand(int CountryId, string GeneralId) : ICommand
 {
     public string? Validate(World w)

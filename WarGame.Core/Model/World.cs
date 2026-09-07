@@ -76,6 +76,37 @@ public sealed class World
     public Dictionary<string, Law> Laws { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> LawEffects { get; } = new();
 
+    /// <summary>Escolas de doutrina de exército (tabela army_doctrine_branch), pela ordem em que se mostram.</summary>
+    public Dictionary<string, DoctrineBranch> DoctrineBranches { get; } = new();
+    /// <summary>Doutrinas de exército (tabela army_doctrine) e os multiplicadores de cada uma.</summary>
+    public Dictionary<string, ArmyDoctrine> ArmyDoctrines { get; } = new();
+    public Dictionary<string, List<(string Key, float Mul)>> DoctrineEffects { get; } = new();
+
+    /// <summary>O ramo em que este país se formou (a primeira doutrina que adoptou manda), ou null.</summary>
+    public string? DoctrineBranchOf(Country c)
+    {
+        foreach (var id in c.Doctrines.OrderBy(x => x))
+            if (ArmyDoctrines.TryGetValue(id, out var d)) return d.Branch;
+        return null;
+    }
+
+    /// <summary>O que impede este país de adoptar esta doutrina, ou null se está à mão. Devolve o id da
+    /// doutrina que falta, ou "!"+id da doutrina que fechou a escola — a mesma convenção do FocusBlock.
+    /// A experiência não entra aqui: quem a conta é o AdoptDoctrineCommand, para a UI poder mostrar uma
+    /// doutrina aberta mas ainda por pagar.</summary>
+    public string? DoctrineBlock(Country c, string doctrineId)
+    {
+        if (!ArmyDoctrines.TryGetValue(doctrineId, out var d) || c.Doctrines.Contains(doctrineId)) return doctrineId;
+        if (d.Requires is string req && !c.Doctrines.Contains(req)) return req;
+        foreach (var id in c.Doctrines.OrderBy(x => x))
+            if (ArmyDoctrines.TryGetValue(id, out var have) && have.Branch != d.Branch) return "!" + id;
+        return null;
+    }
+
+    /// <summary>Doutrina à mão e já paga: o que a IA adopta e o que o botão do painel aceita.</summary>
+    public bool CanAdopt(Country c, string doctrineId) =>
+        DoctrineBlock(c, doctrineId) is null && ArmyDoctrines.TryGetValue(doctrineId, out var d) && c.ArmyXp >= d.Cost;
+
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
     /// <summary>Propostas à espera de resposta do jogador (OfferSystem). Uma por par e assunto.</summary>
@@ -167,6 +198,9 @@ public sealed class World
         foreach (var f in c.FocusesDone)
             if (FocusEffects.TryGetValue(f, out var effs))
                 foreach (var (key, mul) in effs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
+        foreach (var d in c.Doctrines)          // escolas de guerra: entram no mesmo bolo das tecnologias
+            if (DoctrineEffects.TryGetValue(d, out var deffs))
+                foreach (var (key, mul) in deffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var grp in Laws.Values.Select(l => l.Group).Distinct())
             if (ActiveLaw(c, grp) is Law law && LawEffects.TryGetValue(law.Id, out var leffs))
                 foreach (var (key, mul) in leffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;

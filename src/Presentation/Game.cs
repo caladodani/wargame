@@ -80,6 +80,7 @@ public partial class Game : Node
         World.Register(new ManpowerSystem());
         World.Register(new ProductionSystem());
         World.Register(new ResearchSystem());
+        World.Register(new ArmyXpSystem());      // experiência de campanha e as escolas de guerra que ela paga
         World.Register(new FocusSystem());
         World.Register(new NewsSystem());
         World.Register(new WarStatsSystem());   // antes do combate: liga-se aos eventos que vai contar

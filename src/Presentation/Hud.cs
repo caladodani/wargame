@@ -18,7 +18,8 @@ public partial class Hud : CanvasLayer
     private Label _money = null!, _moneyNote = null!, _men = null!, _menNote = null!, _divs = null!, _divsNote = null!;
     // Fábricas civis, militares e estaleiros: a fila de mostradores industriais do HoI4.
     private Label _civ = null!, _civNote = null!, _mil = null!, _milNote = null!, _yard = null!, _yardNote = null!;
-    private PanelContainer _yardPlate = null!;
+    private Label _xp = null!, _xpNote = null!;
+    private PanelContainer _yardPlate = null!, _xpPlate = null!;
     private PanelContainer _season = null!;
     private string _seasonPainted = "";
     private TextureRect _playerFlag = null!;
@@ -47,6 +48,7 @@ public partial class Hud : CanvasLayer
     private MapModeBar _modeBar = null!;
     private BattlePanel _battle = null!;
     private FocusPanel _focusTree = null!;
+    private DoctrinePanel _doctrines = null!;
     private AlertStrip _alerts = null!;
     private ComparePanel _compare = null!;
     private JournalPanel _journal = null!;
@@ -83,6 +85,8 @@ public partial class Hud : CanvasLayer
             _region.OnBattle = id => _battle.Open(id);
             _focusTree = new FocusPanel(); AddChild(_focusTree); _focusTree.Setup(_game);
             _countryPanel.OnFocusTree = id => _focusTree.Open(id);
+            _doctrines = new DoctrinePanel(); AddChild(_doctrines); _doctrines.Setup(_game);
+            _countryPanel.OnDoctrines = id => _doctrines.Open(id);
             _alerts = new AlertStrip(); AddChild(_alerts); _alerts.Setup(_game);
             _alerts.OnGoTo = ShowRegion;
             _alerts.OnOpen = id =>
@@ -180,6 +184,10 @@ public partial class Hud : CanvasLayer
         row.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
         _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
         row.AddChild(_yardPlate);
+        // Experiência de exército: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a
+        // mesma pergunta — o que é que hoje já dá para comprar — e só aparece a quem tem tropa a aprender.
+        _xpPlate = Ui.Counter("🎖", out _xp, out _xpNote, Ui.Good.Lightened(0.2f));
+        row.AddChild(_xpPlate);
 
         // Segunda linha: os painéis, dentro de um deslizador horizontal. Os botões nunca são cortados —
         // no ecrã largo cabem todos, no estreito arrasta-se a fila para o lado.
@@ -757,9 +765,10 @@ public partial class Hud : CanvasLayer
             _alerts.Refresh();
             _battle.Refresh();
             _focusTree.Refresh();
+            _doctrines.Refresh();
             bool covered = _compare.Visible || _region.Visible || _production.Visible || _countryPanel.Visible
                            || _worldPanel.Visible || _warPanel.Visible || _journal.Visible || _armyPanel.Visible
-                           || _battle.Visible || _focusTree.Visible;
+                           || _battle.Visible || _focusTree.Visible || _doctrines.Visible;
             _mini.SetCovered(covered);
             _modeBar.SetCovered(covered);
             if (_modeBar.Visible) _modeBar.Refresh();
@@ -820,6 +829,11 @@ public partial class Hud : CanvasLayer
             _yardPlate.Visible = yards.Naval > 0;                 // país sem costa não tem cais nenhum a mostrar
             _yard.Text = $"{yards.NavalBusy}/{yards.Naval}";
             _yardNote.Text = yards.Naval == 1 ? "estaleiro" : "estaleiros";
+            _xpPlate.Visible = w.ArmyDoctrines.Count > 0;
+            _xp.Text = $"{p.ArmyXp:0}";
+            _xp.AddThemeColorOverride("font_color", ArmyXpSystem.Next(w, p) is null ? Ui.Text : Ui.Good.Lightened(0.35f));
+            _xpNote.Text = ArmyXpSystem.Next(w, p) is string next && w.ArmyDoctrines.TryGetValue(next, out var nd)
+                ? "dá para " + nd.Name.ToLowerInvariant() : "experiência";
             _hint.Visible = false;
             int posted = OfferView.Count(w, pid);
             if (posted != _offersShown)
@@ -838,7 +852,7 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     /// <summary>Leva o mapa a uma região e abre-lhe a ficha: o "Ver no mapa" da cedência aterra aqui, e
@@ -1009,7 +1023,8 @@ public partial class Hud : CanvasLayer
         int fight = _battle.Smoke(cap.Id);                               // ecrã de batalha: os dois lados, linha e reserva
         int tree = _focusTree.Smoke();                                   // árvore de focos: grelha, traços e ramos rivais
         int plans = SmokePlans();                                        // planos de batalha: setas desenhadas no mapa
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa");
+        int schools = _doctrines.Smoke();                                 // escolas de guerra: ramos e degraus da árvore
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo, {served} na folha de serviço, estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria, {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras, folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, {schools} cartões de doutrina ({c.ArmyXp:0} de experiência)");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

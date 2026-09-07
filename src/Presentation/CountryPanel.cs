@@ -13,6 +13,9 @@ public partial class CountryPanel : PanelContainer
     /// <summary>O Hud liga isto à árvore de focos (o painel não conhece os outros painéis).</summary>
     public Action<int>? OnFocusTree;
 
+    /// <summary>E isto à árvore das escolas de guerra (doutrinas de exército).</summary>
+    public Action<int>? OnDoctrines;
+
     /// <summary>Último gráfico desenhado, só para o --smoke lhe poder mexer na métrica e na mira.</summary>
     private HistoryChart? _chart;
 
@@ -72,7 +75,7 @@ public partial class CountryPanel : PanelContainer
             var w = _game.World;
             if (!w.Countries.TryGetValue(_countryId, out var c)) { Close(); return; }
             bool mine = _game.PlayerId == c.Id;
-            var key = $"{c.Id}|{mine}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{c.Id}|{mine}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -425,6 +428,21 @@ public partial class CountryPanel : PanelContainer
                 }
                 var doneF = c.FocusesDone.Where(w.Focuses.ContainsKey).Select(id => w.Focuses[id].Name).OrderBy(n => n).ToList();
                 Line($"Concluídos ({doneF.Count}): " + (doneF.Count == 0 ? "nenhum" : string.Join(", ", doneF)), 16);
+            }
+
+            // escolas de guerra (doutrinas de exército): a experiência de campanha e o ramo escolhido
+            if (w.ArmyDoctrines.Count > 0)
+            {
+                Header("Escolas de guerra");
+                int whoD = c.Id;
+                var docRow = new HBoxContainer();
+                docRow.AddChild(Ui.Btn("⚔ Ver escolas de guerra", () => { Close(); OnDoctrines?.Invoke(whoD); }, 300, Ui.Kind.Primary));
+                _body.AddChild(docRow);
+                var br = w.DoctrineBranchOf(c);
+                Line($"Experiência de exército: {c.ArmyXp:0}   ·   "
+                   + (br is null ? "sem ramo escolhido" : $"ramo {w.DoctrineBranches[br].Name}"));
+                var learned = c.Doctrines.Where(w.ArmyDoctrines.ContainsKey).Select(id => w.ArmyDoctrines[id].Name).OrderBy(n => n).ToList();
+                Line($"Aprendidas ({learned.Count}): " + (learned.Count == 0 ? "nenhuma" : string.Join(", ", learned)), 16);
             }
 
             Honours(w, c);

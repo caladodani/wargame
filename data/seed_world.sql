@@ -162,6 +162,47 @@ INSERT INTO rule (key,value,note) VALUES
  ('planning_max',1,'preparação máxima de um plano'),
  ('planning_bonus',0.25,'força de combate que o plano completo acrescenta');
 
+-- Doutrinas de exército (ArmyXpSystem + AdoptDoctrineCommand): escolas de guerra pagas com a experiência
+-- que o exército junta em campanha. Escolhido um ramo, os outros fecham-se. Nada disto são as leis do
+-- grupo doctrine: uma lei muda-se por decreto, uma escola aprende-se e não se desaprende.
+INSERT INTO rule (key,value,note) VALUES
+ ('army_xp_per_battle_day',0.4,'experiência por divisão nossa em batalha, por dia'),
+ ('army_xp_per_day',0.1,'manobras: experiência por dia a quem tem exército no terreno'),
+ ('army_xp_max',600,'tecto da experiência por gastar');
+
+INSERT INTO army_doctrine_branch (id,name,icon,sort) VALUES
+ ('movimento','Guerra de Movimento','⚡',1),
+ ('fogo','Superioridade de Fogo','🎯',2),
+ ('massa','Assalto em Massa','♟',3);
+
+INSERT INTO army_doctrine (id,branch,name,description,cost,requires,sort) VALUES
+ ('mov_1','movimento','Escola de Movimento','Colunas que andam mais do que combatem: quem chega primeiro escolhe o terreno.',40,NULL,1),
+ ('mov_2','movimento','Concentração Blindada','Os carros deixam de ser apoio de infantaria e passam a punho fechado.',80,'mov_1',2),
+ ('mov_3','movimento','Ponta de Lança','Rompe-se num ponto só e explora-se a brecha até à retaguarda.',140,'mov_2',3),
+ ('mov_4','movimento','Guerra Relâmpago','A decisão vem da velocidade: o inimigo perde a guerra antes de perceber que começou.',220,'mov_3',4),
+ ('fog_1','fogo','Escola de Fogo','A artilharia mata, a infantaria ocupa. Tudo o resto é detalhe.',40,NULL,1),
+ ('fog_2','fogo','Artilharia de Corpo','Fogo de corpo de exército concentrado no sector que interessa.',80,'fog_1',2),
+ ('fog_3','fogo','Apoio Aproximado','Observadores à frente e fogo a cair a duzentos metros da nossa linha.',140,'fog_2',3),
+ ('fog_4','fogo','Barragem Rolante','A cortina de fogo anda à frente da infantaria ao ritmo do passo.',220,'fog_3',4),
+ ('mas_1','massa','Escola de Massa','Homens é o que há: forma-se, arma-se e manda-se.',40,NULL,1),
+ ('mas_2','massa','Ondas Sucessivas','Uma vaga atrás da outra até a linha inimiga não ter com que responder.',80,'mas_1',2),
+ ('mas_3','massa','Profundidade Operacional','Reservas escalonadas em profundidade: o que se perde à frente reconstitui-se atrás.',140,'mas_2',3),
+ ('mas_4','massa','Guerra Total','O país inteiro é retaguarda de uma frente só.',220,'mas_3',4);
+
+INSERT INTO army_doctrine_effect (doctrine_id,stat_key,value) VALUES
+ ('mov_1','move_speed',1.08),('mov_1','attack',1.03),
+ ('mov_2','attack',1.06),('mov_2','org_regain',1.03),
+ ('mov_3','attack',1.08),('mov_3','move_speed',1.05),
+ ('mov_4','attack',1.10),('mov_4','move_speed',1.08),('mov_4','defense',0.97),
+ ('fog_1','defense',1.06),
+ ('fog_2','defense',1.06),('fog_2','attack',1.04),
+ ('fog_3','attack',1.07),('fog_3','production_speed',1.03),
+ ('fog_4','attack',1.08),('fog_4','defense',1.06),
+ ('mas_1','conscription',1.10),
+ ('mas_2','org_regain',1.06),('mas_2','conscription',1.05),
+ ('mas_3','defense',1.05),('mas_3','org_regain',1.05),
+ ('mas_4','conscription',1.15),('mas_4','industry',1.03);
+
 -- Apoio financeiro entre aliados de facção (TransferMoneyCommand).
 INSERT INTO rule (key,value,note) VALUES
  ('ai_aid_reserve',300,'a IA só envia apoio com dinheiro acima disto'),
