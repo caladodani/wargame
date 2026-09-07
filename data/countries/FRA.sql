@@ -125,3 +125,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('FRA_law_autonomia','attack',1.08),
  ('FRA_law_autonomia','industry',1.06),
  ('FRA_law_autonomia','export_share',0.9);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('FRA_gen_blindados_fra','Mestre dos Blindados','attack',1.15,140,'FRA','⚜','A doutrina do choque: entra pelo meio e não olha para os lados.'),
+ ('FRA_gen_ultramar','Comandante do Ultramar','move_speed',1.17,130,'FRA','🌍','Intervém em três continentes com o que couber num avião.');

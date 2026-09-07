@@ -216,37 +216,14 @@ public partial class CountryPanel : PanelContainer
                     _body.AddChild(Ui.Btn("⚔ Guarnecer fronteiras", GarrisonFronts, 300));
             }
 
-            // estado-maior: comandantes ao serviço e os que se podem contratar
+            // estado-maior: a folha de comandantes (retratos, divisas, carreira) e quem falta contratar
             if (tWar && mine && w.GeneralDefs.Count > 0)
             {
-                int slots = (int)w.Rule("general_slots", 3f);
-                Header($"Estado-maior ({c.Generals.Count}/{slots})");
-                foreach (var def in w.GeneralDefs.Values.OrderBy(g => g.Id))
-                {
-                    bool serving = c.Generals.Contains(def.Id);
-                    // destacado a um grupo: o bónus sai daqui e vale, amplificado, só nesse exército
-                    var posted = w.ArmyGroups.Values.FirstOrDefault(g => g.CountryId == c.Id && g.GeneralId == def.Id);
-                    string eff = posted is null
-                        ? $"{StatName(def.StatKey)} ×{def.Mult:0.00}"
-                        : $"{StatName(def.StatKey)} ×{1f + (def.Mult - 1f) * (w.Rule("general_command_bonus", 2f) + w.RankBonus(c.Id, def.Id)):0.00} no {posted.Name}";
-                    var row = new HBoxContainer(); _body.AddChild(row);
-                    // a divisa do posto só faz sentido em quem serve: um comandante por contratar não tem folha
-                    bool hurt = serving && w.IsWounded(c.Id, def.Id);
-                    string mark = hurt ? CommanderView.WoundMark(w, c.Id, def.Id)
-                        : posted is not null ? "⚔ " : serving ? CommanderView.Insignia(w.RankOf(c.Id, def.Id)?.Level ?? 1) + " " : "";
-                    string rank = serving && CommanderView.RankName(w, c.Id, def.Id) is string rn && rn.Length > 0 ? $" · {rn}" : "";
-                    var lbl = Ui.Lbl($"{mark}{def.Name}{rank} — {(hurt ? "no hospital, não conta para nada" : eff)}", 16);
-                    if (serving) lbl.AddThemeColorOverride("font_color", hurt ? CommanderView.Hurt : CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w)));
-                    row.AddChild(Ui.Grow(lbl));
-                    if (serving)
-                        row.AddChild(Ui.Btn("Dispensar", () => Faction(new DismissGeneralCommand(c.Id, def.Id)), 160));
-                    else if (c.Generals.Count < slots)
-                        row.AddChild(Ui.Btn($"Contratar ({def.Cost:0})", () => Faction(new HireGeneralCommand(c.Id, def.Id)), 160));
-                    // barra de carreira: mostra o que a guerra lhe deu e quanto falta para a promoção
-                    if (serving) _body.AddChild(hurt
-                        ? CommanderView.Recovery(w, c.Id, def.Id)
-                        : CommanderView.Progress(w, c.Id, def.Id, CommanderView.Tint(w.RankOf(c.Id, def.Id)?.Level ?? 1, CommanderView.TopLevel(w))));
-                }
+                Header($"Estado-maior ({c.Generals.Count}/{(int)w.Rule("general_slots", 3f)})");
+                if (CommanderView.Roster(w, c, mine,
+                        gid => Faction(new HireGeneralCommand(c.Id, gid)),
+                        gid => Faction(new DismissGeneralCommand(c.Id, gid))) is PanelContainer staff)
+                    _body.AddChild(staff);
                 // a enfermaria só aparece quando há quem lá esteja: é o aviso de que há exércitos por comandar
                 if (CommanderView.Infirmary(w, c.Id) is PanelContainer sick) _body.AddChild(sick);
             }

@@ -130,3 +130,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('IRN_law_autarcia','production_speed',1.1),
  ('IRN_law_autarcia','counter_intel',1.15),
  ('IRN_law_autarcia','research_speed',0.92);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('IRN_gen_assimetrico','Mestre da Guerra Assimétrica','defense',1.16,125,'IRN','☪','Não dá batalha onde o inimigo quer: dá-a onde o inimigo não pode.'),
+ ('IRN_gen_milicia','Chefe das Milícias','org_regain',1.15,120,'IRN','🕌','Chama cem mil voluntários e sabe onde os pôr.');

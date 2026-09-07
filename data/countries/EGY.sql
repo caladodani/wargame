@@ -123,3 +123,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('EGY_law_alargamento','export_share',1.1),
  ('EGY_law_fechado','export_price',1.25),
  ('EGY_law_fechado','research_speed',0.95);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('EGY_gen_canal_def','Guarda do Canal','defense',1.16,130,'EGY','🛶','A travessia é dele: nenhum assalto ao Suez lhe apanha o flanco.'),
+ ('EGY_gen_deserto_egp','Comandante do Deserto Ocidental','move_speed',1.16,125,'EGY','🐫','Areia, sol e navegação a olho: leva a coluna onde não há caminho.');

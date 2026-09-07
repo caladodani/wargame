@@ -127,3 +127,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('RUS_law_complexo','production_speed',1.12),
  ('RUS_law_complexo','industry',1.08),
  ('RUS_law_complexo','export_share',0.7);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('RUS_gen_artilharia_rus','Deus da Guerra','attack',1.16,145,'RUS','🐻','Artilharia a metro: primeiro arrasa-se, depois é que se anda.'),
+ ('RUS_gen_inverno','General Inverno','defense',1.17,135,'RUS','❄','Não precisa de ganhar a batalha: chega esperar por Janeiro.');

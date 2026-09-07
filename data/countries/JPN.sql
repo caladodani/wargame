@@ -131,3 +131,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('JPN_law_revisao','attack',1.12),
  ('JPN_law_revisao','conscription',1.2),
  ('JPN_law_revisao','industry',0.95);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('JPN_gen_ilhas_jpn','Comandante da Defesa Insular','defense',1.17,135,'JPN','⛩','Cada ilha é um forte e ele conhece a maré de todas.'),
+ ('JPN_gen_anfibio_jpn','Chefe da Brigada Anfíbia','attack',1.14,145,'JPN','🌊','Retoma ilha tomada, que é a única ofensiva que a lei deixa treinar.');

@@ -128,3 +128,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('IDN_law_eixo','org_regain',1.05),
  ('IDN_law_estreitos','defense',1.12),
  ('IDN_law_estreitos','export_price',1.15);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('IDN_gen_ilhas','Comandante das Ilhas','move_speed',1.18,125,'IDN','🌋','Salta de ilha em ilha com o que houver a flutuar.'),
+ ('IDN_gen_territorial','Chefe do Comando Territorial','defense',1.15,130,'IDN','🛖','Tem gente em cada aldeia do arquipélago e ninguém desembarca à sorte.');

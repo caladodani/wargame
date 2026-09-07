@@ -121,3 +121,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('SAU_law_defesa','production_speed',1.1),
  ('SAU_law_defesa','industry',1.06),
  ('SAU_law_defesa','export_share',0.9);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('SAU_gen_guarda','Chefe da Guarda Nacional','defense',1.15,140,'SAU','🕋','A tropa que guarda o reino por dentro, tribo a tribo.'),
+ ('SAU_gen_deserto_sau','Comandante do Deserto','move_speed',1.16,135,'SAU','🏜','Atravessa o Rub al-Khali com a coluna abastecida.');

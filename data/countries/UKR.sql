@@ -132,3 +132,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('UKR_law_nacao','conscription',1.4),
  ('UKR_law_nacao','attack',1.08),
  ('UKR_law_nacao','industry',0.92);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('UKR_gen_drone_ukr','Chefe dos Drones','attack',1.16,130,'UKR','🌻','Guerra de vídeo e bateria: cada carro inimigo tem quem o siga.'),
+ ('UKR_gen_defesa_ukr','Comandante da Defesa em Profundidade','defense',1.17,135,'UKR','🛡','Três linhas de trincheira e a certeza de que a primeira vai cair.');

@@ -129,3 +129,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('PRK_law_songun','conscription',1.3),
  ('PRK_law_songun','attack',1.08),
  ('PRK_law_songun','industry',0.9);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('PRK_gen_tunel','Mestre dos Túneis','defense',1.18,120,'PRK','☭','Um exército debaixo de terra que não se bombardeia de cima.'),
+ ('PRK_gen_especiais_prk','Chefe das Forças Especiais','move_speed',1.18,130,'PRK','🥋','Cem mil homens treinados para aparecer na retaguarda alheia.');

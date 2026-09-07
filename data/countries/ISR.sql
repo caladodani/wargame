@@ -120,3 +120,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('ISR_law_nacao','conscription',1.35),
  ('ISR_law_nacao','attack',1.05),
  ('ISR_law_nacao','industry',0.95);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('ISR_gen_reserva_isr','Chefe da Mobilização','org_regain',1.18,135,'ISR','✡','Meio país fardado em dois dias, e cada um sabe a que unidade vai.'),
+ ('ISR_gen_blindados_isr','Mestre da Manobra Blindada','attack',1.15,145,'ISR','🎯','Guerra curta, decidida ao terceiro dia — é a única que se pode dar.');

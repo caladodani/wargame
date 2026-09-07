@@ -119,3 +119,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('AGO_law_nacionalizacao','industry',1.12),
  ('AGO_law_nacionalizacao','export_share',0.85),
  ('AGO_law_nacionalizacao','research_speed',0.95);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('AGO_gen_mato','Comandante do Mato','defense',1.14,130,'AGO','🌿','Vinte anos de guerra na savana: sabe onde a coluna passa e onde morre.'),
+ ('AGO_gen_brigada_ligeira','Chefe da Brigada Ligeira','move_speed',1.18,120,'AGO','🏍','Camionetas e homens leves: chega à baixa do Kwanza antes de darem por ele.');

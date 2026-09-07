@@ -1,4 +1,5 @@
 using Godot;
+using WarGame.Core.Commands;
 using WarGame.Core.Model;
 
 namespace WarGame.Presentation;
@@ -103,6 +104,132 @@ public static class CommanderView
         note.AddThemeColorOverride("font_color", Ui.TextDim);
         v.AddChild(note);
         return v;
+    }
+
+    /// <summary>O estado-maior inteiro à maneira do HoI4: uma folha de comandantes com retrato emoldurado
+    /// em vez da lista corrida de linhas de texto que aqui estava. Cada homem ao serviço leva a chapa dele
+    /// numa placa, a divisa do posto, o que multiplica, a linha da folha de serviço e a barra de carreira;
+    /// os que faltam contratar aparecem por baixo, separados em dois blocos — os de casa (com o selo ⚜ e a
+    /// bandeira do país) e os mercenários, que qualquer estado-maior pode chamar.
+    ///
+    /// Só lê o World; contratar e dispensar é de quem sabe despachar comandos.</summary>
+    public static PanelContainer? Roster(World w, Country c, bool mine, Action<string> onHire, Action<string> onDismiss)
+    {
+        var pool = w.GeneralPool(c);
+        if (pool.Count == 0) return null;
+        int slots = (int)w.Rule("general_slots", 3f);
+        int top = TopLevel(w);
+
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.14f, 0.13f, 0.10f, 0.94f), 10));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 5); card.AddChild(v);
+
+        int home = c.Generals.Count(id => w.GeneralDefs.TryGetValue(id, out var g) && g.CountryTag is not null);
+        var head = Ui.Lbl($"🎖 Estado-maior: {c.Generals.Count}/{slots} ao serviço"
+                          + (home > 0 ? $" · {home} de casa" : ""), 17);
+        head.AddThemeColorOverride("font_color", Ui.Accent);
+        v.AddChild(head);
+
+        foreach (var def in pool.Where(g => c.Generals.Contains(g.Id))
+                                .OrderByDescending(g => w.RankOf(c.Id, g.Id)?.Level ?? 1).ThenBy(g => g.Name))
+        {
+            v.AddChild(Ui.Rule());
+            bool hurt = w.IsWounded(c.Id, def.Id);
+            int level = w.RankOf(c.Id, def.Id)?.Level ?? 1;
+            var tint = hurt ? Hurt : Tint(level, top);
+            // destacado a um grupo: o bónus sai do país e vale, amplificado, só nesse exército
+            var posted = w.ArmyGroups.Values.FirstOrDefault(g => g.CountryId == c.Id && g.GeneralId == def.Id);
+
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10);
+            row.AddChild(Portrait(def.Icon, tint, hurt));
+            var cell = Ui.Grow(new VBoxContainer()); cell.AddThemeConstantOverride("separation", 2);
+
+            var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 8);
+            var badge = Ui.Lbl(Insignia(level), 15);
+            badge.AddThemeColorOverride("font_color", tint);
+            title.AddChild(badge);
+            string rank = RankName(w, c.Id, def.Id) is string rn && rn.Length > 0 ? $" · {rn}" : "";
+            var who = Ui.Lbl(def.Name + rank, 17);
+            who.AddThemeColorOverride("font_color", tint);
+            title.AddChild(Ui.Grow(who));
+            if (def.CountryTag is not null) title.AddChild(Seal(c));
+            if (mine)
+            {
+                string id = def.Id;
+                title.AddChild(Ui.Btn("Dispensar", () => onDismiss(id), 0, Ui.Kind.Danger));
+            }
+            cell.AddChild(title);
+
+            var eff = Ui.Lbl(hurt
+                ? "🩸 no hospital — o exército não leva nada do que ele vale"
+                : posted is null
+                    ? $"{Ui.StatName(def.StatKey)} ×{def.Mult:0.00} em todo o país"
+                    : $"⚔ {Ui.StatName(def.StatKey)} ×{1f + (def.Mult - 1f) * (w.Rule("general_command_bonus", 2f) + w.RankBonus(c.Id, def.Id)):0.00} no {posted.Name}", 15);
+            eff.AddThemeColorOverride("font_color", hurt ? Hurt : Ui.Good);
+            cell.AddChild(eff);
+            if (def.Note.Length > 0 && !hurt)
+            {
+                var note = Ui.Lbl(def.Note, 13);
+                note.AddThemeColorOverride("font_color", Ui.TextDim);
+                note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                cell.AddChild(note);
+            }
+            cell.AddChild(hurt ? Recovery(w, c.Id, def.Id) : Progress(w, c.Id, def.Id, tint));
+            row.AddChild(cell);
+            v.AddChild(row);
+        }
+
+        // por contratar: primeiro os de casa, depois os que se contratam em qualquer lado
+        var free = pool.Where(g => !c.Generals.Contains(g.Id)).ToList();
+        if (mine && free.Count > 0)
+        {
+            v.AddChild(Ui.Rule());
+            foreach (var group in new[] { true, false })
+            {
+                var men = free.Where(g => (g.CountryTag is not null) == group).ToList();
+                if (men.Count == 0) continue;
+                var label = Ui.Lbl(group ? $"      ⚜ de casa ({c.Name})" : "      mercenários, de qualquer lado", 13);
+                label.AddThemeColorOverride("font_color", group ? Ui.Accent : Ui.TextDim);
+                v.AddChild(label);
+                foreach (var g in men)
+                {
+                    string id = g.Id;
+                    var b = Ui.Btn($"{g.Icon} {g.Name}   —   {Ui.StatName(g.StatKey)} ×{g.Mult:0.00}   ·   {g.Cost:0} pp",
+                                   () => onHire(id), 0, group ? Ui.Kind.Primary : Ui.Kind.Normal);
+                    string? why = new HireGeneralCommand(c.Id, id).Validate(w);
+                    b.Disabled = why is not null;
+                    b.TooltipText = why ?? g.Note;
+                    b.AddThemeFontSizeOverride("font_size", 14);
+                    v.AddChild(Ui.Grow(b));
+                }
+            }
+        }
+        return card;
+    }
+
+    /// <summary>Retrato do comandante: a chapa dele numa placa emoldurada, apagada quando está no hospital.</summary>
+    private static PanelContainer Portrait(string icon, Color tint, bool hurt)
+    {
+        var frame = new PanelContainer { CustomMinimumSize = new Vector2(54, 54) };
+        frame.AddThemeStyleboxOverride("panel", Ui.Box(hurt ? new Color(0.20f, 0.10f, 0.11f, 0.94f) : Ui.Ink, 6));
+        var face = Ui.Lbl(icon, 26);
+        face.HorizontalAlignment = HorizontalAlignment.Center;
+        face.VerticalAlignment = VerticalAlignment.Center;
+        face.AddThemeColorOverride("font_color", tint);
+        frame.AddChild(face);
+        return frame;
+    }
+
+    /// <summary>Selo do comandante que é de casa (o mesmo do gabinete e das leis nacionais).</summary>
+    private static PanelContainer Seal(Country c)
+    {
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Accent with { A = 0.18f }, 4));
+        var l = Ui.Lbl($"⚜ {c.Tag}", 13);
+        l.AddThemeColorOverride("font_color", Ui.Accent);
+        l.TooltipText = $"comandante de {c.Name}: nenhum outro estado-maior o chama";
+        chip.AddChild(l);
+        return chip;
     }
 
     /// <summary>Enfermaria do estado-maior: quem está fora, há quanto tempo falta e o aviso de que os

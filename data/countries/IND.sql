@@ -120,3 +120,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('IND_law_total','production_speed',1.12),
  ('IND_law_total','industry',1.08),
  ('IND_law_total','export_share',0.75);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('IND_gen_himalaia','Comandante do Himalaia','defense',1.17,135,'IND','🕉','Guarda o passo mais alto do mundo com a tropa que lá vive.'),
+ ('IND_gen_golpe','Mestre do Corpo de Choque','attack',1.14,145,'IND','🐅','Os corpos de ataque existem para entrar, e ele é quem os leva.');

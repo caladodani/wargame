@@ -148,3 +148,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('BRA_law_selva','org_regain',1.05),
  ('BRA_law_interior','industry',1.06),
  ('BRA_law_interior','conscription',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('BRA_gen_selva','Comandante de Selva','defense',1.16,130,'BRA','🌳','A escola de Manaus: a floresta é dele e o invasor é que se perde.'),
+ ('BRA_gen_pracinha','Herdeiro dos Pracinhas','attack',1.13,140,'BRA','🐍','A cobra fumou uma vez em Itália e ninguém deixou esquecer.');

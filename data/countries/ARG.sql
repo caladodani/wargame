@@ -117,3 +117,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('ARG_law_projeccao','attack',1.1),
  ('ARG_law_projeccao','org_regain',1.05),
  ('ARG_law_projeccao','industry',0.97);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('ARG_gen_montanha','General de Montanha','defense',1.15,130,'ARG','⛰','Formou-se nos Andes, onde o frio mata mais do que o inimigo.'),
+ ('ARG_gen_anfibio','Comandante Anfíbio','attack',1.14,145,'ARG','🚤','Treinou o desembarque nas ilhas até saber a praia de cor.');

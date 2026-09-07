@@ -128,3 +128,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('ITA_law_guarda','industry',1.04),
  ('ITA_law_projeccao','attack',1.08),
  ('ITA_law_projeccao','occupied_yield',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('ITA_gen_alpini','Chefe dos Alpini','defense',1.16,130,'ITA','🏔','Guerra de montanha desde 1872, e ainda se ganham medalhas por lá.'),
+ ('ITA_gen_mediterraneo_ita','Comandante do Mediterrâneo','move_speed',1.16,130,'ITA','🍋','Embarca a brigada num dia e desembarca-a do outro lado no seguinte.');

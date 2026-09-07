@@ -116,3 +116,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('MOZ_law_seguranca','industry',1.05),
  ('MOZ_law_renda','industry',1.12),
  ('MOZ_law_renda','export_price',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('MOZ_gen_costa','Comandante da Costa','defense',1.14,125,'MOZ','🔥','Cabo Delgado ensinou-lhe a guerra que se faz entre a mata e o mar.'),
+ ('MOZ_gen_rio','Chefe da Força do Zambeze','move_speed',1.16,115,'MOZ','🛶','Move a coluna pelo rio quando a estrada não existe.');

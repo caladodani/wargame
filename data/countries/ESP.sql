@@ -136,3 +136,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('ESP_law_centralizacao','conscription',1.15),
  ('ESP_law_centralizacao','counter_intel',1.12),
  ('ESP_law_centralizacao','research_speed',0.95);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('ESP_gen_tercio','Herdeiro dos Tércios','attack',1.15,140,'ESP','🏰','A infantaria pesada de sempre, com quinhentos anos de escola.'),
+ ('ESP_gen_legion','Chefe da Legião','org_regain',1.14,130,'ESP','🐐','Tropa de choque que se recompõe sozinha e nunca fica sem chefe.');

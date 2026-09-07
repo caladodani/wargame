@@ -354,8 +354,9 @@ public sealed class AiSystem : ISystem
         float reserve = w.Rule("ai_general_reserve", 200f);
         bool atWar = c.AtWarWith.Count > 0;
         var pick = w.GeneralDefs.Values
-            .Where(g => !c.Generals.Contains(g.Id) && c.Money >= g.Cost + reserve)
+            .Where(g => World.GeneralIsFor(g, c) && !c.Generals.Contains(g.Id) && c.Money >= g.Cost + reserve)
             .OrderByDescending(g => atWar && (g.StatKey == "attack" || g.StatKey == "defense"))
+            .ThenByDescending(g => g.CountryTag is not null)   // o de casa primeiro: é o que vale mais
             .ThenBy(g => g.Cost)
             .FirstOrDefault();
         if (pick is not null) new HireGeneralCommand(c.Id, pick.Id).Execute(w);

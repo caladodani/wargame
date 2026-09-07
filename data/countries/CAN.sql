@@ -117,3 +117,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('CAN_law_quebragelos','industry',1.04),
  ('CAN_law_noroeste','industry',1.08),
  ('CAN_law_noroeste','export_share',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('CAN_gen_artico','Comandante do Ártico','defense',1.15,130,'CAN','❄','Guerra a quarenta abaixo de zero: sabe o que congela e o que dispara.'),
+ ('CAN_gen_logistica_norte','Mestre da Rota do Norte','org_regain',1.14,125,'CAN','🛷','Abastece guarnições onde não há estrada, só gelo e pista curta.');

@@ -131,3 +131,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('GBR_law_mercado','industry',1.08),
  ('GBR_law_mercado','export_share',1.2),
  ('GBR_law_mercado','research_speed',0.97);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('GBR_gen_comando','Chefe dos Comandos','attack',1.15,140,'GBR','👑','Raide nocturno, gente pouca, alvo certo: a escola das operações combinadas.'),
+ ('GBR_gen_estado_maior_imp','Estado-Maior Imperial','org_regain',1.15,135,'GBR','🎩','Coordena forças de meio mundo sem que a linha se desencontre.');

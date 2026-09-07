@@ -129,3 +129,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('PAK_law_gwadar','production_speed',1.05),
  ('PAK_law_guarnicao','defense',1.1),
  ('PAK_law_guarnicao','counter_intel',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('PAK_gen_montanha_pak','Comandante das Montanhas','defense',1.16,130,'PAK','🌙','A fronteira norte é um labirinto de pedra e ele tem o mapa na cabeça.'),
+ ('PAK_gen_corpo_choque','Chefe do Corpo de Choque','attack',1.14,140,'PAK','⚔','A reserva blindada da planície, guardada para um só golpe.');

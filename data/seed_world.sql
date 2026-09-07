@@ -657,12 +657,16 @@ INSERT INTO chronicle_kind VALUES ('gabinete','Gabinete','🏛',2);
 
 -- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)
 CREATE TABLE IF NOT EXISTS general (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL, cost REAL NOT NULL);
-INSERT INTO general VALUES ('gen_ofensiva','Mestre da ofensiva','attack',1.10,120);
-INSERT INTO general VALUES ('gen_defesa','Muralha','defense',1.10,120);
-INSERT INTO general VALUES ('gen_logistica','Logístico','org_regain',1.10,100);
-INSERT INTO general VALUES ('gen_manobra','Manobrador','move_speed',1.15,110);
-INSERT INTO general VALUES ('gen_industria','Organizador industrial','industry',1.08,140);
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL, cost REAL NOT NULL,
+  country_tag TEXT REFERENCES country(tag),   -- NULL = mercenário, contrata-o quem quiser; com tag, é da casa
+  icon TEXT NOT NULL DEFAULT '🎖',             -- a chapa do retrato no estado-maior
+  note TEXT NOT NULL DEFAULT '');             -- a linha da folha de serviço que o painel mostra
+INSERT INTO general (id,name,stat_key,mult,cost,icon,note) VALUES
+ ('gen_ofensiva','Mestre da ofensiva','attack',1.10,120,'⚔','Ensina a atacar onde o inimigo tem menos gente.'),
+ ('gen_defesa','Muralha','defense',1.10,120,'🛡','Onde ele manda, a linha não parte.'),
+ ('gen_logistica','Logístico','org_regain',1.10,100,'🚚','Os comboios chegam a horas e a tropa recompõe-se.'),
+ ('gen_manobra','Manobrador','move_speed',1.15,110,'🐎','Chega sempre primeiro ao sítio que interessa.'),
+ ('gen_industria','Organizador industrial','industry',1.08,140,'🏭','Fez a guerra na retaguarda e sabe o que a fábrica aguenta.');
 INSERT INTO rule VALUES ('general_slots', 3, 'comandantes ao serviço por país');
 INSERT INTO rule VALUES ('general_command_bonus', 2, 'quanto vale o bónus de um comandante quando é destacado para um grupo de exércitos em vez de servir o país todo');
 INSERT INTO rule VALUES ('ai_general_reserve', 200, 'reserva que a IA guarda antes de contratar comandantes');

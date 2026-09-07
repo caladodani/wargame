@@ -118,3 +118,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('USA_law_mobilizacao','industry',1.12),
  ('USA_law_mobilizacao','production_speed',1.12),
  ('USA_law_mobilizacao','export_share',0.85);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('USA_gen_logistica_usa','Mestre da Logística','org_regain',1.17,145,'USA','🗽','Põe combustível e munição em qualquer sítio do planeta em dias.'),
+ ('USA_gen_portaviao','Comandante da Força-Tarefa','attack',1.15,155,'USA','🦅','Onde chega a força-tarefa, a guerra passa a ser dela.');

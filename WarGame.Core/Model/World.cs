@@ -225,7 +225,9 @@ public sealed class World
         var detached = w.ArmyGroups.Values.Where(x => x.CountryId == c.Id && x.GeneralId is not null)
                                           .Select(x => x.GeneralId!).ToHashSet();
         foreach (var id in c.Generals)
-            if (!detached.Contains(id) && !w.IsWounded(c.Id, id) && w.GeneralDefs.TryGetValue(id, out var g))   // destacado manda no grupo, ferido não manda em nada
+            // destacado manda no grupo, ferido não manda em nada, e um comandante de outro país (save antigo,
+            // tag trocada) não conta para ninguém
+            if (!detached.Contains(id) && !w.IsWounded(c.Id, id) && w.GeneralDefs.TryGetValue(id, out var g) && GeneralIsFor(g, c))
                 c.GeneralMult[g.StatKey] = c.GeneralMult.GetValueOrDefault(g.StatKey, 1f) * g.Mult;
     }
 
@@ -415,6 +417,16 @@ public sealed class World
             && chosen.Group == group && LawIsFor(chosen, c)
             ? chosen
             : Laws.Values.FirstOrDefault(l => l.Group == group && l.IsDefault && LawIsFor(l, c));
+
+    /// <summary>O comandante é deste país? Os de country_tag null são mercenários — contrata-os quem os
+    /// pagar; os outros são de casa e mais nenhum estado-maior os chama.</summary>
+    public static bool GeneralIsFor(GeneralDef g, Country c) => g.CountryTag is null || g.CountryTag == c.Tag;
+
+    /// <summary>A folha de comandantes deste país: os de casa primeiro (é a marca do país, e é o que vale
+    /// mais), depois os mercenários, cada bloco do mais barato ao mais caro.</summary>
+    public List<GeneralDef> GeneralPool(Country c) =>
+        GeneralDefs.Values.Where(g => GeneralIsFor(g, c))
+                   .OrderByDescending(g => g.CountryTag is not null).ThenBy(g => g.Cost).ThenBy(g => g.Id).ToList();
 
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);

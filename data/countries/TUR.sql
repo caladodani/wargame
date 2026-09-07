@@ -130,3 +130,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('TUR_law_beligerantes','export_price',1.1),
  ('TUR_law_drones','production_speed',1.12),
  ('TUR_law_drones','research_speed',1.06);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('TUR_gen_estreitos_tur','Guarda dos Estreitos','defense',1.16,130,'TUR','☾','Dois mares e uma cidade no meio: a passagem fecha-se com ele lá.'),
+ ('TUR_gen_drone','Mestre dos Drones','attack',1.16,140,'TUR','🛩','Vê o campo de batalha inteiro antes de mandar um homem lá.');

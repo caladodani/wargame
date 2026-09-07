@@ -128,3 +128,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('POL_law_trezentos','conscription',1.25),
  ('POL_law_trezentos','attack',1.06),
  ('POL_law_trezentos','industry',0.96);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('POL_gen_hussardo','Herdeiro dos Hussardos','attack',1.15,140,'POL','🦬','Cavalaria alada há quatrocentos anos, blindada agora.'),
+ ('POL_gen_flanco_pol','Comandante do Flanco Oriental','defense',1.16,135,'POL','🛡','A fronteira do Leste é a dele, e ele prepara-a há uma década.');

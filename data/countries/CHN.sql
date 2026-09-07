@@ -121,3 +121,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('CHN_law_dirigida','industry',1.18),
  ('CHN_law_dirigida','production_speed',1.08),
  ('CHN_law_dirigida','export_share',0.7);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('CHN_gen_massa','Comandante de Massa','attack',1.14,150,'CHN','🏮','Sabe pôr no terreno mais gente do que o inimigo consegue contar.'),
+ ('CHN_gen_planalto','General do Planalto','defense',1.15,135,'CHN','🏔','Guarda a fronteira alta, onde falta o ar e sobra a distância.');

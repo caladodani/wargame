@@ -143,3 +143,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('PRT_law_acores','defense',1.1),
  ('PRT_law_acores','org_regain',1.06),
  ('PRT_law_acores','export_price',1.1);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('PRT_gen_comandos_prt','Chefe dos Comandos','attack',1.15,135,'PRT','🇵🇹','Três guerras em África e a boina ainda se ganha a suar.'),
+ ('PRT_gen_atlantico_prt','Comandante do Comando Atlântico','org_regain',1.15,130,'PRT','⚓','Sustenta forças a mil milhas de casa como quem manda um recado.');

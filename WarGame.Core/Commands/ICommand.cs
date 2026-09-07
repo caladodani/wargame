@@ -1321,6 +1321,7 @@ public sealed record HireGeneralCommand(int CountryId, string GeneralId) : IComm
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (!w.GeneralDefs.TryGetValue(GeneralId, out var def)) return "comandante desconhecido";
+        if (!World.GeneralIsFor(def, c)) return "esse comandante é de outro país";
         if (c.Generals.Contains(GeneralId)) return "já serve neste exército";
         if (c.Generals.Count >= (int)w.Rule("general_slots", 3f)) return "estado-maior completo";
         if (c.Money < def.Cost) return "pontos de produção insuficientes";

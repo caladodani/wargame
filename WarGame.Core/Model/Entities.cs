@@ -170,8 +170,11 @@ public sealed record DecisionDef(string Id, string Name, float Cost, int Days, i
 /// <summary>Nível de dificuldade (tabelas difficulty/difficulty_effect): as regras que reescreve.</summary>
 public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<string, float> Effects);
 
-/// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.</summary>
-public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost);
+/// <summary>Comandante contratável (tabela general): custo único e um multiplicador num stat enquanto servir.
+/// CountryTag null = mercenário, serve quem o pagar; com tag, é o comandante de casa e mais nenhum país o
+/// chama. Icon é a chapa do retrato e Note a linha da folha de serviço que o estado-maior mostra.</summary>
+public sealed record GeneralDef(string Id, string Name, string StatKey, float Mult, float Cost,
+                                string? CountryTag = null, string Icon = "🎖", string Note = "");
 
 /// <summary>Pasta do gabinete civil (tabela cabinet_slot): uma cadeira por pasta e por país.</summary>
 public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort);

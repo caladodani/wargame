@@ -122,3 +122,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('AUS_law_submarinos','industry',1.05),
  ('AUS_law_expedicionario','attack',1.08),
  ('AUS_law_expedicionario','org_regain',1.06);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('AUS_gen_deserto','Comandante do Interior','move_speed',1.18,125,'AUS','🦘','Move uma brigada por mil quilómetros de nada e chega com ela inteira.'),
+ ('AUS_gen_anzac','Herdeiro do ANZAC','attack',1.13,140,'AUS','🎖','A tradição do corpo expedicionário: embarca-se e vai-se, longe.');

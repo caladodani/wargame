@@ -134,3 +134,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('KOR_law_dirigida','production_speed',1.15),
  ('KOR_law_dirigida','industry',1.1),
  ('KOR_law_dirigida','export_share',0.85);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('KOR_gen_dmz','Comandante da Linha','defense',1.18,135,'KOR','🇰🇷','Setenta anos a olhar para o mesmo arame sem pestanejar.'),
+ ('KOR_gen_artilharia_kor','Mestre da Artilharia','attack',1.15,140,'KOR','💥','Contra-bateria em segundos: quem dispara primeiro não dispara segunda vez.');

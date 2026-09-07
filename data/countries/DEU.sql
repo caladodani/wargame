@@ -125,3 +125,8 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('DEU_law_lideranca','attack',1.06),
  ('DEU_law_lideranca','org_regain',1.08),
  ('DEU_law_lideranca','industry',1.05);
+
+-- ===== comandantes de casa (general.country_tag) =====
+INSERT INTO general (id,name,stat_key,mult,cost,country_tag,icon,note) VALUES
+ ('DEU_gen_estado_maior','Escola do Estado-Maior','org_regain',1.16,140,'DEU','🦅','A ordem de operações sai perfeita e a tropa recompõe-se a horas.'),
+ ('DEU_gen_panzer','Mestre da Coluna Blindada','move_speed',1.18,145,'DEU','🛡','A tradição da manobra rápida, com os carros que a Alemanha ainda faz.');
