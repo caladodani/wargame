@@ -195,3 +195,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice Admiral',110,1,'USA'),
  ('mar',4,'Admiral',220,1.75,'USA'),
  ('mar',5,'Fleet Admiral',360,2.5,'USA');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('USA_baptismo','Combat Action Ribbon','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'USA'),
+ ('USA_assalto','Bronze Star Medal','Tomou três regiões ao inimigo.','captures',3,0.03,2,'USA'),
+ ('USA_campanha','Commendation Medal','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'USA'),
+ ('USA_aco','Silver Star','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'USA'),
+ ('USA_imortais','Medal of Honor','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'USA');

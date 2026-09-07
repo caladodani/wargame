@@ -194,3 +194,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Admiral (RCN)',110,1,'CAN'),
  ('mar',4,'Admiral (RCN)',220,1.75,'CAN'),
  ('mar',5,'Commander of the Royal Canadian Navy',360,2.5,'CAN');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('CAN_baptismo','General Campaign Star','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'CAN'),
+ ('CAN_assalto','Medal of Military Valour','Tomou três regiões ao inimigo.','captures',3,0.03,2,'CAN'),
+ ('CAN_campanha','Mention in Dispatches','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'CAN'),
+ ('CAN_aco','Star of Military Valour','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'CAN'),
+ ('CAN_imortais','Victoria Cross for Canada','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'CAN');

@@ -202,3 +202,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-amiral d''escadre',110,1,'FRA'),
  ('mar',4,'Amiral',220,1.75,'FRA'),
  ('mar',5,'Amiral de France',360,2.5,'FRA');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('FRA_baptismo','Médaille de la Défense Nationale','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'FRA'),
+ ('FRA_assalto','Croix de la Valeur Militaire','Tomou três regiões ao inimigo.','captures',3,0.03,2,'FRA'),
+ ('FRA_campanha','Croix du Combattant','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'FRA'),
+ ('FRA_aco','Médaille Militaire','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'FRA'),
+ ('FRA_imortais','Grand-Croix de la Légion','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'FRA');

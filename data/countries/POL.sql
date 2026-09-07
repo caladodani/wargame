@@ -206,3 +206,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Admirał floty',110,1,'POL'),
  ('mar',4,'Admirał',220,1.75,'POL'),
  ('mar',5,'Dowódca Marynarki Wojennej',360,2.5,'POL');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('POL_baptismo','Medal Wojska Polskiego','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'POL'),
+ ('POL_assalto','Krzyż Walecznych','Tomou três regiões ao inimigo.','captures',3,0.03,2,'POL'),
+ ('POL_campanha','Pochwała Dowódcy','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'POL'),
+ ('POL_aco','Krzyż Zasługi z Mieczami','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'POL'),
+ ('POL_imortais','Order Virtuti Militari','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'POL');

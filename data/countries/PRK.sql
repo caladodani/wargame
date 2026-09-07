@@ -206,3 +206,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Almirante do Povo Coreano',110,1,'PRK'),
  ('mar',4,'Comandante da Marinha do Povo Coreano',220,1.75,'PRK'),
  ('mar',5,'Almirante da Frota do Povo',360,2.5,'PRK');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('PRK_baptismo','Medalha do Guerreiro','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'PRK'),
+ ('PRK_assalto','Medalha do Assalto Popular','Tomou três regiões ao inimigo.','captures',3,0.03,2,'PRK'),
+ ('PRK_campanha','Louvor do Comando Supremo','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PRK'),
+ ('PRK_aco','Ordem da Bandeira Nacional','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PRK'),
+ ('PRK_imortais','Título de Herói da República','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PRK');

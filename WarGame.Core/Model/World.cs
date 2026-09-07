@@ -575,6 +575,31 @@ public sealed class World
         _ => "wound_chance",
     };
 
+    /// <summary>Esta condecoração serve este país? A fita comum (country_tag nulo) serve todo o exército
+    /// que não traga as suas; uma condecoração nacional é só de quem a traz — uma Victoria Cross não se
+    /// prega numa divisão argentina.</summary>
+    public static bool MedalIsFor(MedalDef m, Country c) => m.CountryTag is null || m.CountryTag == c.Tag;
+
+    /// <summary>As condecorações COMUNS, do grau mais baixo para o mais alto.</summary>
+    public List<MedalDef> Medals() =>
+        MedalDefs.Values.Where(m => m.CountryTag is null).OrderBy(m => m.Sort).ToList();
+
+    /// <summary>O medalheiro deste país: o dele, se trouxer um (data/countries/&lt;TAG&gt;.sql), senão o comum.
+    /// Os limiares e os bónus são os mesmos dos dois lados — o que muda é o nome que a divisão passa a
+    /// trazer, como nas escadas de postos.</summary>
+    public List<MedalDef> Medals(Country c)
+    {
+        var own = MedalDefs.Values.Where(m => m.CountryTag == c.Tag).OrderBy(m => m.Sort).ToList();
+        return own.Count > 0 ? own : Medals();
+    }
+
+    /// <summary>O mesmo medalheiro, pelo número do país — é o que a UI e o sistema têm à mão.</summary>
+    public List<MedalDef> Medals(int countryId) =>
+        Countries.TryGetValue(countryId, out var c) ? Medals(c) : Medals();
+
+    /// <summary>O país condecora com fitas próprias (e não com as comuns)?</summary>
+    public bool HasOwnMedals(Country c) => MedalDefs.Values.Any(m => m.CountryTag == c.Tag);
+
     /// <summary>Este posto serve este país? A escada comum (country_tag nulo) serve toda a gente; uma
     /// escada nacional é só de quem a traz — um Generalfeldmarschall não se põe num exército português.</summary>
     public static bool RankIsFor(GeneralRank r, Country c) => r.CountryTag is null || r.CountryTag == c.Tag;

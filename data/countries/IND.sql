@@ -197,3 +197,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice Admiral (IN)',110,1,'IND'),
  ('mar',4,'Admiral (IN)',220,1.75,'IND'),
  ('mar',5,'Admiral of the Fleet (IN)',360,2.5,'IND');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('IND_baptismo','Sainya Seva Medal','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'IND'),
+ ('IND_assalto','Shaurya Chakra','Tomou três regiões ao inimigo.','captures',3,0.03,2,'IND'),
+ ('IND_campanha','Mention in Despatches','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IND'),
+ ('IND_aco','Vir Chakra','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IND'),
+ ('IND_imortais','Param Vir Chakra','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IND');

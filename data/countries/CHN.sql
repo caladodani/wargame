@@ -198,3 +198,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Almirante do Povo',110,1,'CHN'),
  ('mar',4,'Almirante do Povo',220,1.75,'CHN'),
  ('mar',5,'Comandante da Marinha do Povo',360,2.5,'CHN');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('CHN_baptismo','Medalha do Soldado do Povo','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'CHN'),
+ ('CHN_assalto','Medalha do Assalto Vermelho','Tomou três regiões ao inimigo.','captures',3,0.03,2,'CHN'),
+ ('CHN_campanha','Louvor de Primeira Classe','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'CHN'),
+ ('CHN_aco','Medalha de Heroísmo em Combate','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'CHN'),
+ ('CHN_imortais','Ordem da Estrela de Agosto','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'CHN');

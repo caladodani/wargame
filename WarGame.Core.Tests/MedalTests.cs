@@ -159,9 +159,8 @@ public class MedalTests
         Assert.NotEmpty(d.Medals);
 
         using var save = new MsSqliteDatabase();
-        var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
-        WarGame.Core.Data.SqlWorldRepository.EnsureSaveSchema(save, schema);
+        WarGame.Core.Data.SqlWorldRepository.EnsureSaveSchema(
+            save, WarGame.Core.Data.SqlWorldRepository.SchemaFromSqliteMaster(staticDb));
         var repo = new WarGame.Core.Data.SqlWorldRepository(staticDb);
         repo.WriteSave(w, save);
 

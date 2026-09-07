@@ -225,3 +225,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Almirante de Esquadra',110,1,'BRA'),
  ('mar',4,'Comandante da Marinha',220,1.75,'BRA'),
  ('mar',5,'Almirante',360,2.5,'BRA');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('BRA_baptismo','Medalha de Campanha','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'BRA'),
+ ('BRA_assalto','Medalha de Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2,'BRA'),
+ ('BRA_campanha','Louvor do Comando','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'BRA'),
+ ('BRA_aco','Cruz de Combate','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'BRA'),
+ ('BRA_imortais','Ordem do Mérito Militar','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'BRA');

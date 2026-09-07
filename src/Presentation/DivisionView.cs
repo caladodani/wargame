@@ -106,7 +106,8 @@ public static class DivisionView
         return h;
     }
 
-    /// <summary>Fitas das condecorações, uma por medalha, da mais baixa para a mais alta.</summary>
+    /// <summary>Fitas das condecorações, uma por medalha, da mais baixa para a mais alta. A divisa é a do
+    /// grau (MedalView.Insignia) e não um 🎖 igual para todas, e a fita de casa leva o selo ⚜.</summary>
     public static HFlowContainer Ribbons(World w, Division d)
     {
         var flow = new HFlowContainer();
@@ -114,10 +115,11 @@ public static class DivisionView
         {
             var chip = new PanelContainer();
             chip.AddThemeStyleboxOverride("panel", Ui.Box(RibbonColor(m.Sort), 6));
-            var l = Ui.Lbl($"🎖 {m.Name}", 15);
-            l.TooltipText = m.Description;
+            var l = Ui.Lbl($"{MedalView.Insignia(m.Sort)} {m.Name}" + (m.CountryTag is null ? "" : " ⚜"), 15);
+            string tip = m.Description + (m.CountryTag is null ? "" : $"\ncondecoração de {m.CountryTag}");
+            l.TooltipText = tip;
             chip.AddChild(l);
-            chip.TooltipText = m.Description;
+            chip.TooltipText = tip;
             flow.AddChild(chip);
         }
         return flow;

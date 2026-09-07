@@ -209,3 +209,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Almirante da Ucrânia',110,1,'UKR'),
  ('mar',4,'Comandante da Marinha',220,1.75,'UKR'),
  ('mar',5,'Almirante de Esquadra da Ucrânia',360,2.5,'UKR');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('UKR_baptismo','Medalha do Defensor da Pátria','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'UKR'),
+ ('UKR_assalto','Cruz de Combate','Tomou três regiões ao inimigo.','captures',3,0.03,2,'UKR'),
+ ('UKR_campanha','Louvor do Comandante','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'UKR'),
+ ('UKR_aco','Ordem de Bohdan Khmelnytsky','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'UKR'),
+ ('UKR_imortais','Estrela de Ouro de Herói da Ucrânia','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'UKR');

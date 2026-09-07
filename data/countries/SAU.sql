@@ -197,3 +197,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Fariq Bahri',110,1,'SAU'),
  ('mar',4,'Fariq Awwal Bahri',220,1.75,'SAU'),
  ('mar',5,'Comandante da Marinha Real',360,2.5,'SAU');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('SAU_baptismo','Medalha do Serviço Militar do Reino','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'SAU'),
+ ('SAU_assalto','Medalha do Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2,'SAU'),
+ ('SAU_campanha','Louvor do Comando','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'SAU'),
+ ('SAU_aco','Ordem do Rei Abdulaziz','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'SAU'),
+ ('SAU_imortais','Medalha de Honra Militar do Reino','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'SAU');

@@ -96,9 +96,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
                 Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]), (string)r["yard"]!);
-        foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort FROM medal ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort,country_tag FROM medal ORDER BY sort"))
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
-                (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
+                (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]),
+                r["country_tag"] as string);
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));

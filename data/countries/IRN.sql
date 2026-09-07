@@ -207,3 +207,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Daryaban',110,1,'IRN'),
  ('mar',4,'Daryasalar',220,1.75,'IRN'),
  ('mar',5,'Comandante da Marinha',360,2.5,'IRN');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('IRN_baptismo','Medalha do Serviço das Forças Armadas','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'IRN'),
+ ('IRN_assalto','Medalha do Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2,'IRN'),
+ ('IRN_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IRN'),
+ ('IRN_aco','Ordem de Fath','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IRN'),
+ ('IRN_imortais','Ordem de Zolfaghar','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IRN');

@@ -204,3 +204,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Laksamana Madya',110,1,'IDN'),
  ('mar',4,'Laksamana',220,1.75,'IDN'),
  ('mar',5,'Laksamana Besar',360,2.5,'IDN');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('IDN_baptismo','Satyalancana Wira Dharma','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'IDN'),
+ ('IDN_assalto','Satyalancana Kesetiaan','Tomou três regiões ao inimigo.','captures',3,0.03,2,'IDN'),
+ ('IDN_campanha','Piagam Penghargaan','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'IDN'),
+ ('IDN_aco','Bintang Dharma','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'IDN'),
+ ('IDN_imortais','Bintang Sakti','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'IDN');

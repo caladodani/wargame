@@ -207,3 +207,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Koramiral',110,1,'TUR'),
  ('mar',4,'Oramiral',220,1.75,'TUR'),
  ('mar',5,'Deniz Kuvvetleri Komutanı',360,2.5,'TUR');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('TUR_baptismo','Muharebe Madalyası','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'TUR'),
+ ('TUR_assalto','Üstün Cesaret ve Feragat Madalyası','Tomou três regiões ao inimigo.','captures',3,0.03,2,'TUR'),
+ ('TUR_campanha','Takdirname','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'TUR'),
+ ('TUR_aco','Şeref Madalyası','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'TUR'),
+ ('TUR_imortais','İstiklal Madalyası','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'TUR');

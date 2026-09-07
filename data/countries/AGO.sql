@@ -197,3 +197,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Almirante de Angola',110,1,'AGO'),
  ('mar',4,'Almirante de Angola',220,1.75,'AGO'),
  ('mar',5,'Comandante da Marinha de Guerra',360,2.5,'AGO');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('AGO_baptismo','Medalha de Combatente','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'AGO'),
+ ('AGO_assalto','Medalha de Assalto das FAA','Tomou três regiões ao inimigo.','captures',3,0.03,2,'AGO'),
+ ('AGO_campanha','Louvor de Campanha das FAA','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'AGO'),
+ ('AGO_aco','Medalha do Mérito Militar de Angola','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'AGO'),
+ ('AGO_imortais','Ordem Agostinho Neto','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'AGO');

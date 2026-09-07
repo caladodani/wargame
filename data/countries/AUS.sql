@@ -200,3 +200,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice Admiral (RAN)',110,1,'AUS'),
  ('mar',4,'Admiral (RAN)',220,1.75,'AUS'),
  ('mar',5,'Chief of Navy',360,2.5,'AUS');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('AUS_baptismo','Active Service Medal','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'AUS'),
+ ('AUS_assalto','Star of Gallantry','Tomou três regiões ao inimigo.','captures',3,0.03,2,'AUS'),
+ ('AUS_campanha','Commendation for Distinguished Service','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'AUS'),
+ ('AUS_aco','Distinguished Service Cross','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'AUS'),
+ ('AUS_imortais','Victoria Cross for Australia','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'AUS');

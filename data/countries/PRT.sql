@@ -220,3 +220,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Almirante da Armada',110,1,'PRT'),
  ('mar',4,'Almirante',220,1.75,'PRT'),
  ('mar',5,'Almirante da Armada Portuguesa',360,2.5,'PRT');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('PRT_baptismo','Medalha de Comportamento Exemplar','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'PRT'),
+ ('PRT_assalto','Cruz de Guerra','Tomou três regiões ao inimigo.','captures',3,0.03,2,'PRT'),
+ ('PRT_campanha','Louvor do Chefe do Estado-Maior','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PRT'),
+ ('PRT_aco','Medalha de Valor Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PRT'),
+ ('PRT_imortais','Ordem da Torre e Espada','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PRT');

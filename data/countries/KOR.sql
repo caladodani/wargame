@@ -210,3 +210,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Almirante da Coreia',110,1,'KOR'),
  ('mar',4,'Almirante da Coreia',220,1.75,'KOR'),
  ('mar',5,'Chefe do Estado-Maior Naval da Coreia',360,2.5,'KOR');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('KOR_baptismo','Inheon Mugong Hunjang','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'KOR'),
+ ('KOR_assalto','Hwarang Mugong Hunjang','Tomou três regiões ao inimigo.','captures',3,0.03,2,'KOR'),
+ ('KOR_campanha','Chungmu Mugong Hunjang','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'KOR'),
+ ('KOR_aco','Eulji Mugong Hunjang','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'KOR'),
+ ('KOR_imortais','Taegeuk Mugong Hunjang','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'KOR');

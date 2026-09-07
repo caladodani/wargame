@@ -197,3 +197,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Tat Aluf do Mar',110,1,'ISR'),
  ('mar',4,'Aluf do Mar',220,1.75,'ISR'),
  ('mar',5,'Comandante da Marinha',360,2.5,'ISR');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('ISR_baptismo','Ot HaMivtza','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'ISR'),
+ ('ISR_assalto','Tzalash HaAluf','Tomou três regiões ao inimigo.','captures',3,0.03,2,'ISR'),
+ ('ISR_campanha','Tzalash HaRamatkal','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ISR'),
+ ('ISR_aco','Itur HaOz','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ISR'),
+ ('ISR_imortais','Itur HaGvura','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ISR');

@@ -208,3 +208,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice-Almirante do Japão',110,1,'JPN'),
  ('mar',4,'Almirante do Japão',220,1.75,'JPN'),
  ('mar',5,'Chefe do Estado-Maior Naval',360,2.5,'JPN');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('JPN_baptismo','Jugun Kisho','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'JPN'),
+ ('JPN_assalto','Zuiho-sho','Tomou três regiões ao inimigo.','captures',3,0.03,2,'JPN'),
+ ('JPN_campanha','Louvor do Estado-Maior','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'JPN'),
+ ('JPN_aco','Kyokujitsu-sho','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'JPN'),
+ ('JPN_imortais','Kinshi Kunsho','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'JPN');

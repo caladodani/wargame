@@ -193,3 +193,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Contra-Almirante de Moçambique',110,1,'MOZ'),
  ('mar',4,'Vice-Almirante de Moçambique',220,1.75,'MOZ'),
  ('mar',5,'Comandante da Marinha de Guerra de Moçambique',360,2.5,'MOZ');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('MOZ_baptismo','Medalha de Combatente das FADM','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'MOZ'),
+ ('MOZ_assalto','Medalha de Assalto de Moçambique','Tomou três regiões ao inimigo.','captures',3,0.03,2,'MOZ'),
+ ('MOZ_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'MOZ'),
+ ('MOZ_aco','Medalha do Mérito Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'MOZ'),
+ ('MOZ_imortais','Ordem Eduardo Mondlane','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'MOZ');

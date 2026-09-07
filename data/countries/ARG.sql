@@ -194,3 +194,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vicealmirante de la Armada',110,1,'ARG'),
  ('mar',4,'Almirante',220,1.75,'ARG'),
  ('mar',5,'Jefe del Estado Mayor de la Armada',360,2.5,'ARG');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('ARG_baptismo','Medalla al Valor en Combate','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'ARG'),
+ ('ARG_assalto','Medalla al Asalto','Tomou três regiões ao inimigo.','captures',3,0.03,2,'ARG'),
+ ('ARG_campanha','Mención de Campaña','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ARG'),
+ ('ARG_aco','Cruz al Mérito Militar','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ARG'),
+ ('ARG_imortais','Cruz al Heroico Valor en Combate','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ARG');

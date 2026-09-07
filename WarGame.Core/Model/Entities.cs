@@ -138,7 +138,8 @@ public sealed class Region
 /// SupplyRange = alcance em km a que o edifício projecta abastecimento por mar, por nível (0 = nenhum).</summary>
 /// <summary>Condecoração de divisão (tabela medal). Metric: "xp", "battles" ou "captures"; ao passar
 /// o limiar a divisão ganha-a para sempre e Bonus soma-se à sua força (tecto medal_bonus_max).</summary>
-public sealed record MedalDef(string Id, string Name, string Description, string Metric, float Threshold, float Bonus, int Sort);
+public sealed record MedalDef(string Id, string Name, string Description, string Metric, float Threshold, float Bonus,
+                             int Sort, string? CountryTag = null);
 
 /// <summary>Honra de batalha (tabela division_honour). Ao contrário das condecorações, que se acumulam,
 /// uma divisão só carrega UMA honra — a mais alta que mereceu — e ela passa a fazer parte do nome:

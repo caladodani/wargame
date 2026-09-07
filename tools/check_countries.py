@@ -56,7 +56,7 @@ def check(path, static):
             errs.append(f'tag {tag} não existe na tabela country')
     TAG_TABLES = ('country_stat', 'country_info', 'national_spirit', 'country_template', 'country_unit', 'modifier',
                   'advisor', 'law', 'law_group', 'general', 'army_doctrine', 'army_doctrine_branch', 'tech',
-                  'general_rank')
+                  'general_rank', 'medal')
     base_rows = {t: set(db.execute(f'SELECT * FROM {t}').fetchall()) for t in TAG_TABLES}
     try:
         db.executescript(path.read_text(encoding='utf-8'))
@@ -322,6 +322,36 @@ def check(path, static):
     else:
         warns.append('sem escada de postos nacional (os comandantes sobem pela comum)')
 
+    # medalheiro nacional (medal.country_tag): os mesmos graus da fita comum, com os nomes de casa. Os
+    # limiares e os bónus TÊM de ser os comuns, pela mesma razão dos postos — uma Victoria Cross e uma
+    # Cruz de Aço pedem a mesma guerra e valem o mesmo, o que muda é o nome que a divisão passa a trazer.
+    own_medals = db.execute('SELECT id,name,metric,threshold,bonus,sort FROM medal WHERE country_tag=?'
+                            ' ORDER BY sort', (tag,)).fetchall()
+    common_medals = db.execute('SELECT id,name,metric,threshold,bonus,sort FROM medal'
+                               ' WHERE country_tag IS NULL ORDER BY sort').fetchall()
+    if own_medals:
+        if len(own_medals) != len(common_medals):
+            errs.append(f'medalheiro: {len(own_medals)} fitas e o comum tem {len(common_medals)}'
+                        ' — quem traz medalheiro traz um grau para cada')
+        else:
+            names = [m[1] for m in own_medals]
+            for name in sorted({n for n in names if names.count(n) > 1}):
+                errs.append(f'medalheiro: condecoração {name} repetida')
+            for (mid, name, metric, thr, bonus, sort), (cid, cname, cmetric, cthr, cbonus, csort) in \
+                    zip(own_medals, common_medals):
+                if not mid.startswith(tag + '_'):
+                    errs.append(f'condecoração {mid}: o id de uma fita nacional começa por {tag}_')
+                if sort != csort:
+                    errs.append(f'condecoração {name}: grau {sort} onde a fita comum tem {csort}')
+                if (metric, thr, bonus) != (cmetric, cthr, cbonus):
+                    errs.append(f'condecoração {name}: pede {metric} {thr}/vale {bonus} e a fita comum'
+                                f' ({cname}) pede {cmetric} {cthr}/vale {cbonus}'
+                                ' — o medalheiro nacional muda o nome, não o equilíbrio')
+            if names == [m[1] for m in common_medals]:
+                errs.append('medalheiro: nomes iguais aos das fitas comuns — nacional sem nada de nacional')
+    else:
+        warns.append('sem medalheiro nacional (as divisões recebem as fitas comuns)')
+
     n_units = 0
     for name, tname, rname in db.execute('SELECT name,template_name,region_name FROM country_unit WHERE country_tag=?', (tag,)):
         n_units += 1
@@ -335,7 +365,8 @@ def check(path, static):
     gen_arms = '+'.join(f'{d}:{len(by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
     tech_arms = '+'.join(f'{TECH_BRANCHES[b]}:{len(tech_by_branch.get(b, []))}' for b in sorted(TECH_BRANCHES))
     rank_arms = '+'.join(f'{d}:{len(ranks_by_arm.get(d, []))}' for d in ('exercito', 'ar', 'mar'))
-    summary = (f'{tag}: {len(own_ranks)} postos próprios [{rank_arms}], {len(own_techs)} programas nacionais [{tech_arms}], '
+    summary = (f'{tag}: {len(own_ranks)} postos próprios [{rank_arms}], {len(own_medals)} condecorações próprias, '
+               f'{len(own_techs)} programas nacionais [{tech_arms}], '
                f'{len(own_groups)} escadas de leis ({n_laws} leis), {n_adv} conselheiros, {n_gen} comandantes [{gen_arms}], '
                f'{len(own_branches)} escolas de guerra [{arms}] ({n_doc} degraus), {len(spirits)} espíritos, {db.execute("SELECT COUNT(*) FROM modifier WHERE country_tag=?", (tag,)).fetchone()[0]} efeitos, '
                f'{len(new_units)} unidades próprias, {db.execute("SELECT COUNT(*) FROM country_template WHERE country_tag=?", (tag,)).fetchone()[0]} templates próprios, '
@@ -450,6 +481,56 @@ def check_wounds(db, static):
     return errs, warns
 
 
+def check_medals(db, static):
+    """Condecorações (medal): o medalheiro comum está inteiro e o espelho está em dia.
+
+    O MedalSystem condecora cada divisão pelo medalheiro do PAÍS dela (World.Medals): quem traz fitas
+    próprias não recebe as comuns. Duas fitas do mesmo grau no mesmo medalheiro dariam o bónus a dobrar
+    à mesma divisão, e uma métrica que o sistema não conhece nunca condecora ninguém.
+    """
+    errs, warns = [], []
+    rows = db.execute('SELECT id,name,description,metric,threshold,bonus,sort,country_tag FROM medal'
+                      ' ORDER BY id').fetchall()
+    if not rows:
+        return ['sem condecorações: as divisões nunca são condecoradas'], warns
+
+    # os países só existem no static.db (a tabela country nasce do mapa, não dos seeds)
+    tags = {r[0] for r in sqlite3.connect(static).execute('SELECT tag FROM country')} if static else None
+    METRICS = ('xp', 'battles', 'captures')          # MedalSystem.Metric
+    by_case = {}
+    for mid, name, desc, metric, thr, bonus, sort, tag in rows:
+        by_case.setdefault(tag, []).append((mid, name, sort))
+        if metric not in METRICS:
+            errs.append(f'condecoração {mid}: métrica {metric} desconhecida (só {", ".join(METRICS)})')
+        if thr <= 0:
+            errs.append(f'condecoração {mid}: limiar {thr} — dava-se a toda a gente no primeiro dia')
+        if bonus <= 0:
+            warns.append(f'condecoração {mid}: não vale nada em campo (bónus {bonus})')
+        if tag is not None and tags is not None and tag not in tags:
+            errs.append(f'condecoração {mid}: país {tag} não existe')
+
+    for tag, ms in by_case.items():
+        who = 'medalheiro comum' if tag is None else f'medalheiro de {tag}'
+        sorts = [m[2] for m in ms]
+        for s in sorted({x for x in sorts if sorts.count(x) > 1}):
+            errs.append(f'{who}: dois graus {s} — a mesma divisão levava o bónus do grau a dobrar')
+
+    ceiling = db.execute("SELECT value FROM rule WHERE key='medal_bonus_max'").fetchone()
+    if not ceiling:
+        errs.append('falta a regra medal_bonus_max — MedalSystem.Bonus fica com o tecto de emergência')
+
+    if static:
+        st = sqlite3.connect(static)
+        mirror = st.execute('SELECT id,name,description,metric,threshold,bonus,sort,country_tag FROM medal'
+                            ' ORDER BY id').fetchall()
+        if mirror != rows:
+            errs.append('data/static.db tem outras condecorações — falta o espelho manual dos .sql')
+
+    print(f'condecorações {len(rows)} [{len(by_case) - (1 if None in by_case else 0)} medalheiros nacionais'
+          f' + {len(by_case.get(None, []))} fitas comuns]')
+    return errs, warns
+
+
 def main():
     files = [Path(a) for a in sys.argv[1:]] or sorted((HERE / 'data' / 'countries').glob('*.sql'))
     static = HERE / 'data' / 'static.db'
@@ -483,6 +564,10 @@ def main():
         errs, warns = check_wounds(db, static)
         for w in warns: print(f'  aviso wound_kind: {w}')
         for e in errs: print(f'  ERRO wound_kind: {e}')
+        bad += bool(errs)
+        errs, warns = check_medals(db, static)
+        for w in warns: print(f'  aviso medal: {w}')
+        for e in errs: print(f'  ERRO medal: {e}')
         bad += bool(errs)
     print('OK' if not bad else f'{bad} ficheiro(s) com erros')
     sys.exit(1 if bad else 0)

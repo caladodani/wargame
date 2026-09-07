@@ -201,3 +201,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Liwa do Mar',110,1,'EGY'),
  ('mar',4,'Fariq do Mar',220,1.75,'EGY'),
  ('mar',5,'Comandante da Marinha Egípcia',360,2.5,'EGY');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('EGY_baptismo','Medalha do Serviço Militar','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'EGY'),
+ ('EGY_assalto','Medalha do Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2,'EGY'),
+ ('EGY_campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'EGY'),
+ ('EGY_aco','Ordem do Sinai','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'EGY'),
+ ('EGY_imortais','Ordem do Nilo','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'EGY');

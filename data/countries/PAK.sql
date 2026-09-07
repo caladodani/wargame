@@ -205,3 +205,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Vice Admiral (PN)',110,1,'PAK'),
  ('mar',4,'Admiral (PN)',220,1.75,'PAK'),
  ('mar',5,'Admiral of the Fleet (PN)',360,2.5,'PAK');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('PAK_baptismo','Tamgha-e-Jang','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'PAK'),
+ ('PAK_assalto','Tamgha-e-Basalat','Tomou três regiões ao inimigo.','captures',3,0.03,2,'PAK'),
+ ('PAK_campanha','Imtiazi Sanad','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'PAK'),
+ ('PAK_aco','Sitara-e-Jurat','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'PAK'),
+ ('PAK_imortais','Nishan-e-Haider','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'PAK');

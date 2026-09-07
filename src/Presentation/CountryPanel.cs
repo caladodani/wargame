@@ -545,7 +545,11 @@ public partial class CountryPanel : PanelContainer
                     Line($"Aprendidas ({learned.Count}): " + (learned.Count == 0 ? "nenhuma" : string.Join(", ", learned)), 16);
                 }
 
-                if (tWar) Honours(w, c);
+                if (tWar)
+                {
+                    _body.AddChild(MedalView.Case(w, c));   // o que há para ganhar, antes de quem já ganhou
+                    Honours(w, c);
+                }
 
                 // investigação
                 Header("Investigação");

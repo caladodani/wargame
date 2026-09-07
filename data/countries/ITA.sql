@@ -205,3 +205,11 @@ INSERT INTO general_rank (domain,level,name,xp,bonus,country_tag) VALUES
  ('mar',3,'Ammiraglio di Squadra',110,1,'ITA'),
  ('mar',4,'Ammiraglio',220,1.75,'ITA'),
  ('mar',5,'Grande Ammiraglio',360,2.5,'ITA');
+
+-- ===== condecorações nacionais (medal.country_tag) =====
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort,country_tag) VALUES
+ ('ITA_baptismo','Croce al Merito di Guerra','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1,'ITA'),
+ ('ITA_assalto','Medaglia di Bronzo al Valor Militare','Tomou três regiões ao inimigo.','captures',3,0.03,2,'ITA'),
+ ('ITA_campanha','Encomio Solenne','Quarenta pontos de experiência em combate.','xp',40,0.02,3,'ITA'),
+ ('ITA_aco','Medaglia di Argento al Valor Militare','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4,'ITA'),
+ ('ITA_imortais','Medaglia di Oro al Valor Militare','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5,'ITA');

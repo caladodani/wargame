@@ -394,14 +394,21 @@ INSERT INTO rule (key,value,note) VALUES
 
 -- Condecorações de divisão (tabela medal; MedalSystem). metric: xp | battles | captures.
 -- Cada medalha ganha dá bonus de força, somado até medal_bonus_max.
+--
+-- country_tag NULL = fita comum, que serve todo o país que não traga as suas; com tag = condecoração
+-- nacional (data/countries/<TAG>.sql), e esse país condecora só com as dele — ver World.Medals e
+-- World.MedalIsFor. O limiar, o bónus e o grau da fita nacional são IGUAIS aos da comum de propósito:
+-- uma Victoria Cross e uma Cruz de Aço pedem a mesma guerra e valem o mesmo, o que muda é o nome que
+-- a divisão passa a trazer. É regra verificada em tools/check_countries.py, não intenção.
 CREATE TABLE IF NOT EXISTS medal (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL,
-  metric TEXT NOT NULL, threshold REAL NOT NULL, bonus REAL NOT NULL, sort INTEGER NOT NULL);
-INSERT INTO medal VALUES ('baptismo','Baptismo de Fogo','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1);
-INSERT INTO medal VALUES ('assalto','Estrela de Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2);
-INSERT INTO medal VALUES ('campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3);
-INSERT INTO medal VALUES ('aco','Cruz de Aço','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4);
-INSERT INTO medal VALUES ('imortais','Ordem dos Imortais','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5);
+  metric TEXT NOT NULL, threshold REAL NOT NULL, bonus REAL NOT NULL, sort INTEGER NOT NULL,
+  country_tag TEXT);
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort) VALUES ('baptismo','Baptismo de Fogo','Aguentou a primeira batalha até ao fim.','battles',1,0.01,1);
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort) VALUES ('assalto','Estrela de Assalto','Tomou três regiões ao inimigo.','captures',3,0.03,2);
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort) VALUES ('campanha','Louvor de Campanha','Quarenta pontos de experiência em combate.','xp',40,0.02,3);
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort) VALUES ('aco','Cruz de Aço','Dez batalhas travadas e sobrevividas.','battles',10,0.04,4);
+INSERT INTO medal (id,name,description,metric,threshold,bonus,sort) VALUES ('imortais','Ordem dos Imortais','Veterania quase no tecto: a divisão é uma lenda.','xp',90,0.05,5);
 INSERT INTO rule (key,value,note) VALUES
  ('medal_bonus_max',0.12,'tecto do bónus de força somado das condecorações'),
  ('medal_check_days',2,'de quantos em quantos dias se atribuem condecorações');
