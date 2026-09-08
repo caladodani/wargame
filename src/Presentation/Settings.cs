@@ -8,7 +8,11 @@ namespace WarGame.Presentation;
 /// A primeira delas é o tamanho da interface. O jogo desenha-se numa tela de 1152×648 esticada para o
 /// ecrã; num telemóvel em pé isso dá letra de 17 px de aparelho, que é a letra de um relógio e não a de um
 /// painel com quinze linhas de divisões. O factor de escala da janela multiplica tudo ao mesmo tempo —
-/// letra, chapas, molduras e a altura do dedo — sem se mexer em nenhum ecrã.</summary>
+/// letra, chapas, molduras e a altura do dedo — sem se mexer em nenhum ecrã.
+///
+/// A segunda é onde ficou a faixa de alarmes. Num ecrã de telemóvel não há canto que esteja sempre livre:
+/// ao centro tapa as notificações, à direita tapava os painéis. Quem joga é que sabe o que quer ver, por
+/// isso arrasta-a e o sítio fica guardado aqui, com a faixa aberta ou dobrada.</summary>
 public static class Settings
 {
     private const string Path = "user://settings.cfg";
@@ -43,11 +47,52 @@ public static class Settings
     public static void SetScale(int index, Window? window)
     {
         _scaleIndex = Mathf.Clamp(index, 0, Scales.Length - 1);
+        Write("ui", "scale", _scaleIndex);
+        Apply(window);
+    }
+
+    private static bool _alertsRead;
+    private static Vector2? _alertSpot;
+    private static bool _alertFolded;
+
+    /// <summary>Canto onde o jogador arrumou a faixa de alarmes, ou null enquanto nunca lhe tocou — e aí é
+    /// o Hud que a põe por baixo da barra de topo.</summary>
+    public static Vector2? AlertSpot { get { ReadAlerts(); return _alertSpot; } }
+
+    /// <summary>A faixa ficou dobrada até ao título.</summary>
+    public static bool AlertFolded { get { ReadAlerts(); return _alertFolded; } }
+
+    public static void SetAlertSpot(Vector2 spot)
+    {
+        ReadAlerts();
+        _alertSpot = spot;
+        Write("alerts", "spot", spot);
+    }
+
+    public static void SetAlertFolded(bool folded)
+    {
+        ReadAlerts();
+        _alertFolded = folded;
+        Write("alerts", "folded", folded);
+    }
+
+    private static void ReadAlerts()
+    {
+        if (_alertsRead) return;
+        _alertsRead = true;
+        var cfg = new ConfigFile();
+        if (cfg.Load(Path) != Error.Ok) return;
+        if (cfg.HasSectionKey("alerts", "spot")) _alertSpot = cfg.GetValue("alerts", "spot").AsVector2();
+        _alertFolded = cfg.GetValue("alerts", "folded", false).AsBool();
+    }
+
+    /// <summary>Grava uma preferência sem deitar fora as outras: o ficheiro é lido antes de se lhe mexer.</summary>
+    private static void Write(string section, string key, Variant value)
+    {
         var cfg = new ConfigFile();
         cfg.Load(Path);                       // não deitar fora o que lá estiver de outras preferências
-        cfg.SetValue("ui", "scale", _scaleIndex);
+        cfg.SetValue(section, key, value);
         cfg.Save(Path);
-        Apply(window);
     }
 
     /// <summary>Põe a janela no tamanho escolhido. É chamado no arranque e sempre que se muda de degrau.</summary>

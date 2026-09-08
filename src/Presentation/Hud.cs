@@ -463,7 +463,10 @@ public partial class Hud : CanvasLayer
         float y = MathF.Max(_top.Size.Y, _top.GetCombinedMinimumSize().Y) + 8f;
         if (_toastRow is not null) { _toastRow.OffsetTop = y; _toastRow.OffsetBottom = y + 60f; }
         if (_hintRow is not null) { _hintRow.OffsetTop = y + 70f; _hintRow.OffsetBottom = y + 130f; }
-        _alerts?.PlaceUnder(y);
+        // a faixa de alarmes começa por baixo das duas faixas que passam (aviso e dica) e não em cima delas:
+        // ao centro e à mesma altura do aviso, era a notificação que ficava ilegível. Daqui para baixo é o
+        // jogador que manda — arrastou-a, a AlertStrip para de ouvir esta linha.
+        _alerts?.PlaceUnder(y + 140f);
         _multiSel?.PlaceUnder(y - 4f);
         _buildBar?.PlaceUnder(y + 4f);
     }
