@@ -24,6 +24,7 @@ public partial class BattlePanel : PanelContainer
     private VBoxContainer _left = null!, _right = null!;
     private int _regionId;
     private string _lastKey = "";
+    private CombatSide? _balA, _balD;
 
     public void Setup(Game game)
     {
@@ -101,6 +102,15 @@ public partial class BattlePanel : PanelContainer
         var (lineA, resA) = Frontage.Split(w, r, att);
         var (lineD, resD) = Frontage.Split(w, r, def);
 
+        // O balanço do dia: porque é que cada lado se bate como se bate. Sem batalha continua a valer — é o
+        // que a tropa que ali está traria se fosse atacada hoje, e é a pergunta que se faz antes de mandar
+        // marchar, não depois. Sem inimigo do outro lado, as parcelas do lado inteiro (informações, céu)
+        // não aparecem: não há contra quem as medir.
+        int attC = b?.AttackerCountryId ?? r.ControllerId;
+        int defC = b is null ? def.FirstOrDefault()?.CountryId ?? 0 : r.ControllerId;
+        _balA = lineA.Count == 0 ? null : CombatSystem.Explain(w, r, lineA, b is not null, attC, defC);
+        _balD = lineD.Count == 0 ? null : CombatSystem.Explain(w, r, lineD, attacking: false, defC, attC);
+
         // o dia e o estado de cada divisão entram na chave: sem isso as barras congelavam no primeiro dia
         string key = _regionId + "|" + (b?.Days ?? -1) + "|" + width + "|" + string.Join(",",
             att.Concat(def).Select(d => $"{d.Id}:{d.Org:0}:{d.Hp:0}"));
@@ -114,6 +124,8 @@ public partial class BattlePanel : PanelContainer
             ? $"{terrain}  ·  frente de {width} divisões por lado"
             : $"{terrain}  ·  {b.Days} dia{(b.Days == 1 ? "" : "s")}  ·  frente de {width} por lado"
               + $"  ·  organização {orgA:0} contra {orgD:0}"
+              + (_balA is null || _balD is null ? ""
+                 : $"  ·  força por divisão {_balA.Strength:0.00} contra {_balD.Strength:0.00}")
               + (r.Fort > 0 ? $"  ·  🏰 forte {r.Fort}" : "") + (r.River ? "  ·  🌊 rio pelo meio" : "");
 
         float total = MathF.Max(1f, orgA + orgD);
@@ -121,15 +133,14 @@ public partial class BattlePanel : PanelContainer
         _scaleD.SizeFlagsStretchRatio = MathF.Max(0.02f, orgD / total);
         _scale.Visible = b is not null;
 
-        int attCountry = b?.AttackerCountryId ?? r.ControllerId;
-        int defCountry = b is null ? def.FirstOrDefault()?.CountryId ?? 0 : r.ControllerId;
-        Side(_left, w, attCountry, b is null ? "guarda o terreno" : "ataca", lineA, resA, width, Ui.Accent);
-        Side(_right, w, defCountry, b is null ? "também aqui" : "defende", lineD, resD, width, Ui.Danger);
+        Side(_left, w, attC, b is null ? "guarda o terreno" : "ataca", lineA, resA, width, Ui.Accent, _balA);
+        Side(_right, w, defC, b is null ? "também aqui" : "defende", lineD, resD, width, Ui.Danger, _balD);
         _right.Visible = b is not null || def.Count > 0;
     }
 
     private static void Side(VBoxContainer box, World w, int countryId, string role,
-                             List<Division> line, List<Division> reserve, int width, Color tint)
+                             List<Division> line, List<Division> reserve, int width, Color tint,
+                             CombatSide? balance = null)
     {
         Ui.Clear(box);
         var c = w.Countries.GetValueOrDefault(countryId);
@@ -150,6 +161,7 @@ public partial class BattlePanel : PanelContainer
         frame.AddChild(tag);
         frame.AddChild(Ui.Pips(line.Count, width, tint));
         box.AddChild(frame);
+        if (balance is not null) Balance(box, balance);
 
         foreach (var d in line) box.AddChild(Row(w, d, tint, false));
         if (reserve.Count == 0) return;
@@ -157,6 +169,42 @@ public partial class BattlePanel : PanelContainer
         rHead.AddThemeColorOverride("font_color", Ui.TextDim);
         box.AddChild(rHead);
         foreach (var d in reserve) box.AddChild(Row(w, d, tint, true));
+    }
+
+    /// <summary>O balanço do lado: a força média com que cada divisão da linha se bate e as parcelas que a
+    /// fazem, com o multiplicador de cada uma. É a lista de modificadores do HoI4 posta à vista em vez de
+    /// escondida num tooltip — num telemóvel um tooltip é um segredo, e esta é a informação que ensina o
+    /// jogo: uma batalha perdida deixa de ser azar e passa a ser o rio, a trincheira ou o céu.
+    ///
+    /// Mostram-se as parcelas que pesam mesmo (a 1,00 não há nada a dizer), pela ordem de quanto mexem, e
+    /// no máximo oito: uma lista que não cabe no ecrã não se lê.</summary>
+    private static void Balance(VBoxContainer box, CombatSide bal)
+    {
+        var head = Ui.Lbl($"balanço: força {bal.Strength:0.00} por divisão", 14);
+        head.AddThemeColorOverride("font_color", Ui.TextDim);
+        box.AddChild(head);
+
+        var shown = bal.Factors.Where(f => MathF.Abs(f.Mult - 1f) >= 0.005f)
+                               .OrderByDescending(f => MathF.Abs(MathF.Log(MathF.Max(0.01f, f.Mult))))
+                               .Take(8).ToList();
+        if (shown.Count == 0)
+        {
+            var none = Ui.Lbl("nada a pesar neste chão", 13);
+            none.AddThemeColorOverride("font_color", Ui.TextDim);
+            box.AddChild(none);
+            return;
+        }
+        foreach (var f in shown)
+        {
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            var name = Ui.Lbl(f.Name, 13);
+            name.AddThemeColorOverride("font_color", Ui.TextDim);
+            row.AddChild(Ui.Grow(name));
+            var mult = Ui.Lbl($"×{f.Mult:0.00}", 13);
+            mult.AddThemeColorOverride("font_color", f.Mult >= 1f ? Ui.Good.Lightened(0.2f) : Ui.Danger.Lightened(0.15f));
+            row.AddChild(mult);
+            box.AddChild(row);
+        }
     }
 
     /// <summary>Uma divisão: nome, barra de organização e barra de vida. Em reserva, tudo apagado.</summary>
@@ -182,7 +230,7 @@ public partial class BattlePanel : PanelContainer
 
     /// <summary>--smoke: abre a batalha que houver e, se não houver nenhuma, a região com mais tropa nossa
     /// (o caminho sem batalha desenha na mesma). Diz quantas linhas saíram.</summary>
-    public int Smoke(int fallbackRegionId)
+    public string Smoke(int fallbackRegionId)
     {
         var w = _game.World;
         int id = w.ActiveBattles.FirstOrDefault()?.RegionId
@@ -192,7 +240,25 @@ public partial class BattlePanel : PanelContainer
                  ?? fallbackRegionId;
         Open(id); Refresh();
         int rows = _left.GetChildCount() + _right.GetChildCount();
+        bool fighting = w.ActiveBattles.Any(x => x.RegionId == id);
+        string balance = _balA is null ? "sem tropa na linha, sem balanço"
+            : _balD is null
+                ? $"{(fighting ? "balanço" : "sem batalha; balanço de quem lá está")} de {_balA.Factors.Count} parcelas"
+                  + $" (força {_balA.Strength:0.00}; pesa mais «{Heaviest(_balA)}»)"
+                : $"{(fighting ? "balanço" : "sem batalha; balanço")} de {_balA.Factors.Count} parcelas contra {_balD.Factors.Count}"
+                  + $" (força {_balA.Strength:0.00} contra {_balD.Strength:0.00}"
+                  + $"; pesa mais «{Heaviest(_balA)}» contra «{Heaviest(_balD)}»)";
         Close();
-        return rows;
+        return $"{rows} linhas, {balance}";
+    }
+
+    /// <summary>A parcela que mais mexe num lado — é o que o smoke guarda para se ver de relance se o
+    /// balanço está mesmo a medir o chão em que se combate.</summary>
+    private static string Heaviest(CombatSide bal)
+    {
+        var f = bal.Factors.Where(x => MathF.Abs(x.Mult - 1f) >= 0.005f)
+                           .OrderByDescending(x => MathF.Abs(MathF.Log(MathF.Max(0.01f, x.Mult))))
+                           .FirstOrDefault();
+        return f.Name is null ? "nada" : $"{f.Name} ×{f.Mult:0.00}";
     }
 }

@@ -8,6 +8,14 @@ namespace WarGame.Core.Systems;
 ///
 /// Desde a largura de frente (Frontage), cada lado entra no dia com uma linha e uma reserva: só a linha bate e
 /// só a linha apanha. A batalha continua enquanto houver alguém de pé — as reservas contam para isso.</summary>
+/// <summary>Uma parcela do balanço de um lado: o nome que se lê e o multiplicador que ela vale. 1 é
+/// neutro, abaixo de 1 tira força, acima de 1 dá.</summary>
+public readonly record struct CombatFactor(string Name, float Mult);
+
+/// <summary>O balanço de um lado num dia de batalha: a força média da linha e as parcelas de que ela
+/// nasce, pela ordem em que se aplicam.</summary>
+public sealed record CombatSide(float Strength, List<CombatFactor> Factors);
+
 public sealed class CombatSystem : ISystem
 {
     public string Name => "Combat";
@@ -67,7 +75,10 @@ public sealed class CombatSystem : ISystem
         r.FortBuilding = false; r.FortProgress = 0f;
     }
 
-    private static ModContext BuildContext(World w, Region r, int countryId)
+    /// <summary>O contexto do lado neste chão: terreno, rio, bandeira, tecnologias e a seca de combustível.
+    /// É o que a tabela modifier lê. Público porque o ecrã de batalha explica o dia com o mesmo contexto com
+    /// que o dia se bateu — dois contextos diferentes seriam duas verdades.</summary>
+    public static ModContext BuildContext(World w, Region r, int countryId)
     {
         var ctx = new ModContext().With("terrain", r.Terrain).With("country", w.Countries[countryId].Tag);
         if (r.River) ctx["river"] = "true";
@@ -147,7 +158,11 @@ public sealed class CombatSystem : ISystem
     public static float AmphibiousMult(World w, Division d, Region? battleRegion) =>
         battleRegion is not null && w.IsSeaHop(d.RegionId, battleRegion.Id) ? w.Rule("naval_invasion_penalty", 0.45f) : 1f;
 
-    private float[] SideStrength(World w, List<Division> divs, ModContext ctx, bool attacking, Region? battleRegion = null)
+    /// <summary>A força com que cada divisão de um lado se bate hoje. `parts`, quando vem, recebe a soma de
+    /// cada parcela ao longo da linha — é por aí que o ecrã de batalha explica o resultado sem repetir uma
+    /// única conta: as parcelas que ele mostra são estas, não uma segunda versão delas.</summary>
+    public static float[] SideStrength(World w, List<Division> divs, ModContext ctx, bool attacking,
+                                       Region? battleRegion = null, List<CombatFactor>? parts = null)
     {
         var out_ = new float[divs.Count];
         for (int i = 0; i < divs.Count; i++)
@@ -175,9 +190,27 @@ public sealed class CombatSystem : ISystem
             // plano de batalha: o que o estado-maior preparou enquanto a frente esteve quieta (BattlePlanSystem)
             float plan = BattlePlanSystem.Bonus(w, d);
             out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * MathF.Max(0.3f, command));
+            if (parts is null) continue;
+            Add(parts, "terreno, rio e tecnologia", terrainAir);
+            Add(parts, "abastecimento", supply);
+            Add(parts, "organização", morale);
+            Add(parts, "veterania e condecorações", veterancy);
+            Add(parts, "doutrina e comandante", doctrine);
+            Add(parts, "estado-maior", MathF.Max(0.3f, command));
+            if (attacking) Add(parts, "assalto anfíbio", amphibious);
+            else Add(parts, "trincheira", dug);
+            Add(parts, "plano de batalha", plan);
         }
         ctx.Remove("volunteer");   // o contexto é do lado: não fica sujo com a última divisão que passou
         return out_;
+    }
+
+    /// <summary>Soma uma parcela ao acumulador, pela ordem em que apareceu a primeira vez.</summary>
+    private static void Add(List<CombatFactor> parts, string name, float mult)
+    {
+        for (int i = 0; i < parts.Count; i++)
+            if (parts[i].Name == name) { parts[i] = parts[i] with { Mult = parts[i].Mult + mult }; return; }
+        parts.Add(new CombatFactor(name, mult));
     }
 
     private void Exchange(World w, List<Division> src, float[] srcStr, List<Division> tgt, string tgtDefKey)
@@ -196,5 +229,51 @@ public sealed class CombatSystem : ISystem
             t.Org -= dmg * 2f;
             t.Hp -= dmg * (1f - ts["hardness"] * 0.5f);
         }
+    }
+
+    /// <summary>Porque é que este lado está a ganhar ou a perder: a força média com que a linha dele se bate
+    /// hoje, aberta nas parcelas que a fazem.
+    ///
+    /// É a assinatura do HoI4 — passar o dedo por uma batalha e ver a lista de modificadores, linha a linha:
+    /// o terreno, o rio, o abastecimento, a trincheira, o forte, o céu. Sem isto uma batalha perdida é um
+    /// azar; com isto é uma lição, e é a diferença entre um jogo que se aprende e um que se sofre.
+    ///
+    /// Nada aqui é uma segunda versão das contas: as parcelas de divisão vêm do próprio SideStrength (o
+    /// acumulador `parts`), e as do lado inteiro — forte, informações, céu — são as mesmas expressões do
+    /// ResolveTick, aplicadas na mesma ordem. A força devolvida é a média da linha já com elas dentro.</summary>
+    public static CombatSide Explain(World w, Region r, List<Division> line, bool attacking, int countryId, int enemyId)
+    {
+        var parts = new List<CombatFactor>();
+        if (line.Count == 0) return new CombatSide(0f, parts);
+
+        var ctx = BuildContext(w, r, countryId);
+        var str = SideStrength(w, line, ctx, attacking, r, parts);
+        for (int i = 0; i < parts.Count; i++) parts[i] = parts[i] with { Mult = parts[i].Mult / line.Count };
+        float strength = str.Average();
+
+        // as parcelas do lado inteiro, pela ordem do ResolveTick
+        if (!attacking && r.Fort > 0)
+        {
+            float m = 1f + r.Fort * w.Rule("fort_defense_per_level", 0.15f);
+            parts.Add(new CombatFactor($"fortificações (nível {r.Fort})", m)); strength *= m;
+        }
+        if (w.Countries.ContainsKey(enemyId) && w.HasIntel(countryId, enemyId))
+        {
+            float m = w.Rule("intel_combat_bonus", 1.05f);
+            parts.Add(new CombatFactor("informações sobre o inimigo", m)); strength *= m;
+        }
+        if (w.Countries.TryGetValue(countryId, out var me) && w.Countries.TryGetValue(enemyId, out var foe))
+        {
+            float mine = me.AirPower + AirMissionSystem.Superiority(w, r.Id, me.Id);
+            float theirs = foe.AirPower + AirMissionSystem.Superiority(w, r.Id, foe.Id);
+            if (mine + theirs > 0f)
+            {
+                float m = 1f + (mine / (mine + theirs) - 0.5f) * 2f * w.Rule("air_combat_weight", 0.15f);
+                parts.Add(new CombatFactor("superioridade aérea", m)); strength *= m;
+            }
+            float sup = 1f + AirMissionSystem.Support(w, r.Id, me.Id);
+            if (sup != 1f) { parts.Add(new CombatFactor("apoio aéreo próximo", sup)); strength *= sup; }
+        }
+        return new CombatSide(strength, parts);
     }
 }
