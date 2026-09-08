@@ -552,7 +552,7 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
 
     /// <summary>Todos os nomes de chapa que a base de dados pede hoje, sem repetidos: obras, ramos da
     /// árvore, estações, modos de mapa, missões de ar e mar, géneros da crónica, pastas do gabinete,
-    /// políticas de ocupação e gravidades de baixa. `extra` é para os poucos sítios que não são linha de
+    /// políticas de ocupação, gravidades de baixa e números da ficha de combate. `extra` é para os poucos sítios que não são linha de
     /// tabela nenhuma (a infra-estrutura e a fortificação do menu de construir, que são regras).
     /// Serve o contador do --smoke: é a lista que se compara com o que o Glyph sabe mesmo desenhar.</summary>
     public static List<string> Asked(World w, params string[] extra)
@@ -566,6 +566,7 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
             .Concat(w.CabinetSlots.Select(c => c.Glyph))
             .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
             .Concat(w.WoundKinds.Values.Select(k => k.Glyph))
+            .Concat(w.UnitStatDefs.Values.Select(s => s.Glyph))
             .Concat(extra)
             .Distinct().ToList();
 

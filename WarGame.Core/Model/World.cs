@@ -45,6 +45,8 @@ public sealed class World
     public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
     /// <summary>Ramos da árvore de investigação (tabela tech_branch): o nome e a chapa de cada coluna.</summary>
     public Dictionary<string, TechBranchDef> TechBranches { get; } = new();
+    /// <summary>O que cada número da ficha de combate quer dizer (unit_stat_def), pela chave do unit_stat.</summary>
+    public Dictionary<string, UnitStatDef> UnitStatDefs { get; } = new();
     /// <summary>Modos de mapa (tabela map_mode): o mapa político e as pinturas por conta (MapModes).</summary>
     public Dictionary<string, MapModeDef> MapModeDefs { get; } = new();
     public Dictionary<string, MedalDef> MedalDefs { get; } = new();

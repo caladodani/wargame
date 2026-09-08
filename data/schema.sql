@@ -9,6 +9,19 @@ CREATE TABLE IF NOT EXISTS unit_stat (
   stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (unit_type_id, stat_key)
 );
+CREATE TABLE IF NOT EXISTS unit_stat_def (  -- o que cada stat_key quer dizer na ficha de combate da divisão
+  -- A ficha de uma divisão é a tabela de números do HoI4: ataque mole, ataque duro, defesa, rotura,
+  -- blindagem, perfuração, dureza, efectivo. Os números já existiam todos (unit_stat, somados no
+  -- DivisionStatCache); o que faltava era o nome que se lê e a frase que diz o que aquilo faz. Vive aqui e
+  -- não no C# porque é texto de jogo — quem acrescentar um stat novo à tabela unit_stat acrescenta-lhe uma
+  -- linha aqui e a ficha aprende-o sozinha.
+  key TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0,
+  glyph TEXT NOT NULL DEFAULT '',           -- nome de um desenho do Glyph.cs — é este que se vê
+  digits INTEGER NOT NULL DEFAULT 0,        -- casas decimais com que o número se lê
+  percent INTEGER NOT NULL DEFAULT 0,       -- 1 = lê-se em percentagem (a dureza é uma fatia, não um número)
+  shown INTEGER NOT NULL DEFAULT 1          -- 0 = fica na tabela mas fora da ficha (stat que ainda não pesa em conta nenhuma)
+);
 CREATE TABLE IF NOT EXISTS unit_tag (
   unit_type_id INTEGER NOT NULL REFERENCES unit_type(id), tag TEXT NOT NULL,
   PRIMARY KEY (unit_type_id, tag)

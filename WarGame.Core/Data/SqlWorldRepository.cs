@@ -98,6 +98,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
                 Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]), (string)r["yard"]!,
                 (string)r["icon"]!, (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT key,name,note,sort,glyph,digits,percent,shown FROM unit_stat_def ORDER BY sort"))
+            w.UnitStatDefs[(string)r["key"]!] = new UnitStatDef((string)r["key"]!, (string)r["name"]!,
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
+                Convert.ToInt32(r["digits"]), Convert.ToInt32(r["percent"]) != 0, Convert.ToInt32(r["shown"]) != 0);
         foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM tech_branch ORDER BY sort"))
             w.TechBranches[(string)r["id"]!] = new TechBranchDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["glyph"]!, Convert.ToInt32(r["sort"]));

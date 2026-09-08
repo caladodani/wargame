@@ -41,6 +41,23 @@ INSERT INTO unit_stat VALUES
  (2,'fuel_use',0.6),(3,'fuel_use',1.2),
  (6,'soft_atk',2),(6,'hard_atk',20),(6,'defense',8),(6,'breakthrough',2),(6,'armor',0),(6,'piercing',70),(6,'hardness',0.2),(6,'hp',6);
 
+-- A ficha de combate: o nome de cada número e o que ele faz mesmo, palavra por palavra do CombatSystem.
+-- Nada disto é decoração — é o que separa "a minha divisão tem 60 de blindagem" de saber que 60 de
+-- blindagem contra 55 de perfuração corta o ataque do outro a metade.
+INSERT INTO unit_stat_def (key,name,note,sort,glyph,digits,percent,shown) VALUES
+ ('soft_atk','Ataque a infantaria','Golpes por dia contra a parte não blindada do inimigo. Conta pela fatia mole dele: quanto mais dura for a divisão do outro lado, menos vale.',1,'espadas',0,0,1),
+ ('hard_atk','Ataque a blindados','Golpes por dia contra a parte blindada do inimigo. É esta que conta contra tanques — uma divisão só com ataque mole não lhes faz nada.',2,'lagarta',0,0,1),
+ ('piercing','Perfuração','Se for menor do que a blindagem do inimigo, tudo o que se lhe atira vale metade. É o número que decide se as balas passam.',3,'obus',0,0,1),
+ ('armor','Blindagem','O aço que se leva. Enquanto for maior do que a perfuração do inimigo, ele bate a metade.',4,'capacete',0,0,1),
+ ('defense','Defesa','O que a divisão aguenta enquanto é atacada: os golpes que couberem aqui dentro quase não fazem dano, os que passarem fazem quatro vezes mais.',5,'escudo',0,0,1),
+ ('breakthrough','Rotura','O mesmo, mas para quem vai à frente: é com ela que se aguenta o fogo de quem defende ao atacar.',6,'punho',0,0,1),
+ ('hardness','Dureza','A fatia da divisão que é aço. Quanto mais alta, menos lhe pesa o ataque a infantaria e mais lhe pesa o ataque a blindados.',7,'bigorna',0,1,1),
+ ('hp','Efectivo','A gente que ela leva. Cai com o dano e recompõe-se com reforços; a zero a divisão deixa de existir.',8,'gente',0,0,1),
+ ('mobility','Mobilidade','A velocidade do batalhão mais lento — uma divisão anda ao passo de quem fica atrás. Divide os dias de marcha para a região seguinte.',9,'estrada',0,0,1),
+ ('fuel_use','Combustível','O que ela bebe por dia. Com o país a seco, os blindados batem a metade.',10,'barril',1,0,1),
+ ('air_deny','Anti-aérea','Ainda não pesa em conta nenhuma: fica escrito para o dia em que a anti-aérea das divisões negar o céu da região a quem voa por cima.',11,'asa',1,0,0),
+ ('supply_use','Peso na retaguarda','Ainda não pesa em conta nenhuma: o abastecimento hoje conta divisões, não o que cada uma pede.',12,'caixa',1,0,0);
+
 INSERT INTO unit_tag VALUES
  (1,'infantry'),(1,'ground'),(2,'infantry'),(2,'armored'),(2,'ground'),(3,'armored'),(3,'ground'),
  (4,'support'),(4,'ground'),(5,'support'),(5,'ground'),(6,'support'),(6,'ground');

@@ -4,6 +4,13 @@ namespace WarGame.Core.Model;
 
 public sealed record UnitType(int Id, string Name, string Category, float Cost, int BuildDays, float Mobility, float SupplyUse, StatBlock Stats);
 
+/// <summary>O que um número da ficha de combate quer dizer (tabela unit_stat_def). Os números de uma
+/// divisão já vinham todos de unit_stat, somados pelo DivisionStatCache; o que faltava era o nome que se lê
+/// e a frase que diz o que aquilo faz na conta do combate. `Shown` a false deixa o número na tabela e fora
+/// da ficha — é o sítio honesto para um stat que ainda não pesa em conta nenhuma.</summary>
+public sealed record UnitStatDef(string Key, string Name, string Note, int Sort, string Glyph,
+                                 int Digits, bool Percent, bool Shown);
+
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 
 /// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>

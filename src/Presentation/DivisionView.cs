@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Stats;
 using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
@@ -65,6 +66,9 @@ public static class DivisionView
 
         body.AddChild(State(w, d));
 
+        var sheet = Sheet(w, d);
+        if (sheet.GetChildCount() > 0) body.AddChild(sheet);
+
         var xp = new HBoxContainer(); xp.AddThemeConstantOverride("separation", 8);
         xp.AddChild(Ui.Lbl($"XP {d.Xp:0}", 15));
         xp.AddChild(Ui.Bar(d.Xp / MathF.Max(1f, w.Rule("xp_max", 100f)), new Color(1f, 0.82f, 0.25f), 150f));
@@ -82,6 +86,57 @@ public static class DivisionView
         var ribbons = Ribbons(w, d);
         if (ribbons.GetChildCount() > 0) body.AddChild(ribbons);
         return card;
+    }
+
+    /// <summary>A ficha de combate: os números com que esta divisão bate e aguenta. É a tabela que o HoI4
+    /// põe ao lado do desenho do modelo — ataque mole, ataque duro, defesa, rotura, blindagem, perfuração,
+    /// dureza, efectivo — e que aqui não existia em sítio nenhum: o cartão dizia como estava a tropa (HP,
+    /// organização, abastecimento) e nunca de que era feita a força dela.
+    ///
+    /// Os números são os do DivisionStatCache, os mesmos que o CombatSystem lê; o nome e a frase de cada um
+    /// vêm da tabela unit_stat_def, por isso um stat novo em unit_stat entra na ficha com uma linha de SQL e
+    /// zero linhas de C#. Um stat que ainda não pesa em conta nenhuma tem `shown` a 0 e fica de fora.</summary>
+    public static HFlowContainer Sheet(World w, Division d)
+    {
+        var flow = new HFlowContainer();
+        flow.AddThemeConstantOverride("h_separation", 4);
+        flow.AddThemeConstantOverride("v_separation", 4);
+        StatBlock st;
+        try { st = w.Stats.Get(d.TemplateId); } catch { return flow; }
+        foreach (var def in w.UnitStatDefs.Values.Where(x => x.Shown).OrderBy(x => x.Sort))
+        {
+            float v = st[def.Key];
+            var plate = Ui.Counter(Glyph.Make(def.Glyph, 17, Ui.Accent), out var value, out var note);
+            value.Text = Value(def, v);
+            note.Text = def.Name;
+            plate.TooltipText = $"{def.Name}: {Value(def, v)}\n{def.Note}";
+            if (v <= 0f) { value.AddThemeColorOverride("font_color", Ui.TextDim); }
+            flow.AddChild(plate);
+        }
+        return flow;
+    }
+
+    /// <summary>O número como se lê: casas decimais da tabela, e fatia em percentagem para os que são fatia
+    /// (a dureza de uma divisão é «que parte dela é blindada», não um valor).</summary>
+    public static string Value(UnitStatDef def, float v)
+        => def.Percent ? v.ToString("P0") : v.ToString("F" + Math.Clamp(def.Digits, 0, 3));
+
+    /// <summary>--smoke: desenha a ficha de combate de uma divisão do país e diz o que lá ficou — quantos
+    /// números, quantos a tabela tem ao todo, e o mais pesado deles. Desenha mesmo (e liberta) para o
+    /// contador acusar uma chapa que não existe ou uma linha que não chega ao cartão.</summary>
+    public static string SmokeSheet(World w, int countryId)
+    {
+        var d = w.Divisions.Values.FirstOrDefault(x => x.CountryId == countryId) ?? w.Divisions.Values.FirstOrDefault();
+        if (d is null) return "sem divisões para a ficha de combate";
+        var flow = Sheet(w, d);
+        int rows = flow.GetChildCount();
+        flow.QueueFree();
+        int total = w.UnitStatDefs.Count;
+        var st = w.Stats.Get(d.TemplateId);
+        var top = w.UnitStatDefs.Values.Where(x => x.Shown && !x.Percent)
+                   .OrderByDescending(x => st[x.Key]).FirstOrDefault();
+        string best = top is null ? "nenhum" : $"{top.Name.ToLowerInvariant()} {Value(top, st[top.Key])}";
+        return $"ficha de combate de {Title(w, d)} com {rows} de {total} números da tabela (o mais alto: {best})";
     }
 
     /// <summary>Efectivos, organização e abastecimento em três barras finas lado a lado.</summary>

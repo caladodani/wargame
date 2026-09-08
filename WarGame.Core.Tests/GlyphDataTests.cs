@@ -13,7 +13,7 @@ public class GlyphDataTests
     /// <summary>Os nomes que o Glyph.cs sabe desenhar, copiados à mão porque a lista de lá é do projecto
     /// Godot. Se lá se acrescentar um desenho, acrescenta-se aqui — é a única duplicação e é de propósito:
     /// vale mais repetir a lista do que deixar uma tabela pedir uma chapa que ninguém desenha.</summary>
-    private static readonly string[] Desenhados =
+    internal static readonly string[] Desenhados =
     {
         "capacete", "lagarta", "obus", "asa", "ancora", "drone", "camiao",
         "fabrica", "livro", "frasco", "atomo", "bigorna", "estrada", "escudo",
