@@ -742,6 +742,13 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa'),
  ('terreno','Terreno','⛰','terrain','','',8,'montanha');
 
+-- Chão desenhado no mapa político (Relief + TerrainMarks): serras, cidades, dunas e mata marcadas por cima
+-- da cor do dono, como em qualquer carta militar — o mapa passa a dizer por onde é que se anda antes de se
+-- abrir ficha nenhuma. Só se marca o chão que custa a atravessar: a planície é o normal e o normal não
+-- leva sinal, senão o mapa fica todo carimbado e deixa de se ler.
+INSERT INTO rule (key,value,note) VALUES
+ ('relief_mark_min_cost',1.05,'só o terreno com passo acima disto leva desenho no mapa (a planície não leva)');
+
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
