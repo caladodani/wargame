@@ -107,6 +107,7 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
     {
         var d = w.Divisions[DivisionId];
         d.AutoAdvance = false;   // ordem manual manda: desliga o avanço automático
+        Redeploy.Stop(d);        // marchar é marchar: uma ordem de marcha tira a tropa do comboio
         d.SetPath(FindPath(w, d.RegionId, TargetRegionId, CountryId)!);
     }
 
@@ -1106,6 +1107,16 @@ public sealed record ParadropCommand(int CountryId, int DivisionId, int TargetRe
     public string? Validate(World w) => ParadropSystem.Block(w, CountryId, DivisionId, TargetRegionId);
 
     public void Execute(World w) => ParadropSystem.Launch(w, w.Divisions[DivisionId], TargetRegionId);
+}
+
+/// <summary>Mandar uma divisão atravessar a retaguarda de comboio (Redeploy): chega em redeploy_speed do
+/// tempo de marcha, mas paga organização ao embarcar e quase não se recompõe pelo caminho. Toda a razão
+/// para não poder embarcar vem do Redeploy.Block — a barra de selecção mostra a mesma frase.</summary>
+public sealed record RedeployCommand(int CountryId, int DivisionId, int TargetRegionId) : ICommand
+{
+    public string? Validate(World w) => Redeploy.Block(w, CountryId, DivisionId, TargetRegionId);
+
+    public void Execute(World w) => Redeploy.Launch(w, w.Divisions[DivisionId], TargetRegionId);
 }
 
 public sealed record BuyWarshipCommand(int CountryId) : ICommand

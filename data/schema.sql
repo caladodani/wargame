@@ -326,7 +326,8 @@ CREATE TABLE IF NOT EXISTS s_division (
   volunteer_from INTEGER,                   -- casa desta divisão quando anda como voluntária (VolunteerSystem)
   pocket_days INTEGER NOT NULL DEFAULT 0,   -- dias seguidos em cerco (PocketSystem); o corte em si recalcula-se
   drop_target INTEGER,                      -- região onde vai saltar de pára-quedas (ParadropSystem); NULL = em terra
-  drop_days REAL NOT NULL DEFAULT 0         -- dias que faltam em voo até à aterragem
+  drop_days REAL NOT NULL DEFAULT 0,        -- dias que faltam em voo até à aterragem
+  redeploy INTEGER NOT NULL DEFAULT 0       -- vai em redespacho estratégico, pelos carris da retaguarda (MovementSystem)
 );
 CREATE TABLE IF NOT EXISTS s_division_medal (    -- condecorações ganhas (MedalSystem)
   division_id INTEGER NOT NULL, medal TEXT NOT NULL, PRIMARY KEY (division_id, medal));

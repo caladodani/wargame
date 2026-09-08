@@ -22,7 +22,7 @@ namespace WarGame.Presentation;
 public partial class RouteOverlay : Node2D
 {
     /// <summary>Uma rota já em coordenadas de mundo, pronta a desenhar.</summary>
-    private readonly record struct Lane(Vector2[] Points, Vector2 Head, bool BySea, bool Fighting, string Text);
+    private readonly record struct Lane(Vector2[] Points, Vector2 Head, bool BySea, bool Fighting, string Text, bool ByRail);
 
     private const float Width = 5f;          // grossura da linha, em unidades de mundo
     private const float HeadWidth = 30f;     // ponta da seta no destino
@@ -101,7 +101,7 @@ public partial class RouteOverlay : Node2D
             var routes = RouteLine.For(w, Chosen());
 
             string key = string.Join(";", routes.Select(r =>
-                $"{r.DivisionId}>{string.Join(",", r.Stops.Select(s => s.RegionId))}:{(int)(r.Progress * 20f)}:{r.Days}:{(r.Fighting ? 1 : 0)}"));
+                $"{r.DivisionId}>{string.Join(",", r.Stops.Select(s => s.RegionId))}:{(int)(r.Progress * 20f)}:{r.Days}:{(r.Fighting ? 1 : 0)}:{(r.ByRail ? 1 : 0)}"));
             if (key == _painted) return;
 
             _lanes.Clear();
@@ -122,12 +122,12 @@ public partial class RouteOverlay : Node2D
         int hops = r.Stops.Count - 1;
         string text = r.Fighting
             ? $"{r.Name} · presa em combate → {dest}"
-            : $"{r.Name} → {dest} · {r.Days} d" + (hops > 1 ? $" ({hops} saltos)" : "");
-        _lanes.Add(new Lane(pts, head, r.BySea, r.Fighting, text));
+            : $"{r.Name} {(r.ByRail ? "🚂" : "→")} {dest} · {r.Days} d" + (hops > 1 ? $" ({hops} saltos)" : "");
+        _lanes.Add(new Lane(pts, head, r.BySea, r.Fighting, text, r.ByRail));
 
         // etiqueta a meio do que falta andar: no destino ficava por cima do contador de unidades da região
         var mid = pts[pts.Length / 2].Lerp(pts[^1], 0.5f);
-        var tint = r.Fighting ? Ui.Danger : Ui.Accent;
+        var tint = Tint(r.Fighting, r.ByRail);
         var lbl = Ui.Lbl(text, 14);
         lbl.AddThemeColorOverride("font_color", tint.Lightened(0.5f));
         lbl.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.9f));
@@ -145,11 +145,17 @@ public partial class RouteOverlay : Node2D
         foreach (var l in _lanes) DrawLane(l);
     }
 
+    /// <summary>A cor da rota: vermelho quando a marcha está presa em combate, verde de caminho-de-ferro
+    /// quando a tropa vai de comboio pela retaguarda, e o dourado de sempre para uma marcha normal. É a
+    /// convenção do HoI4 — uma seta de redespacho não se confunde com uma seta de ataque.</summary>
+    private static Color Tint(bool fighting, bool byRail) =>
+        fighting ? Ui.Danger : byRail ? Ui.Good.Lightened(0.15f) : Ui.Accent;
+
     /// <summary>Uma rota: rasto escuro por baixo, o troço já andado esbatido, o que falta cheio, um losango em
     /// cada paragem do meio, a ponta da coluna marcada e uma seta no destino. Por mar vai tracejada.</summary>
     private void DrawLane(Lane l)
     {
-        var tint = l.Fighting ? Ui.Danger : Ui.Accent;
+        var tint = Tint(l.Fighting, l.ByRail);
         float w = Width * _thick, stop = Stop * _thick;
         DrawPolyline(l.Points, Ui.Ink with { A = 0.5f }, w + 4f * _thick);
 

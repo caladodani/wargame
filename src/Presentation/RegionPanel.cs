@@ -226,6 +226,7 @@ public partial class RegionPanel : PanelContainer
         var tag = w.Countries.TryGetValue(d.CountryId, out var c) ? c.Tag : "?";
         var s = $"{tag} {name}   HP {d.Hp:0}  Org {d.Org:0}  Sup {d.Supply:0.0}";
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
+        if (d.Redeploying) s += "   🚂";      // vai pelos carris: depressa, mas a dormir (Redeploy)
         // tropa especial: a marca de terreno é da unidade (unit_tag), não da bandeira — e diz-se aqui porque
         // é ela que decide se aquela serra é uma parede ou um caminho
         if (UnitSymbol.SpecFor(w, d.TemplateId) is { Length: > 0 } spec)

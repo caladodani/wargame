@@ -25,6 +25,9 @@ public sealed class RecoverySystem : ISystem
             float rest = resting ? w.Rule("reserve_org_bonus", 1.6f) : 1f;
             rest += DivisionHonourSystem.Bonus(w, d);   // tropa com nome próprio volta a si mais depressa
             rest *= w.SeasonOrg;                       // e a estação do ano manda em cima de tudo
+            // no comboio não se descansa: vai-se sentado em cima do equipamento, e é por isso que um
+            // redespacho chega depressa mas chega a dormir (Redeploy)
+            if (d.Redeploying) rest *= w.Rule("redeploy_org_regain", 0.25f);
             d.Org = MathF.Min(100f, d.Org + (d.Supply >= 1f ? 8f : 3f) * c.Stat("org_regain") * w.CommandMult(d, "org_regain") * rest);
             if (d.Hp >= 100f) continue;
             float hp = MathF.Min(2f * (resting ? w.Rule("reserve_hp_bonus", 1.5f) : 1f), 100f - d.Hp);

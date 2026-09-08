@@ -17,10 +17,13 @@ public partial class ArmySelect : PanelContainer
     private Game _game = null!;
     private MapView _map = null!;
     private Label _label = null!;
-    private Button _stop = null!, _disband = null!, _auto = null!, _drop = null!;
+    private Button _stop = null!, _disband = null!, _auto = null!, _drop = null!, _rail = null!;
     /// <summary>Ordem de salto armada: o duplo toque seguinte larga os pára-quedistas em vez de os mandar
     /// marchar. Desarma-se sozinha depois da ordem, ou ao limpar a selecção.</summary>
     private bool _dropArmed;
+    /// <summary>Ordem de redespacho armada: o duplo toque seguinte manda a tropa de comboio pela retaguarda
+    /// em vez de a mandar marchar. Como a do salto, desarma-se depois da ordem ou ao limpar a selecção.</summary>
+    private bool _railArmed;
     private readonly HashSet<int> _sel = new();
     private readonly HashSet<int> _prev = new();   // marcação de antes do último toque simples (ver DoubleTap)
     private ulong _prevAt;                          // e quando foi: fora da janela do duplo toque não se desfaz nada
@@ -51,6 +54,7 @@ public partial class ArmySelect : PanelContainer
         _disband = Ui.Btn("Dissolver", () => _game.RunWhenIdle(DisbandAll), 0f, Ui.Kind.Danger); h.AddChild(_disband);
         _auto = Ui.Btn("⚑ Avanço auto", () => _game.RunWhenIdle(ToggleAutoAdvance)); h.AddChild(_auto);
         _drop = Ui.Btn("🪂 Saltar", () => _game.RunWhenIdle(ToggleDrop)); h.AddChild(_drop);
+        _rail = Ui.Btn("🚂 Redespachar", () => _game.RunWhenIdle(ToggleRail)); h.AddChild(_rail);
         h.AddChild(Ui.Btn("Limpar", () => _game.RunWhenIdle(Clear)));
     }
 
@@ -91,7 +95,7 @@ public partial class ArmySelect : PanelContainer
             _sel.Clear(); _sel.UnionWith(_prev);
         }
         if (!Active) return;
-        if (_dropArmed) DropTo(regionId); else MoveTo(regionId);
+        if (_dropArmed) DropTo(regionId); else if (_railArmed) RailTo(regionId); else MoveTo(regionId);
     });
 
     private bool Mine(int regionId)
@@ -162,6 +166,44 @@ public partial class ArmySelect : PanelContainer
         Refresh();
     }
 
+    /// <summary>Arma (ou desarma) a ordem de redespacho. Armada, o duplo toque manda as divisões marcadas
+    /// pelos carris da retaguarda — depressa, mas a pagar organização e a chegar sem ela.</summary>
+    private void ToggleRail()
+    {
+        _railArmed = !_railArmed;
+        if (_railArmed)
+        {
+            _dropArmed = false;
+            var w = _game.World;
+            _game.Notify($"Duplo toque no destino — comboio a {1f / MathF.Max(0.01f, w.Rule("redeploy_speed", 0.35f)):0.#}× "
+                       + $"a marcha, por {w.Rule("redeploy_org_cost", 40f):0} de organização");
+        }
+        Refresh();
+    }
+
+    /// <summary>Uma ordem de redespacho por divisão marcada. As que não podem embarcar (em combate, sem
+    /// carris até lá) ficam onde estão e a primeira razão aparece na notificação.</summary>
+    private void RailTo(int targetRegionId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        var w = _game.World;
+        string? first = null; int n = 0;
+        foreach (var rid in _sel.ToList())
+        {
+            if (rid == targetRegionId || !w.Regions.TryGetValue(rid, out var r)) continue;
+            foreach (var id in r.DivisionIds.Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid).ToList())
+            {
+                var err = _game.Dispatch(new RedeployCommand(pid, id, targetRegionId));
+                if (err is null) n++; else first ??= err;
+            }
+        }
+        string dest = w.Regions.TryGetValue(targetRegionId, out var t) ? t.Name : "R" + targetRegionId;
+        _game.Notify(n > 0 ? $"🚂 {n} divis{(n == 1 ? "ão vai" : "ões vão")} de comboio para {dest}"
+                           : first ?? $"{dest} já é onde estão as divisões marcadas");
+        _railArmed = false;
+        Refresh();
+    }
+
     private void StopAll()
     {
         if (_game.PlayerId is not int pid) return;
@@ -210,7 +252,7 @@ public partial class ArmySelect : PanelContainer
         Refresh();
     }
 
-    public void Clear() { _sel.Clear(); _prev.Clear(); _dropArmed = false; Refresh(); }
+    public void Clear() { _sel.Clear(); _prev.Clear(); _dropArmed = false; _railArmed = false; Refresh(); }
 
     private void Refresh()
     {
@@ -225,12 +267,19 @@ public partial class ArmySelect : PanelContainer
         if (paras == 0) _dropArmed = false;   // ficou só infantaria marcada: a ordem de salto cai
         _label.Text = _dropArmed
             ? $"🪂 {paras} divis{(paras == 1 ? "ão de pára-quedistas" : "ões de pára-quedistas")} — duplo toque no sítio do salto"
+            : _railArmed
+            ? $"🚂 {divs} divis{(divs == 1 ? "ão" : "ões")} para o comboio — duplo toque no destino, pela retaguarda"
             : $"⚔ {_sel.Count} regiões · {divs} divisões — duplo toque no destino move";
         _auto.Text = ids.Count == 0 || ids.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance)
             ? "⚑ Avanço auto" : "⚑ Parar avanço";
         // o botão do salto só aparece a quem tem quem salte: numa selecção de infantaria não serve de nada
         _drop.Visible = paras > 0;
         _drop.Text = _dropArmed ? "🪂 Desistir do salto" : "🪂 Saltar";
+        // o comboio serve para qualquer tropa, mas não a quem já vai nele: nesse caso o botão desce dela
+        bool riding = ids.Any(id => w.Divisions.TryGetValue(id, out var d) && d.Redeploying);
+        _rail.Visible = divs > 0 && !_dropArmed;
+        _rail.Text = riding ? "🚂 A caminho" : _railArmed ? "🚂 Desistir do comboio" : "🚂 Redespachar";
+        _rail.Disabled = riding;
         Visible = true;
     }
 }

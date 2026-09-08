@@ -21,6 +21,8 @@ public sealed class MovementSystem : ISystem
         {
             // no ar não se marcha: os pára-quedistas estão dentro dos aviões (ParadropSystem)
             if (d.Path.Count == 0 || d.InFlight || inBattle.Contains(d.Id)) continue;
+            // o comboio parou: a frente moveu-se por cima da linha e o salto seguinte já não é terra nossa
+            if (Redeploy.Derailed(w, d)) { Redeploy.Stop(d); d.ClearPath(); continue; }
             var target = w.Regions[d.Path[0]];
             var origin = w.Regions[d.RegionId];
             bool bySea = w.IsSeaHop(origin.Id, target.Id);
@@ -51,7 +53,9 @@ public sealed class MovementSystem : ISystem
             days = w.Rule("move_base_days", 80f) / w.Stats.Get(d.TemplateId)["mobility"] * w.MoveCost(target.Terrain)
                    / MathF.Max(w.Rule("move_infra_floor", 0.5f), target.Infrastructure)
                    / (w.Countries[d.CountryId].Stat("move_speed") * w.CommandMult(d, "move_speed"));
-        return MathF.Max(0.01f, days / w.SeasonMove);
+        // pelos carris fazem-se os mesmos saltos numa fracção do tempo (Redeploy): é a razão de ser do
+        // redespacho, e a conta tem de ser esta mesma para o mapa não prometer uma data e o mundo cumprir outra
+        return MathF.Max(0.01f, days * Redeploy.Speed(w, d) / w.SeasonMove);
     }
 
     /// <summary>Divisão fora de batalha em região inimiga (acabou de ser capturada) recua para a região própria
@@ -85,6 +89,7 @@ public sealed class MovementSystem : ISystem
     {
         if (bySea) Disembark(w, d);
         w.PlaceDivision(d, target.Id); d.AdvanceHop();
+        if (d.Path.Count == 0) Redeploy.Stop(d);      // chegou ao destino: desce do comboio
         foreach (var b in w.ActiveBattles)
             if (b.RegionId == target.Id && w.AreAtWar(d.CountryId, b.AttackerCountryId) && !b.Defenders.Contains(d.Id))
             { b.Defenders.Add(d.Id); inBattle.Add(d.Id); }

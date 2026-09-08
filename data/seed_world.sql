@@ -80,6 +80,14 @@ INSERT INTO rule (key,value,note) VALUES
  ('sea_speed_kmd',400,'km por dia de uma divisão embarcada (Atlântico ≈ 8 dias)'),
  ('sea_min_days',2,'dias mínimos de qualquer travessia marítima (embarque + desembarque)');
 
+-- Redespacho estratégico (MovementSystem): a tropa que atravessa a retaguarda não marcha, vai de comboio.
+-- Anda muito mais depressa pelos carris da terra própria, mas chega desfeita e sem se recompor pelo
+-- caminho — quem a apanhar à saída da estação apanha-a a dormir. É a troca do HoI4: velocidade por prontidão.
+INSERT INTO rule (key,value,note) VALUES
+ ('redeploy_speed',0.35,'fracção dos dias de marcha que um redespacho pelos carris leva'),
+ ('redeploy_org_cost',40,'organização que se paga ao embarcar no comboio'),
+ ('redeploy_org_regain',0.25,'fracção da recomposição normal enquanto se vai no comboio');
+
 -- Paz branca: guerra sem captura entre os dois durante isto fecha em uti possidetis (TruceSystem).
 INSERT INTO rule (key,value,note) VALUES
  ('war_white_peace_days',240,'dias de estagnação até paz branca automática');

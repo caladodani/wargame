@@ -673,6 +673,10 @@ public sealed class Division
     public float DropDays { get; set; }
     /// <summary>Vai a caminho do salto: nem marcha, nem se lhe muda o destino.</summary>
     public bool InFlight => DropDays > 0f;
+    /// <summary>Vai em redespacho estratégico: atravessa a retaguarda pelos carris em vez de marchar
+    /// (MovementSystem; save s_division.redeploy). Anda muito mais depressa, paga organização ao embarcar e
+    /// quase não se recompõe pelo caminho — e o comboio pára sozinho se a frente lhe cortar a linha.</summary>
+    public bool Redeploying { get; set; }
     /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
     public List<int> Path { get; } = new();
     public int? TargetRegionId => Path.Count > 0 ? Path[0] : null;

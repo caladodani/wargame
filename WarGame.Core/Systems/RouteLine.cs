@@ -8,7 +8,7 @@ public readonly record struct RouteStop(int RegionId, float X, float Y);
 /// <summary>A marcha de uma divisão, do sítio onde está até ao destino: as paragens por onde passa, quanto já
 /// andou do primeiro salto e quantos dias faltam para chegar.</summary>
 public readonly record struct DivisionRoute(int DivisionId, string Name, IReadOnlyList<RouteStop> Stops,
-                                            float Progress, int Days, bool BySea, bool Fighting)
+                                            float Progress, int Days, bool BySea, bool Fighting, bool ByRail = false)
 {
     public RouteStop From => Stops[0];
     public RouteStop To => Stops[^1];
@@ -60,7 +60,7 @@ public static class RouteLine
 
         bool fighting = inBattle?.Contains(d.Id) ?? w.InBattle(d.Id);
         return new DivisionRoute(d.Id, d.WarName ?? d.Name ?? $"Divisão {d.Id}", stops, Math.Clamp(d.MoveProgress, 0f, 1f),
-                                 days, sea, fighting);
+                                 days, sea, fighting, d.Redeploying);
     }
 
     /// <summary>As rotas destas divisões, sem as que estão paradas, pela ordem das divisões.</summary>

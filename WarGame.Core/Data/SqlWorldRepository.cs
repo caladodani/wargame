@@ -397,6 +397,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_army_group", "front_region_id", "INTEGER"),
         ("s_division", "drop_target", "INTEGER"),
         ("s_division", "drop_days", "REAL NOT NULL DEFAULT 0"),
+        ("s_division", "redeploy", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -584,7 +585,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -605,6 +606,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["drop_target"] is not null && d.DropDays > 0f) d.DropTargetId = Convert.ToInt32(r["drop_target"]);
             else d.DropDays = 0f;
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
+            // o comboio a meio caminho guarda-se, mas só enquanto houver caminho: sem rota não há redespacho
+            if (r["redeploy"] is not null) d.Redeploying = Convert.ToInt32(r["redeploy"]) != 0 && d.Path.Count > 0;
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
         }
@@ -798,10 +801,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var d in w.Divisions.Values)
         {
             // colunas nomeadas: a tabela cresce por migração e um INSERT posicional partia-se à coluna seguinte
-            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
-                d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays);
+                d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays, d.Redeploying ? 1 : 0);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
         }
