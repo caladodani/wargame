@@ -148,6 +148,8 @@ passo "Versão já publicada"
 if [ -f "$DEST_JSON" ]; then
     VER_PUB=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("version",""))' "$DEST_JSON" 2>/dev/null || true)
     CODE_PUB=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("code",0))' "$DEST_JSON" 2>/dev/null || true)
+    # o tamanho do que está lá fora: serve de vara para medir o APK novo no passo do export
+    TAM_PUB=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("size",0))' "$DEST_JSON" 2>/dev/null || true)
     printf "   lá fora: %s (code %s)\n" "${VER_PUB:-?}" "${CODE_PUB:-?}"
     if [ "$VER_PUB" = "$VERSAO" ]; then
         if [ "$FORCAR" -eq 1 ]; then
@@ -211,7 +213,29 @@ rm -f "$APK_LOCAL"
 mkdir -p "$(dirname "$APK_LOCAL")"
 godot --headless --path "$REPO" --export-debug Android "$APK_LOCAL"
 [ -s "$APK_LOCAL" ] || morrer "o export não deixou $APK_LOCAL (ou deixou-o vazio)"
+# ARMADILHA (0.3.33, custou um APK partido no ar): o export pode sair SEM o lado C# nenhum e mesmo
+# assim acabar bem, com APK assinado, versionName certo e tudo. Foi o que aconteceu quando outra
+# sessão correu `dotnet build` ao mesmo tempo que o export: o Godot apanhou a árvore de saída do
+# .NET a ser reescrita, o APK ficou 14 MB mais leve e sem um único assembly — um jogo que nem
+# arranca. O tamanho não se pode fixar (cresce com o jogo), mas os assemblies contam-se.
+DLLS=$(unzip -l "$APK_LOCAL" 2>/dev/null | grep -ci 'assets/\.godot/mono/publish/.*\.dll' || true)
+[ "${DLLS:-0}" -ge 50 ] || morrer "o APK só leva ${DLLS:-0} assemblies do C# (esperam-se mais de 50 em assets/.godot/mono/publish/).
+   O export saiu sem o lado C#: o jogo instalava e não arrancava. Correu algum \`dotnet build\` ao mesmo
+   tempo que o export? Espera que ele acabe e publica outra vez — nada foi publicado."
+printf "   %s assemblies do C# lá dentro\n" "$DLLS"
 TAMANHO=$(stat -c %s "$APK_LOCAL")
+# E a vara mais barata de todas: um APK muito mais leve do que o que está no ar perdeu alguma coisa
+# pelo caminho. Mede-se contra o publicado e não contra um número fixo, para o limite acompanhar o
+# jogo — encolher de propósito é possível, mas passa a ser uma decisão e não um acidente (--forcar).
+if [ -n "${TAM_PUB:-}" ] && [ "${TAM_PUB:-0}" -gt 0 ] && [ "$TAMANHO" -lt $((TAM_PUB * 4 / 5)) ]; then
+    if [ "$FORCAR" -eq 1 ]; then
+        aviso "o APK novo ($TAMANHO bytes) é bem mais leve do que o publicado ($TAM_PUB) — segue-se (--forcar dado)"
+    else
+        morrer "o APK novo tem $TAMANHO bytes e o publicado tem $TAM_PUB: encolheu mais de um quinto.
+   Ou o export perdeu alguma coisa pelo caminho, ou o jogo emagreceu de propósito. Confere o que está
+   lá dentro (unzip -l $APK_LOCAL) e, se for de propósito, publica com --forcar."
+    fi
+fi
 printf "   %s (%s bytes, %s MiB)\n" "$APK_LOCAL" "$TAMANHO" "$((TAMANHO / 1048576))"
 
 # ---------------------------------------------------------------- 7. assinatura e versão do APK
