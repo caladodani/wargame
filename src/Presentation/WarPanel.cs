@@ -57,7 +57,9 @@ public partial class WarPanel : PanelContainer
 
     /// <summary>Índice da aba do material em `Sections`. Quem vem da folha de acções da diplomacia quer o
     /// deslizador do empréstimo, e o índice não se escreve à mão de fora: uma aba nova pelo meio partia-o.</summary>
-    public static readonly int Material = Array.IndexOf(Sections, "Material");
+    // `new` porque o Node já tem um Material (o do desenho) e este é o número da aba: nomes iguais, coisas
+    // sem nada a ver. Esconder é o que se quer aqui, e o `new` diz que foi de propósito.
+    public new static readonly int Material = Array.IndexOf(Sections, "Material");
 
     /// <summary>Abre o painel. Sem `tab` fica na aba onde estava.</summary>
     public void Open(int? tab = null)

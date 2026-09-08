@@ -42,13 +42,42 @@ internal static class Ui
         if (kind != Kind.Normal)
         {
             var c = kind == Kind.Primary ? Accent : Danger;
-            b.AddThemeStyleboxOverride("normal", Fill(c.Darkened(0.55f), border: c));
-            b.AddThemeStyleboxOverride("hover", Fill(c.Darkened(0.35f), border: c.Lightened(0.3f)));
-            b.AddThemeStyleboxOverride("pressed", Fill(c.Darkened(0.7f), border: c));
+            if (!Metal(kind, (state, box) => b.AddThemeStyleboxOverride(state, box)))
+            {
+                b.AddThemeStyleboxOverride("normal", Fill(c.Darkened(0.55f), border: c));
+                b.AddThemeStyleboxOverride("hover", Fill(c.Darkened(0.35f), border: c.Lightened(0.3f)));
+                b.AddThemeStyleboxOverride("pressed", Fill(c.Darkened(0.7f), border: c));
+            }
             b.AddThemeColorOverride("font_color", kind == Kind.Primary ? Accent.Lightened(0.55f) : Colors.White);
         }
         b.Pressed += () => { try { onPressed(); } catch (Exception ex) { GD.PushError($"Botão '{b.Text}': {ex}"); } };
         return b;
+    }
+
+    /// <summary>O tom por que a chapa da tecla é multiplicada, em repouso, sob o dedo e premida.
+    ///
+    /// Vem mais claro do que a cor lisa que estava aqui, e é de propósito: o relevo da imagem é feito de
+    /// escurecimentos — contorno a 0.16, base a 0.38 — e uma cor já escura não deixa lá ficar aresta
+    /// nenhuma. Uma tecla de metal é mais clara do que o painel onde está montada; era o painel que
+    /// estava a ser rectângulo, não o botão que estava escuro de mais.</summary>
+    private static (Color Idle, Color Hover, Color Down) Tone(Kind k) => k switch
+    {
+        Kind.Primary => (new(0.520f, 0.430f, 0.220f), new(0.680f, 0.570f, 0.300f), new(0.360f, 0.300f, 0.150f)),
+        Kind.Danger => (new(0.480f, 0.200f, 0.190f), new(0.620f, 0.270f, 0.260f), new(0.330f, 0.140f, 0.130f)),
+        _ => (new(0.320f, 0.345f, 0.370f), new(0.440f, 0.470f, 0.500f), new(0.250f, 0.270f, 0.290f)),
+    };
+
+    /// <summary>Veste de metal os cinco estados de um botão. Devolve false quando a imagem falta, e aí
+    /// quem chamou fica com os StyleBoxFlat de sempre — o jogo continua, só sem relevo.</summary>
+    private static bool Metal(Kind kind, Action<string, StyleBox> set)
+    {
+        var (idle, hover, down) = Tone(kind);
+        if (MetalButton.Style(idle) is not StyleBox n) return false;
+        set("normal", n);
+        if (MetalButton.Style(hover) is StyleBox h) { set("hover", h); set("focus", h); }
+        if (MetalButton.Style(down, pressed: true) is StyleBox p) set("pressed", p);
+        if (MetalButton.Style(idle.Darkened(0.45f)) is StyleBox d) set("disabled", d);
+        return true;
     }
 
     /// <summary>Faz o controlo ocupar a largura livre da linha.</summary>
@@ -236,11 +265,14 @@ internal static class Ui
         if (_theme is not null) return _theme;
         var t = new Theme { DefaultFontSize = Font };
 
-        t.SetStylebox("normal", "Button", Fill(Surface));
-        t.SetStylebox("hover", "Button", Fill(SurfaceHi, border: Accent));
-        t.SetStylebox("pressed", "Button", Fill(Accent.Darkened(0.55f), border: Accent));
-        t.SetStylebox("focus", "Button", Fill(SurfaceHi, border: Accent));
-        t.SetStylebox("disabled", "Button", Fill(Surface.Darkened(0.45f), border: Frame.Darkened(0.4f)));
+        if (!Metal(Kind.Normal, (state, box) => t.SetStylebox(state, "Button", box)))
+        {
+            t.SetStylebox("normal", "Button", Fill(Surface));
+            t.SetStylebox("hover", "Button", Fill(SurfaceHi, border: Accent));
+            t.SetStylebox("pressed", "Button", Fill(Accent.Darkened(0.55f), border: Accent));
+            t.SetStylebox("focus", "Button", Fill(SurfaceHi, border: Accent));
+            t.SetStylebox("disabled", "Button", Fill(Surface.Darkened(0.45f), border: Frame.Darkened(0.4f)));
+        }
         t.SetColor("font_color", "Button", Text);
         t.SetColor("font_hover_color", "Button", Accent.Lightened(0.4f));
         t.SetColor("font_pressed_color", "Button", Colors.White);
