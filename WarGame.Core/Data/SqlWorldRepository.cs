@@ -154,10 +154,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["autonomy_min"]), Convert.ToSingle(r["yield_share"]), Convert.ToSingle(r["manpower_share"]),
                 Convert.ToSingle(r["drift"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         w.VictoryTiers.Clear();
-        foreach (var r in _static.Query("SELECT id,name,icon,points,min_pop,capital,note,sort,glyph FROM victory_tier ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,points,min_pop,capital,note,sort,glyph,shape FROM victory_tier ORDER BY sort"))
             w.VictoryTiers[(string)r["id"]!] = new VictoryTierDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["points"]), Convert.ToInt64(r["min_pop"]), Convert.ToInt32(r["capital"]) != 0,
-                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!, (string)r["shape"]!);
         w.VeterancyTiers.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,min_xp,bonus,chevrons,note,sort,glyph FROM veterancy ORDER BY sort"))
             w.VeterancyTiers[(string)r["id"]!] = new VeterancyDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,

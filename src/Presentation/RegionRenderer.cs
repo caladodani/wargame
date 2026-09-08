@@ -10,19 +10,13 @@ namespace WarGame.Presentation;
 /// divisões por região e contorno da região seleccionada. Só lê o World em Refresh — chamado com o mundo parado.</summary>
 public partial class RegionRenderer : Node2D
 {
+    /// <summary>Batalha a decorrer, nas fichas e nas listas. No mapa a batalha é chapa desenhada
+    /// (MapFurniture) e não texto — lá o que conta é a cor de quem está a ganhar.</summary>
     public const string BattleMark = "⚔ ";
-    public const string FortMark = "■";
     /// <summary>Região ocupada com resistência relevante (≥ metade do caminho para a revolta).</summary>
     public const string ResistMark = "✊";
-    /// <summary>Capital de um país vivo.</summary>
-    public const string CapitalMark = "★";
     /// <summary>Região que o jogador exigiu numa guerra (objectivo de guerra).</summary>
     public const string GoalMark = "🎯";
-    /// <summary>Região com porto: é por aqui que o abastecimento salta o mar.</summary>
-    public const string PortMark = "⚓";
-    /// <summary>Praça que conta pontos de vitória: o número entra na pastilha a seguir a esta marca, como
-    /// no mapa do HoI4 — é por eles que se lê de relance quem está a ganhar a guerra.</summary>
-    public const string VictoryMark = "👑";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
@@ -44,6 +38,7 @@ public partial class RegionRenderer : Node2D
     private bool _countersOn;
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
     private Node2D _counterRoot = null!;
+    private MapFurniture _furnitureRoot = null!;
     private Node2D _frontierRoot = null!;
     private Node2D _stripeRoot = null!;
     private Node2D _riverRoot = null!;
@@ -147,6 +142,9 @@ public partial class RegionRenderer : Node2D
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
         _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
         _nameRoot = new Node2D { Name = "CountryNames", Modulate = new Color(1, 1, 1, 0.9f) }; AddChild(_nameRoot);
+        // A mobília do mapa por cima dos nomes de país e por baixo dos marcadores de tropa: as chapas das
+        // praças, as âncoras, os fortes e as chapas de batalha. É a camada que no HoI4 se lê antes de tudo.
+        _furnitureRoot = new MapFurniture { Name = "Furniture" }; AddChild(_furnitureRoot);
         _markerRoot = new Node2D { Name = "Markers" }; AddChild(_markerRoot);   // números por cima dos nomes
         _counterRoot = new Node2D { Name = "Counters", Visible = false }; AddChild(_counterRoot);   // e os contadores por cima de tudo
         game.World.Events.Subscribe<RegionCaptured>(e => { int id = e.RegionId; Callable.From(() => Recolor(id)).CallDeferred(); });
@@ -762,6 +760,7 @@ public partial class RegionRenderer : Node2D
         _terrainRoot.Visible = zoom >= TerrainZoom;   // e o chão desenhado logo a seguir à água
         _cityRoot.Visible = zoom >= CityZoom;         // e os nomes de terra com as capitais
         if (_cityRoot.Visible) _cityRoot.SetZoom(zoom);
+        _furnitureRoot.SetZoom(zoom);                 // e as chapas, que escolhem sozinhas o que cabe
         if (on != _countersOn) { _countersOn = on; Refresh(); }
         foreach (var n in _countryNames.Values)
         {
@@ -773,7 +772,9 @@ public partial class RegionRenderer : Node2D
         foreach (var c in _goalRoot.GetChildren()) if (c is Line2D l3) l3.Width = 5f * _markerScale;
     }
 
-    /// <summary>Um Label por região com divisões: "N" ou "⚔ N" se há batalha, "■" se há forte, cor do controlador. Esconde os vazios.</summary>
+    /// <summary>Um Label por região com tropa: o número de divisões, o alvo de um objectivo de guerra e o
+    /// punho da resistência, na cor do controlador. Esconde as vazias. O que é chão e obra — a chapa da
+    /// praça, a âncora, o forte e a chapa da batalha — saiu daqui para a camada da mobília, desenhada.</summary>
     public void Refresh()
     {
         try
@@ -782,37 +783,26 @@ public partial class RegionRenderer : Node2D
             RefreshShades();
             SyncStripes(w);
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
-            var portIds = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).Select(d => d.Id).ToHashSet();
             var goals = PlayerGoals(w);
             DrawGoals(goals);
-            var capitals = new HashSet<int>(w.Countries.Values.Where(c => !c.Capitulated).Select(c => c.CapitalRegionId));
-            int vpMark = Math.Max(1, (int)w.Rule("victory_marker_min", 5f));
+            // A mobília — chapas de praça, âncoras, fortes e batalhas — é desenhada de uma vez pela camada
+            // própria. A pastilha ficou só com o que ela sabe dizer melhor: quanta tropa está ali.
+            _furnitureRoot.Refresh(w, _game.PlayerId ?? 0);
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
                 bool resisting = r.Resistance >= 0.5f;
-                bool capital = capitals.Contains(r.Id);
                 bool goal = goals.Contains(r.Id);
-                bool port = r.Buildings.Any(b => b.Value > 0 && portIds.Contains(b.Key));
                 // o marcador conta o que o jogador tem como ver: tropa do outro lado do nevoeiro não aparece
                 int shown = _game.PlayerId is int viewer ? Vision.CountIn(w, viewer, r) : r.DivisionIds.Count;
-                // as praças que valem alguma coisa marcam-se sozinhas: um mapa em que as cidades grandes só
-                // aparecem quando lá está tropa não deixa planear campanha nenhuma
-                int vp = VictoryPoints.Of(w, r);
-                bool prize = vp >= vpMark;
-                if (shown == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port && !prize) continue;
+                if (shown == 0 && !resisting && !goal) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var pill = m.GetNode<PanelContainer>("Center/Pill");
                 var label = pill.GetNode<Label>("Text");
                 bool fighting = battles.Contains(r.Id);
                 label.Text = (goal ? GoalMark : "")
-                           + (capital ? CapitalMark : "")
-                           + (prize && !capital ? VictoryMark + vp : "")
-                           + (fighting ? BattleMark : "")
                            + (shown > 0 && !_countersOn ? shown.ToString() : "")   // de perto, quem conta é o contador
-                           + (r.Fort > 0 ? FortMark : "")
-                           + (port ? PortMark : "")
                            + (resisting ? ResistMark : "");
                 label.LabelSettings = StyleFor(r.ControllerId);
                 pill.AddThemeStyleboxOverride("panel", PillFor(r.ControllerId));
@@ -870,9 +860,11 @@ public partial class RegionRenderer : Node2D
     /// <summary>--smoke: quantos contadores estão desenhados no mapa (o zoom de perto tem de estar ligado).</summary>
     public int Counters() => _counters.Values.Count(c => c.Visible);
 
-    /// <summary>--smoke: quantas praças de pontos de vitória estão marcadas no mapa (a coroa e o número).</summary>
-    public int Prizes() => _markers.Values.Count(m => m.Visible
-        && m.GetNode<Label>("Center/Pill/Text").Text.Contains(VictoryMark));
+    /// <summary>--smoke: quantas praças de pontos de vitória estão com chapa desenhada no mapa.</summary>
+    public int Prizes() => _furnitureRoot.Drawn;
+
+    /// <summary>--smoke: o que a camada da mobília tem desenhado neste momento.</summary>
+    public string FurnitureReport() => _furnitureRoot.Report();
 
     /// <summary>Nome de cada país escrito por cima do território que controla, no centro de gravidade das
     /// regiões dele (pesadas pela área, para o nome cair na massa principal e não num arquipélago).

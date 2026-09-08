@@ -713,15 +713,33 @@ CREATE TABLE IF NOT EXISTS victory_tier (
   min_pop INTEGER NOT NULL,                  -- população a partir da qual a região é deste grau
   capital INTEGER NOT NULL DEFAULT 0,        -- 1 = grau da capital do país (ganha ao grau da população)
   note TEXT NOT NULL, sort INTEGER NOT NULL,
-  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
-INSERT INTO victory_tier (id,name,icon,points,min_pop,capital,note,sort,glyph) VALUES
- ('capital','Capital','👑',10,0,1,'A cadeira do governo: tomá-la vale por uma campanha inteira.',0,'coroa'),
- ('metropole','Metrópole','🏙',5,20000000,0,'Milhões de pessoas e a indústria que vive delas.',1,'cidade'),
- ('cidade','Cidade','🏛',3,5000000,0,'Praça grande: nó de estradas, fábricas e gente.',2,'coluna'),
- ('praca','Praça','⌂',1,1000000,0,'Terra povoada que se conta na soma, sem ser um prémio por si.',3,'caixa');
+  glyph TEXT NOT NULL DEFAULT '',            -- nome de um desenho do Glyph.cs — é este que se vê
+  shape TEXT NOT NULL DEFAULT 'circulo');    -- a forma da chapa no mapa: estrela, pentagono, quadrado, circulo
+INSERT INTO victory_tier (id,name,icon,points,min_pop,capital,note,sort,glyph,shape) VALUES
+ ('capital','Capital','👑',10,0,1,'A cadeira do governo: tomá-la vale por uma campanha inteira.',0,'coroa','estrela'),
+ ('metropole','Metrópole','🏙',5,20000000,0,'Milhões de pessoas e a indústria que vive delas.',1,'cidade','pentagono'),
+ ('cidade','Cidade','🏛',3,5000000,0,'Praça grande: nó de estradas, fábricas e gente.',2,'coluna','quadrado'),
+ ('praca','Praça','⌂',1,1000000,0,'Terra povoada que se conta na soma, sem ser um prémio por si.',3,'caixa','circulo');
 INSERT INTO rule (key,value,note) VALUES
  ('peace_weight_vp',0.8,'peso da fatia de pontos de vitória tomados na pressão de uma paz negociada'),
  ('victory_marker_min',5,'pontos a partir dos quais a região se marca sozinha no mapa');
+
+-- A mobília do mapa (MapMarks + MapFurniture): as chapas que o HoI4 põe por cima da terra e que se leem
+-- antes de qualquer painel — a forma diz o grau da praça, a cor diz de quem é. Verde o que é meu ou de
+-- aliado, cinzento o que é de terceiros, vermelho o de quem está em guerra comigo. O nevoeiro manda: praça
+-- que o jogador não vê fica cinzenta como qualquer outra terra de estranhos.
+INSERT INTO rule (key,value,note) VALUES
+ ('mark_prize_zoom',0.16,'zoom a partir do qual as chapas de ponto de vitória acendem'),
+ ('mark_name_zoom',0.85,'zoom a partir do qual a chapa leva o nome da praça escrito ao lado'),
+ ('mark_base_zoom',0.45,'zoom a partir do qual aparecem âncoras de porto e fortes'),
+ ('mark_draw_max',600,'tecto de chapas desenhadas de uma vez (as de mais pontos primeiro)');
+
+-- A chapa de batalha (BattleOdds): no HoI4 uma batalha no mapa é um ponteiro com um número e uma cor —
+-- verde se o meu lado está a levar a melhor, amarelo se está renhida, vermelho se está a perder. O número
+-- é a vantagem em fracção da força total, de 0 a 99; o sinal é sempre lido do lado de quem olha.
+INSERT INTO rule (key,value,note) VALUES
+ ('battle_even_band',0.12,'vantagem abaixo desta fracção conta como batalha renhida (chapa amarela)'),
+ ('battle_org_weight',0.6,'peso da organização na força de um lado (o resto vem dos homens de pé)');
 
 -- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
 CREATE TABLE IF NOT EXISTS map_mode (

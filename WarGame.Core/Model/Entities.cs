@@ -197,7 +197,7 @@ public sealed record SubjectTypeDef(string Id, string Name, string Icon, float A
 /// da qual a região é deste grau, Capital marca o grau que só a capital do país tem — e que ganha sempre ao
 /// que a população dela daria. O grau não se guarda: lê-se da região, por isso nunca a contradiz.</summary>
 public sealed record VictoryTierDef(string Id, string Name, string Icon, int Points, long MinPop, bool Capital,
-                                    string Note, int Sort, string Glyph = "");
+                                    string Note, int Sort, string Glyph = "", string Shape = "circulo");
 
 /// <summary>Um grau de veterania (tabela veterancy; Veterancy). MinXp é a experiência a partir da qual a
 /// divisão é deste grau, Bonus a força extra que ele lhe dá e Chevrons os galões que o contador do mapa

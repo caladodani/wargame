@@ -95,7 +95,10 @@ public static class RegionState
                 $"{vt.Name}: {vt.Note}\n"
               + $"Vale {vt.Points} ponto{(vt.Points == 1 ? "" : "s")} de vitória na mesa de paz —"
               + $" o país dele inteiro vale {VictoryPoints.Total(w, r.OwnerId)}.\n"
-              + "Quem tem os pontos tem a pressão: é por eles, e não pelo número de regiões, que se mede quem está a ganhar."));
+              + "Quem tem os pontos tem a pressão: é por eles, e não pelo número de regiões, que se mede quem está a ganhar.\n"
+              + $"No mapa esta praça leva {(vt.Shape == "estrela" ? "uma estrela" : vt.Shape == "pentagono" ? "um pentágono"
+                    : vt.Shape == "quadrado" ? "um quadrado" : "um círculo")}"
+              + " — verde se é nossa ou de aliado, vermelha se é de quem está em guerra connosco, cinzenta nas outras."));
 
         if (r.Fort > 0)
             parts.Add(new StatePart("escudo", $"{r.Fort}", "forte",
