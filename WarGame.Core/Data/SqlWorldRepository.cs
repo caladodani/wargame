@@ -92,12 +92,15 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]),
                 r["fuel_per_unit"] is null ? 0f : Convert.ToSingle(r["fuel_per_unit"]));
-        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon FROM building"))
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon,glyph FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
                 Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]), (string)r["yard"]!,
-                (string)r["icon"]!);
+                (string)r["icon"]!, (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM tech_branch ORDER BY sort"))
+            w.TechBranches[(string)r["id"]!] = new TechBranchDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort,country_tag FROM medal ORDER BY sort"))
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]),

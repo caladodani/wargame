@@ -13,12 +13,13 @@ public partial class BuildBar : PanelContainer
 {
     private const string Infra = "@infra", Fort = "@fort";
 
-    // Os edifícios trazem o desenho da tabela `building`; estes dois não são linhas de lá — são regras
-    // (infra_build_cost, fort_build_cost) e já tinham o nome escrito aqui. O desenho fica ao pé do nome.
-    private const string InfraIcon = "🛣", FortIcon = "🛡";
+    // Os edifícios trazem o desenho da tabela `building` (coluna glyph); estes dois não são linhas de lá —
+    // são regras (infra_build_cost, fort_build_cost) e já tinham o nome escrito aqui. A chapa também.
+    private const string InfraGlyph = "estrada", FortGlyph = "escudo";
 
     private Game _game = null!;
     private VBoxContainer _list = null!;
+    private HBoxContainer _stamp = null!;
     private Label _status = null!;
     private string? _armed;
     private string _painted = "";
@@ -39,9 +40,13 @@ public partial class BuildBar : PanelContainer
         head.AddChild(Ui.Grow(Ui.Head("Construir", 14)));
         head.AddChild(Ui.Btn("Fechar", Close, 44));
         v.AddChild(head);
+        var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 6);
+        _stamp = new HBoxContainer();                     // a chapa do tipo armado, ao lado da frase
+        line.AddChild(_stamp);
         _status = Ui.Lbl("Escolhe o tipo e toca no mapa", 14);
         _status.AddThemeColorOverride("font_color", Ui.TextDim);
-        v.AddChild(_status);
+        line.AddChild(Ui.Grow(_status));
+        v.AddChild(line);
         _list = new VBoxContainer(); _list.AddThemeConstantOverride("separation", 2); v.AddChild(_list);
     }
 
@@ -65,31 +70,41 @@ public partial class BuildBar : PanelContainer
         _painted = key;
         Ui.Clear(_list);
         foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
-            _list.AddChild(Pick(d.Name, d.Id, $"{d.Cost:0}, {d.Days:0} d", d.Icon));
-        _list.AddChild(Pick("Infra-estrutura", Infra, $"{w.Rule("infra_build_cost", 40f):0}, {w.Rule("infra_build_days", 30f):0} d", InfraIcon));
-        _list.AddChild(Pick("Fortificação", Fort, $"{w.Rule("fort_build_cost", 30f):0}, {w.Rule("fort_build_days", 20f):0} d", FortIcon));
+            _list.AddChild(Pick(d.Name, d.Id, $"{d.Cost:0}, {d.Days:0} d", d.Glyph));
+        _list.AddChild(Pick("Infra-estrutura", Infra, $"{w.Rule("infra_build_cost", 40f):0}, {w.Rule("infra_build_days", 30f):0} d", InfraGlyph));
+        _list.AddChild(Pick("Fortificação", Fort, $"{w.Rule("fort_build_cost", 30f):0}, {w.Rule("fort_build_days", 20f):0} d", FortGlyph));
     }
 
     /// <summary>Uma chapa da lista. O desenho vai à cabeça do nome, como no menu de construção do HoI4: numa
     /// lista de seis obras todas escritas do mesmo tamanho, o que se procura encontra-se pela figura e não
-    /// pela leitura. Edifício sem desenho na tabela leva um espaço no lugar dele, para as colunas de nomes
-    /// não ficarem em degrau.</summary>
-    private Button Pick(string name, string id, string cost, string icon)
+    /// pela leitura. A chapa é desenhada por cima do botão, ancorada à esquerda e ao meio da altura, porque
+    /// um Button não arruma filhos — e o texto começa com um recuo do tamanho dela para não lhe ir por cima.</summary>
+    private Button Pick(string name, string id, string cost, string glyph)
     {
-        var b = Ui.Btn($"{(icon.Length == 0 ? " " : icon)}  {name} ({cost})", () => Arm(id), 0f,
+        var b = Ui.Btn($"        {name} ({cost})", () => Arm(id), 0f,
                        id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
         b.Alignment = HorizontalAlignment.Left;
+        var plate = Glyph.Make(glyph, PlateSize, id == _armed ? Ui.Ink : Ui.Accent);
+        plate.MouseFilter = MouseFilterEnum.Ignore;
+        plate.AnchorTop = plate.AnchorBottom = 0.5f;
+        plate.OffsetLeft = 8; plate.OffsetRight = 8 + PlateSize;
+        plate.OffsetTop = -PlateSize / 2f; plate.OffsetBottom = PlateSize / 2f;
+        b.AddChild(plate);
         return b;
     }
+
+    private const float PlateSize = 18f;
 
     private void Arm(string id)
     {
         _armed = id; _painted = "";
         Fill();
-        (string name, string icon) = id == Infra ? ("Infra-estrutura", InfraIcon)
-            : id == Fort ? ("Fortificação", FortIcon)
-            : _game.World.BuildingDefs.TryGetValue(id, out var d) ? (d.Name, d.Icon) : (id, "");
-        _status.Text = $"Toca no mapa onde construir — {icon} {name}".Replace("—  ", "— ");
+        (string name, string glyph) = id == Infra ? ("Infra-estrutura", InfraGlyph)
+            : id == Fort ? ("Fortificação", FortGlyph)
+            : _game.World.BuildingDefs.TryGetValue(id, out var d) ? (d.Name, d.Glyph) : (id, "roda");
+        Ui.Clear(_stamp);
+        _stamp.AddChild(Glyph.Make(glyph, 16, Ui.TextDim));
+        _status.Text = $"Toca no mapa onde construir — {name}";
     }
 
     /// <summary>Toque no mapa enquanto armado: uma ordem de construção nessa região; o menu fica armado
@@ -104,17 +119,29 @@ public partial class BuildBar : PanelContainer
         _game.Notify(err ?? $"Obra iniciada em {name}");
     });
 
-    /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido. Conta também as
-    /// obras com desenho: a coluna `building.icon` vazia não dá erro nenhum, apenas uma lista sem figuras.</summary>
+    /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido, com a conta das
+    /// chapas. São três números diferentes de propósito, porque é fácil enganar-se com um só: quantos nomes
+    /// a base de dados pede (building.glyph + tech_branch.glyph, mais as duas obras que são regras e não
+    /// linhas), quantos desses o Glyph sabe mesmo desenhar, e quantas chapas ficaram desenhadas no ecrã —
+    /// destas, quantas caíram na roda dentada por o nome não existir. Um nome mal escrito na tabela não dá
+    /// erro nenhum: dá uma roda calada, e é isso que este contador faz aparecer.</summary>
     public string Smoke()
     {
         Open();
-        var defs = _game.World.BuildingDefs.Values.OrderBy(d => d.Id).ToList();
+        var w = _game.World;
+        var defs = w.BuildingDefs.Values.OrderBy(d => d.Id).ToList();
         var first = defs.FirstOrDefault();
         if (first is not null) Arm(first.Id);
         string status = _status.Text;
-        int com = defs.Count(d => d.Icon.Length > 0) + 2;   // +2: infra e fortificação, que não são linhas de `building`
+
+        var asked = defs.Select(d => d.Glyph)
+                        .Concat(w.TechBranches.Values.Select(b => b.Glyph))
+                        .Concat(new[] { InfraGlyph, FortGlyph })
+                        .Distinct().ToList();
+        int known = asked.Count(Glyph.Knows);
+        var (drawn, fell) = Glyph.Count(this);
         Close();
-        return $"{status} ({com} de {defs.Count + 2} obras com desenho)";
+        return $"{status} ({drawn} chapas desenhadas no menu, {fell} na roda; "
+             + $"{known} de {asked.Count} nomes pedidos pela base de dados têm desenho)";
     }
 }

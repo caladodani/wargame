@@ -176,7 +176,11 @@ public sealed record MapModeDef(string Id, string Name, string Icon, string Metr
 /// <param name="Icon">Desenho do edifício na lista do Construir (coluna building.icon). Vem da tabela e não
 /// do código pela mesma razão que o resto: um edifício novo é uma linha de SQL, não uma linha de C#.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
-    bool Coastal = false, float SupplyRange = 0f, string Yard = "", string Icon = "");
+    bool Coastal = false, float SupplyRange = 0f, string Yard = "", string Icon = "", string Glyph = "");
+
+/// <summary>Ramo da árvore de investigação (tabela tech_branch). O id é o texto que está em tech.branch; o
+/// Glyph é o nome de uma chapa desenhada — qual chapa cabe a que ramo é dado, não é decidido em código.</summary>
+public sealed record TechBranchDef(string Id, string Name, string Glyph, int Sort);
 
 /// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
 /// depois Cooldown dias de espera.</summary>

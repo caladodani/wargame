@@ -514,12 +514,29 @@ CREATE TABLE IF NOT EXISTS building (
   coastal INTEGER NOT NULL DEFAULT 0,        -- 1 = só em região de costa
   supply_range REAL NOT NULL DEFAULT 0,      -- km de abastecimento projectado por mar, por nível
   yard TEXT NOT NULL DEFAULT '',             -- fila de fábricas que abre (Industry): civil | militar | naval
-  icon TEXT NOT NULL DEFAULT '');            -- desenho na lista do Construir; como map_mode.icon
-INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon) VALUES
- ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil','🏭'),
- ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,'','🔬'),
- ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar','🛠'),
- ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval','⚓');
+  icon TEXT NOT NULL DEFAULT '',             -- emoji de recurso: só se não houver chapa desenhada
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon,glyph) VALUES
+ ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil','🏭','fabrica'),
+ ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,'','🔬','frasco'),
+ ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar','🛠','bigorna'),
+ ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval','⚓','ancora');
+
+-- Ramos da árvore de investigação: a chapa de cada um deixou de ser um switch em C# e passou a ser uma
+-- linha. `glyph` é o nome de um desenho nosso (Glyph.cs) — não é emoji: um emoji num jogo de guerra sai
+-- redondo e colorido no telemóvel, e o HoI4 tem chapas gravadas a tinta. O que aqui não estiver leva a roda.
+INSERT INTO tech_branch (id,name,glyph,sort) VALUES
+ ('Infantaria','Infantaria','capacete',1),
+ ('Blindados','Blindados','lagarta',2),
+ ('Artilharia','Artilharia','obus',3),
+ ('Aviação','Aviação','asa',4),
+ ('Marinha','Marinha','ancora',5),
+ ('Drones','Drones','drone',6),
+ ('Logística','Logística','camiao',7),
+ ('Indústria','Indústria','fabrica',8),
+ ('Doutrina','Doutrina','livro',9),
+ ('Ciência','Ciência','frasco',10),
+ ('Nuclear','Nuclear','atomo',11);
 
 -- Capacidade industrial (Industry): quantas obras e quantas linhas de montagem andam ao mesmo tempo.
 INSERT INTO rule (key,value,note) VALUES

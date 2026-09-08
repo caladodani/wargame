@@ -107,6 +107,10 @@ CREATE TABLE IF NOT EXISTS tech (                -- investigação (HoI4): cost 
   id TEXT PRIMARY KEY, branch TEXT NOT NULL, name TEXT NOT NULL, cost REAL NOT NULL, requires TEXT, description TEXT,
   country_tag TEXT
 );
+CREATE TABLE IF NOT EXISTS tech_branch (       -- ramos da árvore: o nome que se lê e a chapa que se desenha
+  -- o id é o texto que está em tech.branch; glyph é o nome de um desenho do Glyph.cs (não é emoji)
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, glyph TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir: Country.Stat(stat_key) × value (combate vai por modifier tech:<id>)
   tech_id TEXT NOT NULL REFERENCES tech(id), stat_key TEXT NOT NULL, value REAL NOT NULL, PRIMARY KEY (tech_id, stat_key)
 );

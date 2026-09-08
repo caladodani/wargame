@@ -15,23 +15,11 @@ namespace WarGame.Presentation;
 /// Só lê o World; despachar o comando é de quem sabe.</summary>
 public static class TechView
 {
-    /// <summary>Chapa de cada ramo. O ramo é dado (tech.branch), por isso o que não estiver aqui leva a
-    /// chapa neutra em vez de partir.</summary>
-    public static string BranchIcon(string branch) => branch switch
-    {
-        "Infantaria" => "🪖",
-        "Blindados" => "🛡",
-        "Artilharia" => "💥",
-        "Drones" => "🛩",
-        "Logística" => "🚚",
-        "Indústria" => "🏭",
-        "Doutrina" => "📖",
-        "Ciência" => "🔬",
-        "Nuclear" => "☢",
-        "Aviação" => "✈",
-        "Marinha" => "⚓",
-        _ => "⚙",
-    };
+    /// <summary>Qual a chapa de um ramo. Isto já foi um switch aqui dentro, com um emoji por ramo — uma
+    /// regra do jogo escrita em C#, contra a casa. Agora é a coluna tech_branch.glyph: um ramo novo na base
+    /// de dados traz a chapa dele sem se tocar em código, e o que não estiver lá sai como roda dentada.</summary>
+    public static string BranchGlyph(World w, string branch)
+        => w.TechBranches.TryGetValue(branch, out var b) ? b.Glyph : "roda";
 
     /// <summary>A árvore por investigar deste país, ramo a ramo. Os ramos das armas (Aviação e Marinha)
     /// vêm primeiro porque são os novos e são onde vive o programa nacional; dentro do ramo os degraus
@@ -71,10 +59,8 @@ public static class TechView
         var bar = new PanelContainer();
         bar.AddThemeStyleboxOverride("panel", Ui.Box(Ui.SurfaceHi, 5));
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); bar.AddChild(row);
-        var icon = Ui.Lbl(BranchIcon(branch), 18);
-        icon.AddThemeColorOverride("font_color", Ui.Accent);
-        row.AddChild(icon);
-        var name = Ui.Lbl(branch, 17);
+        row.AddChild(Glyph.Make(BranchGlyph(w, branch), 20, Ui.Accent));
+        var name = Ui.Lbl(w.TechBranches.TryGetValue(branch, out var def) ? def.Name : branch, 17);
         name.AddThemeColorOverride("font_color", Ui.Accent);
         row.AddChild(Ui.Grow(name));
         var count = Ui.Lbl($"{done}/{all.Count} feitos", 14);
@@ -95,7 +81,7 @@ public static class TechView
         card.AddThemeStyleboxOverride("panel", Ui.Box(ok ? new Color(0.17f, 0.16f, 0.11f, 0.95f)
                                                         : new Color(0.12f, 0.12f, 0.13f, 0.88f), 8));
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8); card.AddChild(row);
-        row.AddChild(Emblem(BranchIcon(t.Branch), tint));
+        row.AddChild(Emblem(BranchGlyph(w, t.Branch), tint));
 
         var cell = Ui.Grow(new VBoxContainer()); cell.AddThemeConstantOverride("separation", 2);
         var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 6);
@@ -145,14 +131,13 @@ public static class TechView
     }
 
     /// <summary>Chapa do ramo emoldurada, como o retrato do comandante na folha do estado-maior.</summary>
-    private static PanelContainer Emblem(string icon, Color tint)
+    private static PanelContainer Emblem(string glyph, Color tint)
     {
         var frame = new PanelContainer { CustomMinimumSize = new Vector2(46, 46) };
         frame.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink, 6));
-        var face = Ui.Lbl(icon, 24);
-        face.HorizontalAlignment = HorizontalAlignment.Center;
-        face.VerticalAlignment = VerticalAlignment.Center;
-        face.AddThemeColorOverride("font_color", tint);
+        var face = Glyph.Make(glyph, 30, tint);
+        face.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+        face.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         frame.AddChild(face);
         return frame;
     }

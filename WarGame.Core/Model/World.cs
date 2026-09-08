@@ -43,6 +43,8 @@ public sealed class World
     public Dictionary<string, ResourceDef> ResourceDefs { get; } = new();
     /// <summary>Edifícios construíveis (tabela building).</summary>
     public Dictionary<string, BuildingDef> BuildingDefs { get; } = new();
+    /// <summary>Ramos da árvore de investigação (tabela tech_branch): o nome e a chapa de cada coluna.</summary>
+    public Dictionary<string, TechBranchDef> TechBranches { get; } = new();
     /// <summary>Modos de mapa (tabela map_mode): o mapa político e as pinturas por conta (MapModes).</summary>
     public Dictionary<string, MapModeDef> MapModeDefs { get; } = new();
     public Dictionary<string, MedalDef> MedalDefs { get; } = new();
