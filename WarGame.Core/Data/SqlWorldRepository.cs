@@ -137,10 +137,16 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToInt32(r["weight"]), (string)r["glyph"]!);
         w.SeasonDefs.Clear(); w.SeasonMonths.Clear(); w.SeasonTerrain.Clear();
-        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note,glyph FROM season"))
+        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note,glyph,cold FROM season"))
             w.SeasonDefs[(string)r["id"]!] = new SeasonDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["attrition"]), (string)r["note"]!,
-                (string)r["glyph"]!);
+                (string)r["glyph"]!, Convert.ToSingle(r["cold"]));
+        w.WeatherDefs.Clear();
+        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,air_mult,cold_min,cold_max,terrain,weight,note,sort,glyph FROM weather ORDER BY sort"))
+            w.WeatherDefs[(string)r["id"]!] = new WeatherDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["air_mult"]),
+                Convert.ToSingle(r["cold_min"]), Convert.ToSingle(r["cold_max"]), (string)r["terrain"]!,
+                Convert.ToSingle(r["weight"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT month,season_id FROM season_month"))
             w.SeasonMonths[Convert.ToInt32(r["month"])] = (string)r["season_id"]!;
         foreach (var r in _static.Query("SELECT season_id,terrain,bite FROM season_terrain"))
@@ -229,7 +235,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c) && w.Techs.ContainsKey((string)r["tech_id"]!)) c.Techs.Add((string)r["tech_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
 
-        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal FROM region"))
+        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat FROM region"))
         {
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
             w.Regions[id] = new Region
@@ -240,6 +246,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 CenterX = r["centroid_x"] is null ? 0f : Convert.ToSingle(r["centroid_x"]),
                 CenterY = r["centroid_y"] is null ? 0f : Convert.ToSingle(r["centroid_y"]),
                 Coastal = Convert.ToInt32(r["coastal"]) == 1,
+                Lat = r["lat"] is null ? 0f : Convert.ToSingle(r["lat"]),
             };
         }
         foreach (var r in _static.Query("SELECT region_id,neighbour_id FROM region_neighbour"))

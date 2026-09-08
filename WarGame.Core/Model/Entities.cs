@@ -136,6 +136,9 @@ public sealed class Region
     public int Population { get; init; }
     public float CenterX { get; init; }            // centróide projectado (unidades do mapa); só para UI/IA
     public float CenterY { get; init; }
+    /// <summary>Latitude do centróide em graus (tabela region): positiva a norte, negativa a sul. O CenterY
+    /// vai projectado em Robinson e não se desprojecta — quem quer saber o frio desta terra vem aqui (Weather).</summary>
+    public float Lat { get; init; }
     public List<int> Neighbours { get; init; } = new();
     /// <summary>Ligações marítimas (sea_link): região costeira → km da travessia. Vazio = interior.</summary>
     public Dictionary<int, float> SeaNeighbours { get; init; } = new();
@@ -169,7 +172,16 @@ public sealed record HonourDef(string Id, string Title, string Description, stri
 /// nos terrenos que ela castiga (WeatherSystem). Inverno é o que muda a guerra: as colunas ficam atoladas
 /// e a tropa em campo aberto gasta-se sem um tiro.</summary>
 public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float Attrition, string Note,
-                               string Glyph = "");
+                               string Glyph = "", float Cold = 0f);
+
+/// <summary>Um céu possível (tabela weather; Weather). A estação é o ano inteiro e o mundo inteiro; isto é a
+/// semana e a região: ColdMin/ColdMax é a faixa de frio em que este céu aparece (0 trópico, 1 o círculo polar
+/// em pleno Inverno), Terrain vazio serve qualquer chão e Weight é o peso no sorteio. MoveMult atrasa a
+/// marcha, OrgMult a recomposição e AirMult o que a aviação consegue fazer; o que o céu faz ao assalto está
+/// na tabela modifier (condition_key 'weather'), ao lado do terreno e do rio.</summary>
+public sealed record WeatherDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float AirMult,
+                                float ColdMin, float ColdMax, string Terrain, float Weight, string Note, int Sort,
+                                string Glyph = "");
 
 /// <summary>Género de acontecimento da crónica (tabela chronicle_kind): o ícone com que aparece na linha do
 /// tempo e o peso (1 = rotina, 3 = história). A regra chronicle_min_weight decide o que chega a ser escrito —

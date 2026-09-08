@@ -82,6 +82,8 @@ public sealed class CombatSystem : ISystem
     {
         var ctx = new ModContext().With("terrain", r.Terrain).With("country", w.Countries[countryId].Tag);
         if (r.River) ctx["river"] = "true";
+        // o céu de hoje aqui entra como o chão e o rio: quem assalta debaixo de um nevão paga-o na tabela
+        if (Weather.Id(w, r) is { Length: > 0 } sky) ctx["weather"] = sky;
         // Outros sistemas (Air, Cyber, Research) escrevem aqui via flags na região/país — ver AirSystem.
         foreach (var tech in w.Countries[countryId].Techs) ctx[$"tech:{tech}"] = "true";
         // A seca de combustível entra aqui e mais nada: o que ela custa está na tabela modifier, e hoje

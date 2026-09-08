@@ -49,6 +49,9 @@ public static class MapModes
         // Indústria: os edifícios levantados mais a infraestrutura da região.
         "industry" => r.Buildings.Values.Sum() + r.Infrastructure,
         "population" => r.Population / 1e6f,
+        // Tempo: pinta-se a severidade do céu (0 = limpo), que é o que interessa a quem vai atacar amanhã.
+        // Sem tabela de tempo carregada não há resposta nenhuma, e o modo fica cinzento como qualquer outro.
+        "weather" => Weather.Of(w, r) is WeatherDef sky ? 1f - sky.MoveMult : null,
         _ => null,
     };
 
@@ -60,6 +63,7 @@ public static class MapModes
             {
                 "supply" => "sem tropa nossa à vista",
                 "resistance" => "terra do próprio dono: sem resistência",
+                "weather" => "sem tempo carregado",
                 _ => "",
             };
         // {v*100:0}% em vez de {v:P0}: o formato P depende da cultura do sistema (o padrão invariant, o que
@@ -67,6 +71,7 @@ public static class MapModes
         // sem casas decimais o "0" é só dígitos, sem separador nenhum a variar.
         return metric switch
         {
+            "weather" => Weather.Line(w, r),
             "supply" => $"abastecimento {v * 100:0}%",
             "resistance" => $"resistência {v * 100:0}%",
             "industry" => $"indústria {v:0.00} (edifícios + infra)",

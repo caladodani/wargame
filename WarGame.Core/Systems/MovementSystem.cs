@@ -54,8 +54,10 @@ public sealed class MovementSystem : ISystem
                    / MathF.Max(w.Rule("move_infra_floor", 0.5f), target.Infrastructure)
                    / (w.Countries[d.CountryId].Stat("move_speed") * w.CommandMult(d, "move_speed"));
         // pelos carris fazem-se os mesmos saltos numa fracção do tempo (Redeploy): é a razão de ser do
-        // redespacho, e a conta tem de ser esta mesma para o mapa não prometer uma data e o mundo cumprir outra
-        return MathF.Max(0.01f, days * Redeploy.Speed(w, d) / w.SeasonMove);
+        // redespacho, e a conta tem de ser esta mesma para o mapa não prometer uma data e o mundo cumprir outra.
+        // E por cima da estação, o céu do destino (Weather): a chuva desta semana atrasa a coluna desta semana,
+        // no mar como em terra — um temporal também não é hora de desembarcar.
+        return MathF.Max(0.01f, days * Redeploy.Speed(w, d) / w.SeasonMove / Weather.MoveMult(w, target));
     }
 
     /// <summary>Divisão fora de batalha em região inimiga (acabou de ser capturada) recua para a região própria

@@ -42,6 +42,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "cofre", "barril",
         // o chão: um por terreno, para a região se ver antes de se ler
         "campo", "arvore", "cidade", "montanha", "duna", "gelo",
+        // o céu: a tempestade do tempo local (as outras — sol, chuva, floco, gelo, duna — já cá estavam)
+        "raio",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -218,6 +220,17 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Arc(0.62f, 0.44f, 0.14f, Mathf.Pi, Mathf.Tau);
                 Line(0.22f, 0.42f, 0.76f, 0.44f);
                 foreach (float x in new[] { 0.30f, 0.50f, 0.70f }) Line(x, 0.56f, x - 0.06f, 0.86f, 0.85f);
+                break;
+
+            // Nuvem fechada com um relâmpago: a tempestade do tempo local. É a chuva com a trovoada por
+            // dentro — a mesma nuvem, para as duas se lerem como parentes, e o zigue-zague a dizer o resto.
+            case "raio":
+                Arc(0.36f, 0.40f, 0.17f, Mathf.Pi, Mathf.Tau);
+                Arc(0.62f, 0.42f, 0.15f, Mathf.Pi, Mathf.Tau);
+                Line(0.19f, 0.40f, 0.77f, 0.42f);
+                Poly(0.56f, 0.50f, 0.40f, 0.70f, 0.52f, 0.70f, 0.38f, 0.92f);
+                Line(0.24f, 0.54f, 0.20f, 0.72f, 0.8f);
+                Line(0.72f, 0.56f, 0.68f, 0.74f, 0.8f);
                 break;
 
             // Sol: o disco e os oito raios — o Verão das estradas secas.

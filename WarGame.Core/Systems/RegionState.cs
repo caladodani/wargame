@@ -52,6 +52,21 @@ public static class RegionState
         return $"{s.Name}: {cost} · marcha ×{s.MoveMult:0.00}";
     }
 
+    /// <summary>O que o céu de hoje está a fazer NESTA terra: a marcha, a recomposição, a aviação e o que
+    /// custa a quem assaltar daqui a pouco. Diz também quantos dias falta aguentar — quem sabe que a
+    /// tempestade acaba amanhã espera por amanhã, e essa é a decisão que o tempo local traz ao jogo.</summary>
+    public static string WeatherNote(World w, Region r, WeatherDef sky)
+    {
+        float days = MathF.Max(1f, w.Rule("weather_days", 5f));
+        int left = (int)MathF.Ceiling(days - w.Clock.Day % days);
+        float bite = GroundSystem.Terrain(w, r.Terrain, r.River, attacking: true, sky.Id)
+                     / MathF.Max(0.01f, GroundSystem.Terrain(w, r.Terrain, r.River, attacking: true));
+        return $"{sky.Name}: {sky.Note}\n"
+             + $"Marcha ×{sky.MoveMult:0.00} · recomposição ×{sky.OrgMult:0.00} · aviação ×{sky.AirMult:0.00}"
+             + (MathF.Abs(bite - 1f) < 0.005f ? "" : $" · assalto ×{bite:0.00}") + "\n"
+             + $"O céu volta a mudar dentro de {left} dia{(left == 1 ? "" : "s")}.";
+    }
+
     /// <summary>A ficha do estado, parcela a parcela. A gente e a estrada estão sempre lá (uma região sem
     /// gente é informação); o resto só aparece quando existe — um forte a zero não ocupa espaço no ecrã.
     /// O <paramref name="mapMode"/> é o modo em que o mapa está pintado: com o mapa a pintar abastecimento,
@@ -81,6 +96,10 @@ public static class RegionState
         if (w.Season is SeasonDef s)
             parts.Add(new StatePart(s.Glyph.Length > 0 ? s.Glyph : "floco",
                 s.MoveMult >= 1f ? $"+{s.MoveMult - 1f:P0}" : $"−{1f - s.MoveMult:P0}", "marcha", SeasonNote(w, r)));
+
+        if (Weather.Of(w, r) is WeatherDef sky)
+            parts.Add(new StatePart(sky.Glyph.Length > 0 ? sky.Glyph : "chuva",
+                sky.MoveMult >= 1f ? "—" : $"−{1f - sky.MoveMult:P0}", "tempo", WeatherNote(w, r, sky)));
 
         if (r.Resistance > 0.005f)
             parts.Add(new StatePart("punho", $"{r.Resistance:P0}", "resistência",

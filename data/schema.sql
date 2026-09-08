@@ -92,7 +92,9 @@ CREATE TABLE IF NOT EXISTS region (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner_id INTEGER REFERENCES country(id),
   terrain TEXT NOT NULL REFERENCES terrain(id), river INTEGER NOT NULL DEFAULT 0,
   population INTEGER NOT NULL DEFAULT 0, infrastructure REAL NOT NULL DEFAULT 1,
-  centroid_x REAL, centroid_y REAL, coastal INTEGER NOT NULL DEFAULT 0
+  centroid_x REAL, centroid_y REAL, coastal INTEGER NOT NULL DEFAULT 0,
+  lat REAL NOT NULL DEFAULT 0                 -- latitude do centróide em graus (o centróide já vai projectado
+                                              -- em Robinson e não se desprojecta): é o frio da região (Weather)
 );
 CREATE TABLE IF NOT EXISTS region_polygon (   -- anéis exteriores, float32 x,y já projectados (Robinson, y para baixo)
   region_id INTEGER NOT NULL REFERENCES region(id), ring_index INTEGER NOT NULL, points BLOB NOT NULL,

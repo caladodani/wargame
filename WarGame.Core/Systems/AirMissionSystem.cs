@@ -47,7 +47,9 @@ public sealed class AirMissionSystem : ISystem
             var r = w.Regions[m.RegionId];
             if (r.ControllerId == m.CountryId) continue;              // não se bombardeia a própria casa
             float punch = w.Countries.TryGetValue(m.CountryId, out var bomber) ? bomber.Stat("air_bombing", 1f) : 1f;
-            r.Infrastructure = MathF.Max(floor, r.Infrastructure - m.Wings * def.Value * punch);
+            // com o céu fechado os bombardeiros levantam e não encontram o alvo: o que se arranca é o que o
+            // tempo deixa arrancar (Weather.AirMult)
+            r.Infrastructure = MathF.Max(floor, r.Infrastructure - m.Wings * def.Value * punch * Weather.AirMult(w, r));
         }
 
         Ai(w);
@@ -170,20 +172,27 @@ public sealed class AirMissionSystem : ISystem
                       - Assigned(w, countryId) - ParadropSystem.InFlight(w, countryId));
 
     /// <summary>Peso aéreo deste país no céu desta região: as asas de superioridade que lá tem, cada uma a
-    /// valer o que a tabela diz. É o que entra na balança do combate, ao lado do poder aéreo nacional.</summary>
+    /// valer o que a tabela diz — e só o que o céu de hoje as deixa valer (Weather.AirMult). É o que entra
+    /// na balança do combate, ao lado do poder aéreo nacional.</summary>
     public static float Superiority(World w, int regionId, int countryId) =>
         w.AirMissions.Where(m => m.CountryId == countryId && m.RegionId == regionId
                                  && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == "superiority")
-            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value);
+            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value) * Sky(w, regionId);
 
-    /// <summary>Bónus de apoio próximo à força de quem combate nesta região (tecto air_support_max).</summary>
+    /// <summary>Bónus de apoio próximo à força de quem combate nesta região (tecto air_support_max). Debaixo
+    /// de um nevão não há apoio próximo nenhum: os aviões não saem do chão.</summary>
     public static float Support(World w, int regionId, int countryId)
     {
         float sum = w.AirMissions.Where(m => m.CountryId == countryId && m.RegionId == regionId
                                              && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == "support")
-            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value);
+            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value) * Sky(w, regionId);
         return MathF.Min(sum, w.Rule("air_support_max", 0.35f));
     }
+
+    /// <summary>Quanto o céu desta região deixa a aviação fazer hoje (1 = céu limpo). Uma região que não
+    /// exista vale 1: quem pergunta por ela já tem outro problema.</summary>
+    public static float Sky(World w, int regionId) =>
+        w.Regions.TryGetValue(regionId, out var r) ? Weather.AirMult(w, r) : 1f;
 
     /// <summary>Porque é que este país não pode destacar asas para esta região (null = pode). É a mesma
     /// razão que o comando devolve e que o painel mostra por baixo do botão desligado.</summary>

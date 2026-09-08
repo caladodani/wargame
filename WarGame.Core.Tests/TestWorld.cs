@@ -28,7 +28,21 @@ public static class TestWorld
         // Tempo neutro por omissão: quem testa marcha ou recomposição conta dias, e uma estação carregada
         // mudava-os por baixo do teste. Quem quer tempo põe-no à mão com TestWorld.Season(w, "inverno").
         w.SeasonMonths.Clear();
+        // Pela mesma razão, céu limpo: o tempo local sorteia chuva por região e por semana, e um teste de
+        // marcha não pode ter a estrada a mudar-lhe debaixo dos pés. Quem quer céu chama TestWorld.Sky(w).
+        foreach (var kv in w.WeatherDefs) Skies[kv.Key] = kv.Value;
+        w.WeatherDefs.Clear();
         return (w, db);
+    }
+
+    /// <summary>Os céus da tabela weather, guardados na primeira construção. São registos imutáveis e iguais
+    /// em todas as construções — o que se guarda aqui é a tabela, não o estado de um mundo.</summary>
+    private static readonly Dictionary<string, WeatherDef> Skies = new();
+
+    /// <summary>Devolve o tempo local ao mundo de teste (o Build limpa-o, como às estações).</summary>
+    public static void Sky(World w)
+    {
+        foreach (var kv in Skies) w.WeatherDefs[kv.Key] = kv.Value;
     }
 
     /// <summary>Põe o mundo dentro de uma estação: manda todos os meses para ela, para o calendário do teste

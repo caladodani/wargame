@@ -65,6 +65,9 @@ public sealed class World
     /// do desgaste. Sem linha, o terreno vale 1 — a estação castiga-o como a média.</summary>
     public Dictionary<string, Dictionary<string, float>> SeasonTerrain { get; } = new();
 
+    /// <summary>Céus possíveis (tabela weather), pela ordem da tabela: o que o Weather sorteia por região e semana.</summary>
+    public Dictionary<string, WeatherDef> WeatherDefs { get; } = new();
+
     /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
     public float SeasonBite(string seasonId, string terrain) =>
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;

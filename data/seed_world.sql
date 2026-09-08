@@ -496,11 +496,12 @@ INSERT INTO rule (key,value,note) VALUES
 CREATE TABLE IF NOT EXISTS season (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   move_mult REAL NOT NULL, org_mult REAL NOT NULL, attrition REAL NOT NULL, note TEXT NOT NULL,
-  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
-INSERT INTO season VALUES ('inverno','Inverno','❄',0.62,0.70,0.9,'Colunas atoladas, tropa gasta em campo aberto.','floco');
-INSERT INTO season VALUES ('primavera','Primavera','🌧',0.85,1.00,0.3,'Degelo e lama: anda-se mal, mas a tropa refaz-se.','chuva');
-INSERT INTO season VALUES ('verao','Verão','☀',1.15,1.10,0.2,'Estradas secas e dias longos: é quando se ganham guerras.','sol');
-INSERT INTO season VALUES ('outono','Outono','🍂',0.90,0.95,0.4,'Chuva a chegar: as ofensivas começam a pesar.','folha');
+  glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
+  cold REAL NOT NULL DEFAULT 0);              -- 0 = quente, 1 = o frio todo (Weather cruza isto com a latitude)
+INSERT INTO season VALUES ('inverno','Inverno','❄',0.62,0.70,0.9,'Colunas atoladas, tropa gasta em campo aberto.','floco',1.0);
+INSERT INTO season VALUES ('primavera','Primavera','🌧',0.85,1.00,0.3,'Degelo e lama: anda-se mal, mas a tropa refaz-se.','chuva',0.45);
+INSERT INTO season VALUES ('verao','Verão','☀',1.15,1.10,0.2,'Estradas secas e dias longos: é quando se ganham guerras.','sol',0.0);
+INSERT INTO season VALUES ('outono','Outono','🍂',0.90,0.95,0.4,'Chuva a chegar: as ofensivas começam a pesar.','folha',0.5);
 CREATE TABLE IF NOT EXISTS season_month (month INTEGER PRIMARY KEY, season_id TEXT NOT NULL);
 INSERT INTO season_month VALUES (1,'inverno'),(2,'inverno'),(3,'primavera'),(4,'primavera'),(5,'primavera'),
  (6,'verao'),(7,'verao'),(8,'verao'),(9,'outono'),(10,'outono'),(11,'outono'),(12,'inverno');
@@ -513,6 +514,44 @@ INSERT INTO season_terrain VALUES ('primavera','forest',1.3),('primavera','plain
 INSERT INTO season_terrain VALUES ('outono','forest',1.2),('outono','mountain',1.3),('outono','urban',0.5);
 INSERT INTO rule (key,value,note) VALUES
  ('season_shelter',0.4,'quanto do desgaste da estação sobra a quem está em terreno próprio');
+
+-- Tempo local (tabela weather; Weather). A estação manda no ano inteiro e no mundo inteiro: em Janeiro
+-- atolava-se tanto no Sara como na Carélia, e o céu nunca era notícia. O tempo manda na semana e na região:
+-- cai chuva num troço da frente e não no outro, e é isso que no HoI4 faz adiar uma ofensiva.
+-- cold_min/cold_max é a faixa de frio em que este céu pode aparecer (0 trópico, 1 o círculo polar em pleno
+-- Inverno), terrain vazio serve qualquer chão e weight é o peso no sorteio. O que o tempo faz ao combate
+-- vem da tabela modifier (condition_key 'weather'), como o terreno e o rio; aqui só está o que ele faz à
+-- marcha, à recomposição e ao céu.
+CREATE TABLE IF NOT EXISTS weather (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  move_mult REAL NOT NULL, org_mult REAL NOT NULL, air_mult REAL NOT NULL,
+  cold_min REAL NOT NULL, cold_max REAL NOT NULL,
+  terrain TEXT NOT NULL DEFAULT '',           -- '' = qualquer chão; senão só nesse terreno
+  weight REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO weather (id,name,icon,move_mult,org_mult,air_mult,cold_min,cold_max,terrain,weight,note,sort,glyph) VALUES
+ ('limpo','Céu limpo','☀',1.00,1.00,1.00,0.00,1.00,'',6.0,'Nada a apontar: anda-se e bate-se como nos manuais.',0,'sol'),
+ ('chuva','Chuva','🌧',0.85,0.95,0.70,0.00,0.62,'',2.6,'Lama nas rodas e nuvens baixas: a aviação vê meia guerra.',1,'chuva'),
+ ('tempestade','Tempestade','⛈',0.70,0.85,0.30,0.05,0.68,'',0.9,'Trovoada em cima: as colunas param e o céu fecha.',2,'raio'),
+ ('neve','Neve','🌨',0.75,0.85,0.55,0.50,1.00,'',2.4,'Neve na estrada: a marcha arrasta-se e o frio come a tropa.',3,'floco'),
+ ('nevao','Nevão','❄',0.55,0.70,0.20,0.78,1.00,'',1.0,'Nevão fechado: não se anda, não se vê, não se voa.',4,'gelo'),
+ ('areia','Areia','🏜',0.65,0.85,0.25,0.00,0.30,'desert',1.6,'Areia no ar: não se vê a coluna da frente.',5,'duna');
+INSERT INTO rule (key,value,note) VALUES
+ ('weather_days',5,'dias que um bloco de tempo dura antes de o céu voltar a ser sorteado'),
+ ('weather_cell',900,'lado da célula do mapa que apanha o mesmo sorteio: é o que faz frentes de tempo em vez de manchas'),
+ ('weather_cold_floor',0.35,'quanto do frio da latitude vale mesmo em pleno Verão');
+-- O que o céu faz a quem assalta: mesma tabela do terreno e do rio, e por isso a ficha do chão, o ecrã de
+-- batalha e o combate contam todos a mesma história. As linhas com marca são a outra metade das tropas
+-- especiais: quem treinou para o gelo ou para a areia perde muito menos do que a tropa da estrada.
+INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
+ ('weather','weather','chuva',     'str_attacker',NULL,     'mul',0.90),
+ ('weather','weather','tempestade','str_attacker',NULL,     'mul',0.80),
+ ('weather','weather','neve',      'str_attacker',NULL,     'mul',0.85),
+ ('weather','weather','nevao',     'str_attacker',NULL,     'mul',0.70),
+ ('weather','weather','areia',     'str_attacker',NULL,     'mul',0.75),
+ ('weather','weather','neve',      'str_attacker','artico', 'mul',1.20),
+ ('weather','weather','nevao',     'str_attacker','artico', 'mul',1.35),
+ ('weather','weather','areia',     'str_attacker','deserto','mul',1.30);
 
 -- Crónica da campanha (tabela chronicle_kind; ChronicleSystem). weight: 1 rotina, 2 de peso, 3 história.
 -- chronicle_min_weight decide o que chega a ser escrito; chronicle_max é o tecto de entradas guardadas.
@@ -582,7 +621,7 @@ INSERT INTO rule (key,value,note) VALUES
 -- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
 CREATE TABLE IF NOT EXISTS map_mode (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population
+  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
   sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
@@ -591,7 +630,8 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1,'caixa'),
  ('resistencia','Resistência','✊','resistance','calma','revolta',2,'punho'),
  ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica'),
- ('populacao','População','♟','population','deserto','multidão',4,'gente');
+ ('populacao','População','♟','population','deserto','multidão',4,'gente'),
+ ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva');
 
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (

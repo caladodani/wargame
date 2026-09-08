@@ -72,6 +72,17 @@ public static class BattleField
                     + $" (−{bite * w.Rule("season_shelter", 0.4f):0.0} em terreno nosso).\n"
                     + $"Marcha ×{s.MoveMult:0.00} · recomposição ×{s.OrgMult:0.00}."));
         }
+
+        // e o céu de hoje, que é a condição mais passageira de todas: a estação dura três meses, isto dura
+        // dias — quem espera pelo fim da tempestade assalta com a força toda
+        if (Weather.Of(w, r) is WeatherDef sky)
+        {
+            float bite = GroundSystem.Terrain(w, r.Terrain, r.River, attacking: true, sky.Id)
+                         / MathF.Max(0.01f, GroundSystem.Terrain(w, r.Terrain, r.River, attacking: true));
+            parts.Add(new FieldPart(sky.Glyph.Length > 0 ? sky.Glyph : "chuva",
+                MathF.Abs(bite - 1f) < 0.005f ? "—" : $"×{bite:0.00}", sky.Name.ToLowerInvariant(),
+                RegionState.WeatherNote(w, r, sky)));
+        }
         return parts;
     }
 
