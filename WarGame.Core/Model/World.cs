@@ -79,6 +79,10 @@ public sealed class World
     /// (VictoryPoints). Sem a tabela carregada não há pontos nenhuns e a paz mede-se como antes.</summary>
     public Dictionary<string, VictoryTierDef> VictoryTiers { get; } = new();
 
+    /// <summary>Graus de veterania (tabela veterancy): o nome, os galões e a força extra que o XP de uma
+    /// divisão vale (Veterancy). Sem a tabela carregada o bónus volta à recta de veterancy_bonus.</summary>
+    public Dictionary<string, VeterancyDef> VeterancyTiers { get; } = new();
+
     /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
     public float SeasonBite(string seasonId, string terrain) =>
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;

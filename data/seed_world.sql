@@ -454,6 +454,27 @@ INSERT INTO rule (key,value,note) VALUES
  ('xp_max',100,'tecto de XP'),
  ('veterancy_bonus',0.25,'bónus de força a XP máximo');
 
+-- Graus de veterania (tabela veterancy; Veterancy). O XP era um número solto que só se via abrindo a ficha
+-- da divisão: no HoI4 uma divisão verde e uma divisão de elite distinguem-se de longe, pelos galões no
+-- contador, e é isso que decide se se atira aquela pilha ao assalto ou se se poupa. Aqui o grau dá nome,
+-- chapa e galões ao mesmo XP, e a força extra passa a subir em degraus em vez de subir a régua.
+-- Nada disto se guarda: o grau lê-se do Xp da divisão, por isso nunca há um degrau guardado que contradiga
+-- o que o combate escreveu. Sem tabela, o bónus volta à recta de 0 a veterancy_bonus.
+-- min_xp é o XP a partir do qual a divisão é deste grau; bonus é a força extra do grau; chevrons são os
+-- galões desenhados no contador do mapa (0 = grau sem galão nenhum).
+CREATE TABLE IF NOT EXISTS veterancy (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  min_xp REAL NOT NULL,                      -- XP a partir do qual a divisão entra neste grau
+  bonus REAL NOT NULL,                       -- força extra que o grau dá em combate (CombatSystem)
+  chevrons INTEGER NOT NULL DEFAULT 0,       -- galões no contador do mapa
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO veterancy (id,name,icon,min_xp,bonus,chevrons,note,sort,glyph) VALUES
+ ('recruta','Recruta','○',0,0,0,'Tropa que ainda não viu fogo: bate-se pelo que o modelo dá e mais nada.',0,'gente'),
+ ('treinada','Treinada','◆',25,0.05,1,'Aguentou uma batalha do princípio ao fim e já sabe onde se põe.',1,'galao'),
+ ('veterana','Veterana','★',50,0.12,2,'Campanha feita: sabe quando cavar e quando avançar.',2,'medalha'),
+ ('elite','Elite','✚',80,0.25,3,'O que resta de muitas batalhas — vale por uma divisão e meia.',3,'taca');
+
 -- Condecorações de divisão (tabela medal; MedalSystem). metric: xp | battles | captures.
 -- Cada medalha ganha dá bonus de força, somado até medal_bonus_max.
 --

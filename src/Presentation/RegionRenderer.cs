@@ -704,9 +704,14 @@ public partial class RegionRenderer : Node2D
                     group.Average(d => d.Org) / 100f,
                     group.Average(d => d.Hp) / 100f,
                     known ? group.Average(d => d.Entrench) : 0f,
-                    known, NatoSymbol.SpecialtyOf(tags));
+                    known, NatoSymbol.SpecialtyOf(tags),
+                    known ? Veterancy.Stack(w, group)?.Chevrons ?? 0 : 0);
         counter.Visible = true;
     }
+
+    /// <summary>--smoke: quantos contadores nossos trazem galões de veterania, e quantos galões ao todo.</summary>
+    public (int Counters, int Chevrons) Galoes() =>
+        (_counters.Values.Count(c => c.Visible && c.Chevrons > 0), _counters.Values.Where(c => c.Visible).Sum(c => c.Chevrons));
 
     /// <summary>--smoke: quantos contadores estão desenhados no mapa (o zoom de perto tem de estar ligado).</summary>
     public int Counters() => _counters.Values.Count(c => c.Visible);

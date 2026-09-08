@@ -204,7 +204,8 @@ public sealed class CombatSystem : ISystem
             float morale = 0.5f + d.Org / 200f;
             var (cf, cm) = w.Modifiers.Evaluate("command", st, ctx);
             float command = cm + cf;
-            float veterancy = 1f + d.Xp / w.Rule("xp_max", 100f) * w.Rule("veterancy_bonus", 0.25f)
+            // veterania por graus da tabela (Veterancy): recruta não leva nada, elite leva o bónus inteiro
+            float veterancy = 1f + Veterancy.Bonus(w, d)
                               + MedalSystem.Bonus(w, d);   // condecorações: veteranos batem-se melhor
             // doutrina militar (leis grupo doctrine): country stat attack/defense, 1 por omissão
             string statKey = attacking ? "attack" : "defense";

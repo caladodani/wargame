@@ -70,6 +70,14 @@ public static class DivisionView
         if (sheet.GetChildCount() > 0) body.AddChild(sheet);
 
         var xp = new HBoxContainer(); xp.AddThemeConstantOverride("separation", 8);
+        // o grau de veterania antes do número: é o grau que diz o que a tropa vale, o XP é só a conta dele
+        if (Veterancy.Tier(w, d) is VeterancyDef vet)
+        {
+            var grau = Ui.Lbl($"{vet.Icon} {vet.Name}", 15);
+            grau.AddThemeColorOverride("font_color", new Color(1f, 0.82f, 0.25f));
+            grau.TooltipText = $"{vet.Note}\n{Veterancy.Line(w, d)}";
+            xp.AddChild(grau);
+        }
         xp.AddChild(Ui.Lbl($"XP {d.Xp:0}", 15));
         xp.AddChild(Ui.Bar(d.Xp / MathF.Max(1f, w.Rule("xp_max", 100f)), new Color(1f, 0.82f, 0.25f), 150f));
         xp.AddChild(Ui.Lbl($"{d.Battles} batalhas  ·  {d.Captures} regiões tomadas", 15));

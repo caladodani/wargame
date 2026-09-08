@@ -17,10 +17,12 @@ namespace WarGame.Presentation;
 public partial class UnitCounter : Node2D
 {
     public const float BoxW = 104f, BoxH = 56f, DropY = 20f;
+    /// <summary>Largura da coluna dos galões de veterania, no canto de dentro da caixa.</summary>
+    public const float ChevronW = 10f;
 
     private Color _tint = Colors.Gray;
     private string _kind = "infantry", _spec = "";
-    private int _count;
+    private int _count, _chevrons;
     private float _org = 1f, _hp = 1f, _entrench;
     private bool _known;
     private Texture2D? _flag;
@@ -42,12 +44,21 @@ public partial class UnitCounter : Node2D
     }
 
     /// <summary>Enche o contador. `known` distingue a nossa tropa (barras verdadeiras) da tropa alheia, de
-    /// que só se sabe o que se vê de fora: quantas divisões e de que tipo.</summary>
-    public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known, string spec = "")
+    /// que só se sabe o que se vê de fora: quantas divisões e de que tipo. `chevrons` são os galões do grau
+    /// de veterania da pilha (Veterancy) — que também são coisa de dentro de casa: da tropa alheia não se
+    /// sabe se é gente verde se é elite enquanto não se lhe bater.</summary>
+    public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known,
+                    string spec = "", int chevrons = 0)
     {
-        _tint = tint; _flag = flag; _kind = kind; _spec = spec; _count = count;
+        _tint = tint; _flag = flag; _kind = kind; _spec = spec; _count = count; _chevrons = Mathf.Clamp(chevrons, 0, 4);
         _org = org; _hp = hp; _entrench = entrench; _known = known;
-        if (_num is not null) _num.Text = count.ToString();
+        if (_num is not null)
+        {
+            _num.Text = count.ToString();
+            // com galões à esquerda, o número afasta-se deles para não ficarem colados
+            _num.Position = new Vector2(6f + (_chevrons > 0 ? ChevronW + 2f : 0f), DropY + 6f);
+            _num.Size = new Vector2(BoxW / 2f - 12f - (_chevrons > 0 ? ChevronW + 2f : 0f), BoxH - 22f);
+        }
         QueueRedraw();
     }
 
@@ -61,6 +72,9 @@ public partial class UnitCounter : Node2D
         if (t.Contains("infantry")) return "infantry";
         return "support";
     }
+
+    /// <summary>--smoke: os galões que esta caixa está a desenhar.</summary>
+    public int Chevrons => _chevrons;
 
     public override void _Draw()
     {
@@ -80,6 +94,19 @@ public partial class UnitCounter : Node2D
             DrawCircle(corner, 2.2f, rivet);
 
         NatoSymbol.Draw(this, new Rect2(box.Position.X + BoxW / 2f + 6f, box.Position.Y + 16f, BoxW / 2f - 14f, BoxH - 30f), _kind, 2.6f, _spec);
+
+        // galões da veterania, empilhados no canto de dentro: um risco para tropa treinada, três para elite.
+        // É a mesma leitura que o HoI4 dá ao contador — de longe vê-se se aquela pilha é gente verde ou gente
+        // que já fez a campanha toda, sem se abrir ficha nenhuma.
+        var gold = new Color(1f, 0.82f, 0.25f);
+        for (int i = 0; i < _chevrons; i++)
+        {
+            float cx = box.Position.X + 5f, cy = box.Position.Y + 18f + i * 7f;
+            DrawPolyline(new[] { new Vector2(cx, cy + 4f), new Vector2(cx + ChevronW / 2f, cy), new Vector2(cx + ChevronW, cy + 4f) },
+                         new Color(0, 0, 0, 0.8f), 3.4f);
+            DrawPolyline(new[] { new Vector2(cx, cy + 4f), new Vector2(cx + ChevronW / 2f, cy), new Vector2(cx + ChevronW, cy + 4f) },
+                         gold, 1.8f);
+        }
 
         // barras: organização por cima da resistência, em pé de igualdade com as do painel da região
         float y = box.End.Y - 12f, w = box.Size.X - 12f, x = box.Position.X + 6f;

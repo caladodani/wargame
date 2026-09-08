@@ -157,6 +157,11 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.VictoryTiers[(string)r["id"]!] = new VictoryTierDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["points"]), Convert.ToInt64(r["min_pop"]), Convert.ToInt32(r["capital"]) != 0,
                 (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        w.VeterancyTiers.Clear();
+        foreach (var r in _static.Query("SELECT id,name,icon,min_xp,bonus,chevrons,note,sort,glyph FROM veterancy ORDER BY sort"))
+            w.VeterancyTiers[(string)r["id"]!] = new VeterancyDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                Convert.ToSingle(r["min_xp"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["chevrons"]),
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         w.TacticDefs.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,side,mult,counter_id,terrain,weight,note,sort,glyph FROM tactic ORDER BY sort"))
             w.TacticDefs[(string)r["id"]!] = new TacticDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,

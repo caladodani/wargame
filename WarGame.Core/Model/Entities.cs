@@ -195,6 +195,12 @@ public sealed record SubjectTypeDef(string Id, string Name, string Icon, float A
 public sealed record VictoryTierDef(string Id, string Name, string Icon, int Points, long MinPop, bool Capital,
                                     string Note, int Sort, string Glyph = "");
 
+/// <summary>Um grau de veterania (tabela veterancy; Veterancy). MinXp é a experiência a partir da qual a
+/// divisão é deste grau, Bonus a força extra que ele lhe dá e Chevrons os galões que o contador do mapa
+/// desenha. O grau não se guarda: lê-se do Xp da divisão, por isso nunca contradiz o que o combate escreveu.</summary>
+public sealed record VeterancyDef(string Id, string Name, string Icon, float MinXp, float Bonus, int Chevrons,
+                                  string Note, int Sort, string Glyph = "");
+
 /// <summary>Uma táctica de combate (tabela tactic; Tactics). Side diz quem a pode escolher ('attacker' ou
 /// 'defender'), Mult o que ela vale à força desse lado, CounterId a táctica INIMIGA que esta lê e desmonta,
 /// Terrain vazio serve qualquer chão e Weight é o peso no sorteio. É o pedra-papel-tesoura que o HoI4 põe
