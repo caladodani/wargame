@@ -92,10 +92,11 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.DoctrineEffects.TryGetValue(did, out var dlist)) w.DoctrineEffects[did] = dlist = new();
             dlist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
-        foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap,fuel_per_unit FROM resource"))
+        foreach (var r in _static.Query("SELECT id,name,stat_key,per_unit,cap,fuel_per_unit,glyph FROM resource"))
             w.ResourceDefs[(string)r["id"]!] = new ResourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]),
-                r["fuel_per_unit"] is null ? 0f : Convert.ToSingle(r["fuel_per_unit"]));
+                r["fuel_per_unit"] is null ? 0f : Convert.ToSingle(r["fuel_per_unit"]),
+                r["glyph"] as string ?? "caixa");
         foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon,glyph FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,

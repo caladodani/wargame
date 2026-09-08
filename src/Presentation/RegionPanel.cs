@@ -143,13 +143,11 @@ public partial class RegionPanel : PanelContainer
 
             _flag.Texture = ctrl is not null ? Flags.Of(ctrl.Tag) : null;
             _title.Text = $"{r.Name}  ·  {GroundView.Name(w, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
-            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}  ·  💰 {EconomySystem.RegionIncome(w, r):0.00}/dia";
+            // o rendimento, os homens, os depósitos e as obras já de pé saem daqui: têm cartão próprio
+            // (YieldView), com chapa e explicação, em vez de mais um pedaço deste parágrafo corrido
+            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
             if (r.Infrastructure < r.BaseInfrastructure - 1e-4f) info += $"  ·  🔧 danificada (repõe até ×{r.BaseInfrastructure:0.00})";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
-            foreach (var (res, amount) in r.Resources.OrderBy(kv => kv.Key))
-                if (w.ResourceDefs.TryGetValue(res, out var rd)) info += $"  ·  {rd.Name} {amount:0}";
-            foreach (var (bid, lvl) in r.Buildings.OrderBy(kv => kv.Key))
-                if (lvl > 0 && w.BuildingDefs.TryGetValue(bid, out var bd)) info += $"  ·  {bd.Name} {lvl}";
             if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var pd))
                 info += $"  🏗 {pd.Name}: {(int)MathF.Ceiling(pd.Days - r.ProjectProgress)} dias";
             if (PortView.RegionLine(w, r) is string quay && quay.Length > 0) info += "  ·  " + quay;
@@ -189,12 +187,17 @@ public partial class RegionPanel : PanelContainer
             var lines = divs.Select(d => (d.Id, text: Line(w, d), d.Hp, d.Org)).ToList();
             // a ficha do chão: muda com o terreno, o rio, o forte, a estrada, a estação e quem olha
             int ground = pid ?? r.ControllerId;
-            var groundKey = $"g{ground}:{r.Terrain}:{r.River}:{r.Fort}:{r.Infrastructure:0.00}:{w.SeasonMove:0.00}|";
+            var groundKey = $"g{ground}:{r.Terrain}:{r.River}:{r.Fort}:{r.Infrastructure:0.00}:{w.SeasonMove:0.00}|"
+            // o cartão do que a terra dá: muda com o dinheiro, os homens, os depósitos e as obras
+                         + $"y{EconomySystem.RegionIncome(w, r):0.00}:{RegionYield.MenPerDay(w, r):0}:"
+                         + string.Join(",", r.Resources.Select(kv => kv.Key + kv.Value.ToString("0")))
+                         + string.Join(",", r.Buildings.Select(kv => kv.Key + kv.Value)) + "|";
             var key = groundKey + (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
                 Ui.Clear(_rows);
+                _rows.AddChild(YieldView.Card(w, r));
                 _rows.AddChild(GroundView.Card(w, r, ground));
                 foreach (var (_, text, hp, org) in lines) _rows.AddChild(Row(text, hp, org));
                 if (fogged)

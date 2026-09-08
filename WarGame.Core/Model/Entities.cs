@@ -309,7 +309,7 @@ public sealed class LendLease
 /// <param name="FuelPerUnit">Combustível por dia que cada unidade deste recurso refina (0 = não se refina).
 /// É por aqui que o jogo sabe qual é o petróleo sem ter a palavra "petróleo" escrita em código.</param>
 public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap,
-                                 float FuelPerUnit = 0f);
+                                 float FuelPerUnit = 0f, string Glyph = "caixa");
 
 /// <summary>Contadores de um dos lados de uma guerra (WarStatsSystem alimenta-os por eventos).</summary>
 public sealed class WarSide

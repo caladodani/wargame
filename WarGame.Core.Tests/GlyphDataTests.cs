@@ -85,6 +85,17 @@ public class GlyphDataTests
             Assert.Contains(g, Desenhados);
     }
 
+    /// <summary>Os depósitos: cada recurso tem chapa que existe. O recurso vê-se na ficha do que a terra
+    /// dá, ao lado do dinheiro e dos homens, e um nome mal escrito saía como roda dentada calada.</summary>
+    [Fact]
+    public void Cada_recurso_pede_uma_chapa_que_existe()
+    {
+        var w = FactionTests.BuildReal();
+        Assert.NotEmpty(w.ResourceDefs);
+        foreach (var d in w.ResourceDefs.Values)
+            Assert.Contains(d.Glyph, Desenhados);
+    }
+
     /// <summary>O chão: cada terreno tem nome que se lê e chapa que existe. Um terreno sem chapa dava uma
     /// roda dentada calada no rodapé do mapa, que é o sítio onde o jogador olha mais vezes por dia.</summary>
     [Fact]

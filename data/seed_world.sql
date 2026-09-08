@@ -335,10 +335,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('nap_cost',20,'pontos de produção para propor o pacto');
 
 -- Recursos estratégicos (ResourceSystem): controlar depósitos multiplica stats do país.
-INSERT INTO resource (id,name,stat_key,per_unit,cap,fuel_per_unit) VALUES
- ('aco','Aço','production_speed',0.02,10,0),
- ('petroleo','Petróleo','industry',0.015,10,4),
- ('raros','Metais raros','research_speed',0.02,5,0);
+INSERT INTO resource (id,name,stat_key,per_unit,cap,fuel_per_unit,glyph) VALUES
+ ('aco','Aço','production_speed',0.02,10,0,'bigorna'),
+ ('petroleo','Petróleo','industry',0.015,10,4,'barril'),
+ ('raros','Metais raros','research_speed',0.02,5,0,'frasco');
 
 -- Combustível (FuelSystem): o petróleo controlado refina-se em combustível todos os dias, o depósito
 -- guarda fuel_cap_days de produção, e quem bebe são as divisões com fuel_use (unit_stat), a aviação e a

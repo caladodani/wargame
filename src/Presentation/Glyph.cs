@@ -632,6 +632,7 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
             .Concat(w.WoundKinds.Values.Select(k => k.Glyph))
             .Concat(w.UnitStatDefs.Values.Select(s => s.Glyph))
             .Concat(w.TerrainDefs.Values.Select(t => t.Glyph))
+            .Concat(w.ResourceDefs.Values.Select(r => r.Glyph))
             .Concat(extra)
             .Distinct().ToList();
 
