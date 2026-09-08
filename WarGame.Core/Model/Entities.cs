@@ -16,6 +16,10 @@ public sealed record UnitStatDef(string Key, string Name, string Note, int Sort,
 /// buscados à static.db por três painéis cada um por sua conta.</summary>
 public sealed record TerrainDef(string Id, string Name, float MoveCost, string Glyph, string Color = "");
 
+/// <summary>Uma cidade do mapa (tabela city, do Natural Earth): nome, ponto já projectado, gente e se é
+/// capital de país. Não entra na simulação — quem tem contas é a região; a cidade é o que se lê no mapa.</summary>
+public sealed record CityDef(int Id, int RegionId, string Name, int Population, bool Capital, float X, float Y);
+
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 
 /// <summary>Espírito nacional (tabela national_spirit); os efeitos são linhas modifier com SpiritId.</summary>

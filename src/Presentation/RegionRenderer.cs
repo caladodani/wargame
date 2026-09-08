@@ -49,6 +49,7 @@ public partial class RegionRenderer : Node2D
     private Node2D _riverRoot = null!;
     private int _riverStrips, _riverBanks;   // traços de água desenhados e regiões de rio que ficaram com margem à vista
     private TerrainMarks _terrainRoot = null!;   // serras, cidades, dunas e mata desenhadas no chão
+    private CityMarks _cityRoot = null!;         // pontos e nomes das cidades
     /// <summary>Zoom a partir do qual a água aparece. De longe o mapa é político — trinta por cento das
     /// regiões do mundo têm rio, e desenhá-los todos à escala do planeta era pintar o mapa de azul. É a
     /// mesma regra dos contadores, um degrau mais cedo: o rio manda em quem já está a olhar para a
@@ -57,6 +58,9 @@ public partial class RegionRenderer : Node2D
     /// <summary>Zoom a partir do qual o chão desenhado aparece — um degrau acima da água. Um sinal de serra
     /// tem de se ler como serra: à escala do planeta seria um borrão a mais por cima da cor do país.</summary>
     private const float TerrainZoom = 0.3f;
+    /// <summary>Zoom a partir do qual as cidades aparecem. À escala do planeta o que se procura é o país;
+    /// mal se entra num continente, o que se procura é a terra — e é aí que as capitais acendem.</summary>
+    private const float CityZoom = 0.25f;
     private readonly Dictionary<int, Polygon2D> _stripes = new();   // região ocupada → riscas na cor do dono
     /// <summary>Distância entre riscas e largura de cada uma, em unidades do mundo. A conta é a do atlas de
     /// guerra: risca fina e espaçada, para se ver de longe que aquilo é terra tomada sem tapar a cor de
@@ -135,6 +139,10 @@ public partial class RegionRenderer : Node2D
         // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
         _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
         foreach (int id in _rings.Keys) PaintFrontier(id);
+        // As cidades por cima da fronteira e por baixo da informação militar: são pintura de mapa, mas
+        // pintura que se lê — um nome tapado por uma linha de fronteira não serve para nada.
+        _cityRoot = new CityMarks { Name = "Cities", Visible = false }; AddChild(_cityRoot);
+        _cityRoot.Setup(game.World);
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
         _goalRoot = new Node2D { Name = "Goals" }; AddChild(_goalRoot);
@@ -472,6 +480,15 @@ public partial class RegionRenderer : Node2D
     /// <summary>O degrau de zoom em que o chão desenhado acende.</summary>
     public static float TerrainZoomLimit => TerrainZoom;
 
+    /// <summary>--smoke: as cidades desenhadas no zoom de agora.</summary>
+    public string CityReport() => _cityRoot.Report();
+
+    /// <summary>As cidades estão à vista no zoom de agora?</summary>
+    public bool CitiesVisible => _cityRoot.Visible;
+
+    /// <summary>O degrau de zoom em que as cidades acendem.</summary>
+    public static float CityZoomLimit => CityZoom;
+
     /// <summary>Área do anel (fórmula do sapateiro), para o nome do país cair no meio do território que conta.</summary>
     private static float Area(Vector2[] v)
     {
@@ -743,6 +760,8 @@ public partial class RegionRenderer : Node2D
         _counterRoot.Visible = on;
         _riverRoot.Visible = zoom >= RiverZoom;   // a água acende antes dos contadores: é chão, não tropa
         _terrainRoot.Visible = zoom >= TerrainZoom;   // e o chão desenhado logo a seguir à água
+        _cityRoot.Visible = zoom >= CityZoom;         // e os nomes de terra com as capitais
+        if (_cityRoot.Visible) _cityRoot.SetZoom(zoom);
         if (on != _countersOn) { _countersOn = on; Refresh(); }
         foreach (var n in _countryNames.Values)
         {

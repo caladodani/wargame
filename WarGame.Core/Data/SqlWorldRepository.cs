@@ -278,6 +278,12 @@ public sealed class SqlWorldRepository : IWorldRepository
             float km = Convert.ToSingle(r["km"]);
             w.Regions[p].SeaNeighbours[q] = km; w.Regions[q].SeaNeighbours[p] = km;
         }
+        // As cidades chegam já ordenadas da maior para a menor: o mapa mostra-as por essa ordem e não tem
+        // de as ordenar outra vez a cada mudança de zoom.
+        foreach (var r in _static.Query("SELECT id,region_id,name,population,capital,x,y FROM city ORDER BY population DESC, id"))
+            w.Cities.Add(new CityDef(Convert.ToInt32(r["id"]), Convert.ToInt32(r["region_id"]), (string)r["name"]!,
+                                     Convert.ToInt32(r["population"]), Convert.ToInt32(r["capital"]) == 1,
+                                     Convert.ToSingle(r["x"]), Convert.ToSingle(r["y"])));
         foreach (var r in _static.Query("SELECT region_id,resource,amount FROM region_resource"))
             if (w.Regions.TryGetValue(Convert.ToInt32(r["region_id"]), out var rr))
                 rr.Resources[(string)r["resource"]!] = Convert.ToSingle(r["amount"]);

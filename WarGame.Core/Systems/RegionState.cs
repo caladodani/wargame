@@ -81,6 +81,13 @@ public static class RegionState
             new("estrada", $"×{r.Infrastructure:0.00}", "estrada", InfraNote(w, r)),
         };
 
+        // a terra que lá está: o mapa escreve os nomes das maiores, e a ficha diz quais são e que tamanho
+        // têm — uma província chama-se pelo que lá se conhece, não pelo número de habitantes
+        if (Cities.In(w, r.Id) is { Count: > 0 } here)
+            parts.Add(new StatePart(here[0].Capital ? "coroa" : "cidade", here[0].Name, "cidade",
+                $"Terra desta região, a maior à frente:\n{Cities.Line(w, r)}"
+              + (here[0].Capital ? "\nÉ capital de país." : "")));
+
         // o que esta praça vale na conta da guerra: sem isto o jogador tinha de adivinhar quais das
         // trezentas regiões do inimigo é que valiam uma campanha
         if (VictoryPoints.Tier(w, r) is VictoryTierDef vt)

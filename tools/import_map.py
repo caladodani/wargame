@@ -85,8 +85,9 @@ def main():
     geo = load(a.ne, 'ne_10m_geography_regions_polys')
     rivers = [shape(f['geometry']) for f in load(a.ne, 'ne_50m_rivers_lake_centerlines') if f['geometry']]
     places_src = 'ne_10m_populated_places' if (Path(a.ne) / 'ne_10m_populated_places.geojson').exists() else 'ne_50m_populated_places'
+    place_feats = [f for f in load(a.ne, places_src) if f['geometry']]
     places = [(Point(f['geometry']['coordinates']), f['properties'].get('POP_MAX') or 0)
-              for f in load(a.ne, places_src) if f['geometry']]
+              for f in place_feats]
     place_tree = STRtree([p for p, _ in places])
     def places_pop(g):
         return sum(places[i][1] for i in place_tree.query(g, predicate='contains'))
@@ -247,6 +248,22 @@ def main():
         r['rings'] = to_rings(g, min_area=(0.15 * scale * 111_000) ** 2 * 1.2)  # ilhas < ~30 km² descartadas
         c = g.centroid; r['cx'], r['cy'] = c.x, c.y
 
+    # ---- 6c. cidades: cada praça do NE cai na região que a contém, com o nome e o ponto já projectados.
+    # Não entram na simulação — são o que se lê no mapa. A busca é ao contrário da população (uma árvore de
+    # regiões, um query por cidade): 7 mil pontos contra 3 mil polígonos.
+    region_tree = STRtree([r['geom'] for r in regions])
+    cities = []
+    for pt, feat in zip((p for p, _ in places), place_feats):
+        # 'within' e não 'contains': o predicado corre como pt.predicado(região) — ao contrário do que se
+        # lê, quem é testado é a geometria dada, não a da árvore (é a mesma volta do places_pop acima).
+        hit = region_tree.query(pt, predicate='within')
+        if len(hit) == 0: continue
+        p = feat['properties']
+        cx, cy = proj(pt.x, pt.y)
+        cities.append((int(hit[0]), p.get('NAME_PT') or p.get('NAME') or p.get('NAMEASCII') or '?',
+                       int(p.get('POP_MAX') or 0), int(p.get('ADM0CAP') or 0), cx, cy))
+    print(f'cidades: {len(cities)} de {len(places)} praças dentro de região ({sum(c[3] for c in cities)} capitais)')
+
     # ---- 7. escrever
     out = Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists(): out.unlink()
@@ -278,6 +295,9 @@ def main():
     for i, j, km in sea_links:
         db.execute('INSERT OR IGNORE INTO sea_link(region_id,neighbour_id,km) VALUES (?,?,?)',
                    (regions[i]['id'], regions[j]['id'], round(km)))
+    for cid, (ri, name, pop, cap, cx, cy) in enumerate(cities, start=1):
+        db.execute('INSERT INTO city(id,region_id,name,population,capital,x,y) VALUES (?,?,?,?,?,?,?)',
+                   (cid, regions[ri]['id'], name, pop, cap, cx, cy))
     db.commit()
 
     # ---- 8. países: industry automática por PIB per capita (√ da razão para a média mundial, 0.4..2.5),

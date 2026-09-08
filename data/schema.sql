@@ -100,6 +100,16 @@ CREATE TABLE IF NOT EXISTS region_polygon (   -- anéis exteriores, float32 x,y 
   region_id INTEGER NOT NULL REFERENCES region(id), ring_index INTEGER NOT NULL, points BLOB NOT NULL,
   PRIMARY KEY (region_id, ring_index)
 );
+-- Cidades (tools/import_map.py, a partir do ne_10m_populated_places): o nome e o ponto de cada praça do
+-- mundo, já projectados como os polígonos. Não são regiões nem entram na simulação — são o que se lê no
+-- mapa, como em qualquer atlas: a província diz-se pelo nome da terra que lá está.
+CREATE TABLE IF NOT EXISTS city (
+  id INTEGER PRIMARY KEY, region_id INTEGER NOT NULL REFERENCES region(id), name TEXT NOT NULL,
+  population INTEGER NOT NULL DEFAULT 0,
+  capital INTEGER NOT NULL DEFAULT 0,         -- 1 = capital de país (a estrela do mapa)
+  x REAL NOT NULL, y REAL NOT NULL            -- ponto projectado (Robinson, y para baixo)
+);
+CREATE INDEX IF NOT EXISTS idx_city_region ON city(region_id);
 CREATE TABLE IF NOT EXISTS region_neighbour (
   region_id INTEGER NOT NULL REFERENCES region(id), neighbour_id INTEGER NOT NULL REFERENCES region(id),
   PRIMARY KEY (region_id, neighbour_id)

@@ -749,6 +749,15 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
 INSERT INTO rule (key,value,note) VALUES
  ('relief_mark_min_cost',1.05,'só o terreno com passo acima disto leva desenho no mapa (a planície não leva)');
 
+-- Cidades escritas no mapa (Cities + CityMarks): o atlas mostra as praças que cabem na escala a que se está
+-- a olhar — de longe só as capitais e as metrópoles, de perto a terra pequena também. A conta é uma só:
+-- uma cidade cabe quando a sua gente vezes o zoom passa city_pop_cut.
+INSERT INTO rule (key,value,note) VALUES
+ ('city_pop_cut',400000,'gente mínima (a 1.0 de zoom) para uma cidade aparecer no mapa'),
+ ('city_capital_zoom',0.25,'zoom a partir do qual as capitais aparecem, por pequenas que sejam'),
+ ('city_name_factor',4,'uma cidade só leva nome escrito com este tanto da gente que a faz aparecer'),
+ ('city_draw_max',900,'tecto de cidades desenhadas de uma vez (as maiores e as capitais primeiro)');
+
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
