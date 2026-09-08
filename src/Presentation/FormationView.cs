@@ -6,7 +6,7 @@ namespace WarGame.Presentation;
 /// <summary>A ficha de uma formação destacada — uma asa no céu de uma região ou uma esquadra no mar de uma
 /// costa.
 ///
-/// As missões eram uma linha corrida de texto: "🛩 Braga — Superioridade aérea, 4 asas há 12 dias". Não se
+/// As missões eram uma linha corrida de texto: "Braga — Superioridade aérea, 4 asas há 12 dias". Não se
 /// via de relance quem estava a ganhar aquele céu, e sobretudo não havia ninguém ali: as divisões têm nome
 /// próprio e honras de batalha, os aviões e os navios não tinham nada. Agora cada formação leva o nome do
 /// fundo do país (formation_name), com o selo ⚜ quando é um nome de casa, e a ficha mostra a tarefa, o
@@ -15,7 +15,7 @@ public static class FormationView
 {
     /// <summary>O que a ficha precisa de saber. Domain diz a arma (World.Air / World.Sea): muda a palavra
     /// que conta as unidades e o que se chama a um céu ou a um mar disputado.</summary>
-    public readonly record struct Info(string Name, bool Home, string Domain, string MissionIcon,
+    public readonly record struct Info(string Name, bool Home, string Domain, string MissionGlyph,
                                        string Mission, string Place, float Strength, float Foe, int Days,
                                        string Note, string Extra = "");
 
@@ -31,9 +31,7 @@ public static class FormationView
 
         // 1.ª linha: o nome da formação, o selo de casa e há quanto tempo está fora
         var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 6);
-        var arm = Ui.Lbl(sea ? "⚓" : "✈", 18);
-        arm.AddThemeColorOverride("font_color", tint);
-        head.AddChild(arm);
+        head.AddChild(Glyph.Make(sea ? "ancora" : "asa", 18, tint));
         var name = Ui.Lbl(i.Name.Length > 0 ? i.Name : (sea ? "esquadra sem nome" : "asa sem nome"), 17);
         name.AddThemeColorOverride("font_color", Ui.Text);
         head.AddChild(Ui.Grow(name));
@@ -43,11 +41,14 @@ public static class FormationView
         head.AddChild(days);
         v.AddChild(head);
 
-        // 2.ª linha: a tarefa e o sítio
-        var task = Ui.Lbl($"{i.MissionIcon} {i.Mission}  ·  {i.Place}" + (i.Extra.Length > 0 ? $"  ·  {i.Extra}" : ""), 15);
+        // 2.ª linha: a chapa da tarefa, a tarefa e o sítio
+        var job = new HBoxContainer(); job.AddThemeConstantOverride("separation", 5);
+        job.AddChild(Glyph.Make(i.MissionGlyph, 15, Ui.TextDim));
+        var task = Ui.Lbl($"{i.Mission}  ·  {i.Place}" + (i.Extra.Length > 0 ? $"  ·  {i.Extra}" : ""), 15);
         task.AddThemeColorOverride("font_color", Ui.TextDim);
         task.TooltipText = i.Note;
-        v.AddChild(task);
+        job.AddChild(Ui.Grow(task));
+        v.AddChild(job);
 
         // 3.ª linha: a balança daquele céu ou daquele mar, numa barra só
         var scale = new HBoxContainer(); scale.AddThemeConstantOverride("separation", 6);

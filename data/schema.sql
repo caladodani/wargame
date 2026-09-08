@@ -254,7 +254,8 @@ CREATE TABLE IF NOT EXISTS air_mission (      -- tipos de missão aérea (AirMis
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   effect TEXT NOT NULL,                       -- superiority | support | bombing
   value REAL NOT NULL,                        -- o que cada asa vale nesse papel
-  note TEXT NOT NULL, sort INTEGER NOT NULL);
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
 CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre regiões (save)
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   wings REAL NOT NULL, since_day INTEGER NOT NULL,
@@ -262,7 +263,8 @@ CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre re
   PRIMARY KEY (country_id, region_id));
 CREATE TABLE IF NOT EXISTS naval_mission (    -- tipos de missão naval (NavalMissionSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  effect TEXT NOT NULL, value REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL);
+  effect TEXT NOT NULL, value REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
 CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar de uma costa (save)
   country_id INTEGER, region_id INTEGER, mission_id TEXT NOT NULL,
   ships REAL NOT NULL, since_day INTEGER NOT NULL,

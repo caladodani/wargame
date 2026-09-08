@@ -169,7 +169,7 @@ public partial class RegionPanel : PanelContainer
             // com o mapa pintado por uma conta (abastecimento, resistência...), a ficha diz o número exacto
             if (w.MapModeDefs.GetValueOrDefault(_map.Regions.Mode) is MapModeDef mode && mode.Metric != "owner"
                 && MapModes.Text(w, pid ?? 0, r, mode.Metric) is string mText && mText.Length > 0)
-                info += $"  ·  {mode.Icon} {mText}";
+                info += $"  ·  {mode.Name.ToLowerInvariant()} {mText}";
             if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
             if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);

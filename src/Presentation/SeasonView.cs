@@ -48,9 +48,7 @@ public static class SeasonView
         card.TooltipText = $"{s.Name}: {s.Note}\nMarcha ×{s.MoveMult:0.00} · recomposição ×{s.OrgMult:0.00} · desgaste {s.Attrition:0.0} org/dia em campo";
 
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6); card.AddChild(row);
-        var icon = Ui.Lbl(s.Icon, 20);
-        icon.AddThemeColorOverride("font_color", tint);
-        row.AddChild(icon);
+        row.AddChild(Glyph.Make(s.Glyph, 20, tint));
         var name = Ui.Lbl(s.Name, 17);
         name.AddThemeColorOverride("font_color", tint);
         row.AddChild(name);
@@ -73,6 +71,6 @@ public static class SeasonView
         string cost = bite <= 0f
             ? "sem desgaste"
             : $"−{bite:0.0} org/dia em campo (−{bite * w.Rule("season_shelter", 0.4f):0.0} em terreno nosso)";
-        return $"{s.Icon} {s.Name}: {cost} · marcha ×{s.MoveMult:0.00}";
+        return $"{s.Name}: {cost} · marcha ×{s.MoveMult:0.00}";
     }
 }

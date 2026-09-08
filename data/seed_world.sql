@@ -466,11 +466,12 @@ INSERT INTO rule (key,value,note) VALUES
 -- campo. season_terrain diz que terrenos a estação castiga mais (1 = a média).
 CREATE TABLE IF NOT EXISTS season (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  move_mult REAL NOT NULL, org_mult REAL NOT NULL, attrition REAL NOT NULL, note TEXT NOT NULL);
-INSERT INTO season VALUES ('inverno','Inverno','❄',0.62,0.70,0.9,'Colunas atoladas, tropa gasta em campo aberto.');
-INSERT INTO season VALUES ('primavera','Primavera','🌧',0.85,1.00,0.3,'Degelo e lama: anda-se mal, mas a tropa refaz-se.');
-INSERT INTO season VALUES ('verao','Verão','☀',1.15,1.10,0.2,'Estradas secas e dias longos: é quando se ganham guerras.');
-INSERT INTO season VALUES ('outono','Outono','🍂',0.90,0.95,0.4,'Chuva a chegar: as ofensivas começam a pesar.');
+  move_mult REAL NOT NULL, org_mult REAL NOT NULL, attrition REAL NOT NULL, note TEXT NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO season VALUES ('inverno','Inverno','❄',0.62,0.70,0.9,'Colunas atoladas, tropa gasta em campo aberto.','floco');
+INSERT INTO season VALUES ('primavera','Primavera','🌧',0.85,1.00,0.3,'Degelo e lama: anda-se mal, mas a tropa refaz-se.','chuva');
+INSERT INTO season VALUES ('verao','Verão','☀',1.15,1.10,0.2,'Estradas secas e dias longos: é quando se ganham guerras.','sol');
+INSERT INTO season VALUES ('outono','Outono','🍂',0.90,0.95,0.4,'Chuva a chegar: as ofensivas começam a pesar.','folha');
 CREATE TABLE IF NOT EXISTS season_month (month INTEGER PRIMARY KEY, season_id TEXT NOT NULL);
 INSERT INTO season_month VALUES (1,'inverno'),(2,'inverno'),(3,'primavera'),(4,'primavera'),(5,'primavera'),
  (6,'verao'),(7,'verao'),(8,'verao'),(9,'outono'),(10,'outono'),(11,'outono'),(12,'inverno');
@@ -552,35 +553,38 @@ CREATE TABLE IF NOT EXISTS map_mode (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
-  sort INTEGER NOT NULL);
-INSERT INTO map_mode (id,name,icon,metric,low,high,sort) VALUES
- ('politico','Político','🌍','owner','','',0),
- ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1),
- ('resistencia','Resistência','✊','resistance','calma','revolta',2),
- ('industria','Indústria','🏭','industry','terra rasa','fábricas',3),
- ('populacao','População','♟','population','deserto','multidão',4);
+  sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
+ ('politico','Político','🌍','owner','','',0,'globo'),
+ ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1,'caixa'),
+ ('resistencia','Resistência','✊','resistance','calma','revolta',2,'punho'),
+ ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica'),
+ ('populacao','População','♟','population','deserto','multidão',4,'gente');
 
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   effect TEXT NOT NULL,                      -- superiority | support | bombing
   value REAL NOT NULL,                       -- o que cada asa vale nesse papel
-  note TEXT NOT NULL, sort INTEGER NOT NULL);
-INSERT INTO air_mission (id,name,icon,effect,value,note,sort) VALUES
- ('superioridade','Superioridade aérea','🛩','superiority',1,'Varre o céu da região: cada asa pesa na balança aérea do combate que lá se der.',0),
- ('apoio','Apoio próximo','💥','support',0.03,'Bate no chão ao lado da nossa tropa: cada asa soma força a quem ali combate.',1),
- ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2);
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO air_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
+ ('superioridade','Superioridade aérea','🛩','superiority',1,'Varre o céu da região: cada asa pesa na balança aérea do combate que lá se der.',0,'asa'),
+ ('apoio','Apoio próximo','💥','support',0.03,'Bate no chão ao lado da nossa tropa: cada asa soma força a quem ali combate.',1,'bomba'),
+ ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2,'alvo');
 
 -- Missões navais (tabela naval_mission; NavalMissionSystem): o que uma esquadra vai fazer ao mar de uma costa.
 CREATE TABLE IF NOT EXISTS naval_mission (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   effect TEXT NOT NULL,                      -- blockade | escort | patrol
   value REAL NOT NULL,                       -- o que cada navio vale nesse papel
-  note TEXT NOT NULL, sort INTEGER NOT NULL);
-INSERT INTO naval_mission (id,name,icon,effect,value,note,sort) VALUES
- ('bloqueio','Bloqueio naval','⚓','blockade',1,'Fecha o mar em frente àquela costa: enquanto lá estiver a esquadra, o cais não carrega nada e o abastecimento por mar não passa.',0),
- ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1),
- ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2);
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
+ ('bloqueio','Bloqueio naval','⚓','blockade',1,'Fecha o mar em frente àquela costa: enquanto lá estiver a esquadra, o cais não carrega nada e o abastecimento por mar não passa.',0,'ancora'),
+ ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1,'escudo'),
+ ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2,'luneta');
 
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de

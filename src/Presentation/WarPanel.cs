@@ -242,7 +242,7 @@ public partial class WarPanel : PanelContainer
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
             row.AddChild(Ui.Btn("Recolher", () => RecallAir(pid, rid), 150));
             card.AddChild(FormationView.Plate(new FormationView.Info(
-                m.Name, FormationView.IsHome(w, pid, World.Air, m.Name), World.Air, def.Icon, def.Name,
+                m.Name, FormationView.IsHome(w, pid, World.Air, m.Name), World.Air, def.Glyph, def.Name,
                 r.Name, m.Wings, foe, w.Clock.Day - m.SinceDay, def.Note), row));
         }
 
@@ -270,8 +270,9 @@ public partial class WarPanel : PanelContainer
             {
                 string mid = def.Id; int target = rid;
                 string? no = AirMissionSystem.Block(w, pid, target, mid, lot);
-                var b = Ui.Btn($"{def.Icon} {def.Name} ({lot:0.#})", () => SendAir(pid, target, mid, lot), 0,
+                var b = Ui.Btn($"    {def.Name} ({lot:0.#})", () => SendAir(pid, target, mid, lot), 0,
                                no is null ? Ui.Kind.Primary : Ui.Kind.Normal);
+                Glyph.Stamp(b, def.Glyph, no is null ? Ui.Ink : Ui.Accent);
                 b.Disabled = no is not null;
                 b.TooltipText = no ?? def.Note;
                 row.AddChild(Ui.Grow(b));
@@ -354,7 +355,7 @@ public partial class WarPanel : PanelContainer
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
             row.AddChild(Ui.Btn("Recolher", () => RecallSea(pid, rid), 150));
             card.AddChild(FormationView.Plate(new FormationView.Info(
-                m.Name, FormationView.IsHome(w, pid, World.Sea, m.Name), World.Sea, def.Icon, def.Name,
+                m.Name, FormationView.IsHome(w, pid, World.Sea, m.Name), World.Sea, def.Glyph, def.Name,
                 r.Name, m.Ships, foe, w.Clock.Day - m.SinceDay, def.Note,
                 NavalMissionSystem.Blockaded(w, rid) ? "costa fechada" : ""), row));
         }
@@ -383,8 +384,9 @@ public partial class WarPanel : PanelContainer
             {
                 string mid = def.Id; int sea = rid;
                 string? no = NavalMissionSystem.Block(w, pid, sea, mid, lot);
-                var b = Ui.Btn($"{def.Icon} {def.Name} ({lot:0.#})", () => SendSea(pid, sea, mid, lot), 0,
+                var b = Ui.Btn($"    {def.Name} ({lot:0.#})", () => SendSea(pid, sea, mid, lot), 0,
                                no is null ? Ui.Kind.Primary : Ui.Kind.Normal);
+                Glyph.Stamp(b, def.Glyph, no is null ? Ui.Ink : Ui.Accent);
                 b.Disabled = no is not null;
                 b.TooltipText = no ?? def.Note;
                 row.AddChild(Ui.Grow(b));

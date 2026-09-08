@@ -156,7 +156,8 @@ public sealed record HonourDef(string Id, string Title, string Description, stri
 /// a recomposição de organização (OrgMult) e cobra Attrition de organização por dia a quem está em campo
 /// nos terrenos que ela castiga (WeatherSystem). Inverno é o que muda a guerra: as colunas ficam atoladas
 /// e a tropa em campo aberto gasta-se sem um tiro.</summary>
-public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float Attrition, string Note);
+public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMult, float OrgMult, float Attrition, string Note,
+                               string Glyph = "");
 
 /// <summary>Género de acontecimento da crónica (tabela chronicle_kind): o ícone com que aparece na linha do
 /// tempo e o peso (1 = rotina, 3 = história). A regra chronicle_min_weight decide o que chega a ser escrito —
@@ -169,7 +170,8 @@ public sealed record ChronicleEntry(int Day, string Kind, string Text, int Count
 
 /// <summary>Um modo de mapa (tabela map_mode): como o mapa se pinta e o que a legenda diz nas duas pontas.
 /// Métrica "owner" é o mapa político de sempre — cor do controlador, sem escala.</summary>
-public sealed record MapModeDef(string Id, string Name, string Icon, string Metric, string Low, string High, int Sort);
+public sealed record MapModeDef(string Id, string Name, string Icon, string Metric, string Low, string High, int Sort,
+                                string Glyph = "");
 
 /// <param name="Yard">Fila de fábricas que este edifício alimenta (coluna building.yard): "civil", "militar",
 /// "naval" ou vazio. É o que liga um edifício aos contadores do Industry.</param>
@@ -354,7 +356,8 @@ public sealed class Attache
 /// três papéis é — "superiority" (varrer o céu da região e pesar no combate), "support" (bater no chão ao
 /// lado da nossa tropa) ou "bombing" (deitar abaixo a infraestrutura de quem lá manda) — e Value é o que
 /// cada asa vale nesse papel. Trocar o que a aviação faz é trocar linhas desta tabela.</summary>
-public sealed record AirMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort);
+public sealed record AirMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort,
+                                   string Glyph = "");
 
 /// <summary>Um esquadrão destacado para uma região (AirMissionSystem; save s_air_mission). Wings são asas
 /// do pool nacional (Country.AirPower) que ficam presas a esta missão até serem chamadas de volta — ou até
@@ -375,7 +378,8 @@ public sealed class AirMission
 /// Effect diz qual dos três papéis é — "blockade" (fechar o mar àquela costa), "escort" (acompanhar os
 /// nossos comboios e desfazer o bloqueio) ou "patrol" (vigiar aquele mar e tirar a costa do nevoeiro).
 /// Trocar o que a marinha faz é trocar linhas desta tabela.</summary>
-public sealed record NavalMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort);
+public sealed record NavalMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort,
+                                     string Glyph = "");
 
 /// <summary>Uma esquadra destacada para o mar de uma região costeira (NavalMissionSystem; save
 /// s_naval_mission). Ships são navios do pool nacional (Country.Warships) que ficam presos a esta missão

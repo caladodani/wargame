@@ -84,12 +84,7 @@ public partial class BuildBar : PanelContainer
         var b = Ui.Btn($"        {name} ({cost})", () => Arm(id), 0f,
                        id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
         b.Alignment = HorizontalAlignment.Left;
-        var plate = Glyph.Make(glyph, PlateSize, id == _armed ? Ui.Ink : Ui.Accent);
-        plate.MouseFilter = MouseFilterEnum.Ignore;
-        plate.AnchorTop = plate.AnchorBottom = 0.5f;
-        plate.OffsetLeft = 8; plate.OffsetRight = 8 + PlateSize;
-        plate.OffsetTop = -PlateSize / 2f; plate.OffsetBottom = PlateSize / 2f;
-        b.AddChild(plate);
+        Glyph.Stamp(b, glyph, id == _armed ? Ui.Ink : Ui.Accent, PlateSize);
         return b;
     }
 
@@ -121,10 +116,11 @@ public partial class BuildBar : PanelContainer
 
     /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido, com a conta das
     /// chapas. São três números diferentes de propósito, porque é fácil enganar-se com um só: quantos nomes
-    /// a base de dados pede (building.glyph + tech_branch.glyph, mais as duas obras que são regras e não
-    /// linhas), quantos desses o Glyph sabe mesmo desenhar, e quantas chapas ficaram desenhadas no ecrã —
-    /// destas, quantas caíram na roda dentada por o nome não existir. Um nome mal escrito na tabela não dá
-    /// erro nenhum: dá uma roda calada, e é isso que este contador faz aparecer.</summary>
+    /// a base de dados pede em todas as tabelas que têm coluna glyph (obras, ramos, estações, modos de mapa,
+    /// missões de ar e mar, mais as duas obras que são regras e não linhas), quantos desses o Glyph sabe
+    /// mesmo desenhar, e quantas chapas ficaram desenhadas neste menu — destas, quantas caíram na roda
+    /// dentada por o nome não existir. Um nome mal escrito na tabela não dá erro nenhum: dá uma roda
+    /// calada, e é isso que este contador faz aparecer.</summary>
     public string Smoke()
     {
         Open();
@@ -134,10 +130,7 @@ public partial class BuildBar : PanelContainer
         if (first is not null) Arm(first.Id);
         string status = _status.Text;
 
-        var asked = defs.Select(d => d.Glyph)
-                        .Concat(w.TechBranches.Values.Select(b => b.Glyph))
-                        .Concat(new[] { InfraGlyph, FortGlyph })
-                        .Distinct().ToList();
+        var asked = Glyph.Asked(w, InfraGlyph, FortGlyph);
         int known = asked.Count(Glyph.Knows);
         var (drawn, fell) = Glyph.Count(this);
         Close();

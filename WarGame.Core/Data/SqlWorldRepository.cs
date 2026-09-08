@@ -111,15 +111,15 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,metric,low,high,sort FROM map_mode ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,metric,low,high,sort,glyph FROM map_mode ORDER BY sort"))
             w.MapModeDefs[(string)r["id"]!] = new MapModeDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
-                (string)r["metric"]!, (string)r["low"]!, (string)r["high"]!, Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort FROM air_mission ORDER BY sort"))
+                (string)r["metric"]!, (string)r["low"]!, (string)r["high"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM air_mission ORDER BY sort"))
             w.AirMissionDefs[(string)r["id"]!] = new AirMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
-                (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort FROM naval_mission ORDER BY sort"))
+                (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
-                (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
+                (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort FROM occupation_policy ORDER BY sort"))
             w.OccupationPolicyDefs[(string)r["id"]!] = new OccupationPolicyDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToSingle(r["resistance_mult"]), Convert.ToSingle(r["yield_mult"]),
@@ -128,9 +128,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToInt32(r["weight"]));
         w.SeasonDefs.Clear(); w.SeasonMonths.Clear(); w.SeasonTerrain.Clear();
-        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note FROM season"))
+        foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note,glyph FROM season"))
             w.SeasonDefs[(string)r["id"]!] = new SeasonDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
-                Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["attrition"]), (string)r["note"]!);
+                Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["attrition"]), (string)r["note"]!,
+                (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT month,season_id FROM season_month"))
             w.SeasonMonths[Convert.ToInt32(r["month"])] = (string)r["season_id"]!;
         foreach (var r in _static.Query("SELECT season_id,terrain,bite FROM season_terrain"))

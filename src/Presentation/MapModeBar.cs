@@ -54,8 +54,9 @@ public partial class MapModeBar : PanelContainer
         {
             bool on = m.Id == _regions.Mode;
             string id = m.Id;
-            var b = Ui.Btn($"{m.Icon}  {m.Name}", () => Pick(id), 190, on ? Ui.Kind.Primary : Ui.Kind.Normal);
+            var b = Ui.Btn($"      {m.Name}", () => Pick(id), 190, on ? Ui.Kind.Primary : Ui.Kind.Normal);
             b.Alignment = HorizontalAlignment.Left;
+            Glyph.Stamp(b, m.Glyph, on ? Ui.Ink : Ui.Accent);
             _list.AddChild(b);
         }
 
