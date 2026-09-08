@@ -171,7 +171,7 @@ public partial class CountryPanel : PanelContainer
             string occKey = _game.PlayerId is int po && po != c.Id
                 ? $"{OccupationSystem.Regions(w, po, c.Id)}:{OccupationSystem.Policy(w, po, c.Id).Id}:{(int)(OccupationSystem.Heat(w, po, c.Id) * 20f)}:{OccupationSystem.Since(w, po, c.Id)}"
                 : "";
-            var key = $"{_tab}:{_staffArm}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{_tab}:{_staffArm}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|nat{c.PowerRank}:{c.PowerScore:0.0}:{(int)EconomySystem.Income(w, c.Id)}:{(int)c.Manpower}:{(int)c.Money}:{Industry.Of(w, c.Id)}:{w.Regions.Values.Count(r => r.ControllerId == c.Id)}:{string.Join(",", w.ResourceDefs.Keys.Select(id => (int)ResourceSystem.Controlled(w, c.Id, id)))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -207,35 +207,15 @@ public partial class CountryPanel : PanelContainer
                     if (info.Doctrine.Length > 0) Line($"Doutrina: {info.Doctrine}");
                     if (info.Description.Length > 0) Wrap(info.Description, 17);
                 }
-                // lugar na tabela mundial: o painel do país dizia tudo menos onde ele está entre os outros
-                if (c.PowerRank > 0)
-                {
-                    string move = c.PowerRankPrev > 0 && c.PowerRankPrev != c.PowerRank
-                        ? c.PowerRank < c.PowerRankPrev ? $"  ▲{c.PowerRankPrev - c.PowerRank}" : $"  ▼{c.PowerRank - c.PowerRankPrev}"
-                        : "";
-                    var rank = Ui.Lbl($"🌍 {c.PowerRank}.º do mundo · nota {c.PowerScore:0.0}{move}", 17);
-                    rank.AddThemeColorOverride("font_color", c.PowerRank <= 3 ? new Color(1f, 0.82f, 0.25f) : Ui.Text);
-                    _body.AddChild(rank);
-                }
-                Line($"Indústria ×{c.Stat("industry"):0.00}   Produção ×{c.Stat("production_speed"):0.00}   Organização ×{c.Stat("org_regain"):0.00}   Investigação ×{c.Stat("research_speed"):0.00}");
-                Line($"Divisões {w.Divisions.Values.Count(d => d.CountryId == c.Id)}   ·   Regiões {w.Regions.Values.Count(r => r.ControllerId == c.Id)}   ·   Rendimento {EconomySystem.Income(w, c.Id):0.0}/dia");
-                if (w.ResourceDefs.Count > 0)
-                {
-                    var parts = w.ResourceDefs.Values.OrderBy(d => d.Id)
-                        .Select(d => (d, units: ResourceSystem.Controlled(w, c.Id, d.Id)))
-                        .Where(t => t.units > 0f)
-                        .Select(t => $"{t.d.Name} {t.units:0} (+{MathF.Min(t.units, t.d.Cap) * t.d.PerUnit:P0} {StatName(t.d.StatKey)})");
-                    var txt = string.Join("   ·   ", parts);
-                    if (txt.Length > 0) Line("Recursos: " + txt);
-                }
+                // a ficha da nação em chapas: fábricas, cofre, homens, estabilidade, tropa, terra,
+                // laboratórios e lugar no mundo — e os recursos por baixo. As contas são do NationSheet.
+                _body.AddChild(NationView.Card(w, c));
                 if (!mine && _game.PlayerId is int me && w.Countries.TryGetValue(me, out var my))
                 {
                     string Cmp(string k) { float d = c.Stat(k) - my.Stat(k); return MathF.Abs(d) < 0.005f ? "=" : d > 0 ? "▲" : "▼"; }
                     int cd = w.Divisions.Values.Count(d => d.CountryId == c.Id), md = w.Divisions.Values.Count(d => d.CountryId == me);
                     Line($"vs {my.Tag}: indústria {Cmp("industry")}  produção {Cmp("production_speed")}  investigação {Cmp("research_speed")}  divisões {cd}/{md}", 15);
                 }
-                Line($"Estabilidade {c.Stability:0}%   ·   Homens {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")}");
-                if (c.WarExhaustion >= 1f) Line($"Desgaste de guerra: −{c.WarExhaustion:0} estabilidade");
             }
             // as três armas e o que se compra para elas: a aba da guerra
             if (tWar)
