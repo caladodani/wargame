@@ -46,6 +46,13 @@ public partial class RegionRenderer : Node2D
     private Node2D _counterRoot = null!;
     private Node2D _frontierRoot = null!;
     private Node2D _stripeRoot = null!;
+    private Node2D _riverRoot = null!;
+    private int _riverStrips, _riverBanks;   // traços de água desenhados e regiões de rio que ficaram com margem à vista
+    /// <summary>Zoom a partir do qual a água aparece. De longe o mapa é político — trinta por cento das
+    /// regiões do mundo têm rio, e desenhá-los todos à escala do planeta era pintar o mapa de azul. É a
+    /// mesma regra dos contadores, um degrau mais cedo: o rio manda em quem já está a olhar para a
+    /// frente de batalha, não em quem procura um país.</summary>
+    private const float RiverZoom = 0.25f;
     private readonly Dictionary<int, Polygon2D> _stripes = new();   // região ocupada → riscas na cor do dono
     /// <summary>Distância entre riscas e largura de cada uma, em unidades do mundo. A conta é a do atlas de
     /// guerra: risca fina e espaçada, para se ver de longe que aquilo é terra tomada sem tapar a cor de
@@ -108,9 +115,15 @@ public partial class RegionRenderer : Node2D
         _stripeRoot = new Node2D { Name = "Occupation" }; AddChild(_stripeRoot);
         foreach (int id in _rings.Keys) PaintStripes(id);
 
+        // A água vem a seguir às riscas e antes da fronteira: o rio é pintura do chão, não linha política —
+        // uma frente pode passar por cima dele, ele não passa por cima de ninguém. Desenha-se uma vez e mais
+        // nunca: nenhuma conquista seca um rio.
+        MapEdges(game.World);
+        _riverRoot = new Node2D { Name = "Rivers", Visible = false }; AddChild(_riverRoot);
+        PaintRivers(game.World);
+
         // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
         _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
-        MapEdges(game.World);
         foreach (int id in _rings.Keys) PaintFrontier(id);
         _highlightRoot = new Node2D { Name = "Highlight" }; AddChild(_highlightRoot);
         _multiRoot = new Node2D { Name = "MultiHighlight" }; AddChild(_multiRoot);
@@ -283,10 +296,10 @@ public partial class RegionRenderer : Node2D
         return box;
     }
 
-    /// <summary>Ponto colado à orla de outra região (a menos de EdgeSnap de uma das arestas dela).</summary>
-    private static bool Hugs(Vector2 p, Vector2[][] rings)
+    /// <summary>Ponto colado à orla de outra região (a menos de snap de uma das arestas dela).</summary>
+    private static bool Hugs(Vector2 p, Vector2[][] rings, float snap = EdgeSnap)
     {
-        float limit = EdgeSnap * EdgeSnap;
+        float limit = snap * snap;
         foreach (var ring in rings)
             for (int i = 0; i < ring.Length; i++)
                 if (DistSq(p, ring[i], ring[(i + 1) % ring.Length]) < limit) return true;
@@ -343,6 +356,101 @@ public partial class RegionRenderer : Node2D
         Points = pts, Width = FrontierWidth, DefaultColor = FrontierColor,
         JointMode = Line2D.LineJointMode.Round, BeginCapMode = Line2D.LineCapMode.Round, EndCapMode = Line2D.LineCapMode.Round,
     };
+
+    /// <summary>Azul de rio: mais escuro e mais fechado do que o mar, para se distinguir da água grande e
+    /// não se confundir com a linha branca da fronteira que lhe passa por cima.</summary>
+    private static readonly Color RiverColor = new(0.24f, 0.46f, 0.74f, 0.9f);
+    private const float RiverWidth = 3.4f;
+
+    private static Line2D River(Vector2[] pts) => new()
+    {
+        Points = pts, Width = RiverWidth, DefaultColor = RiverColor,
+        JointMode = Line2D.LineJointMode.Round, BeginCapMode = Line2D.LineCapMode.Round, EndCapMode = Line2D.LineCapMode.Round,
+    };
+
+    /// <summary>Desenha a água do mundo: o traço comum de duas regiões que ambas têm rio (Rivers.Between),
+    /// cosido em tiras seguidas como as fronteiras — uma Line2D por tira e não uma por aresta.
+    ///
+    /// Cada margem só se desenha de um lado (a da região de id menor), senão a mesma água ia a dobrar e
+    /// pagava-se dois nós por cada rio. A região de rio que não tem vizinha de rio nenhuma desenha-se pela
+    /// orla de terra toda, que é o que o Rivers.Banks manda — a água está ali algures.
+    ///
+    /// Corre uma vez, na construção do mapa: o rio não muda de dono.</summary>
+    private void PaintRivers(World w)
+    {
+        var wet = new HashSet<int>();
+        foreach (int id in _rings.Keys)
+        {
+            if (!w.Regions.TryGetValue(id, out var r) || !r.River) continue;
+            // as margens que me tocam a mim desenhar: as de rio só quando eu sou a de id menor
+            foreach (int n in Rivers.Banks(w, r))
+            {
+                if (Rivers.Between(w, id, n) && id > n) continue;
+                // o traço comum com aquela vizinha; se a simplificação dos polígonos não deixou aresta
+                // comum nenhuma, procura-se outra vez com o encaixe largo — um rio que não se desenha é
+                // pior do que um rio desenhado a dois metros do sítio.
+                var arcs = BorderWith(id, n);
+                if (arcs.Count == 0) arcs = BankArcs(id, n, RiverSnap);
+                if (arcs.Count == 0) continue;
+                foreach (var a in arcs) { _riverRoot.AddChild(River(a)); _riverStrips++; }
+                wet.Add(id); wet.Add(n);
+            }
+        }
+        _riverBanks = wet.Count(id => w.Regions.TryGetValue(id, out var r) && r.River);
+    }
+
+    /// <summary>Encaixe largo para a água: a mesma conta do BorderWith, mas a aceitar arestas que passem
+    /// mais ao lado da vizinha. A orla de duas regiões vem simplificada uma a uma e nem sempre coincide à
+    /// unidade; para a fronteira política vale mais não inventar linha nenhuma, mas para o rio vale mais o
+    /// traço aproximado do que o mapa ficar a dever a água.</summary>
+    private const float RiverSnap = 18f;
+
+    private List<Vector2[]> BankArcs(int regionId, int neighbourId, float snap)
+    {
+        var arcs = new List<Vector2[]>();
+        if (!_rings.TryGetValue(regionId, out var rings) || !_rings.TryGetValue(neighbourId, out var nr)) return arcs;
+        var foe = nr.ToArray();
+        var box = Box(nr).Grow(snap);
+        foreach (var ring in rings)
+        {
+            int n = ring.Length;
+            var bank = new bool[n];
+            int marked = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var a = ring[i]; var b = ring[(i + 1) % n];
+                if (box.HasPoint(a) && box.HasPoint(b) && Hugs(a, foe, snap) && Hugs(b, foe, snap)) { bank[i] = true; marked++; }
+            }
+            if (marked == 0) continue;
+            if (marked == n) { arcs.Add(ring.Append(ring[0]).ToArray()); continue; }
+            for (int i = 0; i < n; i++)
+            {
+                if (!bank[i] || bank[(i - 1 + n) % n]) continue;
+                var pts = new List<Vector2> { ring[i] };
+                for (int j = i; j < i + n && bank[j % n]; j++) pts.Add(ring[(j + 1) % n]);
+                arcs.Add(pts.ToArray());
+            }
+        }
+        return arcs;
+    }
+
+    /// <summary>A água desenhada, para a prova headless: quantas regiões de rio ficaram com margem à vista,
+    /// em quantos traços, e se o zoom de hoje as mostra. Sem isto, o mapa podia perder os rios todos sem
+    /// nada dar erro — que foi exactamente o que esteve a acontecer enquanto o rio só existia na conta do
+    /// combate.</summary>
+    public string RiverReport()
+    {
+        int rivers = _game.World.Regions.Values.Count(r => r.River);
+        return $"{_riverBanks} de {rivers} regiões de rio com margem desenhada ({_riverStrips} traços de água,"
+             + $" {RiverWidth:0.0} de largura)";
+    }
+
+    /// <summary>A água está a ser mostrada no zoom de agora? Abaixo de RiverZoom o mapa é político e a água
+    /// apaga-se.</summary>
+    public bool RiversVisible => _riverRoot.Visible;
+
+    /// <summary>O degrau de zoom em que a água acende, para quem prova o mapa saber onde procurar.</summary>
+    public static float RiverZoomLimit => RiverZoom;
 
     /// <summary>Área do anel (fórmula do sapateiro), para o nome do país cair no meio do território que conta.</summary>
     private static float Area(Vector2[] v)
@@ -608,6 +716,7 @@ public partial class RegionRenderer : Node2D
         // cruzar o limiar troca a leitura do mapa: os contadores acendem e a pastilha larga o número
         bool on = zoom >= CounterZoom;
         _counterRoot.Visible = on;
+        _riverRoot.Visible = zoom >= RiverZoom;   // a água acende antes dos contadores: é chão, não tropa
         if (on != _countersOn) { _countersOn = on; Refresh(); }
         foreach (var n in _countryNames.Values)
         {
