@@ -17,7 +17,6 @@ namespace WarGame.Presentation;
 public partial class BattlePanel : PanelContainer
 {
     private Game _game = null!;
-    private readonly Dictionary<string, string> _terrainNames = new();
     private Label _title = null!, _sub = null!;
     private HBoxContainer _scale = null!;
     private ColorRect _scaleA = null!, _scaleD = null!;
@@ -29,8 +28,6 @@ public partial class BattlePanel : PanelContainer
     public void Setup(Game game)
     {
         _game = game;
-        try { foreach (var r in game.StaticDb.Query("SELECT id,name FROM terrain")) _terrainNames[(string)r["id"]!] = (string)r["name"]!; }
-        catch (Exception ex) { GD.PushError("BattlePanel terrain: " + ex.Message); }
 
         Visible = false;
         AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 1;
@@ -117,7 +114,7 @@ public partial class BattlePanel : PanelContainer
         if (key == _lastKey) return;
         _lastKey = key;
 
-        string terrain = _terrainNames.GetValueOrDefault(r.Terrain, r.Terrain);
+        string terrain = GroundView.Name(w, r.Terrain);
         _title.Text = b is null ? $"⚔ {r.Name}: sem batalha" : $"⚔ Batalha em {r.Name}";
         float orgA = att.Sum(d => d.Org), orgD = def.Sum(d => d.Org);
         _sub.Text = b is null

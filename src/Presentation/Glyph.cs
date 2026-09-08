@@ -40,6 +40,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
         // a barra de cima: as duas que não vêm de tabela nenhuma — o cofre e o barril
         "cofre", "barril",
+        // o chão: um por terreno, para a região se ver antes de se ler
+        "campo", "arvore", "cidade", "montanha", "duna", "gelo",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -536,6 +538,68 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 break;
             }
 
+            // A leva do chão: seis terrenos, para a região se ver antes de se ler. A convenção é a dos mapas
+            // militares — silhueta de perfil, sem cor nenhuma, que a cor já é a da região no mapa.
+
+            // Planície: a linha do horizonte, dois regos e o restolho. O chão que não custa nada.
+            case "campo":
+                Line(0.10f, 0.62f, 0.90f, 0.62f, 1.15f);
+                Line(0.14f, 0.74f, 0.86f, 0.74f, 0.8f);
+                Line(0.20f, 0.84f, 0.80f, 0.84f, 0.8f);
+                Line(0.30f, 0.62f, 0.30f, 0.50f, 0.8f);
+                Line(0.50f, 0.62f, 0.50f, 0.44f, 0.8f);
+                Line(0.70f, 0.62f, 0.70f, 0.52f, 0.8f);
+                break;
+
+            // Floresta: duas coníferas de perfil, a da frente maior — é a silhueta que lê como mata.
+            case "arvore":
+                Poly(0.34f, 0.86f, 0.34f, 0.74f);
+                Poly(0.16f, 0.74f, 0.34f, 0.44f, 0.52f, 0.74f, 0.16f, 0.74f);
+                Poly(0.20f, 0.58f, 0.34f, 0.34f, 0.48f, 0.58f);
+                Poly(0.70f, 0.86f, 0.70f, 0.78f);
+                Poly(0.56f, 0.78f, 0.70f, 0.54f, 0.84f, 0.78f, 0.56f, 0.78f);
+                Poly(0.60f, 0.64f, 0.70f, 0.46f, 0.80f, 0.64f);
+                break;
+
+            // Urbano: três prédios encostados, o do meio mais alto, com as janelas a marcar a escala.
+            case "cidade":
+                Poly(0.10f, 0.86f, 0.10f, 0.54f, 0.34f, 0.54f, 0.34f, 0.86f);
+                Poly(0.38f, 0.86f, 0.38f, 0.26f, 0.62f, 0.26f, 0.62f, 0.86f);
+                Poly(0.66f, 0.86f, 0.66f, 0.46f, 0.90f, 0.46f, 0.90f, 0.86f);
+                Line(0.08f, 0.86f, 0.92f, 0.86f, 1.1f);
+                Line(0.44f, 0.38f, 0.56f, 0.38f, 0.75f);
+                Line(0.44f, 0.52f, 0.56f, 0.52f, 0.75f);
+                Line(0.44f, 0.66f, 0.56f, 0.66f, 0.75f);
+                Line(0.16f, 0.66f, 0.28f, 0.66f, 0.75f);
+                Line(0.72f, 0.60f, 0.84f, 0.60f, 0.75f);
+                break;
+
+            // Montanha: dois picos, o maior com a neve marcada por dentro — o chão que custa o dobro.
+            case "montanha":
+                Poly(0.06f, 0.80f, 0.38f, 0.24f, 0.70f, 0.80f);
+                Poly(0.28f, 0.42f, 0.38f, 0.24f, 0.48f, 0.42f);
+                Poly(0.44f, 0.80f, 0.68f, 0.44f, 0.92f, 0.80f);
+                Line(0.04f, 0.80f, 0.94f, 0.80f, 1.1f);
+                break;
+
+            // Deserto: duas dunas e o sol baixo. Sem palmeira — a palmeira é postal, a duna é terreno.
+            case "duna":
+                Arc(0.34f, 0.92f, 0.26f, Mathf.Pi, Mathf.Tau, 1.1f);
+                Arc(0.70f, 0.96f, 0.22f, Mathf.Pi, Mathf.Tau, 1.1f);
+                Ring(0.72f, 0.36f, 0.13f);
+                Line(0.10f, 0.86f, 0.90f, 0.86f, 0.8f);
+                break;
+
+            // Tundra: a placa de gelo partida — a linha da água, a fenda e o bloco levantado.
+            case "gelo":
+                Line(0.08f, 0.70f, 0.92f, 0.70f, 1.15f);
+                Poly(0.14f, 0.70f, 0.30f, 0.46f, 0.46f, 0.70f);
+                Poly(0.52f, 0.70f, 0.64f, 0.56f, 0.76f, 0.70f);
+                Line(0.12f, 0.82f, 0.44f, 0.82f, 0.8f);
+                Line(0.54f, 0.82f, 0.88f, 0.82f, 0.8f);
+                Line(0.20f, 0.92f, 0.80f, 0.92f, 0.8f);
+                break;
+
             // Roda dentada: a peça neutra de quem não tem chapa própria.
             default:
                 Ring(0.50f, 0.50f, 0.28f, 1.1f);
@@ -567,6 +631,7 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
             .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
             .Concat(w.WoundKinds.Values.Select(k => k.Glyph))
             .Concat(w.UnitStatDefs.Values.Select(s => s.Glyph))
+            .Concat(w.TerrainDefs.Values.Select(t => t.Glyph))
             .Concat(extra)
             .Distinct().ToList();
 

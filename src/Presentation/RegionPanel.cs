@@ -31,16 +31,12 @@ public partial class RegionPanel : PanelContainer
     private Button _nuke = null!;
     private ConfirmationDialog _nukeDialog = null!;
     private int _nukeTarget;
-    private readonly Dictionary<string, string> _terrainNames = new();
     private int _regionId, _warTarget;
     private string _lastKey = "";
 
     public void Setup(Game game, MapView map, ProductionPanel production, CountryPanel countryPanel)
     {
         _game = game; _map = map; _production = production; _countryPanel = countryPanel;
-        try { foreach (var r in game.StaticDb.Query("SELECT id,name FROM terrain")) _terrainNames[(string)r["id"]!] = (string)r["name"]!; }
-        catch (Exception ex) { GD.PushError("terrain: " + ex.Message); }
-
         Visible = false;
         AnchorLeft = 0; AnchorRight = 1; AnchorTop = 0; AnchorBottom = 1;
         OffsetLeft = OffsetRight = OffsetTop = OffsetBottom = 0;
@@ -146,7 +142,7 @@ public partial class RegionPanel : PanelContainer
             var ctrl = w.Countries.GetValueOrDefault(r.ControllerId);
 
             _flag.Texture = ctrl is not null ? Flags.Of(ctrl.Tag) : null;
-            _title.Text = $"{r.Name}  ·  {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
+            _title.Text = $"{r.Name}  ·  {GroundView.Name(w, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
             var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}  ·  💰 {EconomySystem.RegionIncome(w, r):0.00}/dia";
             if (r.Infrastructure < r.BaseInfrastructure - 1e-4f) info += $"  ·  🔧 danificada (repõe até ×{r.BaseInfrastructure:0.00})";
             if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
@@ -199,7 +195,7 @@ public partial class RegionPanel : PanelContainer
             {
                 _lastKey = key;
                 Ui.Clear(_rows);
-                _rows.AddChild(GroundView.Card(w, r, _terrainNames.GetValueOrDefault(r.Terrain, r.Terrain), ground));
+                _rows.AddChild(GroundView.Card(w, r, ground));
                 foreach (var (_, text, hp, org) in lines) _rows.AddChild(Row(text, hp, org));
                 if (fogged)
                 {

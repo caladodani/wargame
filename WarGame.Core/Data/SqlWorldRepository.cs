@@ -13,8 +13,12 @@ public sealed class SqlWorldRepository : IWorldRepository
     {
         foreach (var r in _static.Query("SELECT key,value FROM rule"))
             w.Rules[(string)r["key"]!] = Convert.ToSingle(r["value"]);
-        foreach (var r in _static.Query("SELECT id,move_cost FROM terrain"))
-            w.Rules["move_cost:" + (string)r["id"]!] = Convert.ToSingle(r["move_cost"]);
+        foreach (var r in _static.Query("SELECT id,name,move_cost,glyph FROM terrain"))
+        {
+            string id = (string)r["id"]!;
+            w.Rules["move_cost:" + id] = Convert.ToSingle(r["move_cost"]);
+            w.TerrainDefs[id] = new TerrainDef(id, (string)r["name"]!, Convert.ToSingle(r["move_cost"]), (string)r["glyph"]!);
+        }
 
         var byTag = new Dictionary<string, Country>();
         foreach (var r in _static.Query("SELECT id,tag,name,capital_region_id FROM country"))

@@ -9,19 +9,32 @@ namespace WarGame.Presentation;
 /// raiz — são os do combate e os do movimento. Aqui só se desenham.</summary>
 public static class GroundView
 {
+    /// <summary>O nome do chão como se lê, da tabela terrain (o id em inglês é o que fica se a linha
+    /// faltar — e ver "mountain" em vez de "Montanha" é o sinal de que faltou).</summary>
+    public static string Name(World w, string terrain)
+        => w.TerrainDefs.TryGetValue(terrain, out var t) ? t.Name : terrain;
+
+    /// <summary>A chapa do chão, do tamanho pedido. Sem linha na tabela sai a roda dentada, como sempre.</summary>
+    public static Glyph.Plate Plate(World w, string terrain, float size, Color? ink = null)
+        => Glyph.Make(w.TerrainDefs.TryGetValue(terrain, out var t) ? t.Glyph : "roda", size, ink);
+
     /// <summary>Cartão com o cabeçalho do terreno e uma linha por tropa a quem o chão faz outra coisa.
-    /// `pid` é quem olha: sem jogador escolhido, mostra-se o chão para o dono da região.</summary>
-    public static PanelContainer Card(World w, Region r, string terrainName, int countryId)
+    /// `countryId` é quem olha: sem jogador escolhido, mostra-se o chão para o dono da região.</summary>
+    public static PanelContainer Card(World w, Region r, int countryId)
     {
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.85f }, 6));
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 2); card.AddChild(box);
 
-        var head = Ui.Lbl($"o que este chão dá e tira  ·  {terrainName}" + (r.River ? "  ·  rio" : ""), 14);
+        var headRow = new HBoxContainer(); headRow.AddThemeConstantOverride("separation", 5);
+        headRow.AddChild(Plate(w, r.Terrain, 18, Ui.TextDim));
+        var head = Ui.Lbl($"o que este chão dá e tira  ·  {Name(w, r.Terrain)}" + (r.River ? "  ·  rio" : ""), 14);
         head.AddThemeColorOverride("font_color", Ui.TextDim);
-        head.TooltipText = "a primeira linha é só o terreno, igual para toda a gente; as outras já levam os"
-                         + " espíritos e a tecnologia de quem cá combate — e são essas que o combate usa";
-        box.AddChild(head);
+        head.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        headRow.AddChild(head);
+        headRow.TooltipText = "a primeira linha é só o terreno, igual para toda a gente; as outras já levam os"
+                            + " espíritos e a tecnologia de quem cá combate — e são essas que o combate usa";
+        box.AddChild(headRow);
 
         var lines = GroundSystem.Explain(w, r, countryId);
         if (lines.Count == 0) { box.AddChild(Ui.Lbl("sem país para medir este chão", 13)); return card; }
@@ -95,6 +108,7 @@ public static class GroundView
         string extra = lines.Count > 1
             ? $", mais {lines.Count - 1} linha{(lines.Count == 2 ? "" : "s")} de quem cá combate ({lines[1].Who} ×{lines[1].Attack:0.00}/×{lines[1].Defend:0.00})"
             : ", sem ninguém a sentir o chão de outra maneira";
-        return $"ficha do chão de {r.Name} ({r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}";
+        string chapa = w.TerrainDefs.TryGetValue(r.Terrain, out var td) ? td.Glyph : "sem chapa";
+        return $"ficha do chão de {r.Name} (chapa {chapa}, {r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}";
     }
 }

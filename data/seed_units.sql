@@ -1,7 +1,7 @@
 -- Números calibrados em combat_sim.py
-INSERT INTO terrain (id,name,color,move_cost) VALUES
- ('plain','Planície','#c8d8a0',1.0),('forest','Floresta','#4f7942',1.5),('urban','Urbano','#888888',1.2),
- ('mountain','Montanha','#a08060',2.0),('desert','Deserto','#e0c080',1.3),('tundra','Tundra','#dfe8ee',1.8);
+INSERT INTO terrain (id,name,color,move_cost,glyph) VALUES
+ ('plain','Planície','#c8d8a0',1.0,'campo'),('forest','Floresta','#4f7942',1.5,'arvore'),('urban','Urbano','#888888',1.2,'cidade'),
+ ('mountain','Montanha','#a08060',2.0,'montanha'),('desert','Deserto','#e0c080',1.3,'duna'),('tundra','Tundra','#dfe8ee',1.8,'gelo');
 
 -- Constantes de jogo. Referência HoI4: divisões cruzam uma província em dias, não horas; produção lenta.
 INSERT INTO rule (key,value,note) VALUES

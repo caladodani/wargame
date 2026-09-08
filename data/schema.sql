@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS modifier (
 );
 CREATE TABLE IF NOT EXISTS terrain (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT,
-  move_cost REAL NOT NULL DEFAULT 1          -- multiplicador de dias para entrar na região
+  move_cost REAL NOT NULL DEFAULT 1,         -- multiplicador de dias para entrar na região
+  glyph TEXT NOT NULL DEFAULT ''             -- nome de um desenho do Glyph.cs: o chão vê-se, não se lê
 );
 -- Constantes de jogo (economia, movimento, IA…). Nenhuma em código: World.Rules lê daqui.
 CREATE TABLE IF NOT EXISTS rule (key TEXT PRIMARY KEY, value REAL NOT NULL, note TEXT);

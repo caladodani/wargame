@@ -14,15 +14,13 @@ public partial class RegionFooter : PanelContainer
 {
     private Game _game = null!;
     private Label _label = null!;
-    private readonly Dictionary<string, string> _terrainNames = new();
+    private Glyph.Plate _terrain = null!;      // a chapa do chão: vê-se antes de se ler o nome
     private int? _regionId;
     private string _painted = "";
 
     public void Setup(Game game)
     {
         _game = game;
-        try { foreach (var r in game.StaticDb.Query("SELECT id,name FROM terrain")) _terrainNames[(string)r["id"]!] = (string)r["name"]!; }
-        catch (Exception ex) { GD.PushError("terrain: " + ex.Message); }
 
         Visible = false;
         MouseFilter = MouseFilterEnum.Ignore;
@@ -30,11 +28,18 @@ public partial class RegionFooter : PanelContainer
         GrowHorizontal = GrowDirection.End; GrowVertical = GrowDirection.Begin;
         OffsetLeft = 12; OffsetBottom = -12;
         AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.05f, 0.06f, 0.08f, 0.78f), 8));
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+        row.MouseFilter = MouseFilterEnum.Ignore;
+        AddChild(row);
+        _terrain = Glyph.Make("roda", 22, Ui.TextDim);
+        _terrain.MouseFilter = MouseFilterEnum.Ignore;
+        _terrain.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+        row.AddChild(_terrain);
         _label = Ui.Lbl("", 15);
         _label.MouseFilter = MouseFilterEnum.Ignore;
         _label.CustomMinimumSize = new Vector2(360, 0);
         _label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        AddChild(_label);
+        row.AddChild(_label);
     }
 
     /// <summary>Toque (simples ou duplo) numa região: passa a ser essa a mostrada no rodapé.</summary>
@@ -52,7 +57,9 @@ public partial class RegionFooter : PanelContainer
         if (!w.Regions.TryGetValue(rid, out var r)) { Visible = false; return; }
         var ctrl = w.Countries.GetValueOrDefault(r.ControllerId);
 
-        var line1 = $"{r.Name} · {_terrainNames.GetValueOrDefault(r.Terrain, r.Terrain)}{(r.Coastal ? " ⚓" : "")}"
+        string chapa = w.TerrainDefs.TryGetValue(r.Terrain, out var td) ? td.Glyph : "roda";
+        if (_terrain.GlyphName != chapa) { _terrain.GlyphName = chapa; _terrain.QueueRedraw(); }
+        var line1 = $"{r.Name} · {GroundView.Name(w, r.Terrain)}{(r.Coastal ? " ⚓" : "")}"
                   + $" — {ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}"
                   + $" · {r.Population / 1e6f:0.0} M hab. · Infra ×{r.Infrastructure:0.00}";
 

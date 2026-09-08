@@ -24,6 +24,8 @@ public class GlyphDataTests
         "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
         // a barra de cima: o cofre e o barril não vêm de tabela nenhuma, mas são desenhos como os outros
         "cofre", "barril",
+        // o chão: um desenho por terreno
+        "campo", "arvore", "cidade", "montanha", "duna", "gelo",
     };
 
     [Fact]
@@ -81,6 +83,30 @@ public class GlyphDataTests
                            .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
                            .Concat(w.WoundKinds.Values.Select(k => k.Glyph)))
             Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>O chão: cada terreno tem nome que se lê e chapa que existe. Um terreno sem chapa dava uma
+    /// roda dentada calada no rodapé do mapa, que é o sítio onde o jogador olha mais vezes por dia.</summary>
+    [Fact]
+    public void Cada_terreno_tem_nome_e_uma_chapa_que_existe()
+    {
+        var w = FactionTests.BuildReal();
+        Assert.NotEmpty(w.TerrainDefs);
+        foreach (var t in w.TerrainDefs.Values)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(t.Name), $"terreno sem nome: {t.Id}");
+            Assert.Contains(t.Glyph, Desenhados);
+        }
+    }
+
+    /// <summary>Nenhum terreno de região sem linha na tabela: uma região com um terreno que a tabela não
+    /// conhece anda pelo mapa com o preço de marcha por omissão e sem nome que se leia.</summary>
+    [Fact]
+    public void Nenhuma_regiao_com_terreno_fora_da_tabela()
+    {
+        var w = FactionTests.BuildReal();
+        foreach (var terreno in w.Regions.Values.Select(r => r.Terrain).Distinct())
+            Assert.True(w.TerrainDefs.ContainsKey(terreno), $"região com terreno sem linha: {terreno}");
     }
 
     /// <summary>Nenhum nome de chapa repetido na lista dos desenhados: um nome a dobrar é um `case` que
