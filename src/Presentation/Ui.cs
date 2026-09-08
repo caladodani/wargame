@@ -278,21 +278,50 @@ internal static class Ui
         t.SetColor("font_pressed_color", "Button", Colors.White);
         t.SetColor("font_disabled_color", "Button", TextDim.Darkened(0.3f));
 
+        t.SetColor("font_focus_color", "Button", Text);
+        t.SetColor("font_hover_pressed_color", "Button", Colors.White);
+
         t.SetColor("font_color", "Label", Text);
         t.SetStylebox("panel", "PanelContainer", Box(Surface.Darkened(0.25f) with { A = 0.96f }, 10));
         t.SetStylebox("panel", "AcceptDialog", Box(Ink with { A = 0.99f }, 14));
+        // O fundo de um diálogo não é o AcceptDialog: é um `Panel` que ele cria por dentro, e esse
+        // procurava-se a si próprio pelo nome "Panel". Quatro dos cinco diálogos do jogo abriam com o
+        // cinzento 0.25 de fábrica por trás do texto — claro, liso e do outro jogo.
+        t.SetStylebox("panel", "Panel", Box(Ink with { A = 0.99f }, 14));
+        // O ScrollContainer não pinta nada de propósito: quem pinta é a chapa do painel por baixo dele.
+        t.SetStylebox("panel", "ScrollContainer", new StyleBoxEmpty());
+        // Caixa de escrita. Só a moldura é que estava vestida: o cursor, o realce da selecção e o texto de
+        // sugestão vinham de fábrica, e o realce de fábrica é azul — a única coisa azul que ficava num jogo
+        // todo em aço e latão, e logo no sítio onde o jogador escreve.
         t.SetColor("font_color", "LineEdit", Text);
+        t.SetColor("font_placeholder_color", "LineEdit", TextDim.Darkened(0.2f));
+        t.SetColor("font_selected_color", "LineEdit", Ink);
+        t.SetColor("font_uneditable_color", "LineEdit", TextDim);
+        t.SetColor("caret_color", "LineEdit", Accent);
+        t.SetColor("selection_color", "LineEdit", Accent with { A = 0.45f });
         t.SetStylebox("normal", "LineEdit", Fill(Ink, 6));
-        t.SetStylebox("focus", "LineEdit", Fill(Ink.Lightened(0.08f), 6));
+        t.SetStylebox("focus", "LineEdit", Fill(Ink.Lightened(0.08f), 6, border: Accent));
+        t.SetStylebox("read_only", "LineEdit", Fill(Ink.Darkened(0.35f), 6, border: Frame.Darkened(0.4f)));
 
-        // Barras de scroll finas e discretas — o dedo arrasta, a barra só mostra onde estamos.
-        t.SetStylebox("scroll", "VScrollBar", Fill(Ink with { A = 0.5f }, 4, 0, 0));
-        t.SetStylebox("grabber", "VScrollBar", Fill(SurfaceHi, 4, 0, 0));
-        t.SetStylebox("grabber_highlight", "VScrollBar", Fill(Accent, 4, 0, 0));
-        t.SetStylebox("grabber_pressed", "VScrollBar", Fill(Accent, 4, 0, 0));
+        // Barras de scroll finas e discretas — o dedo arrasta, a barra só mostra onde estamos. A deitada
+        // faltava: quem tem uma tabela mais larga do que o ecrã via a barra de fábrica por baixo dela.
+        foreach (string bar in new[] { "VScrollBar", "HScrollBar" })
+        {
+            t.SetStylebox("scroll", bar, Fill(Ink with { A = 0.5f }, 4, 0, 0));
+            t.SetStylebox("grabber", bar, Fill(SurfaceHi, 4, 0, 0));
+            t.SetStylebox("grabber_highlight", bar, Fill(Accent, 4, 0, 0));
+            t.SetStylebox("grabber_pressed", bar, Fill(Accent, 4, 0, 0));
+        }
 
         t.SetStylebox("panel", "ProgressBar", Fill(Ink, 4, 0, 0));
         t.SetStylebox("fill", "ProgressBar", Fill(Accent, 4, 0, 0));
+        t.SetColor("font_color", "ProgressBar", Text);
+
+        // A dica que aparece ao lado do dedo (ou do rato). Vinha de fábrica: chapa clara e letra escura,
+        // o contrário de tudo o resto. É por aqui que a folha de diplomacia diz porque é que um botão está
+        // barrado, por isso não é enfeite.
+        t.SetStylebox("panel", "TooltipPanel", Box(Ink with { A = 0.97f }, 8));
+        t.SetColor("font_color", "TooltipLabel", Text);
         return _theme = t;
     }
 
