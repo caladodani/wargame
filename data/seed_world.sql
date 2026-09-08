@@ -335,10 +335,24 @@ INSERT INTO rule (key,value,note) VALUES
  ('nap_cost',20,'pontos de produção para propor o pacto');
 
 -- Recursos estratégicos (ResourceSystem): controlar depósitos multiplica stats do país.
-INSERT INTO resource (id,name,stat_key,per_unit,cap) VALUES
- ('aco','Aço','production_speed',0.02,10),
- ('petroleo','Petróleo','industry',0.015,10),
- ('raros','Metais raros','research_speed',0.02,5);
+INSERT INTO resource (id,name,stat_key,per_unit,cap,fuel_per_unit) VALUES
+ ('aco','Aço','production_speed',0.02,10,0),
+ ('petroleo','Petróleo','industry',0.015,10,4),
+ ('raros','Metais raros','research_speed',0.02,5,0);
+
+-- Combustível (FuelSystem): o petróleo controlado refina-se em combustível todos os dias, o depósito
+-- guarda fuel_cap_days de produção, e quem bebe são as divisões com fuel_use (unit_stat), a aviação e a
+-- armada. Sem combustível os blindados ficam a metade — a linha modifier abaixo é que o cobra.
+INSERT INTO rule (key,value,note) VALUES
+ ('fuel_cap_base',60,'depósito mínimo de combustível, mesmo sem um poço de petróleo'),
+ ('fuel_cap_days',30,'dias de produção que o depósito guarda além do mínimo'),
+ ('fuel_war_mult',1.6,'em guerra as máquinas andam: consumo das divisões multiplicado por isto'),
+ ('fuel_per_air',0.02,'combustível por dia por ponto de potência aérea'),
+ ('fuel_per_ship',0.05,'combustível por dia por navio de guerra'),
+ ('alert_fuel_days',10,'a faixa avisa quando o depósito dá menos dias do que isto');
+
+INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
+ ('fuel','fuel_out','true','str','armored','mul',0.5);
 
 -- Retirada manual de batalha (RetreatFromBattleCommand): sai do combate com penalização de organização.
 INSERT INTO rule (key,value,note) VALUES

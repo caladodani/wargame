@@ -73,6 +73,9 @@ public sealed class CombatSystem : ISystem
         if (r.River) ctx["river"] = "true";
         // Outros sistemas (Air, Cyber, Research) escrevem aqui via flags na região/país — ver AirSystem.
         foreach (var tech in w.Countries[countryId].Techs) ctx[$"tech:{tech}"] = "true";
+        // A seca de combustível entra aqui e mais nada: o que ela custa está na tabela modifier, e hoje
+        // custa metade da força aos blindados. Um exército a pé não dá por nada — e é esse o ponto.
+        if (w.Countries[countryId].FuelOut) ctx["fuel_out"] = "true";
         return ctx;
     }
 

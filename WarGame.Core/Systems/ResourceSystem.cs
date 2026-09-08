@@ -37,6 +37,21 @@ public sealed class ResourceSystem : ISystem
         }
     }
 
+    /// <summary>Unidades de um recurso mesmo à mão: as dos depósitos que se controla, mais as compradas,
+    /// menos as vendidas — e um acordo sem comboio que o carregue não conta para nenhum dos lados. É esta a
+    /// conta que o FuelSystem refina, e não a dos depósitos: quem compra petróleo compra combustível.</summary>
+    public static float Available(World w, int countryId, string resourceId)
+    {
+        float sum = Controlled(w, countryId, resourceId);
+        foreach (var d in w.TradeDeals)
+        {
+            if (d.ResourceId != resourceId || ConvoySystem.Grounded(w, d)) continue;
+            if (d.BuyerId == countryId) sum += d.Units;
+            else if (d.SellerId == countryId) sum -= d.Units;
+        }
+        return MathF.Max(0f, sum);
+    }
+
     /// <summary>Unidades controladas de um recurso (UI).</summary>
     public static float Controlled(World w, int countryId, string resourceId)
     {

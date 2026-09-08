@@ -38,6 +38,7 @@ INSERT INTO unit_stat VALUES
  (3,'soft_atk',12),(3,'hard_atk',14),(3,'defense',12),(3,'breakthrough',28),(3,'armor',60),(3,'piercing',55),(3,'hardness',0.9),(3,'hp',20),
  (4,'soft_atk',20),(4,'hard_atk',2),(4,'defense',6),(4,'breakthrough',6),(4,'armor',0),(4,'piercing',8),(4,'hardness',0.2),(4,'hp',6),
  (5,'soft_atk',2),(5,'hard_atk',1),(5,'defense',10),(5,'breakthrough',2),(5,'armor',5),(5,'piercing',10),(5,'hardness',0.3),(5,'hp',8),(5,'air_deny',0.1),
+ (2,'fuel_use',0.6),(3,'fuel_use',1.2),
  (6,'soft_atk',2),(6,'hard_atk',20),(6,'defense',8),(6,'breakthrough',2),(6,'armor',0),(6,'piercing',70),(6,'hardness',0.2),(6,'hp',6);
 
 INSERT INTO unit_tag VALUES

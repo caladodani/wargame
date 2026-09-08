@@ -3,6 +3,7 @@ using Timer = Godot.Timer;
 using WarGame.Core.Commands;
 using WarGame.Core.Events;
 using WarGame.Core.Model;
+using WarGame.Core.Stats;
 using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
@@ -18,8 +19,11 @@ public partial class Hud : CanvasLayer
     private Label _money = null!, _moneyNote = null!, _men = null!, _menNote = null!, _divs = null!, _divsNote = null!;
     // Fábricas civis, militares e estaleiros: a fila de mostradores industriais do HoI4.
     private Label _civ = null!, _civNote = null!, _mil = null!, _milNote = null!, _yard = null!, _yardNote = null!;
+    // Combustível: o depósito, o saldo do dia e a autonomia (FuelSystem).
+    private Label _fuel = null!, _fuelNote = null!;
     private Label _xp = null!, _xpNote = null!, _airXp = null!, _airXpNote = null!, _seaXp = null!, _seaXpNote = null!;
     private Label _pocket = null!, _pocketNote = null!;
+    private PanelContainer _fuelPlate = null!;
     private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!, _pocketPlate = null!;
     private PanelContainer _season = null!;
     private PanelContainer _top = null!;                    // a barra inteira: quem está por baixo mede-se por ela
@@ -265,6 +269,10 @@ public partial class Hud : CanvasLayer
         plates.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
         _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
         plates.AddChild(_yardPlate);
+        // Combustível: o barril fica ao lado das fábricas porque é a mesma pergunta que elas — o que é que
+        // hoje dá para pôr a andar. Some-se em quem não tem máquinas nenhumas a beber.
+        _fuelPlate = Ui.Counter("🛢", out _fuel, out _fuelNote, Ui.Accent);
+        plates.AddChild(_fuelPlate);
         // Experiência: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a mesma pergunta —
         // o que é que hoje já dá para comprar. São três medalhas, uma por arma, como o HoI4 as tem lado a
         // lado na barra de cima: o exército aprende a combater, o ar a voar, o mar a navegar, e cada bolso
@@ -1007,6 +1015,7 @@ public partial class Hud : CanvasLayer
             _yardPlate.Visible = yards.Naval > 0;                 // país sem costa não tem cais nenhum a mostrar
             _yard.Text = $"{yards.NavalBusy}/{yards.Naval}";
             _yardNote.Text = yards.Naval == 1 ? "estaleiro" : "estaleiros";
+            Fuel(w, p);
             Medal(w, p, World.Land, _xpPlate, _xp, _xpNote);
             Medal(w, p, World.Air, _airXpPlate, _airXp, _airXpNote);
             Medal(w, p, World.Sea, _seaXpPlate, _seaXp, _seaXpNote);
@@ -1029,7 +1038,55 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _pocketPlate.Visible = false; _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _fuelPlate.Visible = false; _pocketPlate.Visible = false; _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+    }
+
+    /// <summary>--smoke: o combustível medido onde ele se vê e onde ele dói. O depósito e o saldo do dia
+    /// vêm do FuelSystem; o mostrador é lido da barra tal como está desenhado (some-se quando não há nada a
+    /// beber); e a última conta é a que interessa a sério — pergunta-se à tabela modifier quanto perde uma
+    /// divisão de blindados quando o país fica a seco, porque é essa linha da BD que faz da mecânica uma
+    /// mecânica e não um número na barra.</summary>
+    private string SmokeFuel(int pid)
+    {
+        var w = _game.World; var p = w.Countries[pid];
+        int drinkers = w.Divisions.Values.Count(d => d.CountryId == pid && w.Stats.Get(d.TemplateId)["fuel_use"] > 0f);
+        // O multiplicador da seca sobre uma divisão que beba: a mesma pergunta que o combate faz. Se o
+        // jogador não tiver máquinas nenhumas — ao dia 79 Portugal não tem — mede-se numa do mundo, porque o
+        // que interessa provar é que a linha da BD existe e morde, não de quem é a divisão.
+        string bite = "sem máquinas no mundo para medir";
+        var thirsty = w.Divisions.Values.FirstOrDefault(d => d.CountryId == pid && w.Stats.Get(d.TemplateId)["fuel_use"] > 0f)
+                   ?? w.Divisions.Values.FirstOrDefault(d => w.Stats.Get(d.TemplateId)["fuel_use"] > 0f);
+        if (thirsty is not null)
+        {
+            var st = w.Stats.Get(thirsty.TemplateId);
+            var (wetF, wetM) = w.Modifiers.Evaluate("str", st, new ModContext());
+            var (dryF, dryM) = w.Modifiers.Evaluate("str", st, new ModContext().With("fuel_out", "true"));
+            bite = $"a seco {(thirsty.CountryId == pid ? "os nossos" : "os de " + (w.Countries.TryGetValue(thirsty.CountryId, out var tc) ? tc.Tag : "?"))}"
+                 + $" batem a {(dryM + dryF) / MathF.Max(0.0001f, wetM + wetF):P0} (bebem {w.Stats.Get(thirsty.TemplateId)["fuel_use"]:0.0}/dia)";
+        }
+        string plate = _fuelPlate.Visible ? $"mostrador {_fuel.Text} ({_fuelNote.Text})" : "mostrador escondido";
+        return $"{p.Fuel:0} de {p.FuelCap:0} no depósito, +{p.FuelIn:0.0}/dia refinado e −{p.FuelUse:0.0}/dia bebido"
+             + $" por {drinkers} divis{(drinkers == 1 ? "ão" : "ões")}, {plate}, {bite}";
+    }
+
+    /// <summary>O barril da barra: quanto combustível está no depósito, o saldo do dia e — quando o dia não
+    /// paga o dia — quantos dias faltam até parar. Um país sem uma máquina a beber e sem petróleo nenhum não
+    /// mostra mostrador: é barra ocupada a dizer zero.</summary>
+    private void Fuel(World w, Country p)
+    {
+        _fuelPlate.Visible = p.FuelUse > 0f || p.FuelIn > 0f || p.Fuel > 0f;
+        if (!_fuelPlate.Visible) return;
+        _fuel.Text = $"{p.Fuel:0}/{p.FuelCap:0}";
+        float net = p.FuelIn - p.FuelUse;
+        _fuel.AddThemeColorOverride("font_color", p.FuelOut ? Ui.Danger : net < 0f ? Ui.Accent : Ui.Text);
+        float days = FuelSystem.DaysLeft(p);
+        _fuelNote.Text = p.FuelOut ? "a seco"
+            : days >= 0f ? $"{days:0} dias"
+            : $"{(net < 0 ? "" : "+")}{net:0.0}/dia";
+        _fuelPlate.TooltipText = $"Combustível: {p.Fuel:0.0} de {p.FuelCap:0} no depósito.\n"
+            + $"Refina {p.FuelIn:0.0}/dia do petróleo que controlamos e bebe {p.FuelUse:0.0}/dia"
+            + (p.AtWarWith.Count > 0 ? " (em guerra as máquinas gastam mais)." : ".")
+            + (p.FuelOut ? "\nSem combustível os blindados batem a metade." : "");
     }
 
     /// <summary>Uma das três medalhas da barra: o que esta arma tem no bolso e o que isso já dá para
@@ -1575,7 +1632,8 @@ public partial class Hud : CanvasLayer
         string sheet = foreignId > 0 ? _countryPanel.SmokeDiplomacy(foreignId) : "sem estrangeiro para a folha";
                 string picker = _countrySelect.Smoke();                            // lista de países: filtros e procura
         string build = _buildBar.Smoke();                                 // menu Construir: tipos armados e desarmados
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, cerco: {pocket}, material: {lend}, rodapé: {footer}, construir: {build}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
+        string fuel = SmokeFuel(pid);                                     // combustível: depósito, mostrador e o que a seca custa
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço, medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica, {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}), ecrã de batalha com {fight} linhas, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, cerco: {pocket}, combustível: {fuel}, material: {lend}, rodapé: {footer}, construir: {build}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

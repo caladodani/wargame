@@ -288,7 +288,10 @@ public sealed class LendLease
 
 /// <summary>Tipo de recurso estratégico (tabela resource): cada unidade controlada multiplica
 /// StatKey por (1+PerUnit), até Cap unidades (ResourceSystem).</summary>
-public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap);
+/// <param name="FuelPerUnit">Combustível por dia que cada unidade deste recurso refina (0 = não se refina).
+/// É por aqui que o jogo sabe qual é o petróleo sem ter a palavra "petróleo" escrita em código.</param>
+public sealed record ResourceDef(string Id, string Name, string StatKey, float PerUnit, float Cap,
+                                 float FuelPerUnit = 0f);
 
 /// <summary>Contadores de um dos lados de uma guerra (WarStatsSystem alimenta-os por eventos).</summary>
 public sealed class WarSide
@@ -486,6 +489,17 @@ public sealed class Country
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
     public float Warships { get; set; }            // navios de guerra (BuyWarshipCommand); destacam-se por NavalMissionSystem
     public float Convoys { get; set; }             // saldo de mercantes por cima da marinha de partida (ConvoySystem)
+    /// <summary>Combustível em depósito (FuelSystem). Único número desta família que vai no save: os outros
+    /// refazem-se todos os dias a partir do que o país controla.</summary>
+    public float Fuel { get; set; }
+    /// <summary>Refinado por dia, bebido por dia e o que o depósito aguenta — derivados, para a barra de topo
+    /// e os avisos não terem de refazer a conta.</summary>
+    public float FuelIn { get; set; }
+    public float FuelUse { get; set; }
+    public float FuelCap { get; set; }
+    /// <summary>O depósito não chegou para o dia de hoje. É esta bandeira que põe `fuel_out` no contexto do
+    /// combate, e daí em diante quem cobra é a tabela modifier.</summary>
+    public bool FuelOut { get; set; }
     public int Nukes { get; set; }                 // ogivas prontas (BuildNukeCommand); NuclearStrikeCommand gasta uma
     /// <summary>Lei activa por grupo (grupo → law_id); grupos ausentes usam a lei is_default.</summary>
     public Dictionary<string, string> Laws { get; } = new();

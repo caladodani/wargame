@@ -178,7 +178,8 @@ CREATE TABLE IF NOT EXISTS s_country (
   power_rank_prev INTEGER NOT NULL DEFAULT 0,   -- lugar anterior, para a seta de subida/descida
   defeat_streak INTEGER NOT NULL DEFAULT 0,     -- batalhas perdidas seguidas (DefeatAlarmSystem)
   last_defeat_day INTEGER NOT NULL DEFAULT -1,  -- dia da última derrota (-1 = nunca perdeu)
-  last_defeat_region INTEGER NOT NULL DEFAULT 0 -- e onde foi, para o aviso levar o mapa lá
+  last_defeat_region INTEGER NOT NULL DEFAULT 0, -- e onde foi, para o aviso levar o mapa lá
+  fuel REAL NOT NULL DEFAULT 0                  -- combustível em depósito (FuelSystem)
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));
@@ -317,7 +318,8 @@ CREATE TABLE IF NOT EXISTS s_production_queue (
 CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qty INTEGER NOT NULL, PRIMARY KEY (country_id, unit_type_id));
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
-  stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL);
+  stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL,
+  fuel_per_unit REAL NOT NULL DEFAULT 0);     -- combustível por dia que uma unidade deste recurso refina (FuelSystem)
 CREATE TABLE IF NOT EXISTS s_trade_deal (     -- acordos de comércio de recursos em vigor (save)
   buyer_id INTEGER NOT NULL, seller_id INTEGER NOT NULL, resource TEXT NOT NULL, units REAL NOT NULL,
   price_per_unit REAL NOT NULL DEFAULT 0,     -- preço travado à assinatura (0 = acordo velho, usa a regra)

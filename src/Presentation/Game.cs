@@ -100,6 +100,7 @@ public partial class Game : Node
         World.Register(new SupplySystem());
         World.Register(new TradeSystem());
         World.Register(new ResourceSystem());
+        World.Register(new FuelSystem());         // logo a seguir aos recursos: refina o petróleo do dia e é o combate de hoje que sente a seca
         World.Register(new OccupationSystem());   // antes do rendimento: a política de hoje é que paga o dia de hoje
         World.Register(new EconomySystem());
         World.Register(new LendLeaseSystem());    // logo a seguir ao rendimento: empresta-se o dia que se acabou de ganhar

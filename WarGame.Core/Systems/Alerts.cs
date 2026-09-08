@@ -68,6 +68,16 @@ public static class Alerts
                                AlertLevel.Danger, worstPocket.RegionId));
         }
 
+        // 2c. Combustível: uma frota e uns blindados param na véspera do dia em que o depósito acaba, e o
+        // jogador só dá por isso quando os blindados batem a metade. A conta regressiva é o aviso.
+        if (c.FuelOut)
+            list.Add(new Alert("fuel", "🛢", "sem combustível: os blindados batem a meio gás", AlertLevel.Danger));
+        else if (FuelSystem.DaysLeft(c) is float fd && fd >= 0f && fd <= w.Rule("alert_fuel_days", 10f))
+            list.Add(new Alert("fuel", "🛢",
+                               fd < 1f ? "o combustível acaba hoje"
+                                       : $"o combustível dá para {fd:0} dias ao ritmo de agora",
+                               fd <= w.Rule("alert_fuel_days", 10f) / 3f ? AlertLevel.Danger : AlertLevel.Warn));
+
         // 3. Fronteira aberta: região nossa encostada a terreno de quem está em guerra connosco e sem
         // ninguém lá dentro. É por onde entram.
         Region? gap = null; int gaps = 0;
