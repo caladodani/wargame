@@ -43,10 +43,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,branch,name,cost,requires,description,country_tag FROM tech"))
             w.Techs[(string)r["id"]!] = new Tech((string)r["id"]!, (string)r["branch"]!, (string)r["name"]!, Convert.ToSingle(r["cost"]), r["requires"] as string, r["description"] as string,
                                                  r["country_tag"] as string);
-        foreach (var r in _static.Query("SELECT id,day,country_tag,title,body FROM news_event"))
+        foreach (var r in _static.Query("SELECT id,day,country_tag,title,body,watch,arg,glyph,tone,pause FROM news_event"))
         {
             int? cid = r["country_tag"] is string tag && byTag.TryGetValue(tag, out var nc) ? nc.Id : null;
-            w.NewsEvents[(string)r["id"]!] = new NewsEvent((string)r["id"]!, Convert.ToInt32(r["day"]), cid, (string)r["title"]!, (string)r["body"]!);
+            w.NewsEvents[(string)r["id"]!] = new NewsEvent((string)r["id"]!, Convert.ToInt32(r["day"]), cid,
+                (string)r["title"]!, (string)r["body"]!, (string)r["watch"]!, Convert.ToSingle(r["arg"]),
+                (string)r["glyph"]!, (string)r["tone"]!, Convert.ToInt32(r["pause"]) != 0);
         }
         foreach (var r in _static.Query("SELECT event_id,stat_key,value FROM news_event_effect"))
         {
@@ -502,6 +504,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cd)) cd.Doctrines.Add((string)r["doctrine_id"]!);
         foreach (var r in save.Query("SELECT event_id,option_id FROM s_news_choice"))
             w.NewsChoices[(string)r["event_id"]!] = (string)r["option_id"]!;
+        foreach (var r in save.Query("SELECT event_id,day,country_id FROM s_news_fired"))
+            w.NewsFired[(string)r["event_id"]!] = (Convert.ToInt32(r["day"]), Convert.ToInt32(r["country_id"]));
         foreach (var r in save.Query("SELECT country_id,grp,law_id FROM s_country_law"))
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var cl)) cl.Laws[(string)r["grp"]!] = (string)r["law_id"]!;
         foreach (var r in save.Query("SELECT country_id,general,xp,wound_until,wound_kind FROM s_general"))
@@ -712,13 +716,15 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         if (w.Difficulty is string diff) save.Execute("INSERT INTO save_meta VALUES ('difficulty',?)", diff);
         foreach (var (eventId, optionId) in w.NewsChoices)
             save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+        foreach (var (eventId, hit) in w.NewsFired)
+            save.Execute("INSERT INTO s_news_fired (event_id,day,country_id) VALUES (?,?,?)", eventId, hit.Day, hit.CountryId);
         foreach (var c in w.Countries.Values)
             foreach (var g in c.Generals)
                 save.Execute("INSERT INTO s_general (country_id,general,xp,wound_until,wound_kind) VALUES (?,?,?,?,?)",

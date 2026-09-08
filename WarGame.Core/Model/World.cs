@@ -272,6 +272,20 @@ public sealed class World
 
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
+    /// <summary>Eventos que já caíram e em cima de quem (s_news_fired no save): event_id → (dia, país;
+    /// 0 = o mundo inteiro). Os de data marcada dispensavam isto — via-se pelo calendário — mas os de
+    /// estado não têm dia nenhum e o país em que caem sai do mundo do momento, por isso fica escrito.</summary>
+    public Dictionary<string, (int Day, int CountryId)> NewsFired { get; } = new();
+
+    /// <summary>Este evento já caiu em cima deste país? É o que decide se os efeitos dele contam no
+    /// ApplyTechs. Um evento de estado só conta depois de ter caído; um de data marcada conta pelo
+    /// calendário quando não há registo — é o que deixa os saves antigos continuarem certos.</summary>
+    public bool NewsHit(NewsEvent e, Country c)
+    {
+        if (NewsFired.TryGetValue(e.Id, out var hit)) return hit.CountryId == 0 || hit.CountryId == c.Id;
+        if (e.IsWatch) return false;
+        return e.Day <= Clock.Day && (e.CountryId is null || e.CountryId == c.Id);
+    }
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();
     /// <summary>Alianças defensivas (tabelas faction + faction_member). Ver FactionsOf/SameFaction/Allies.</summary>
     public Dictionary<string, Faction> Factions { get; } = new();
@@ -382,7 +396,7 @@ public sealed class World
                 foreach (var (key, mul) in leffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
         foreach (var e in NewsEvents.Values)   // eventos noticiosos já disparados (NewsSystem)
         {
-            if (e.Day > Clock.Day || (e.CountryId is not null && e.CountryId != c.Id)) continue;
+            if (!NewsHit(e, c)) continue;
             if (NewsEffects.TryGetValue(e.Id, out var neffs))
                 foreach (var (key, mul) in neffs) c.TechMult[key] = c.TechMult.GetValueOrDefault(key, 1f) * mul;
             // Efeitos da opção escolhida (eventos com escolhas); sem escolha ainda → sem efeito.

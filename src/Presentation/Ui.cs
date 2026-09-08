@@ -432,6 +432,11 @@ internal static class Ui
         "export_share" => "exportação",
         "export_price" => "preço de exportação",
         "port_capacity" => "cais",
+        "fuel_gain" => "refinação",
+        "fuel_capacity" => "depósito",
+        "naval_upkeep" => "manutenção naval",
+        "air_upkeep" => "manutenção aérea",
+        "volunteer_cap" => "voluntários",
         "aggression" => "agressividade",
         _ => key,
     };

@@ -26,8 +26,18 @@ public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadO
 /// <summary>Tecnologia (tabela tech). Cost = dias com research_speed 1; Requires = id da anterior no ramo.</summary>
 public sealed record Tech(string Id, string Branch, string Name, float Cost, string? Requires, string? Description,
                           string? CountryTag = null);
-/// <summary>Evento noticioso com data marcada (tabela news_event); CountryId null = global.</summary>
-public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title, string Body);
+/// <summary>Evento noticioso (tabela news_event); CountryId null = global. Há dois feitios: os de data
+/// marcada, que caem no dia (Day), e os de estado, que trazem uma sonda (Watch, do WorldWatch) e ficam à
+/// espera que o mundo faça alguma coisa — a guerra começar, a capital cair, a revolta pegar. Arg é o
+/// número que a sonda compara. Glyph é a estampa do cartão, Tone a cor (bom|mau|neutro) e Pause diz se
+/// isto merece parar o relógio e ocupar o ecrã todo.</summary>
+public sealed record NewsEvent(string Id, int Day, int? CountryId, string Title, string Body,
+                               string Watch = "", float Arg = 0f, string Glyph = "", string Tone = "neutro",
+                               bool Pause = false)
+{
+    /// <summary>Evento de estado: não tem data, espera pelo mundo.</summary>
+    public bool IsWatch => Watch.Length > 0;
+}
 /// <summary>Escolha de um evento noticioso (news_event_option). A IA fica com a primeira (sort).</summary>
 public sealed record NewsOption(string Id, string EventId, string Title, int Sort);
 /// <summary>Lei nacional (tabela law): grupos (conscrição, economia…) com uma lei activa por grupo.

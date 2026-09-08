@@ -119,6 +119,10 @@ public partial class GameMenu : PanelContainer
         _body.AddChild(Ui.Head("Interface"));
         _body.AddChild(Ui.Tabs(Settings.ScaleNames, Settings.ScaleIndex, SetScale));
         _body.AddChild(Ui.Lbl($"Letra, chapas e altura do dedo a ×{Settings.Scale:0.00}.", 14));
+        _body.AddChild(Ui.Tabs(new[] { "Pára nos acontecimentos", "Nunca pára" }, Settings.PauseOnEvent ? 0 : 1, SetPauseOnEvent));
+        _body.AddChild(Ui.Lbl(Settings.PauseOnEvent
+            ? "O cartão de um acontecimento pára o relógio até se decidir."
+            : "O mundo continua a andar por trás do cartão.", 14));
 
         _body.AddChild(Ui.Head("Sessão"));
         var danger = new HBoxContainer(); danger.AddThemeConstantOverride("separation", 6);
@@ -139,6 +143,13 @@ public partial class GameMenu : PanelContainer
         "ai_general_reserve" => $"IA guarda {value:0} antes de contratar",
         _ => $"{key} {value:0.##}",
     };
+
+    private void SetPauseOnEvent(int step)
+    {
+        Settings.SetPauseOnEvent(step == 0);
+        _game.Notify(step == 0 ? "Acontecimentos param o relógio" : "Acontecimentos não param o relógio");
+        Fill();
+    }
 
     /// <summary>Muda o tamanho de tudo e redesenha o menu já no tamanho novo, para se ver a escolha.</summary>
     private void SetScale(int step)

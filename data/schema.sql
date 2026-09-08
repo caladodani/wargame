@@ -144,10 +144,15 @@ CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir:
 CREATE TABLE IF NOT EXISTS country_tech (        -- tecnologias com que o país começa
   country_tag TEXT NOT NULL, tech_id TEXT NOT NULL REFERENCES tech(id), PRIMARY KEY (country_tag, tech_id)
 );
-CREATE TABLE IF NOT EXISTS news_event (          -- eventos noticiosos com data marcada (NewsSystem)
-  id TEXT PRIMARY KEY, day INTEGER NOT NULL,     -- dia do jogo em que dispara (0 = arranque)
+CREATE TABLE IF NOT EXISTS news_event (          -- eventos noticiosos (NewsSystem): por data marcada ou por estado do mundo
+  id TEXT PRIMARY KEY, day INTEGER NOT NULL,     -- dia do jogo em que dispara (0 = arranque); ignorado se watch <> ''
   country_tag TEXT,                              -- NULL = global; sem FK (os seeds correm antes dos países no TestWorld)
-  title TEXT NOT NULL, body TEXT NOT NULL DEFAULT ''
+  title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '',
+  watch TEXT NOT NULL DEFAULT '',                -- sonda do WorldWatch (guerra, capital_perdida, revolta…); vazio = só calendário
+  arg REAL NOT NULL DEFAULT 0,                   -- o número que a sonda compara (limiar, contagem, dias)
+  glyph TEXT NOT NULL DEFAULT '',                -- desenho grande do cartão (Glyph.cs); vazio = sem estampa
+  tone TEXT NOT NULL DEFAULT 'neutro',           -- bom | mau | neutro: manda na cor da moldura e no timbre
+  pause INTEGER NOT NULL DEFAULT 0               -- 1 = abre cartão de ecrã inteiro e pára o relógio; 0 = só aviso
 );
 CREATE TABLE IF NOT EXISTS news_event_effect (   -- efeito opcional: Country.Stat(stat_key) × value (país do evento; global = todos)
   event_id TEXT NOT NULL REFERENCES news_event(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
@@ -165,6 +170,9 @@ CREATE TABLE IF NOT EXISTS s_country_law (       -- lei activa por grupo (save)
   country_id INTEGER, grp TEXT, law_id TEXT, PRIMARY KEY (country_id, grp));
 CREATE TABLE IF NOT EXISTS s_news_choice (       -- escolha feita por evento (save)
   event_id TEXT PRIMARY KEY, option_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS s_news_fired (        -- evento que já caiu, e em cima de quem (save)
+  event_id TEXT PRIMARY KEY, day INTEGER NOT NULL, country_id INTEGER NOT NULL DEFAULT 0   -- 0 = mundo inteiro
 );
 CREATE TABLE IF NOT EXISTS focus (               -- foco nacional (HoI4); árvore por país, requires = foco anterior
   id TEXT PRIMARY KEY, country_tag TEXT NOT NULL REFERENCES country(tag),

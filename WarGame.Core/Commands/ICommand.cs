@@ -261,8 +261,12 @@ public sealed record ChooseNewsOptionCommand(int CountryId, string EventId, stri
     public string? Validate(World w)
     {
         if (!w.NewsEvents.TryGetValue(EventId, out var e)) return "Evento inexistente";
-        if (e.CountryId != CountryId) return "Evento não é teu";
-        if (e.Day > w.Clock.Day) return "Evento ainda não aconteceu";
+        // Quem escolhe é o país em que o evento caiu. Nos de data marcada isso está na tabela; nos de
+        // estado só se sabe no dia (World.NewsFired) — a notícia não tinha dono antes de acontecer.
+        int? landed = w.NewsFired.TryGetValue(EventId, out var hit) ? (hit.CountryId == 0 ? null : hit.CountryId) : e.CountryId;
+        if (landed != CountryId) return "Evento não é teu";
+        if (!w.NewsFired.ContainsKey(EventId) && e.Day > w.Clock.Day) return "Evento ainda não aconteceu";
+        if (e.IsWatch && !w.NewsFired.ContainsKey(EventId)) return "Evento ainda não aconteceu";
         if (w.NewsChoices.ContainsKey(EventId)) return "Já escolhido";
         if (!w.NewsOptions.TryGetValue(EventId, out var opts) || !opts.Any(o => o.Id == OptionId)) return "Opção inexistente";
         return null;

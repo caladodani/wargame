@@ -86,6 +86,34 @@ public static class Settings
         _alertFolded = cfg.GetValue("alerts", "folded", false).AsBool();
     }
 
+    private static bool _pauseRead;
+    private static bool _pauseOnEvent = true;
+
+    /// <summary>Parar o relógio quando um acontecimento abre o cartão. Vem ligado: um cartão que pede uma
+    /// decisão com o mundo a andar por trás é uma decisão tomada à pressa — e num telemóvel, com o dedo
+    /// ainda a arrastar o mapa, é uma decisão tomada por engano. Quem gosta do mundo sempre a andar
+    /// desliga-o aqui e o cartão passa a abrir sem tocar no relógio.</summary>
+    public static bool PauseOnEvent
+    {
+        get
+        {
+            if (!_pauseRead)
+            {
+                _pauseRead = true;
+                var cfg = new ConfigFile();
+                if (cfg.Load(Path) == Error.Ok) _pauseOnEvent = cfg.GetValue("jogo", "pausa_evento", true).AsBool();
+            }
+            return _pauseOnEvent;
+        }
+    }
+
+    public static void SetPauseOnEvent(bool on)
+    {
+        _pauseRead = true;
+        _pauseOnEvent = on;
+        Write("jogo", "pausa_evento", on);
+    }
+
     /// <summary>Grava uma preferência sem deitar fora as outras: o ficheiro é lido antes de se lhe mexer.</summary>
     private static void Write(string section, string key, Variant value)
     {

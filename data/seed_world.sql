@@ -32,12 +32,12 @@ INSERT INTO faction_member (faction_id,country_tag) VALUES
  ('ru_prk','RUS'),('ru_prk','PRK');
 
 -- ===== eventos noticiosos (NewsSystem) =====
-INSERT INTO news_event (id,day,country_tag,title,body) VALUES
- ('cimeira_nato',14,NULL,'Cimeira de emergência da NATO','Os aliados reúnem-se em Bruxelas para rever os planos de defesa colectiva perante a escalada global.'),
- ('crise_energia',40,NULL,'Crise energética mundial','O preço do gás dispara; governos desviam orçamento para as reservas estratégicas.'),
- ('ciberataque',70,NULL,'Vaga de ciberataques','Infraestruturas críticas atacadas em três continentes; a atribuição aponta para actores estatais.'),
- ('prt_expo_defesa',25,'PRT','Feira de defesa em Lisboa','A indústria nacional mostra o Pandur II e sistemas anti-drone; o Governo promete encomendas.'),
- ('bra_carnaval_civico',30,'BRA','Mobilização cívica no Brasil','Campanha nacional de alistamento voluntário excede todas as expectativas.');
+INSERT INTO news_event (id,day,country_tag,title,body,glyph,tone,pause) VALUES
+ ('cimeira_nato',14,NULL,'Cimeira de emergência da NATO','Os aliados reúnem-se em Bruxelas para rever os planos de defesa colectiva perante a escalada global.','aperto','neutro',0),
+ ('crise_energia',40,NULL,'Crise energética mundial','O preço do gás dispara; governos desviam orçamento para as reservas estratégicas.','barril','mau',0),
+ ('ciberataque',70,NULL,'Vaga de ciberataques','Infraestruturas críticas atacadas em três continentes; a atribuição aponta para actores estatais.','raio','mau',0),
+ ('prt_expo_defesa',25,'PRT','Feira de defesa em Lisboa','A indústria nacional mostra o Pandur II e sistemas anti-drone; o Governo promete encomendas.','fabrica','bom',0),
+ ('bra_carnaval_civico',30,'BRA','Mobilização cívica no Brasil','Campanha nacional de alistamento voluntário excede todas as expectativas.','gente','bom',0);
 INSERT INTO news_event_effect (event_id,stat_key,value) VALUES
  ('crise_energia','industry',0.97),
  ('prt_expo_defesa','production_speed',1.03),
@@ -104,9 +104,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('victory_check_days',7,'de quantos em quantos dias se verifica o domínio');
 
 -- Eventos com escolhas (news_event_option; jogador escolhe, IA fica com a primeira).
-INSERT INTO news_event (id,day,country_tag,title,body) VALUES
- ('prt_orcamento_defesa',60,'PRT','Orçamento da Defesa','O parlamento debate para onde vai o reforço orçamental das Forças Armadas.'),
- ('bra_reforma_forcas',80,'BRA','Reforma das Forças Armadas','Brasília decide a prioridade da reestruturação militar.');
+INSERT INTO news_event (id,day,country_tag,title,body,glyph,tone,pause) VALUES
+ ('prt_orcamento_defesa',60,'PRT','Orçamento da Defesa','O parlamento debate para onde vai o reforço orçamental das Forças Armadas.','balanca','neutro',1),
+ ('bra_reforma_forcas',80,'BRA','Reforma das Forças Armadas','Brasília decide a prioridade da reestruturação militar.','balanca','neutro',1);
 INSERT INTO news_event_option (id,event_id,sort,title) VALUES
  ('prt_orc_industria','prt_orcamento_defesa',0,'Investir na indústria de defesa'),
  ('prt_orc_pessoal','prt_orcamento_defesa',1,'Reforçar o recrutamento'),
@@ -117,6 +117,128 @@ INSERT INTO news_event_option_effect (option_id,stat_key,value) VALUES
  ('prt_orc_pessoal','conscription',1.08),
  ('bra_ref_producao','production_speed',1.06),
  ('bra_ref_treino','org_regain',1.06);
+
+-- ===== o mundo acontece: eventos que esperam pelo estado do mundo (news_event.watch) =====
+-- O mundo dá uma semana de descanso antes de começar a bater à porta: no dia 1 metade das sondas está
+-- acesa por o país ainda não ter feito nada (o cofre vazio, os depósitos por encher) e um cartão a abrir
+-- em cima do arranque não é um acontecimento, é um estorvo.
+INSERT INTO rule (key,value,note) VALUES
+ ('event_watch_day',7,'primeiro dia em que os eventos de estado (news_event.watch) podem cair');
+
+-- Estes não têm data marcada: têm uma sonda (WorldWatch) que olha para o país todos os dias e o número
+-- que ela compara. Sem tag, quem os apanha é quem joga — é a notícia que chega à secretária dele. Com
+-- pause=1 o cartão abre em ecrã inteiro e o relógio pára, como no HoI4: o jogo espera pela decisão.
+INSERT INTO news_event (id,day,country_tag,title,body,watch,arg,glyph,tone,pause) VALUES
+ ('guerra_aberta',0,NULL,'O país está em guerra',
+  'A guerra começou. O governo tem de dizer ao país se a economia passa a ser de guerra ou se a vida civil continua como estava.',
+  'guerra',1,'espadas','mau',1),
+ ('capital_tomada',0,NULL,'A capital caiu',
+  'Bandeira estrangeira sobre a capital. Os ministérios cabem em camiões e a decisão é hoje: sair ou ficar.',
+  'capital_perdida',0,'coroa','mau',1),
+ ('linha_rompida',0,NULL,'A linha foi rompida',
+  'Três regiões nossas estão em mãos alheias e a frente já não é uma linha. O estado-maior quer ordens.',
+  'terra_perdida',3,'brecha','mau',1),
+ ('avanco_geral',0,NULL,'O avanço não pára',
+  'A tropa entrou em terra inimiga em toda a frente. As fábricas trabalham com o país inteiro a ver.',
+  'terra_tomada',3,'bandeira','bom',0),
+ ('revolta_popular',0,NULL,'Revolta na terra ocupada',
+  'A população de uma região ocupada saiu à rua e a guarnição não chega para tudo.',
+  'revolta',0.6,'punho','mau',1),
+ ('cofres_vazios',0,NULL,'Os cofres estão vazios',
+  'Não há um ponto de produção em caixa. Ou se corta em alguma coisa ou se paga com o que ainda não existe.',
+  'cofre_vazio',1,'cofre','mau',1),
+ ('reservas_no_fim',0,NULL,'As reservas de homens acabaram',
+  'Os depósitos de recrutas estão à vista do fundo. O que se decide agora sente-se em todas as divisões.',
+  'sem_homens',5000,'gente','mau',1),
+ ('depositos_secos',0,NULL,'Depósitos de combustível a seco',
+  'As colunas estão paradas à espera de gasóleo. Racionar ou comprar caro lá fora — não há terceira via.',
+  'sem_combustivel',1,'barril','mau',1),
+ ('bolsa_fechada',0,NULL,'Tropas cercadas',
+  'Uma bolsa fechou-se sobre tropa nossa. Cada dia lá dentro é organização que não volta.',
+  'cerco',1,'corrente','mau',1),
+ ('derrotas_seguidas',0,NULL,'Três derrotas seguidas',
+  'A terceira batalha perdida de seguida. O país pergunta se o problema é a tropa ou quem a manda.',
+  'derrotas',3,'caveira','mau',1),
+ ('desgaste_fundo',0,NULL,'O país está cansado da guerra',
+  'As baixas já se contam em casas que ficaram vazias. A retaguarda pede alguma coisa para aguentar.',
+  'desgaste',50,'penso','mau',1),
+ ('queda_do_inimigo',0,NULL,'O inimigo capitulou',
+  'Um dos países com que estávamos em guerra assinou a rendição. A indústria respira.',
+  'inimigo_caiu',0,'taca','bom',1),
+ ('queda_do_aliado',0,NULL,'Um aliado caiu',
+  'Um país da nossa facção capitulou. A frente dele passa a ser nossa.',
+  'aliado_caiu',0,'cruz','mau',1),
+ ('guerra_arrastada',0,NULL,'Um ano de guerra',
+  'Faz um ano que se combate sem que nenhum dos lados ceda. O gabinete divide-se entre forçar e resistir.',
+  'guerra_longa',365,'balanca','neutro',1),
+ ('dividendo_paz',0,NULL,'Dividendo de paz',
+  'Quatro meses sem um tiro. O orçamento que a guerra não levou está em cima da mesa.',
+  'paz',120,'pomba','bom',1),
+ ('estado_de_emergencia',0,NULL,'O país treme',
+  'A estabilidade caiu ao ponto de haver greves e motins. O governo tem de falar ou de apertar.',
+  'estabilidade',30,'megafone','mau',1);
+
+INSERT INTO news_event_effect (event_id,stat_key,value) VALUES
+ ('avanco_geral','production_speed',1.03),
+ ('queda_do_inimigo','production_speed',1.05),
+ ('queda_do_aliado','conscription',1.05),
+ ('depositos_secos','move_speed',0.92);
+
+INSERT INTO news_event_option (id,event_id,sort,title) VALUES
+ ('gab_economia_guerra','guerra_aberta',0,'Passar a economia a economia de guerra'),
+ ('gab_vida_normal','guerra_aberta',1,'Manter a vida civil como está'),
+ ('cap_interior','capital_tomada',0,'Levar o governo para o interior'),
+ ('cap_resistir','capital_tomada',1,'Resistir na capital, rua a rua'),
+ ('lin_encurtar','linha_rompida',0,'Recuar e encurtar a linha'),
+ ('lin_contra','linha_rompida',1,'Contra-atacar já, com o que houver'),
+ ('rev_mao_pesada','revolta_popular',0,'Mão pesada: mais guarnição, menos paciência'),
+ ('rev_administracao','revolta_popular',1,'Administração civil e comida na praça'),
+ ('cof_cortar','cofres_vazios',0,'Cortar na manutenção da frota e da aviação'),
+ ('cof_imprimir','cofres_vazios',1,'Pagar com dívida e travar a investigação'),
+ ('res_classes_novas','reservas_no_fim',0,'Chamar as classes mais novas'),
+ ('res_poupar','reservas_no_fim',1,'Poupar homens: menos assaltos, mais trincheira'),
+ ('dep_racionar','depositos_secos',0,'Racionar a marcha e refinar o que há'),
+ ('dep_comprar','depositos_secos',1,'Comprar caro no mercado estrangeiro'),
+ ('bol_romper','bolsa_fechada',0,'Romper para fora, custe o que custar'),
+ ('bol_aguentar','bolsa_fechada',1,'Aguentar dentro da bolsa e esperar socorro'),
+ ('der_trocar','derrotas_seguidas',0,'Trocar o comando'),
+ ('der_manter','derrotas_seguidas',1,'Manter quem lá está e reforçar a linha'),
+ ('des_propaganda','desgaste_fundo',0,'Campanha de propaganda e condecorações'),
+ ('des_rotacao','desgaste_fundo',1,'Rotação das tropas da linha da frente'),
+ ('arr_ofensiva','guerra_arrastada',0,'Ofensiva decisiva antes do inverno'),
+ ('arr_resistencia','guerra_arrastada',1,'Economia de resistência: aguentar mais um ano'),
+ ('paz_ciencia','dividendo_paz',0,'Investir na investigação'),
+ ('paz_industria','dividendo_paz',1,'Investir na indústria civil'),
+ ('eme_discurso','estado_de_emergencia',0,'Discurso à nação'),
+ ('eme_apertar','estado_de_emergencia',1,'Estado de emergência');
+
+INSERT INTO news_event_option_effect (option_id,stat_key,value) VALUES
+ ('gab_economia_guerra','industry',1.08), ('gab_economia_guerra','research_speed',0.95),
+ ('gab_vida_normal','research_speed',1.05), ('gab_vida_normal','conscription',0.97),
+ ('cap_interior','org_regain',1.05), ('cap_interior','industry',0.92),
+ ('cap_resistir','conscription',1.12), ('cap_resistir','move_speed',0.95),
+ ('lin_encurtar','org_regain',1.06),
+ ('lin_contra','conscription',1.05), ('lin_contra','org_regain',0.97),
+ ('rev_mao_pesada','resistance_growth',0.85), ('rev_mao_pesada','occupied_yield',0.95),
+ ('rev_administracao','occupied_yield',1.08), ('rev_administracao','integration_speed',1.10),
+ ('cof_cortar','naval_upkeep',0.80), ('cof_cortar','air_upkeep',0.80),
+ ('cof_imprimir','industry',1.05), ('cof_imprimir','research_speed',0.93),
+ ('res_classes_novas','conscription',1.15), ('res_classes_novas','org_regain',0.95),
+ ('res_poupar','org_regain',1.05), ('res_poupar','conscription',0.95),
+ ('dep_racionar','fuel_gain',1.10), ('dep_racionar','move_speed',0.95),
+ ('dep_comprar','fuel_gain',1.20), ('dep_comprar','industry',0.96),
+ ('bol_romper','org_regain',1.05), ('bol_romper','move_speed',1.05),
+ ('bol_aguentar','org_regain',1.03),
+ ('der_trocar','org_regain',1.08), ('der_trocar','production_speed',0.97),
+ ('der_manter','conscription',1.05),
+ ('des_propaganda','conscription',1.06),
+ ('des_rotacao','org_regain',1.06),
+ ('arr_ofensiva','move_speed',1.08), ('arr_ofensiva','org_regain',0.96),
+ ('arr_resistencia','industry',1.06), ('arr_resistencia','move_speed',0.96),
+ ('paz_ciencia','research_speed',1.08),
+ ('paz_industria','industry',1.06),
+ ('eme_discurso','conscription',1.05),
+ ('eme_apertar','resistance_growth',0.90), ('eme_apertar','occupied_yield',1.05);
 
 -- Construção de infraestrutura (ConstructionSystem + BuildInfrastructureCommand).
 INSERT INTO rule (key,value,note) VALUES
