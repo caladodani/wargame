@@ -991,6 +991,7 @@ public partial class Hud : CanvasLayer
             _map.Plans.Refresh();               // setas dos planos de batalha, por cima do mapa
             _map.Convoys.Refresh();             // rotas dos comboios mercantes, tracejadas no mar
             _map.Fronts.Refresh();              // e a linha da frente, com os dentes virados ao inimigo
+            _map.Pockets.Refresh();             // os caldeirões: a terra fechada dentro de um anel
             _region.Refresh();
             _map.Routes.Refresh();              // rotas da tropa escolhida (depois do painel: lê a selecção dele)
             _production.Refresh();
@@ -1855,9 +1856,17 @@ public partial class Hud : CanvasLayer
         RefreshTop();
         string plate = _pocketPlate.Visible ? $"{_pocket.Text} ({_pocketNote.Text})" : "chapa escondida";
         int warned = Alerts.For(w, pid).Count(a => a.Id == "pocket");
+        // e o caldeirão no mapa: com a bolsa fingida em pé, as riscas e o anel têm de aparecer mesmo
+        var drawn = _map.Pockets.Smoke();
+        var pots = Pockets.All(w);
+        string caldeirao = pots.Count == 0 ? "nenhum caldeirão" : Pockets.Short(w, pots[0]);
         d.Cut = cut; d.PocketDays = had;
         RefreshTop();
-        return $"{plate}, {warned} aviso na faixa, chapa depois de desfeito o cerco: {(_pocketPlate.Visible ? "à vista" : "escondida")}";
+        _map.Pockets.Refresh();
+        return $"{plate}, {warned} aviso na faixa, chapa depois de desfeito o cerco: {(_pocketPlate.Visible ? "à vista" : "escondida")}"
+             + $"; no mapa {drawn.Pockets} bolsa{(drawn.Pockets == 1 ? "" : "s")} com {drawn.Divisions} divis{(drawn.Divisions == 1 ? "ão" : "ões")}"
+             + $" ({drawn.Bands} riscas, {drawn.Ring} troços de anel, {drawn.Tags} chapa{(drawn.Tags == 1 ? "" : "s")}), a pior: {caldeirao}"
+             + $"; depois de desfeito: {_map.Pockets.Smoke().Pockets} no mapa";
     }
 
     /// <summary>A chapa do cerco: quantas divisões nossas estão em bolsa e quanto tempo falta à pior delas.
@@ -1877,17 +1886,24 @@ public partial class Hud : CanvasLayer
             return;
         }
         var worst = pocketed[0];
-        _worstPocketRegion = worst.RegionId;
+        // a bolsa a que a pior divisão pertence: é ela que o mapa desenha e é o coração dela que o toque
+        // procura — a região com mais tropa, e não a divisão solta que por acaso leva mais dias
+        var pots = Pockets.Of(w, pid);
+        var pot = pots.FirstOrDefault(x => x.DivisionIds.Contains(worst.Id));
+        _worstPocketRegion = pot.Regions > 0 ? pot.HeartId : worst.RegionId;
         _pocket.Text = pocketed.Count.ToString();
         _pocketNote.Text = PocketSystem.DaysToSurrender(w, worst) is int days
             ? days <= 0 ? "rende-se hoje" : days == 1 ? "rende-se amanhã" : $"rende-se em {days} d"
             : pocketed.Count == 1 ? "cercada" : "cercadas";
-        _pocketPlate.TooltipText = $"Divisões cercadas: {pocketed.Count}.\n"
+        _pocketPlate.TooltipText = $"Divisões cercadas: {pocketed.Count}"
+            + (pots.Count > 0 ? $" em {pots.Count} bolsa{(pots.Count == 1 ? "" : "s")}" : "") + ".\n"
             + $"· a pior está em {w.Regions[worst.RegionId].Name}, fechada há {worst.PocketDays} "
             + (worst.PocketDays == 1 ? "dia" : "dias")
+            + (pot.Regions > 0 ? $"\n· o caldeirão fechou {pot.Regions} regi{(pot.Regions == 1 ? "ão" : "ões")}"
+                               + $" e {pot.Vp} ponto{(pot.Vp == 1 ? "" : "s")} de vitória lá dentro" : "")
             + $"\n· rende-se ao fim de {w.Rule("pocket_surrender", 10f):0} dias fechada"
             + "\nSem ligação a casa não chega abastecimento: as armas baixam e a organização não recupera."
-            + "\nToque para levar o mapa à pior das bolsas.";
+            + "\nO mapa desenha a bolsa às riscas, com o anel por fora. Toque para lá ir.";
     }
 
     /// <summary>Toque na chapa do cerco: o mapa vai à bolsa pior e abre-lhe a ficha.</summary>

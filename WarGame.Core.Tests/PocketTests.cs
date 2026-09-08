@@ -85,17 +85,51 @@ public class PocketTests
         Assert.Equal(feridos, d.Hp, 3);                  // o cerco deixa de cobrar no dia em que se abre
     }
 
+    /// <summary>Um aliado de facção na 6: é para lá que a bolsa rompe. Ter mais terra nossa dentro do anel
+    /// não é saída nenhuma — isso é só bolsa maior —, e por isso a saída tem de ser de outra gente.</summary>
+    private static void Corridor(World w, int region = 6)
+    {
+        w.Countries[3] = new Country { Id = 3, Tag = "C", Name = "Gama", CapitalRegionId = region, Manpower = 1e9f };
+        w.Factions["aliados"] = new Faction("aliados", "Aliados", "", new List<int> { 1, 3 });
+        w.Regions[region].ControllerId = 3;
+    }
+
     [Fact]
     public void ComSaidaPelosNossosNaoSeRendeMesmoCortada()
     {
         var w = Build();
-        // 5 e 6 nas nossas mãos: a 5 continua sem cadeia até casa (a 4 é do inimigo), mas tem para onde romper
-        w.Regions[6].ControllerId = 1;
+        // a 5 é nossa e continua sem cadeia até casa (a 4 é do inimigo), mas ao lado está um aliado
+        Corridor(w);
         var d = Encircled(w);
         TestWorld.Days(w, Doom(w) + 5);
         Assert.True(d.Cut);
         Assert.Null(PocketSystem.DaysToSurrender(w, d));
         Assert.True(w.Divisions.ContainsKey(1));         // definha, mas não baixa as armas
+    }
+
+    /// <summary>O caldeirão a sério: duas regiões nossas fechadas dentro do anel, uma divisão em cada. Cada
+    /// uma tem a outra ao lado — e era isso que antes as salvava a todas, porque a pergunta "tenho vizinho
+    /// amigo?" era feita divisão a divisão. Agora quem responde é a bolsa, e a bolsa capitula inteira.</summary>
+    [Fact]
+    public void OCaldeiraoDeVariasRegioesCapitulaTodoDeUmaVez()
+    {
+        var (w, _) = TestWorld.Build();
+        TestWorld.LinearMap(w, 8, 3);
+        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
+        w.Register(new SupplySystem()); w.Register(new PocketSystem());
+        w.Regions[6].ControllerId = 1; w.Regions[7].ControllerId = 1;   // tomámos a 6 e a 7 e ficámos lá
+        var a = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 6);
+        var b = TestWorld.AddDivision(w, 2, 1, TestWorld.Inf, 7);
+
+        TestWorld.Days(w, 1);
+        Assert.True(a.Cut); Assert.True(b.Cut);
+        Assert.Equal(Doom(w) - 1, PocketSystem.DaysToSurrender(w, a));
+
+        TestWorld.Days(w, Doom(w));
+        Assert.False(w.Divisions.ContainsKey(1));
+        Assert.False(w.Divisions.ContainsKey(2));
+        Assert.Equal(2, w.Regions[6].ControllerId);      // e as duas praças com elas
+        Assert.Equal(2, w.Regions[7].ControllerId);
     }
 
     [Fact]

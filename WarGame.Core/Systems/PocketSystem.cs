@@ -12,9 +12,15 @@ namespace WarGame.Core.Systems;
 /// sítio onde decide a fome, para cortado querer dizer o mesmo nos dois lados) tem pocket_grace dias de
 /// respiro — o tempo de romper para fora ou de alguém abrir o corredor. Passado isso perde
 /// pocket_attrition de efectivo e pocket_org de organização por dia: as munições acabaram, os feridos não
-/// saem, os camiões estão parados. E ao fim de pocket_surrender dias com a bolsa fechada — sem uma única
-/// região vizinha dos nossos por onde respirar — a divisão baixa as armas: rende-se a quem fechou o anel,
-/// e esses homens vão para os campos dele (PrisonerSystem, pelo evento DivisionSurrendered).
+/// saem, os camiões estão parados. E ao fim de pocket_surrender dias com a bolsa fechada, a divisão baixa
+/// as armas: rende-se a quem fechou o anel, e esses homens vão para os campos dele (PrisonerSystem, pelo
+/// evento DivisionSurrendered).
+///
+/// Quem decide se a bolsa está fechada é o Pockets, e a bolsa inteira decide de uma vez. Antes a pergunta
+/// era por divisão — "tenho um vizinho amigo?" — e num caldeirão de várias regiões cada divisão via a terra
+/// da do lado e achava que tinha por onde romper: um cerco grande, o do HoI4, nunca capitulava. Agora a
+/// saída tem de ser para fora do caldeirão, e só terra de aliado de facção serve: dentro do anel já é tudo
+/// bolsa. É a mesma bolsa que o mapa desenha, por isso o que se vê é o que se cobra.
 ///
 /// Quem apanha o cerco é quem manda no anel: o país em guerra connosco que controla mais regiões à volta.
 /// Sem anel nenhum — uma ilha sem porto, uma bolsa cujo cerco já se desfez — não há a quem entregar, e a
@@ -33,8 +39,13 @@ public sealed class PocketSystem : ISystem
         float bleed = w.Rule("pocket_attrition", 4f), orgLoss = w.Rule("pocket_org", 8f);
         int surrender = (int)w.Rule("pocket_surrender", 21f);
 
+        // os caldeirões de hoje, uma vez só: quem está em qual, se está fechado e a quem se entrega
+        var pot = new Dictionary<int, Pocket>();
+        foreach (var p in Pockets.All(w))
+            foreach (int id in p.DivisionIds) pot[id] = p;
+
         // recolhe primeiro: render uma divisão muta w.Divisions e a região onde ela está
-        List<Division>? gone = null;
+        List<(Division D, int? Captor)>? gone = null;
         foreach (var d in w.Divisions.Values)
         {
             if (!d.Cut) { d.PocketDays = 0; continue; }
@@ -43,23 +54,16 @@ public sealed class PocketSystem : ISystem
 
             d.Hp = MathF.Max(0f, d.Hp - bleed);
             d.Org = MathF.Max(0f, d.Org - orgLoss);
-            // Render-se só quando há a quem: sem anel — a guerra acabou, o cerco desfez-se ao longe — a
-            // bolsa continua a definhar em vez de entregar as armas ao vazio.
-            bool baixaAsArmas = surrender > 0 && d.PocketDays >= surrender && Sealed(w, d) && Ring(w, d) is not null;
-            if (d.Hp <= 0f || baixaAsArmas) (gone ??= new()).Add(d);
+            // O anel é o da bolsa toda: uma divisão no meio do caldeirão não tem inimigo à porta, mas
+            // entrega-se a quem fechou o cerco na mesma. Sem anel — a guerra acabou, o cerco desfez-se ao
+            // longe — não há a quem entregar e a bolsa definha em vez de render as armas ao vazio.
+            var mine = pot.GetValueOrDefault(d.Id);
+            int? captor = mine.RingCountryId ?? Ring(w, d);
+            bool baixaAsArmas = surrender > 0 && d.PocketDays >= surrender && mine.Sealed && captor is not null;
+            if (d.Hp <= 0f || baixaAsArmas) (gone ??= new()).Add((d, captor));
         }
         if (gone is null) return;
-        foreach (var d in gone) Fall(w, d);
-    }
-
-    /// <summary>Bolsa fechada: nem uma região vizinha nas mãos do nosso país (ou de aliado de facção).
-    /// Enquanto houver uma, a divisão está cortada mas tem para onde romper — e quem rompe não se rende.</summary>
-    private static bool Sealed(World w, Division d)
-    {
-        if (!w.Regions.TryGetValue(d.RegionId, out var here)) return false;
-        foreach (int n in here.Neighbours)
-            if (w.Regions.TryGetValue(n, out var nb) && w.CanTraverse(d.CountryId, nb)) return false;
-        return true;
+        foreach (var (d, captor) in gone) Fall(w, d, captor);
     }
 
     /// <summary>Quem fechou o anel: dos países em guerra com este, o que controla mais regiões à volta da
@@ -82,10 +86,10 @@ public sealed class PocketSystem : ISystem
 
     /// <summary>A bolsa desfaz-se: prisioneiros para quem cercou (se houver anel), a divisão sai do mundo e,
     /// se era a última dos nossos ali, a região muda de mãos sem um tiro.</summary>
-    private static void Fall(World w, Division d)
+    private static void Fall(World w, Division d, int? ring)
     {
         int region = d.RegionId;
-        if (Ring(w, d) is int captor)
+        if (ring is int captor)
         {
             // a rendição vem antes da baixa: assim os homens contam-se ao captor certo, e o
             // DivisionDestroyed que se segue não os apanha outra vez (a região ainda é do próprio país)
@@ -119,7 +123,9 @@ public sealed class PocketSystem : ISystem
     public static int? DaysToSurrender(World w, Division d)
     {
         int surrender = (int)w.Rule("pocket_surrender", 21f);
-        if (surrender <= 0 || !d.Cut || !Sealed(w, d) || Ring(w, d) is null) return null;
+        if (surrender <= 0 || !d.Cut) return null;
+        var mine = Pockets.Of(w, d.CountryId).FirstOrDefault(p => p.DivisionIds.Contains(d.Id));
+        if (!mine.Sealed || (mine.RingCountryId ?? Ring(w, d)) is null) return null;
         return Math.Max(0, surrender - d.PocketDays);
     }
 }
