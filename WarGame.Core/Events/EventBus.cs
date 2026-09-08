@@ -95,6 +95,8 @@ public sealed record ParadropAborted(int DivisionId, int CountryId, int RegionId
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>
 public sealed record TemplateCreated(int CountryId, int TemplateId) : IGameEvent;
+/// <summary>Um modelo desenhado em jogo foi redesenhado (EditTemplateCommand).</summary>
+public sealed record TemplateEdited(int CountryId, int TemplateId) : IGameEvent;
 /// <summary>Evento noticioso do jogador com escolhas por fazer (a UI abre o diálogo).</summary>
 public sealed record NewsChoiceRequired(string EventId) : IGameEvent;
 /// <summary>Escolha feita num evento com opções (ChooseNewsOptionCommand ou IA).</summary>

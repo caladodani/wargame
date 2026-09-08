@@ -27,6 +27,7 @@ public partial class ProductionPanel : PanelContainer
     private HBoxContainer _bench = null!;
     private ScrollContainer _scroll = null!;
     private Label _tally = null!;
+    private DesignerView _designer = null!;
     private int _tab;
     private string _lastKey = "";
 
@@ -60,7 +61,7 @@ public partial class ProductionPanel : PanelContainer
         _tmplBox = Ui.Grow(new VBoxContainer()); body.AddChild(_tmplBox);
         var mhead = new HBoxContainer(); _tmplBox.AddChild(mhead);
         mhead.AddChild(Ui.Grow(Ui.Head("Modelos de divisão")));
-        mhead.AddChild(Ui.Btn("＋ Desenhar", OpenDesigner));
+        mhead.AddChild(Ui.Btn("✎ Prancheta", OpenDesigner));
         _templates = new VBoxContainer(); _tmplBox.AddChild(_templates);
         _tally = Ui.Lbl("", 14); _tally.AddThemeColorOverride("font_color", Ui.TextDim);
         _tmplBox.AddChild(_tally);
@@ -73,6 +74,11 @@ public partial class ProductionPanel : PanelContainer
         snote.AddThemeColorOverride("font_color", Ui.TextDim);
         shead.AddChild(snote);
         _stock = new VBoxContainer(); _stock.AddThemeConstantOverride("separation", 4); _stockBox.AddChild(_stock);
+
+        // a prancheta por cima do painel: abre-se daqui e volta-se aqui quando o desenho está assinado
+        _designer = new DesignerView { Name = "Designer" };
+        AddChild(_designer);
+        _designer.Setup(game, () => { _lastKey = ""; Refresh(); });
         Show(0);
     }
 
@@ -140,10 +146,22 @@ public partial class ProductionPanel : PanelContainer
             {
                 float cost; try { cost = w.TemplateCost(t.Id); } catch { cost = 0f; }
                 int tid = t.Id;
+                bool mine = w.CustomTemplateIds.Contains(tid);       // desenhado em jogo: redesenha-se
+                var sheet = TemplateDesign.OfTemplate(w, tid);
                 var row = new HBoxContainer();
                 row.AddThemeConstantOverride("separation", 8);
                 row.AddChild(UnitSymbol.For(w, tid));
-                row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name}   custo {cost:0.0}   ·   {cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens")));
+                var col = new VBoxContainer();
+                col.AddChild(Ui.Lbl($"{t.Name}   custo {cost:0.0}   ·   {cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens"));
+                // o que o modelo é, lido dos números: a lista dizia o nome que alguém lhe deu e mais nada
+                var what = Ui.Lbl($"{sheet.Line}+{sheet.Support} batalhões  ·  {sheet.Role}"
+                                  + (sheet.Bad ? "  ·  ⚠ a prancheta tem reparos" : ""), 13);
+                what.AddThemeColorOverride("font_color", sheet.Bad ? Ui.Danger.Lightened(0.25f) : Ui.TextDim);
+                col.AddChild(what);
+                row.AddChild(Ui.Grow(col));
+                var edit = Ui.Btn(mine ? "✎" : "⧉", () => _designer.Open(tid, edit: mine), 64);
+                edit.TooltipText = mine ? "redesenhar este modelo" : "copiar para uma prancheta nova";
+                row.AddChild(edit);
                 row.AddChild(Ui.Btn("+", () => Order(tid), 72));
                 _templates.AddChild(row);
             }
@@ -362,8 +380,11 @@ public partial class ProductionPanel : PanelContainer
             depot += $" ({Descendants<PanelContainer>(_stock).Count()} prateleiras desenhadas)";
             Pick(0);
         }
+        // e a prancheta: desenha-se uma divisão de raiz, assina-se e redesenha-se, tudo sem dedo
+        string board = _designer.Smoke();
+        _lastKey = ""; Fill();
         return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção em {Sections.Length} abas"
-             + $", {roll} ({dragged}, {yards}, {rhythm}, {depot}, {symbols})";
+             + $", {roll} ({dragged}, {yards}, {rhythm}, {depot}, {symbols}); {board}";
     }
 
     /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>
@@ -424,57 +445,8 @@ public partial class ProductionPanel : PanelContainer
         if (err is not null) _game.Notify(err);
     });
 
-    /// <summary>Desenhador de templates: um SpinBox por tipo de unidade, nome e custo ao vivo.</summary>
-    private void OpenDesigner()
-    {
-        if (_game.PlayerId is not int pid) return;
-        IReadOnlyList<UnitType> types;
-        try { types = _game.World.Units.AllUnitTypes(); } catch (Exception ex) { GD.PushError("designer: " + ex.Message); return; }
-
-        var dlg = new AcceptDialog { Title = "Desenhar template", OkButtonText = "Criar" };
-        var v = new VBoxContainer { CustomMinimumSize = new Vector2(420, 0) };
-        dlg.AddChild(v);
-        var name = new LineEdit { PlaceholderText = "Nome do template", MaxLength = 40 };
-        v.AddChild(name);
-        var costLbl = Ui.Lbl("Custo 0.0 · 0.0k homens", 18);
-        v.AddChild(costLbl);
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 380), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        v.AddChild(scroll);
-        var rows = Ui.Grow(new VBoxContainer()); scroll.AddChild(rows);
-
-        var spins = new Dictionary<int, SpinBox>();
-        void UpdateCost()
-        {
-            float cost = 0f;
-            foreach (var t in types) if (spins[t.Id].Value > 0) cost += t.Cost * (float)spins[t.Id].Value;
-            costLbl.Text = $"Custo {cost:0.0} · {cost * _game.World.Rule("manpower_per_cost", 500f) / 1000f:0.0}k homens";
-        }
-        foreach (var t in types)
-        {
-            var row = new HBoxContainer();
-            row.AddChild(Ui.Grow(Ui.Lbl($"{t.Name} ({t.Cost:0.0})")));
-            var spin = new SpinBox { MinValue = 0, MaxValue = 30, Value = 0, CustomMinimumSize = new Vector2(110, 0) };
-            spin.ValueChanged += _ => UpdateCost();
-            spins[t.Id] = spin;
-            row.AddChild(spin);
-            rows.AddChild(row);
-        }
-
-        dlg.Confirmed += () =>
-        {
-            var units = spins.Where(kv => kv.Value.Value > 0)
-                             .Select(kv => (kv.Key, (int)kv.Value.Value)).ToList();
-            string text = name.Text;
-            _game.RunWhenIdle(() =>
-            {
-                var err = _game.Dispatch(new CreateTemplateCommand(pid, text, units));
-                if (err is not null) _game.Notify(err);
-                else { _game.Notify("Template criado"); _lastKey = ""; Refresh(); }
-            });
-        };
-        AddChild(dlg);
-        dlg.PopupCentered();
-    }
+    /// <summary>Abre a prancheta do estado-maior, em branco.</summary>
+    private void OpenDesigner() => _designer.Open();
 
     /// <summary>Marca/desmarca a encomenda como produção em série (volta à fila quando é entregue).</summary>
     private void Repeat(int index, int templateId, bool on) => _game.RunWhenIdle(() =>

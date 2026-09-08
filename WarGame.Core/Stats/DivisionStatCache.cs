@@ -18,17 +18,22 @@ public sealed class DivisionStatCache
     public StatBlock Get(int templateId)
     {
         if (_cache.TryGetValue(templateId, out var s)) return s;
-        s = Aggregate(_units.GetTemplate(templateId));
+        s = Aggregate(_units.GetTemplate(templateId).Units);
         _cache[templateId] = s;
         return s;
     }
 
-    private StatBlock Aggregate(DivisionTemplate t)
+    /// <summary>Os mesmos números para uma divisão que ainda não existe: a prancheta do desenhador precisa
+    /// de saber quanto é que dá aquilo que se está a montar antes de haver template nenhum. Não passa pelo
+    /// cache — um desenho a meio muda a cada toque e não é nada que valha a pena guardar.</summary>
+    public StatBlock Preview(IReadOnlyList<(int UnitTypeId, int Qty)> units) => Aggregate(units);
+
+    private StatBlock Aggregate(IReadOnlyList<(int UnitTypeId, int Qty)> units)
     {
         var s = new StatBlock();
         var max = new Dictionary<string, float>();
         int n = 0; float mobility = float.MaxValue, supplyUse = 0f;
-        foreach (var (unitTypeId, qty) in t.Units)
+        foreach (var (unitTypeId, qty) in units)
         {
             var u = _units.GetUnitType(unitTypeId);
             foreach (var (k, v) in u.Stats.All)

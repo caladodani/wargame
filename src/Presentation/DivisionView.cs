@@ -106,11 +106,20 @@ public static class DivisionView
     /// zero linhas de C#. Um stat que ainda não pesa em conta nenhuma tem `shown` a 0 e fica de fora.</summary>
     public static HFlowContainer Sheet(World w, Division d)
     {
+        StatBlock st;
+        try { st = w.Stats.Get(d.TemplateId); } catch { return StatSheet(w, null); }
+        return StatSheet(w, st);
+    }
+
+    /// <summary>A mesma ficha para números que ainda não são de divisão nenhuma: a prancheta do desenhador
+    /// mostra-a por cima do desenho a meio, e tem de ser esta e não outra — o que lá se vê é o que o
+    /// combate vai ler.</summary>
+    public static HFlowContainer StatSheet(World w, StatBlock? stats)
+    {
         var flow = new HFlowContainer();
         flow.AddThemeConstantOverride("h_separation", 4);
         flow.AddThemeConstantOverride("v_separation", 4);
-        StatBlock st;
-        try { st = w.Stats.Get(d.TemplateId); } catch { return flow; }
+        if (stats is not StatBlock st) return flow;
         foreach (var def in w.UnitStatDefs.Values.Where(x => x.Shown).OrderBy(x => x.Sort))
         {
             float v = st[def.Key];

@@ -56,7 +56,11 @@ public sealed class SqlUnitRepository : IUnitRepository
         var t = new DivisionTemplate(id, countryId, name, units.ToList());
         _templates[id] = t;
         GetTemplates(countryId);           // garante a lista carregada antes de acrescentar
-        if (!_byCountry[countryId].Any(x => x.Id == id)) _byCountry[countryId].Add(t);
+        // redesenhar é voltar a passar aqui com o mesmo id: a lista do país tem de ficar com o desenho
+        // novo, senão o painel continuava a mostrar os batalhões antigos de um modelo já mudado
+        var mine = _byCountry[countryId];
+        int at = mine.FindIndex(x => x.Id == id);
+        if (at >= 0) mine[at] = t; else mine.Add(t);
         return t;
     }
 

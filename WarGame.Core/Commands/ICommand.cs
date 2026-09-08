@@ -284,22 +284,33 @@ public sealed record ChooseNewsOptionCommand(int CountryId, string EventId, stri
 /// id ≥ World.CustomTemplateBase e persiste no save (template/template_unit).</summary>
 public sealed record CreateTemplateCommand(int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units) : ICommand
 {
-    public string? Validate(World w)
+    /// <summary>As contas que valem para desenhar e para redesenhar, num sítio só: nome, tipos, e o que
+    /// cabe numa divisão. Os tectos de linha e de apoio são os da prancheta (regras design_*), para o
+    /// comando nunca recusar aquilo que o desenhador deixou montar.</summary>
+    public static string? Check(World w, int countryId, string? name, IReadOnlyList<(int UnitTypeId, int Qty)>? units)
     {
-        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "País inválido";
-        var name = Name?.Trim() ?? "";
-        if (name.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
-        if (Units is null || Units.Count is < 1 or > 10) return "1 a 10 tipos de unidade";
-        if (Units.Select(u => u.UnitTypeId).Distinct().Count() != Units.Count) return "Tipo de unidade repetido";
-        int total = 0;
-        foreach (var (unitId, qty) in Units)
+        if (!w.Countries.TryGetValue(countryId, out var c) || c.Capitulated) return "País inválido";
+        var trimmed = name?.Trim() ?? "";
+        if (trimmed.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
+        if (units is null || units.Count is < 1 or > 10) return "1 a 10 tipos de unidade";
+        if (units.Select(u => u.UnitTypeId).Distinct().Count() != units.Count) return "Tipo de unidade repetido";
+        int total = 0, line = 0, support = 0;
+        foreach (var (unitId, qty) in units)
         {
             if (qty is < 1 or > 30) return "Quantidade: 1 a 30 por tipo";
             total += qty;
-            try { w.Units.GetUnitType(unitId); } catch (InvalidOperationException) { return "Tipo de unidade inexistente"; }
+            UnitType u;
+            try { u = w.Units.GetUnitType(unitId); } catch (InvalidOperationException) { return "Tipo de unidade inexistente"; }
+            if (u.Category == "support") support += qty; else line += qty;
         }
-        return total > 60 ? "Máximo 60 unidades por divisão" : null;
+        if (total > 60) return "Máximo 60 unidades por divisão";
+        int lineMax = Systems.TemplateDesign.LineMax(w), supMax = Systems.TemplateDesign.SupportMax(w);
+        if (line > lineMax) return $"Máximo {lineMax} batalhões de linha";
+        if (support > supMax) return $"Máximo {supMax} companhias de apoio";
+        return null;
     }
+
+    public string? Validate(World w) => Check(w, CountryId, Name, Units);
 
     public void Execute(World w)
     {
@@ -307,6 +318,36 @@ public sealed record CreateTemplateCommand(int CountryId, string Name, IReadOnly
         w.Units.AddCustomTemplate(id, CountryId, Name.Trim(), Units);
         w.CustomTemplateIds.Add(id);
         w.Events.Publish(new Events.TemplateCreated(CountryId, id));
+    }
+}
+
+/// <summary>Redesenha um modelo já criado em jogo (HoI4: editar o template em vez de fazer outro).
+///
+/// Desenhar era só de uma vez: um modelo com um batalhão a mais do que devia ficava na lista para sempre e
+/// a única saída era desenhar outro ao lado, com outro nome. Agora abre-se a prancheta com o desenho lá
+/// dentro e muda-se. Só se mexe nos modelos desenhados em jogo — os que vêm da tabela são a doutrina do
+/// país e não se apagam à mão.
+///
+/// As divisões que já estão no mapa passam a ler o modelo novo: é a mesma ficha para todas, como no HoI4
+/// (lá pede-se equipamento novo para a mudança pegar; aqui o armazém já faz esse papel — uma divisão
+/// re-armada com um modelo mais caro fica com menos material do que o modelo pede, e vê-se na chapa).</summary>
+public sealed record EditTemplateCommand(int CountryId, int TemplateId, string Name,
+    IReadOnlyList<(int UnitTypeId, int Qty)> Units) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.CustomTemplateIds.Contains(TemplateId)) return "Só se redesenham modelos feitos em jogo";
+        DivisionTemplate t;
+        try { t = w.Units.GetTemplate(TemplateId); } catch (InvalidOperationException) { return "Modelo inexistente"; }
+        if (t.CountryId != CountryId) return "Modelo não é teu";
+        return CreateTemplateCommand.Check(w, CountryId, Name, Units);
+    }
+
+    public void Execute(World w)
+    {
+        w.Units.AddCustomTemplate(TemplateId, CountryId, Name.Trim(), Units);
+        w.Stats.Invalidate(TemplateId);     // a ficha de combate é outra a partir de hoje
+        w.Events.Publish(new Events.TemplateEdited(CountryId, TemplateId));
     }
 }
 

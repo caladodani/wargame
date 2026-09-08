@@ -1420,3 +1420,17 @@ INSERT INTO rule (key,value,note) VALUES
  ('defeat_exhaustion',1.5,'desgaste de guerra que cada derrota em alarme acrescenta'),
  ('alert_defeat_days',7,'dias durante os quais uma batalha perdida continua na faixa de avisos');
 INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('reves','Revés','☠',2,'caveira');
+
+-- A prancheta do estado-maior (TemplateDesign): o que cabe numa divisão e o que a prancheta avisa a quem a
+-- desenha. Os limites são os do HoI4 — linha e apoio contam-se em separado, porque são coisas diferentes:
+-- os batalhões de linha fazem o peso, as companhias de apoio dão-lhe jeito. Os limiares dos conselhos são
+-- linhas de tabela e não números no código: quem quiser uma escola de guerra diferente muda-os aqui.
+INSERT INTO rule (key,value,note) VALUES
+ ('design_line_max',24,'batalhões de linha que cabem numa divisão'),
+ ('design_support_max',5,'companhias de apoio que cabem numa divisão'),
+ ('design_line_min',3,'batalhões de linha abaixo dos quais a prancheta avisa que a divisão é fraca'),
+ ('design_role_hardness',0.4,'dureza a partir da qual a divisão se lê como blindada'),
+ ('design_role_punch',1.15,'rotura a dividir por defesa a partir da qual a divisão se lê como de assalto'),
+ ('design_role_wall',1.35,'defesa a dividir por rotura a partir da qual a divisão se lê como de linha'),
+ ('design_pierce_floor',5,'perfuração abaixo da qual a prancheta avisa que não fura blindagem nenhuma'),
+ ('design_speed_floor',3,'mobilidade abaixo da qual a prancheta avisa que a divisão é lenta');
