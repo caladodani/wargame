@@ -117,7 +117,8 @@ public partial class BuildBar : PanelContainer
     /// <summary>--smoke: abre o menu, arma o primeiro tipo e devolve o que ficou escolhido, com a conta das
     /// chapas. São três números diferentes de propósito, porque é fácil enganar-se com um só: quantos nomes
     /// a base de dados pede em todas as tabelas que têm coluna glyph (obras, ramos, estações, modos de mapa,
-    /// missões de ar e mar, mais as duas obras que são regras e não linhas), quantos desses o Glyph sabe
+    /// missões de ar e mar, géneros da crónica, pastas do gabinete, políticas de ocupação e gravidades de
+    /// baixa, mais as duas obras que são regras e não linhas), quantos desses o Glyph sabe
     /// mesmo desenhar, e quantas chapas ficaram desenhadas neste menu — destas, quantas caíram na roda
     /// dentada por o nome não existir. Um nome mal escrito na tabela não dá erro nenhum: dá uma roda
     /// calada, e é isso que este contador faz aparecer.</summary>

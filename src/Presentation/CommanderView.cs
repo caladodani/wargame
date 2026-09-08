@@ -127,14 +127,6 @@ public static class CommanderView
     /// está de pé.</summary>
     public static readonly Color Hurt = new(0.92f, 0.45f, 0.42f);
 
-    /// <summary>Marca curta do estado de baixa ("🩸 12 d") ou vazio se o homem está de pé. É o que vai à
-    /// frente do nome nas listas do estado-maior.</summary>
-    public static string WoundMark(World w, int countryId, string generalId)
-    {
-        int left = w.WoundDaysLeft(countryId, generalId);
-        return left <= 0 ? "" : $"🩸 {left} d ";
-    }
-
     /// <summary>Barra da convalescença: enche à medida que os dias passam, medida contra a baixa mais
     /// longa da tabela. Substitui a barra de carreira enquanto o comandante está no hospital — a carreira
     /// dele está parada, e quem olha para o painel tem de ver isso.</summary>
@@ -518,7 +510,7 @@ public static class CommanderView
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 1); plate.AddChild(v);
 
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6); v.AddChild(row);
-        row.AddChild(Ui.Lbl(kind?.Icon ?? "🩸", 17));
+        row.AddChild(Glyph.Make(kind?.Glyph is { Length: > 0 } g ? g : "gota", 17, Hurt, kind?.Name));
         var who = Ui.Lbl(name, 16);
         who.AddThemeColorOverride("font_color", Ui.Text);
         row.AddChild(Ui.Grow(who));
@@ -536,7 +528,7 @@ public static class CommanderView
         v.AddChild(Recovery(w, c.Id, generalId));
         plate.TooltipText = kind is null
             ? $"{name} está fora de serviço"
-            : $"{kind.Icon} {kind.Name} — {kind.Days} dias de baixa"
+            : $"{kind.Name} — {kind.Days} dias de baixa"
               + (kind.Domain is null ? "" : $"; é baixa de {kind.Domain} e só acontece a quem serve nessa arma");
         return plate;
     }

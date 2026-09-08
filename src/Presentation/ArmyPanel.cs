@@ -21,6 +21,8 @@ public partial class ArmyPanel : PanelContainer
     private string _lastKey = "";
     private HBoxContainer _crest = null!;
     private int? _generals;      // grupo com a lista de comandantes aberta
+    /// <summary>Grupo com a lista das divisões sem exército aberta (uma de cada vez, como as frentes).</summary>
+    private int? _loose;
     /// <summary>Grupo com a lista de frentes aberta (só uma de cada vez, para o painel caber no telemóvel).</summary>
     private int? _fronts;
 
@@ -42,7 +44,7 @@ public partial class ArmyPanel : PanelContainer
 
     public void Open() { _lastKey = ""; _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); Ui.SlideIn(this); }); }
     public void Refresh() { if (Visible) Fill(); }
-    public void Close() { Visible = false; _fronts = null; _generals = null; }
+    public void Close() { Visible = false; _fronts = null; _generals = null; _loose = null; }
 
     /// <summary>Só para o --smoke: cria um grupo, mete-lhe as divisões da capital, abre a lista de frentes
     /// e enche o painel — o caminho todo percorrido sem ninguém tocar no ecrã. Desfaz o que criou.</summary>
@@ -271,7 +273,7 @@ public partial class ArmyPanel : PanelContainer
         if (_generals == g.Id)
         {
             var staff = w.Countries[pid].Generals;
-            if (staff.Count == 0) v.AddChild(Ui.Lbl("Sem comandantes contratados — contrata no painel do país", 15));
+            if (staff.Count == 0) v.AddChild(Ui.Lbl("Sem ninguém contratado — a folha de recrutamento está aqui em baixo", 15));
             else
             {
                 var flow = new HFlowContainer();
@@ -293,13 +295,52 @@ public partial class ArmyPanel : PanelContainer
                 if (g.GeneralId is not null) flow.AddChild(Ui.Btn("Chamar de volta", () => SetGeneral(pid, g.Id, null), 0));
                 v.AddChild(flow);
             }
+
+            // a folha de recrutamento da arma de terra, a mesma do painel do País: quem manda num exército
+            // escolhe-o aqui, e se não houver ninguém contrata-se sem sair do painel — mandar a pessoa a
+            // outro ecrã a meio de montar um exército era o caminho mais comprido para a coisa mais óbvia.
+            if (CommanderView.Roster(w, w.Countries[pid], true, World.Land,
+                    gid => Hire(pid, gid), gid => Dismiss(pid, gid)) is PanelContainer roster)
+                v.AddChild(roster);
         }
 
         var orders = new HBoxContainer();
         orders.AddChild(Ui.Btn($"Juntar selecção ({_select.DivisionCount(w, pid)})", () => Absorb(pid, g.Id), 230));
+        // as que não estão em grupo nenhum: sem isto só se juntavam tropas marcando regiões no mapa uma a
+        // uma, e um exército de cinquenta divisões espalhadas não se monta a toques de dedo no mapa
+        var loose = w.Divisions.Values.Where(d => d.CountryId == pid && d.GroupId is null).ToList();
+        if (loose.Count > 0)
+            orders.AddChild(Ui.Btn(_loose == g.Id ? "Fechar" : $"Sem exército ({loose.Count})", () => ToggleLoose(g.Id), 230));
         if (divs.Count > 0) orders.AddChild(Ui.Btn("Largar todas", () => Release(pid, g.Id), 170));
         v.AddChild(orders);
+
+        if (_loose == g.Id && loose.Count > 0) v.AddChild(Loose(w, pid, g, loose));
     }
+
+    /// <summary>As divisões que não obedecem a estado-maior nenhum, agrupadas pela região onde estão: um
+    /// botão por sítio junta as de lá todas, e o primeiro botão junta o país inteiro. É a lista que faltava
+    /// para montar um exército sem andar a marcar regiões no mapa.</summary>
+    private Control Loose(World w, int pid, ArmyGroup g, List<Division> loose)
+    {
+        const int Places = 12;                      // o telemóvel não leva cinquenta botões; o resto vai na conta
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface with { A = 0.9f }, 8));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 5); card.AddChild(v);
+        v.AddChild(Ui.Lbl($"{loose.Count} divisões sem exército, em {loose.Select(d => d.RegionId).Distinct().Count()} regiões", 15));
+
+        var flow = new HFlowContainer();
+        flow.AddChild(Ui.Btn($"Juntar todas ({loose.Count})", () => AbsorbLoose(pid, g.Id, null), 0, Ui.Kind.Primary));
+        var places = loose.GroupBy(d => d.RegionId)
+                          .OrderByDescending(x => x.Count()).ThenBy(x => x.Key).ToList();
+        foreach (var place in places.Take(Places))
+            flow.AddChild(Ui.Btn($"{RegionName(w, place.Key)} ×{place.Count()}", () => AbsorbLoose(pid, g.Id, place.Key), 0));
+        v.AddChild(flow);
+        if (places.Count > Places)
+            v.AddChild(Ui.Lbl($"…e mais {places.Count - Places} regiões — «Juntar todas» leva-as também", 14));
+        return card;
+    }
+
+    private static string RegionName(World w, int id) => w.Regions.TryGetValue(id, out var r) ? r.Name : "R" + id;
 
     /// <summary>Nome em português da estatística que um comandante melhora.</summary>
     private static string StatName(string key) => key switch
@@ -366,6 +407,32 @@ public partial class ArmyPanel : PanelContainer
     private void ToggleFronts(int groupId) => _game.RunWhenIdle(() => { _fronts = _fronts == groupId ? null : groupId; _lastKey = ""; Fill(); });
 
     private void ToggleGenerals(int groupId) => _game.RunWhenIdle(() => { _generals = _generals == groupId ? null : groupId; _lastKey = ""; Fill(); });
+
+    private void ToggleLoose(int groupId) => _game.RunWhenIdle(() => { _loose = _loose == groupId ? null : groupId; _lastKey = ""; Fill(); });
+
+    /// <summary>Junta ao grupo as divisões sem exército — as de uma região, ou as do país todo.</summary>
+    private void AbsorbLoose(int pid, int groupId, int? regionId) => _game.RunWhenIdle(() =>
+    {
+        var w = _game.World;
+        int n = 0;
+        foreach (var d in w.Divisions.Values.Where(d => d.CountryId == pid && d.GroupId is null
+                                                        && (regionId is null || d.RegionId == regionId)).ToList())
+            if (_game.Dispatch(new AssignDivisionCommand(pid, d.Id, groupId)) is null) n++;
+        _game.Notify(n == 0 ? "Nenhuma divisão livre para juntar" : $"{n} divisões às ordens do grupo");
+        _lastKey = ""; Fill();
+    });
+
+    private void Hire(int pid, string generalId) => _game.RunWhenIdle(() =>
+    {
+        if (_game.Dispatch(new HireGeneralCommand(pid, generalId)) is string err) { _game.Notify(err); return; }
+        _lastKey = ""; Fill();
+    });
+
+    private void Dismiss(int pid, string generalId) => _game.RunWhenIdle(() =>
+    {
+        if (_game.Dispatch(new DismissGeneralCommand(pid, generalId)) is string err) { _game.Notify(err); return; }
+        _lastKey = ""; Fill();
+    });
 
     private void SetGeneral(int pid, int groupId, string? generalId) => _game.RunWhenIdle(() =>
     {

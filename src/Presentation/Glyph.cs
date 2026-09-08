@@ -17,9 +17,13 @@ namespace WarGame.Presentation;
 /// floco de neve, um sol, um globo, um punho erguido.
 ///
 /// Qual é a chapa de quê não está aqui: vem da coluna `glyph` das tabelas que a têm — building,
-/// tech_branch, season, map_mode, air_mission e naval_mission. Este ficheiro só sabe desenhar; a base de
-/// dados é que sabe o que se desenha onde. O que não conhecer sai como roda dentada — a peça neutra, que é
-/// melhor do que um buraco.</summary>
+/// tech_branch, season, map_mode, air_mission, naval_mission, chronicle_kind, cabinet_slot,
+/// occupation_policy e wound_kind. Este ficheiro só sabe desenhar; a base de dados é que sabe o que se
+/// desenha onde. O que não conhecer sai como roda dentada — a peça neutra, que é melhor do que um buraco.
+///
+/// A coluna `icon` (o emoji) fica onde está: é o que se lê no texto corrido de um aviso ou de uma linha da
+/// crónica, onde não há nó nenhum para desenhar. A chapa serve as fichas, os botões e as listas — os
+/// sítios em que o emoji se via como emoji.</summary>
 public static partial class Glyph        // partial: leva um nó Godot lá dentro (GD0002)
 {
     /// <summary>Todos os nomes que este ficheiro sabe desenhar. É público para o contador do smoke poder
@@ -30,6 +34,10 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "fabrica", "livro", "frasco", "atomo", "bigorna", "estrada", "escudo",
         "floco", "chuva", "sol", "folha", "globo", "caixa", "punho", "gente",
         "bomba", "alvo", "luneta", "roda",
+        // a segunda leva: crónica, gabinete, ocupação e baixas no comando
+        "espadas", "pomba", "bandeira", "medalha", "coluna", "coroa", "aperto", "fita",
+        "galao", "taca", "barco", "estilhaco", "pasta", "corrente", "balanca", "caveira",
+        "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -295,6 +303,200 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Line(0.22f, 0.90f, 0.48f, 0.90f, 0.85f);
                 break;
 
+            // Duas espadas cruzadas: a guerra. É a chapa mais antiga que há para isto e não é de ninguém.
+            case "espadas":
+                Line(0.16f, 0.84f, 0.82f, 0.18f, 1.15f);
+                Line(0.84f, 0.84f, 0.18f, 0.18f, 1.15f);
+                Line(0.16f, 0.64f, 0.36f, 0.84f);          // guarda da lâmina que sobe para a direita
+                Line(0.84f, 0.64f, 0.64f, 0.84f);
+                Dot(0.14f, 0.86f, 0.05f);
+                Dot(0.86f, 0.86f, 0.05f);
+                break;
+
+            // Pomba de asa levantada: a paz.
+            case "pomba":
+                Fill(0.16f, 0.74f, 0.36f, 0.56f, 0.58f, 0.52f, 0.74f, 0.36f, 0.72f, 0.28f, 0.84f, 0.30f,
+                     0.86f, 0.38f, 0.76f, 0.52f, 0.66f, 0.72f, 0.44f, 0.82f, 0.24f, 0.82f);
+                Poly(0.40f, 0.58f, 0.52f, 0.32f, 0.64f, 0.56f);
+                break;
+
+            // Bandeira num mastro: a rendição. Sem cor nenhuma — a cor é da moldura, e branca já ela é.
+            case "bandeira":
+                Line(0.26f, 0.10f, 0.26f, 0.92f, 1.15f);
+                Poly(0.26f, 0.16f, 0.86f, 0.16f, 0.86f, 0.52f, 0.26f, 0.52f);
+                Line(0.16f, 0.92f, 0.38f, 0.92f);
+                break;
+
+            // Medalha pendurada na fita: a baixa no comando e o comandante que a leva.
+            case "medalha":
+                Line(0.36f, 0.10f, 0.44f, 0.42f);
+                Line(0.64f, 0.10f, 0.56f, 0.42f);
+                Line(0.36f, 0.10f, 0.64f, 0.10f);
+                Ring(0.50f, 0.64f, 0.26f, 1.1f);
+                Dot(0.50f, 0.64f, 0.08f);
+                break;
+
+            // Pórtico de colunas: a capital, o palácio do governo, a administração civil.
+            case "coluna":
+                Poly(0.10f, 0.34f, 0.50f, 0.12f, 0.90f, 0.34f);
+                Line(0.10f, 0.34f, 0.90f, 0.34f, 1.1f);
+                foreach (float x in new[] { 0.24f, 0.50f, 0.76f }) Line(x, 0.38f, x, 0.78f, 1.1f);
+                Line(0.14f, 0.78f, 0.86f, 0.78f);
+                Line(0.08f, 0.86f, 0.92f, 0.86f, 1.15f);
+                break;
+
+            // Coroa de três pontas sobre o aro: o domínio.
+            case "coroa":
+                Poly(0.14f, 0.72f, 0.14f, 0.30f, 0.32f, 0.48f, 0.50f, 0.20f, 0.68f, 0.48f, 0.86f, 0.30f,
+                     0.86f, 0.72f, 0.14f, 0.72f);
+                Line(0.12f, 0.80f, 0.88f, 0.80f, 1.15f);
+                Dot(0.14f, 0.30f, 0.05f);
+                Dot(0.50f, 0.20f, 0.055f);
+                Dot(0.86f, 0.30f, 0.05f);
+                break;
+
+            // Duas mãos que se apertam: a aliança, e a ocupação entregue a gente da terra.
+            case "aperto":
+                Line(0.06f, 0.34f, 0.36f, 0.44f);
+                Line(0.06f, 0.34f, 0.06f, 0.50f);
+                Line(0.06f, 0.50f, 0.34f, 0.64f);
+                Line(0.94f, 0.34f, 0.64f, 0.44f);
+                Line(0.94f, 0.34f, 0.94f, 0.50f);
+                Line(0.94f, 0.50f, 0.66f, 0.64f);
+                Fill(0.36f, 0.42f, 0.64f, 0.42f, 0.66f, 0.64f, 0.34f, 0.64f);
+                break;
+
+            // Galhardete de cauda de andorinha: a honra de batalha que uma tropa ganha e passa a levar.
+            case "fita":
+                Poly(0.28f, 0.12f, 0.72f, 0.12f, 0.72f, 0.88f, 0.50f, 0.70f, 0.28f, 0.88f, 0.28f, 0.12f);
+                Line(0.28f, 0.30f, 0.72f, 0.30f);
+                Line(0.28f, 0.44f, 0.72f, 0.44f);
+                break;
+
+            // Três divisas: a promoção.
+            case "galao":
+                foreach (float y in new[] { 0.24f, 0.46f, 0.68f })
+                    Poly(0.16f, y + 0.18f, 0.50f, y, 0.84f, y + 0.18f);
+                break;
+
+            // Taça de duas asas: o espólio de guerra.
+            case "taca":
+                Poly(0.28f, 0.16f, 0.72f, 0.16f, 0.68f, 0.48f, 0.50f, 0.58f, 0.32f, 0.48f, 0.28f, 0.16f);
+                Arc(0.26f, 0.28f, 0.13f, Mathf.Pi * 0.5f, Mathf.Pi * 1.5f);
+                Arc(0.74f, 0.28f, 0.13f, Mathf.Pi * 1.5f, Mathf.Pi * 2.5f);
+                Line(0.50f, 0.58f, 0.50f, 0.76f, 1.15f);
+                Line(0.38f, 0.76f, 0.62f, 0.76f);
+                Line(0.30f, 0.86f, 0.70f, 0.86f, 1.2f);
+                break;
+
+            // Navio de vela e casco: o governo que embarca para o exílio.
+            case "barco":
+                Poly(0.08f, 0.62f, 0.92f, 0.62f, 0.78f, 0.84f, 0.22f, 0.84f, 0.08f, 0.62f);
+                Line(0.50f, 0.62f, 0.50f, 0.16f, 1.1f);
+                Poly(0.50f, 0.22f, 0.80f, 0.44f, 0.50f, 0.52f);
+                Line(0.14f, 0.72f, 0.86f, 0.72f);
+                break;
+
+            // Estrela de estilhaços: a sabotagem — o rebentamento na retaguarda.
+            case "estilhaco":
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = Mathf.Tau * i / 8f;
+                    var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    ci.DrawLine(P(0.5f, 0.5f) + dir * 0.14f * u,
+                                P(0.5f, 0.5f) + dir * (i % 2 == 0 ? 0.46f : 0.30f) * u, ink, thick * 1.1f);
+                }
+                Ring(0.50f, 0.50f, 0.12f);
+                break;
+
+            // Pasta de despachos: o gabinete civil e as cadeiras dele.
+            case "pasta":
+                Poly(0.12f, 0.34f, 0.88f, 0.34f, 0.88f, 0.84f, 0.12f, 0.84f, 0.12f, 0.34f);
+                Arc(0.50f, 0.34f, 0.16f, Mathf.Pi, Mathf.Tau);
+                Line(0.12f, 0.54f, 0.88f, 0.54f);
+                Fill(0.44f, 0.48f, 0.56f, 0.48f, 0.56f, 0.60f, 0.44f, 0.60f);
+                break;
+
+            // Três elos: os prisioneiros e o trabalho forçado.
+            case "corrente":
+                Ring(0.26f, 0.28f, 0.15f, 1.1f);
+                Ring(0.50f, 0.50f, 0.15f, 1.1f);
+                Ring(0.74f, 0.72f, 0.15f, 1.1f);
+                break;
+
+            // Balança de dois pratos: a lei nacional.
+            case "balanca":
+                Line(0.50f, 0.14f, 0.50f, 0.80f, 1.15f);
+                Line(0.12f, 0.30f, 0.88f, 0.30f, 1.15f);
+                Line(0.30f, 0.86f, 0.70f, 0.86f, 1.15f);
+                Line(0.12f, 0.30f, 0.02f, 0.52f);
+                Line(0.12f, 0.30f, 0.22f, 0.52f);
+                Arc(0.12f, 0.52f, 0.10f, 0f, Mathf.Pi);
+                Line(0.88f, 0.30f, 0.78f, 0.52f);
+                Line(0.88f, 0.30f, 0.98f, 0.52f);
+                Arc(0.88f, 0.52f, 0.10f, 0f, Mathf.Pi);
+                break;
+
+            // Caveira: o revés e o comandante que não volta.
+            case "caveira":
+                Arc(0.50f, 0.50f, 0.30f, Mathf.Pi, Mathf.Tau, 1.15f);
+                Poly(0.20f, 0.50f, 0.20f, 0.66f, 0.32f, 0.72f, 0.32f, 0.86f, 0.68f, 0.86f, 0.68f, 0.72f,
+                     0.80f, 0.66f, 0.80f, 0.50f);
+                Dot(0.38f, 0.50f, 0.08f);
+                Dot(0.62f, 0.50f, 0.08f);
+                Poly(0.50f, 0.58f, 0.44f, 0.68f, 0.56f, 0.68f, 0.50f, 0.58f);
+                break;
+
+            // Megafone com o som a sair: a propaganda.
+            case "megafone":
+                Poly(0.10f, 0.40f, 0.10f, 0.60f, 0.44f, 0.74f, 0.44f, 0.26f, 0.10f, 0.40f);
+                Line(0.18f, 0.58f, 0.18f, 0.82f, 1.1f);
+                Arc(0.50f, 0.50f, 0.14f, -Mathf.Pi * 0.4f, Mathf.Pi * 0.4f);
+                Arc(0.50f, 0.50f, 0.30f, -Mathf.Pi * 0.4f, Mathf.Pi * 0.4f);
+                break;
+
+            // Penso: o ferimento ligeiro, o que tira o comandante de serviço por uns dias e mais nada.
+            case "penso":
+                Poly(0.14f, 0.44f, 0.44f, 0.14f, 0.86f, 0.56f, 0.56f, 0.86f, 0.14f, 0.44f);
+                Line(0.32f, 0.26f, 0.74f, 0.68f);
+                Line(0.26f, 0.32f, 0.68f, 0.74f);
+                Dot(0.42f, 0.48f, 0.035f);
+                Dot(0.50f, 0.40f, 0.035f);
+                Dot(0.58f, 0.52f, 0.035f);
+                Dot(0.50f, 0.60f, 0.035f);
+                break;
+
+            // Gota: o ferido em combate.
+            case "gota":
+                Poly(0.50f, 0.10f, 0.76f, 0.48f, 0.76f, 0.64f, 0.50f, 0.88f, 0.24f, 0.64f, 0.24f, 0.48f, 0.50f, 0.10f);
+                Arc(0.50f, 0.62f, 0.14f, Mathf.Pi * 0.85f, Mathf.Pi * 1.55f);
+                break;
+
+            // Cruz de socorro: o ferido com gravidade, o que sai da guerra por meses.
+            case "cruz":
+                Poly(0.38f, 0.14f, 0.62f, 0.14f, 0.62f, 0.38f, 0.86f, 0.38f, 0.86f, 0.62f, 0.62f, 0.62f,
+                     0.62f, 0.86f, 0.38f, 0.86f, 0.38f, 0.62f, 0.14f, 0.62f, 0.14f, 0.38f, 0.38f, 0.38f, 0.38f, 0.14f);
+                break;
+
+            // Pára-quedas: o comandante de asa abatido sobre o inimigo.
+            case "paraquedas":
+                Arc(0.50f, 0.46f, 0.36f, Mathf.Pi, Mathf.Tau, 1.15f);
+                Line(0.14f, 0.46f, 0.86f, 0.46f);
+                Line(0.14f, 0.46f, 0.46f, 0.72f);
+                Line(0.50f, 0.46f, 0.50f, 0.72f);
+                Line(0.86f, 0.46f, 0.54f, 0.72f);
+                Dot(0.50f, 0.80f, 0.08f);
+                break;
+
+            // Vagas: o comandante de esquadra afundado com o navio.
+            case "onda":
+                foreach (float y in new[] { 0.32f, 0.52f, 0.72f })
+                {
+                    Arc(0.30f, y, 0.20f, Mathf.Pi, Mathf.Tau);
+                    Arc(0.70f, y, 0.20f, 0f, Mathf.Pi);
+                }
+                break;
+
             // Roda dentada: a peça neutra de quem não tem chapa própria.
             default:
                 Ring(0.50f, 0.50f, 0.28f, 1.1f);
@@ -310,8 +512,9 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
     }
 
     /// <summary>Todos os nomes de chapa que a base de dados pede hoje, sem repetidos: obras, ramos da
-    /// árvore, estações, modos de mapa e missões de ar e mar. `extra` é para os poucos sítios que não são
-    /// linha de tabela nenhuma (a infra-estrutura e a fortificação do menu de construir, que são regras).
+    /// árvore, estações, modos de mapa, missões de ar e mar, géneros da crónica, pastas do gabinete,
+    /// políticas de ocupação e gravidades de baixa. `extra` é para os poucos sítios que não são linha de
+    /// tabela nenhuma (a infra-estrutura e a fortificação do menu de construir, que são regras).
     /// Serve o contador do --smoke: é a lista que se compara com o que o Glyph sabe mesmo desenhar.</summary>
     public static List<string> Asked(World w, params string[] extra)
         => w.BuildingDefs.Values.Select(d => d.Glyph)
@@ -320,6 +523,10 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
             .Concat(w.MapModeDefs.Values.Select(m => m.Glyph))
             .Concat(w.AirMissionDefs.Values.Select(m => m.Glyph))
             .Concat(w.NavalMissionDefs.Values.Select(m => m.Glyph))
+            .Concat(w.ChronicleKinds.Values.Select(k => k.Glyph))
+            .Concat(w.CabinetSlots.Select(c => c.Glyph))
+            .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
+            .Concat(w.WoundKinds.Values.Select(k => k.Glyph))
             .Concat(extra)
             .Distinct().ToList();
 

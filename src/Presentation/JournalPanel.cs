@@ -124,10 +124,24 @@ public partial class JournalPanel : PanelContainer
             dot.AddThemeStyleboxOverride("panel", Ui.Box(tone with { A = def is null ? 0.35f : 0.9f }, 0));
             row.AddChild(dot);                                    // carril: a barra fina que faz a linha do tempo
 
-            var mark = Ui.Lbl(def?.Icon ?? "·", 17);
-            mark.CustomMinimumSize = new Vector2(26, 0);
-            mark.AddThemeColorOverride("font_color", tone);
-            mark.TooltipText = def?.Name ?? "Boletim da sessão";
+            // A marca do género: chapa desenhada, na cor do peso. Sem género (boletim da sessão) fica o
+            // ponto de texto — não há chapa para "nada em especial", e inventar uma era mentir.
+            Control mark;
+            if (def is not null)
+            {
+                var plate = Glyph.Make(def.Glyph, 18, tone, def.Name);
+                plate.CustomMinimumSize = new Vector2(26, 18);
+                plate.SizeFlagsVertical = SizeFlags.ShrinkCenter;   // linha alta de texto não estica a chapa
+                mark = plate;
+            }
+            else
+            {
+                var dotLbl = Ui.Lbl("·", 17);
+                dotLbl.CustomMinimumSize = new Vector2(26, 0);
+                dotLbl.AddThemeColorOverride("font_color", tone);
+                dotLbl.TooltipText = "Boletim da sessão";
+                mark = dotLbl;
+            }
             row.AddChild(mark);
 
             var when = Ui.Lbl(date.ToString("dd MMM"), 15);
@@ -155,15 +169,21 @@ public partial class JournalPanel : PanelContainer
         foreach (var (kind, n) in counts.OrderByDescending(kv => w.ChronicleKinds.GetValueOrDefault(kv.Key)?.Weight ?? 0).ThenBy(kv => kv.Key))
         {
             var def = w.ChronicleKinds.GetValueOrDefault(kind);
-            _filters.AddChild(Chip($"{def?.Icon ?? "·"} {def?.Name ?? kind}", kind, n));
+            _filters.AddChild(Chip(def?.Name ?? kind, kind, n, def?.Glyph ?? "roda"));
         }
     }
 
-    private Button Chip(string text, string kind, int count)
+    /// <summary>Chapa de filtro. Com desenho leva um recuo à cabeça do texto do tamanho dele, porque um
+    /// Button não arruma filhos e a chapa é ancorada por cima. O "Tudo" não é género nenhum e não leva
+    /// desenho: é o botão que tira o filtro, não mais um género da lista.</summary>
+    private Button Chip(string text, string kind, int count, string? glyph = null)
     {
-        var b = Ui.Btn($"{text} ({count})", () => SetFilter(kind), 0f, _filter == kind ? Ui.Kind.Primary : Ui.Kind.Normal);
+        bool on = _filter == kind;
+        var b = Ui.Btn(glyph is null ? $"{text} ({count})" : $"      {text} ({count})",
+                       () => SetFilter(kind), 0f, on ? Ui.Kind.Primary : Ui.Kind.Normal);
         b.AddThemeFontSizeOverride("font_size", 15);
         b.CustomMinimumSize = new Vector2(0, 36);
+        if (glyph is not null) Glyph.Stamp(b, glyph, on ? Ui.Ink : Ui.Accent, 15f);
         return b;
     }
 }

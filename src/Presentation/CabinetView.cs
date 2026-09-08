@@ -27,10 +27,13 @@ public static class CabinetView
 
         float wages = CabinetSystem.Wages(w, c);
         int own = c.Cabinet.Values.Count(id => w.AdvisorDefs.TryGetValue(id, out var a) && a.CountryTag is not null);
-        var head = Ui.Lbl($"🏛 Gabinete: {c.Cabinet.Count}/{w.CabinetSlots.Count} pastas ocupadas · folha de {wages:0.0}/dia"
+        var headRow = new HBoxContainer(); headRow.AddThemeConstantOverride("separation", 8);
+        headRow.AddChild(Glyph.Make("pasta", 17, Ui.Accent));
+        var head = Ui.Lbl($"Gabinete: {c.Cabinet.Count}/{w.CabinetSlots.Count} pastas ocupadas · folha de {wages:0.0}/dia"
                           + (own > 0 ? $" · {own} de casa" : ""), 17);
         head.AddThemeColorOverride("font_color", Ui.Accent);
-        v.AddChild(head);
+        headRow.AddChild(Ui.Grow(head));
+        v.AddChild(headRow);
 
         float bonus = w.Rule("advisor_tenure_bonus", 0.5f);
         foreach (var slot in w.CabinetSlots)
@@ -40,12 +43,15 @@ public static class CabinetView
             float tenure = World.CabinetTenure(w, c, slot.Id);
 
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10);
-            row.AddChild(Portrait(seated is not null && w.AdvisorDefs.TryGetValue(seated, out var sit) ? sit.Icon : slot.Icon,
-                                  seated is not null));
+            // Cadeira vazia mostra a chapa da pasta; cadeira ocupada mostra a cara do homem que lá está —
+            // essa continua a vir da tabela advisor, que é sabor nacional e não se desenha uma a uma.
+            row.AddChild(Portrait(seated is not null && w.AdvisorDefs.TryGetValue(seated, out var sit) ? sit.Icon : null,
+                                  slot.Glyph, seated is not null));
             var cell = Ui.Grow(new VBoxContainer()); cell.AddThemeConstantOverride("separation", 2);
 
             var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 8);
-            var pasta = Ui.Lbl($"{slot.Icon} {slot.Name}", 16);
+            title.AddChild(Glyph.Make(slot.Glyph, 15, Ui.TextDim, slot.Name));
+            var pasta = Ui.Lbl(slot.Name, 16);
             pasta.AddThemeColorOverride("font_color", Ui.TextDim);
             title.AddChild(pasta);
             if (seated is not null && w.AdvisorDefs.TryGetValue(seated, out var sat))
@@ -109,14 +115,21 @@ public static class CabinetView
 
     /// <summary>Retrato: a chapa emoldurada do homem que está na pasta (ou o ícone da pasta, apagado, quando
     /// a cadeira está vazia).</summary>
-    private static PanelContainer Portrait(string icon, bool seated)
+    private static PanelContainer Portrait(string? icon, string glyph, bool seated)
     {
         var frame = new PanelContainer { CustomMinimumSize = new Vector2(54, 54) };
         frame.AddThemeStyleboxOverride("panel", Ui.Box(seated ? Ui.Ink : Ui.Surface.Darkened(0.3f), 6));
+        if (icon is null)
+        {
+            var plate = Glyph.Make(glyph, 26, Ui.Frame);
+            plate.SizeFlagsHorizontal = plate.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            frame.AddChild(plate);
+            return frame;
+        }
         var face = Ui.Lbl(icon, 26);
         face.HorizontalAlignment = HorizontalAlignment.Center;
         face.VerticalAlignment = VerticalAlignment.Center;
-        face.AddThemeColorOverride("font_color", seated ? Ui.Accent : Ui.Frame);
+        face.AddThemeColorOverride("font_color", Ui.Accent);
         frame.AddChild(face);
         return frame;
     }

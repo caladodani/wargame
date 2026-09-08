@@ -120,13 +120,13 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort FROM occupation_policy ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort,glyph FROM occupation_policy ORDER BY sort"))
             w.OccupationPolicyDefs[(string)r["id"]!] = new OccupationPolicyDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToSingle(r["resistance_mult"]), Convert.ToSingle(r["yield_mult"]),
-                Convert.ToSingle(r["manpower_mult"]), (string)r["note"]!, Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,weight FROM chronicle_kind"))
+                Convert.ToSingle(r["manpower_mult"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,icon,weight,glyph FROM chronicle_kind"))
             w.ChronicleKinds[(string)r["id"]!] = new ChronicleKind((string)r["id"]!, (string)r["name"]!,
-                (string)r["icon"]!, Convert.ToInt32(r["weight"]));
+                (string)r["icon"]!, Convert.ToInt32(r["weight"]), (string)r["glyph"]!);
         w.SeasonDefs.Clear(); w.SeasonMonths.Clear(); w.SeasonTerrain.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,move_mult,org_mult,attrition,note,glyph FROM season"))
             w.SeasonDefs[(string)r["id"]!] = new SeasonDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
@@ -152,8 +152,9 @@ public sealed class SqlWorldRepository : IWorldRepository
                 r["country_tag"] as string, r["icon"] as string ?? "🎖", r["note"] as string ?? "",
                 r["domain"] as string ?? World.Land, r["xp"] is null ? 0f : Convert.ToSingle(r["xp"]));
         w.CabinetSlots.Clear();
-        foreach (var r in _static.Query("SELECT id,name,icon,sort FROM cabinet_slot ORDER BY sort"))
-            w.CabinetSlots.Add(new CabinetSlotDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!, Convert.ToInt32(r["sort"])));
+        foreach (var r in _static.Query("SELECT id,name,icon,sort,glyph FROM cabinet_slot ORDER BY sort"))
+            w.CabinetSlots.Add(new CabinetSlotDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!));
         foreach (var r in _static.Query("SELECT id,country_tag,slot,name,icon,cost,note FROM advisor ORDER BY id"))
             w.AdvisorDefs[(string)r["id"]!] = new AdvisorDef((string)r["id"]!, r["country_tag"] as string,
                 (string)r["slot"]!, (string)r["name"]!, (string)r["icon"]!, Convert.ToSingle(r["cost"]),
@@ -164,10 +165,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         w.PowerTiers.Clear();
         foreach (var r in _static.Query("SELECT level,name,min_share FROM power_tier ORDER BY min_share"))
             w.PowerTiers.Add(new PowerTier(Convert.ToInt32(r["level"]), (string)r["name"]!, Convert.ToSingle(r["min_share"])));
-        foreach (var r in _static.Query("SELECT id,name,icon,days,weight,fatal,domain FROM wound_kind"))
+        foreach (var r in _static.Query("SELECT id,name,icon,days,weight,fatal,domain,glyph FROM wound_kind"))
             w.WoundKinds[(string)r["id"]!] = new WoundKind((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["days"]), Convert.ToSingle(r["weight"]), Convert.ToInt32(r["fatal"]) != 0,
-                r["domain"] as string);
+                r["domain"] as string, (string)r["glyph"]!);
         w.GeneralRanks.Clear();
         foreach (var r in _static.Query("SELECT domain,level,name,xp,bonus,country_tag FROM general_rank ORDER BY domain,xp"))
             w.GeneralRanks.Add(new GeneralRank((string)r["domain"]!, Convert.ToInt32(r["level"]), (string)r["name"]!,

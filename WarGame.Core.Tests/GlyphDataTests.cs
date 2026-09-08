@@ -19,6 +19,9 @@ public class GlyphDataTests
         "fabrica", "livro", "frasco", "atomo", "bigorna", "estrada", "escudo",
         "floco", "chuva", "sol", "folha", "globo", "caixa", "punho", "gente",
         "bomba", "alvo", "luneta", "roda",
+        "espadas", "pomba", "bandeira", "medalha", "coluna", "coroa", "aperto", "fita",
+        "galao", "taca", "barco", "estilhaco", "pasta", "corrente", "balanca", "caveira",
+        "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
     };
 
     [Fact]
@@ -57,6 +60,33 @@ public class GlyphDataTests
                            .Concat(w.AirMissionDefs.Values.Select(m => m.Glyph))
                            .Concat(w.NavalMissionDefs.Values.Select(m => m.Glyph)))
             Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>As quatro tabelas que só agora deixaram o emoji: os géneros da crónica, as pastas do
+    /// gabinete, as políticas de ocupação e as gravidades de baixa. Todas se vêem em fichas e listas — a
+    /// linha do tempo do Jornal, as cadeiras do gabinete, os botões da ocupação, as camas da enfermaria — e
+    /// todas partiriam caladas com um nome mal escrito, que sai como roda dentada e não como erro.</summary>
+    [Fact]
+    public void Cronica_gabinete_ocupacao_e_baixas_pedem_chapas_que_existem()
+    {
+        var w = FactionTests.BuildReal();
+        Assert.NotEmpty(w.ChronicleKinds);
+        Assert.NotEmpty(w.CabinetSlots);
+        Assert.NotEmpty(w.OccupationPolicyDefs);
+        Assert.NotEmpty(w.WoundKinds);
+        foreach (var g in w.ChronicleKinds.Values.Select(k => k.Glyph)
+                           .Concat(w.CabinetSlots.Select(c => c.Glyph))
+                           .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
+                           .Concat(w.WoundKinds.Values.Select(k => k.Glyph)))
+            Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>Nenhum nome de chapa repetido na lista dos desenhados: um nome a dobrar é um `case` que
+    /// nunca chega a correr, e o desenho que ele trazia perde-se sem dar sinal.</summary>
+    [Fact]
+    public void A_lista_de_desenhos_nao_tem_nomes_repetidos()
+    {
+        Assert.Equal(Desenhados.Length, Desenhados.Distinct().Count());
     }
 
     /// <summary>Nenhum ramo a mais: uma linha em tech_branch que não é ramo de tecnologia nenhuma é uma

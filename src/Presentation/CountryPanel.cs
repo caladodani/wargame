@@ -143,6 +143,22 @@ public partial class CountryPanel : PanelContainer
         return Sections.Length;
     }
 
+    /// <summary>--smoke: as chapas desenhadas na secção que mais desenhou. As fichas do painel do País não
+    /// estão todas na mesma aba — a da ocupação só existe na Guerra e a do gabinete só na Nação — e contar
+    /// só a aba de entrada era dizer zero de uma coisa que está lá desenhada.</summary>
+    public (int Drawn, int FellBack) SmokePlates()
+    {
+        int best = 0, fell = 0;
+        for (int i = 0; i < Sections.Length; i++)
+        {
+            _tab = i; _lastKey = ""; Fill();
+            var (d, f) = Glyph.Count(this);
+            if (d > best) { best = d; fell = f; }
+        }
+        _tab = 0; _lastKey = ""; Fill();
+        return (best, fell);
+    }
+
     private void Fill()
     {
         try

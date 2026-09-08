@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS national_spirit (     -- espíritos nacionais (HoI4);
 );
 -- ===== Gabinete civil (HoI4: political advisors); CabinetSystem/AppointAdvisorCommand =====
 CREATE TABLE IF NOT EXISTS cabinet_slot (        -- pastas do gabinete: uma cadeira por pasta e por país
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0,
+  glyph TEXT NOT NULL DEFAULT ''                 -- nome de um desenho do Glyph.cs — é este que se vê
 );
 CREATE TABLE IF NOT EXISTS advisor (             -- conselheiros; country_tag NULL = disponível a todos
   id TEXT PRIMARY KEY, country_tag TEXT, slot TEXT NOT NULL REFERENCES cabinet_slot(id),
@@ -273,7 +274,8 @@ CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar
 CREATE TABLE IF NOT EXISTS occupation_policy ( -- políticas de ocupação (OccupationSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   resistance_mult REAL NOT NULL, yield_mult REAL NOT NULL, manpower_mult REAL NOT NULL,
-  note TEXT NOT NULL, sort INTEGER NOT NULL);
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
 CREATE TABLE IF NOT EXISTS s_occupation (     -- política que cada ocupante aplica a cada povo (save)
   country_id INTEGER, target_id INTEGER, policy_id TEXT NOT NULL, since_day INTEGER NOT NULL,
   PRIMARY KEY (country_id, target_id));

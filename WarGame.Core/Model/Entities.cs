@@ -162,7 +162,7 @@ public sealed record SeasonDef(string Id, string Name, string Icon, float MoveMu
 /// <summary>Género de acontecimento da crónica (tabela chronicle_kind): o ícone com que aparece na linha do
 /// tempo e o peso (1 = rotina, 3 = história). A regra chronicle_min_weight decide o que chega a ser escrito —
 /// mudar o que a campanha lembra é mudar uma linha de SQL, não o código.</summary>
-public sealed record ChronicleKind(string Id, string Name, string Icon, int Weight);
+public sealed record ChronicleKind(string Id, string Name, string Icon, int Weight, string Glyph = "");
 
 /// <summary>Uma entrada da crónica da campanha (ChronicleSystem). Guarda-se no save: o Jornal morria com a
 /// sessão e a guerra de há dois anos ficava sem memória nenhuma.</summary>
@@ -203,7 +203,7 @@ public sealed record GeneralDef(string Id, string Name, string StatKey, float Mu
                                 string Domain = "exercito", float Xp = 0f);
 
 /// <summary>Pasta do gabinete civil (tabela cabinet_slot): uma cadeira por pasta e por país.</summary>
-public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort);
+public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort, string Glyph = "");
 
 /// <summary>Conselheiro civil (tabelas advisor/advisor_effect): senta-se numa pasta, custa a nomeação e um
 /// salário por dia, e enquanto lá está multiplica os stats de Effects. CountryTag null = serve qualquer país.</summary>
@@ -230,7 +230,7 @@ public sealed record GeneralRank(string Domain, int Level, string Name, float Xp
 /// serviço, o peso com que sai no sorteio e se é fatal. Um arranhão e um caixão são a mesma linha com
 /// números diferentes — a progressão muda-se na tabela, não no código.</summary>
 public sealed record WoundKind(string Id, string Name, string Icon, int Days, float Weight, bool Fatal,
-                               string? Domain = null);
+                               string? Domain = null, string Glyph = "");
 
 /// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
 public sealed class ActiveDecision
@@ -252,7 +252,7 @@ public sealed record HistorySample(int Day, int CountryId, float Money, int Divi
 /// <summary>Política de ocupação (tabela occupation_policy; OccupationSystem): o que se faz ao povo da terra
 /// tomada. Resistance/Yield/Manpower são multiplicadores (1 = como era antes de haver políticas).</summary>
 public sealed record OccupationPolicyDef(string Id, string Name, string Icon, float Resistance, float Yield,
-                                         float Manpower, string Note, int Sort);
+                                         float Manpower, string Note, int Sort, string Glyph = "");
 
 /// <summary>Política que um ocupante aplica ao povo de um país (save: s_occupation).</summary>
 public sealed class Occupation

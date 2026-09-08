@@ -32,9 +32,12 @@ public static class OccupationView
         card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.16f, 0.12f, 0.09f, 0.92f), 10));
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
 
-        var head = Ui.Lbl($"🏴 {regions} região{(regions == 1 ? "" : "ões")} sob ocupação · {now.Icon} {now.Name}", 17);
+        var headRow = new HBoxContainer(); headRow.AddThemeConstantOverride("separation", 8);
+        headRow.AddChild(Glyph.Make(now.Glyph, 17, Ui.Accent, now.Name));
+        var head = Ui.Lbl($"{regions} região{(regions == 1 ? "" : "ões")} sob ocupação · {now.Name}", 17);
         head.AddThemeColorOverride("font_color", Ui.Accent);
-        v.AddChild(head);
+        headRow.AddChild(Ui.Grow(head));
+        v.AddChild(headRow);
 
         var bar = Ui.Bar(Mathf.Clamp(heat, 0f, 1f), Heat(heat), 0f);
         bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -49,11 +52,13 @@ public static class OccupationView
             string id = def.Id;
             string? no = OccupationSystem.Block(w, occupierId, ownerId, id);
             bool on = def.Id == now.Id;
-            var b = Ui.Btn($"{def.Icon} {def.Name}   —   revolta ×{def.Resistance:0.00} · rende ×{def.Yield:0.00} · homens ×{def.Manpower:0.00}",
+            var b = Ui.Btn($"      {def.Name}   —   revolta ×{def.Resistance:0.00} · rende ×{def.Yield:0.00} · homens ×{def.Manpower:0.00}",
                            () => onPick(id), 0, on ? Ui.Kind.Primary : Ui.Kind.Normal);
+            b.Alignment = HorizontalAlignment.Left;
             b.Disabled = no is not null;
             b.TooltipText = on ? def.Note : no ?? def.Note;
             b.AddThemeFontSizeOverride("font_size", 15);
+            Glyph.Stamp(b, def.Glyph, on ? Ui.Ink : Ui.Accent, 15f);
             v.AddChild(Ui.Grow(b));
         }
         return card;

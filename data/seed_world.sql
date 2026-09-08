@@ -501,23 +501,24 @@ INSERT INTO rule (key,value,note) VALUES
 -- Crónica da campanha (tabela chronicle_kind; ChronicleSystem). weight: 1 rotina, 2 de peso, 3 história.
 -- chronicle_min_weight decide o que chega a ser escrito; chronicle_max é o tecto de entradas guardadas.
 CREATE TABLE IF NOT EXISTS chronicle_kind (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, weight INTEGER NOT NULL);
-INSERT INTO chronicle_kind VALUES ('guerra','Guerra','⚔',3);
-INSERT INTO chronicle_kind VALUES ('paz','Paz','🕊',3);
-INSERT INTO chronicle_kind VALUES ('capitulacao','Capitulação','🏳',3);
-INSERT INTO chronicle_kind VALUES ('baixa','Baixa no comando','🎖',3);
-INSERT INTO chronicle_kind VALUES ('capital','Capital tomada','🏛',3);
-INSERT INTO chronicle_kind VALUES ('dominio','Domínio mundial','👑',3);
-INSERT INTO chronicle_kind VALUES ('bomba','Bomba atómica','☢',3);
-INSERT INTO chronicle_kind VALUES ('revolta','Revolta','✊',2);
-INSERT INTO chronicle_kind VALUES ('alianca','Aliança','🤝',2);
-INSERT INTO chronicle_kind VALUES ('honra','Honra de batalha','▮',2);
-INSERT INTO chronicle_kind VALUES ('promocao','Promoção','🎖',2);
-INSERT INTO chronicle_kind VALUES ('foco','Foco nacional','🎯',2);
-INSERT INTO chronicle_kind VALUES ('espolio','Espólio de guerra','🏆',3);
-INSERT INTO chronicle_kind VALUES ('frente','Avanço na frente','🛡',2);
-INSERT INTO chronicle_kind VALUES ('estacao','Estação','🌦',1);
-INSERT INTO chronicle_kind VALUES ('exilio','Governo no exílio','⚑',3);
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, weight INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('guerra','Guerra','⚔',3,'espadas');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('paz','Paz','🕊',3,'pomba');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('capitulacao','Capitulação','🏳',3,'bandeira');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('baixa','Baixa no comando','🎖',3,'medalha');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('capital','Capital tomada','🏛',3,'coluna');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('dominio','Domínio mundial','👑',3,'coroa');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('bomba','Bomba atómica','☢',3,'bomba');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('revolta','Revolta','✊',2,'punho');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('alianca','Aliança','🤝',2,'aperto');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('honra','Honra de batalha','▮',2,'fita');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('promocao','Promoção','🎖',2,'galao');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('foco','Foco nacional','🎯',2,'alvo');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('espolio','Espólio de guerra','🏆',3,'taca');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('frente','Avanço na frente','🛡',2,'escudo');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('estacao','Estação','🌦',1,'chuva');
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('exilio','Governo no exílio','⚑',3,'barco');
 INSERT INTO rule (key,value,note) VALUES
  ('chronicle_min_weight',2,'peso mínimo para um acontecimento entrar na crónica'),
  ('chronicle_max',400,'entradas guardadas na crónica; as mais antigas caem');
@@ -628,13 +629,14 @@ CREATE TABLE IF NOT EXISTS occupation_policy (
   resistance_mult REAL NOT NULL,             -- peso no crescimento da resistência
   yield_mult REAL NOT NULL,                  -- peso no rendimento da região ocupada
   manpower_mult REAL NOT NULL,               -- fatia daquela população que dá recrutas ao ocupante
-  note TEXT NOT NULL, sort INTEGER NOT NULL);
-INSERT INTO occupation_policy (id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort) VALUES
- ('supervisao_civil','Supervisão civil','🏛',1,1,1,'A administração de sempre, com os nossos por cima. Nem aperta nem alivia: é o que acontece a quem não decide nada.',0),
- ('policia_local','Polícia local','🤝',0.55,0.7,0.3,'A ordem fica com gente da terra. Rende menos e dá poucos recrutas, mas a resistência quase não pega.',1),
- ('governo_militar','Governo militar','🎖',0.75,1.15,0.6,'O exército administra. Cobra melhor do que os civis e mantém a rua calada, à conta de prender gente.',2),
- ('quotas_duras','Quotas duras','⚙',1.6,1.4,1.2,'A terra ocupada trabalha para a nossa guerra. Rende bem — e a população organiza-se depressa.',3),
- ('trabalho_forcado','Trabalho forçado','⛓',2.3,1.8,1.6,'Espremer até ao fim: fábricas nossas, homens nossos, e uma revolta à espera de acontecer.',4);
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO occupation_policy (id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort,glyph) VALUES
+ ('supervisao_civil','Supervisão civil','🏛',1,1,1,'A administração de sempre, com os nossos por cima. Nem aperta nem alivia: é o que acontece a quem não decide nada.',0,'coluna'),
+ ('policia_local','Polícia local','🤝',0.55,0.7,0.3,'A ordem fica com gente da terra. Rende menos e dá poucos recrutas, mas a resistência quase não pega.',1,'aperto'),
+ ('governo_militar','Governo militar','🎖',0.75,1.15,0.6,'O exército administra. Cobra melhor do que os civis e mantém a rua calada, à conta de prender gente.',2,'capacete'),
+ ('quotas_duras','Quotas duras','⚙',1.6,1.4,1.2,'A terra ocupada trabalha para a nossa guerra. Rende bem — e a população organiza-se depressa.',3,'roda'),
+ ('trabalho_forcado','Trabalho forçado','⛓',2.3,1.8,1.6,'Espremer até ao fim: fábricas nossas, homens nossos, e uma revolta à espera de acontecer.',4,'corrente');
 
 -- Doutrinas militares (grupo doctrine): defensiva / armas combinadas (default) / ofensiva.
 INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
@@ -657,7 +659,7 @@ INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude,scope) VALUES
  ('sabotagem_porto','Sabotagem do porto','Cargas nos guindastes e nos molhes: o cais desta região perde um nível e deixa de carregar o que carregava.',55,20,'sabotage_port',1,'region'),
  ('sabotagem_via','Sabotagem das vias','Pontes e caminhos-de-ferro pelos ares: a infraestrutura da região cai e leva tempo a repor-se.',45,15,'sabotage_infra',0.3,'region'),
  ('sabotagem_forte','Sabotagem das defesas','Minas nas casamatas: as fortificações da região perdem um nível.',50,18,'sabotage_fort',1,'region');
-INSERT INTO chronicle_kind VALUES ('sabotagem','Sabotagem','💥',2);
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('sabotagem','Sabotagem','💥',2,'estilhaco');
 
 -- Defesa da retaguarda (CounterIntelSystem): cada dia que uma equipa de sabotagem passa em terreno
 -- inimigo é um dia em que pode ser apanhada. A guarnição do dono da região é o que mais pesa.
@@ -768,10 +770,10 @@ INSERT INTO rule VALUES ('infra_repair_per_day', 0.002, 'infraestrutura reposta 
 INSERT INTO rule VALUES ('infra_repair_max_resist', 0.3, 'resistência acima da qual a ocupação não repara');
 
 -- ===== Gabinete civil: pastas, conselheiros e o que cada um vale (CabinetSystem) =====
-INSERT INTO cabinet_slot VALUES ('economia','Economia','🏭',1);
-INSERT INTO cabinet_slot VALUES ('seguranca','Segurança','🕵',2);
-INSERT INTO cabinet_slot VALUES ('propaganda','Propaganda','📣',3);
-INSERT INTO cabinet_slot VALUES ('ciencia','Ciência','📚',4);
+INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('economia','Economia','🏭',1,'fabrica');
+INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('seguranca','Segurança','🕵',2,'luneta');
+INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('propaganda','Propaganda','📣',3,'megafone');
+INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('ciencia','Ciência','📚',4,'livro');
 
 INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
  ('adv_industrial',NULL,'economia','Capitão de indústria','🏭',150,'As fábricas dele rendem mais do que as do Estado.'),
@@ -797,7 +799,7 @@ INSERT INTO advisor_effect VALUES ('adv_logistico','production_speed',1.05);
 INSERT INTO rule VALUES ('advisor_wage_share', 0.01, 'salário diário de um conselheiro, em fracção do que custou nomeá-lo');
 INSERT INTO rule VALUES ('advisor_tenure_days', 365, 'dias de casa para um conselheiro estar rodado de todo');
 INSERT INTO rule VALUES ('advisor_tenure_bonus', 0.5, 'quanto o que ele faz vale a mais, rodado de todo (0.5 = mais metade)');
-INSERT INTO chronicle_kind VALUES ('gabinete','Gabinete','🏛',2);
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('gabinete','Gabinete','🏛',2,'pasta');
 
 -- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)
 CREATE TABLE IF NOT EXISTS general (
@@ -887,13 +889,14 @@ INSERT INTO rule (key,value,note) VALUES
 -- comanda infantaria.
 CREATE TABLE IF NOT EXISTS wound_kind (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL, days INTEGER NOT NULL,
-  weight REAL NOT NULL, fatal INTEGER NOT NULL DEFAULT 0, domain TEXT);
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('arranhao','Ferimento ligeiro','🩹',6,50,0,NULL);
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('ferido','Ferido em combate','🩸',21,28,0,NULL);
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('grave','Ferido com gravidade','🏥',60,15,0,NULL);
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('morto','Morto em combate','⚰',0,7,1,NULL);
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('abatido','Abatido sobre o inimigo','🪂',45,12,0,'ar');
-INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain) VALUES ('afundado','Afundado com o navio','🌊',30,12,0,'mar');
+  weight REAL NOT NULL, fatal INTEGER NOT NULL DEFAULT 0, domain TEXT,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('arranhao','Ferimento ligeiro','🩹',6,50,0,NULL,'penso');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('ferido','Ferido em combate','🩸',21,28,0,NULL,'gota');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('grave','Ferido com gravidade','🏥',60,15,0,NULL,'cruz');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('morto','Morto em combate','⚰',0,7,1,NULL,'caveira');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('abatido','Abatido sobre o inimigo','🪂',45,12,0,'ar','paraquedas');
+INSERT INTO wound_kind (id,name,icon,days,weight,fatal,domain,glyph) VALUES ('afundado','Afundado com o navio','🌊',30,12,0,'mar','onda');
 INSERT INTO rule (key,value,note) VALUES
  ('wound_chance',0.035,'probabilidade de o comandante de um exército cair por batalha travada'),
  ('wound_chance_air',0.012,'probabilidade de um comandante de asa cair por combate no céu de uma região'),
@@ -911,7 +914,7 @@ INSERT INTO rule (key,value,note) VALUES
  ('prisoner_escape',0.001,'fracção de prisioneiros que foge por dia e volta ao pool de casa'),
  ('prisoner_return',0.60,'fracção dos prisioneiros que volta a casa quando se assina a paz'),
  ('prisoner_news_men',20000,'leva de prisioneiros a partir da qual a captura dá notícia');
-INSERT INTO chronicle_kind VALUES ('prisioneiros','Prisioneiros','⛓',2);
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('prisioneiros','Prisioneiros','⛓',2,'corrente');
 
 -- Grupos de exércitos com frente atribuída (ArmyGroupSystem)
 INSERT INTO rule VALUES ('army_group_max', 6, 'grupos de exércitos por país');
@@ -1038,7 +1041,7 @@ INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('com_fechado','export_share',0.2),('com_fechado','industry',1.10),('com_fechado','research_speed',0.90),('com_fechado','export_price',1.30);
 
 -- Uma lei nova aprovada é acontecimento de campanha: o parlamento muda o país sem um tiro.
-INSERT INTO chronicle_kind VALUES ('lei','Lei nacional','⚖',2);
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('lei','Lei nacional','⚖',2,'balanca');
 
 -- Alarme de derrota (DefeatAlarmSystem): perder uma batalha conta, perder três seguidas custa. O klaxon da
 -- UI toca no alarme; a faixa de avisos guarda a derrota enquanto ela é fresca.
@@ -1046,4 +1049,4 @@ INSERT INTO rule (key,value,note) VALUES
  ('defeat_streak_alarm',3,'batalhas perdidas seguidas a partir das quais o país entra em alarme'),
  ('defeat_exhaustion',1.5,'desgaste de guerra que cada derrota em alarme acrescenta'),
  ('alert_defeat_days',7,'dias durante os quais uma batalha perdida continua na faixa de avisos');
-INSERT INTO chronicle_kind VALUES ('reves','Revés','☠',2);
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('reves','Revés','☠',2,'caveira');
