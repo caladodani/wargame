@@ -163,9 +163,11 @@ public sealed class AirMissionSystem : ISystem
     public static float Assigned(World w, int countryId) =>
         w.AirMissions.Where(m => m.CountryId == countryId).Sum(m => m.Wings);
 
-    /// <summary>Asas ainda em casa: o que se pode destacar hoje.</summary>
+    /// <summary>Asas ainda em casa: o que se pode destacar hoje. Os transportes que levam pára-quedistas
+    /// também estão fora de casa enquanto o salto não acaba (ParadropSystem.InFlight).</summary>
     public static float Free(World w, int countryId) =>
-        MathF.Max(0f, (w.Countries.TryGetValue(countryId, out var c) ? c.AirPower : 0f) - Assigned(w, countryId));
+        MathF.Max(0f, (w.Countries.TryGetValue(countryId, out var c) ? c.AirPower : 0f)
+                      - Assigned(w, countryId) - ParadropSystem.InFlight(w, countryId));
 
     /// <summary>Peso aéreo deste país no céu desta região: as asas de superioridade que lá tem, cada uma a
     /// valer o que a tabela diz. É o que entra na balança do combate, ao lado do poder aéreo nacional.</summary>

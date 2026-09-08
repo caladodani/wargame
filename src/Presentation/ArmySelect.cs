@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Commands;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -16,7 +17,10 @@ public partial class ArmySelect : PanelContainer
     private Game _game = null!;
     private MapView _map = null!;
     private Label _label = null!;
-    private Button _stop = null!, _disband = null!, _auto = null!;
+    private Button _stop = null!, _disband = null!, _auto = null!, _drop = null!;
+    /// <summary>Ordem de salto armada: o duplo toque seguinte larga os pára-quedistas em vez de os mandar
+    /// marchar. Desarma-se sozinha depois da ordem, ou ao limpar a selecção.</summary>
+    private bool _dropArmed;
     private readonly HashSet<int> _sel = new();
     private readonly HashSet<int> _prev = new();   // marcação de antes do último toque simples (ver DoubleTap)
     private ulong _prevAt;                          // e quando foi: fora da janela do duplo toque não se desfaz nada
@@ -46,6 +50,7 @@ public partial class ArmySelect : PanelContainer
         _stop = Ui.Btn("Parar", () => _game.RunWhenIdle(StopAll)); h.AddChild(_stop);
         _disband = Ui.Btn("Dissolver", () => _game.RunWhenIdle(DisbandAll), 0f, Ui.Kind.Danger); h.AddChild(_disband);
         _auto = Ui.Btn("⚑ Avanço auto", () => _game.RunWhenIdle(ToggleAutoAdvance)); h.AddChild(_auto);
+        _drop = Ui.Btn("🪂 Saltar", () => _game.RunWhenIdle(ToggleDrop)); h.AddChild(_drop);
         h.AddChild(Ui.Btn("Limpar", () => _game.RunWhenIdle(Clear)));
     }
 
@@ -85,7 +90,8 @@ public partial class ArmySelect : PanelContainer
         {
             _sel.Clear(); _sel.UnionWith(_prev);
         }
-        if (Active) MoveTo(regionId);
+        if (!Active) return;
+        if (_dropArmed) DropTo(regionId); else MoveTo(regionId);
     });
 
     private bool Mine(int regionId)
@@ -116,6 +122,43 @@ public partial class ArmySelect : PanelContainer
         // n==0 sem erro nenhum = só o próprio destino estava marcado; dizê-lo, que o silêncio parece avaria
         _game.Notify(first ?? (n > 0 ? $"{n} divisões a caminho de {dest}"
                                      : $"{dest} já é onde estão as divisões marcadas — marca primeiro a região de partida"));
+        Refresh();
+    }
+
+    /// <summary>Arma (ou desarma) a ordem de salto. Armada, o duplo toque no destino larga lá os
+    /// pára-quedistas marcados em vez de os mandar a pé — é a mesma mão de sempre, com outro sentido.</summary>
+    private void ToggleDrop()
+    {
+        _dropArmed = !_dropArmed;
+        if (_dropArmed) _game.Notify("Duplo toque no sítio do salto — alcance de "
+            + $"{(int)_game.World.Rule("paradrop_range_hops", 4f)} regiões, sem inimigo no chão nem no céu");
+        Refresh();
+    }
+
+    /// <summary>Uma ordem de salto por divisão de pára-quedistas marcada. As que não saltam ficam onde
+    /// estão: uma marcação com tudo lá dentro não obriga a desmarcar a infantaria à mão.</summary>
+    private void DropTo(int targetRegionId)
+    {
+        if (_game.PlayerId is not int pid) return;
+        var w = _game.World;
+        string? first = null; int n = 0, skipped = 0;
+        foreach (var rid in _sel.ToList())
+        {
+            if (rid == targetRegionId || !w.Regions.TryGetValue(rid, out var r)) continue;
+            foreach (var id in r.DivisionIds.Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid).ToList())
+            {
+                if (!w.Divisions.TryGetValue(id, out var div) || !ParadropSystem.IsAirborne(w, div)) { skipped++; continue; }
+                var err = _game.Dispatch(new ParadropCommand(pid, id, targetRegionId));
+                if (err is null) n++; else first ??= err;
+            }
+        }
+        string dest = w.Regions.TryGetValue(targetRegionId, out var t) ? t.Name : "R" + targetRegionId;
+        _game.Notify(n > 0
+            ? $"🪂 {n} divis{(n == 1 ? "ão salta" : "ões saltam")} sobre {dest}"
+              + (skipped > 0 ? $" ({skipped} sem pára-quedas ficam onde estão)" : "")
+            : first ?? (skipped > 0 ? "Nenhuma das divisões marcadas é de pára-quedistas"
+                                    : $"{dest} já é onde estão as divisões marcadas"));
+        _dropArmed = false;
         Refresh();
     }
 
@@ -167,7 +210,7 @@ public partial class ArmySelect : PanelContainer
         Refresh();
     }
 
-    public void Clear() { _sel.Clear(); _prev.Clear(); Refresh(); }
+    public void Clear() { _sel.Clear(); _prev.Clear(); _dropArmed = false; Refresh(); }
 
     private void Refresh()
     {
@@ -176,11 +219,18 @@ public partial class ArmySelect : PanelContainer
         var w = _game.World; int pid = _game.PlayerId ?? -1;
         int divs = _sel.Sum(rid => w.Regions.TryGetValue(rid, out var r)
             ? r.DivisionIds.Count(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid) : 0);
-        _label.Text = $"⚔ {_sel.Count} regiões · {divs} divisões — duplo toque no destino move";
         var ids = _sel.SelectMany(rid => w.Regions.TryGetValue(rid, out var r)
             ? r.DivisionIds.Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid) : Enumerable.Empty<int>()).ToList();
+        int paras = ids.Count(id => w.Divisions.TryGetValue(id, out var d) && ParadropSystem.IsAirborne(w, d));
+        if (paras == 0) _dropArmed = false;   // ficou só infantaria marcada: a ordem de salto cai
+        _label.Text = _dropArmed
+            ? $"🪂 {paras} divis{(paras == 1 ? "ão de pára-quedistas" : "ões de pára-quedistas")} — duplo toque no sítio do salto"
+            : $"⚔ {_sel.Count} regiões · {divs} divisões — duplo toque no destino move";
         _auto.Text = ids.Count == 0 || ids.Any(id => w.Divisions.TryGetValue(id, out var d) && !d.AutoAdvance)
             ? "⚑ Avanço auto" : "⚑ Parar avanço";
+        // o botão do salto só aparece a quem tem quem salte: numa selecção de infantaria não serve de nada
+        _drop.Visible = paras > 0;
+        _drop.Text = _dropArmed ? "🪂 Desistir do salto" : "🪂 Saltar";
         Visible = true;
     }
 }

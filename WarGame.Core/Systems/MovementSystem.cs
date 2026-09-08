@@ -19,7 +19,8 @@ public sealed class MovementSystem : ISystem
 
         foreach (var d in w.Divisions.Values)
         {
-            if (d.Path.Count == 0 || inBattle.Contains(d.Id)) continue;
+            // no ar não se marcha: os pára-quedistas estão dentro dos aviões (ParadropSystem)
+            if (d.Path.Count == 0 || d.InFlight || inBattle.Contains(d.Id)) continue;
             var target = w.Regions[d.Path[0]];
             var origin = w.Regions[d.RegionId];
             bool bySea = w.IsSeaHop(origin.Id, target.Id);

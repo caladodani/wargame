@@ -97,6 +97,7 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
         if (d.CountryId != CountryId) return "Divisão não é tua";
         if (!w.Regions.ContainsKey(TargetRegionId)) return "Região inexistente";
         if (d.RegionId == TargetRegionId) return "Já está lá";
+        if (d.InFlight) return "Em voo — só depois de aterrar";
         if (w.InBattle(DivisionId)) return "Em combate";
         if (FindPath(w, d.RegionId, TargetRegionId, CountryId) is null) return "Sem caminho por terra ou mar: só por território próprio, aliado ou inimigo";
         return null;
@@ -1097,6 +1098,16 @@ public sealed record RecallAirMissionCommand(int CountryId, int RegionId) : ICom
 
 /// <summary>Comprar um navio de guerra: +1 Warships por naval_ship_cost pontos. O pool nacional é o que
 /// se pode destacar para o mar; quem for ao fundo numa missão não volta ao pool.</summary>
+/// <summary>Larga uma divisão de pára-quedistas numa região a poucos saltos daqui (ParadropSystem): os
+/// transportes levantam hoje e a tropa cai daqui a paradrop_days dias, se o chão continuar livre. Toda a
+/// razão para não poder saltar vem do ParadropSystem.Block — a barra de selecção mostra a mesma frase.</summary>
+public sealed record ParadropCommand(int CountryId, int DivisionId, int TargetRegionId) : ICommand
+{
+    public string? Validate(World w) => ParadropSystem.Block(w, CountryId, DivisionId, TargetRegionId);
+
+    public void Execute(World w) => ParadropSystem.Launch(w, w.Divisions[DivisionId], TargetRegionId);
+}
+
 public sealed record BuyWarshipCommand(int CountryId) : ICommand
 {
     public string? Validate(World w)

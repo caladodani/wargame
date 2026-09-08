@@ -662,6 +662,14 @@ public sealed class Division
     /// quem o mantém é World.JoinGroup/LeaveGroup — serve para saber num salto quem comanda esta divisão,
     /// sem varrer os grupos todos a cada golpe de combate.</summary>
     public int? GroupId { get; set; }
+    /// <summary>Região onde esta divisão vai saltar de pára-quedas, ou null se está em terra
+    /// (ParadropSystem; save s_division.drop_target). Enquanto voa continua marcada na região de partida —
+    /// é de lá que os aviões levantam — mas não marcha nem recebe ordens de marcha.</summary>
+    public int? DropTargetId { get; set; }
+    /// <summary>Dias que faltam em voo até à aterragem (save s_division.drop_days). Zero = em terra.</summary>
+    public float DropDays { get; set; }
+    /// <summary>Vai a caminho do salto: nem marcha, nem se lhe muda o destino.</summary>
+    public bool InFlight => DropDays > 0f;
     /// <summary>Saltos restantes, do próximo ao destino. Vazio = parada.</summary>
     public List<int> Path { get; } = new();
     public int? TargetRegionId => Path.Count > 0 ? Path[0] : null;

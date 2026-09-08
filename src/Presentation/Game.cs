@@ -123,6 +123,7 @@ public partial class Game : Node
         World.Register(new PrisonerSystem());    // quem cai em terreno inimigo rende-se: prisioneiros, trabalho e repatriação
         World.Register(new OfferSystem());       // logo a seguir: a IA olha para os campos e propõe trocas
         World.Register(new WarGoalSystem());
+        World.Register(new ParadropSystem());    // antes da marcha: quem aterra hoje já defende o que tomou hoje
         World.Register(new MovementSystem());
         World.Register(new AirMissionSystem());  // antes do combate: a batalha do dia vê o céu deste dia
         World.Register(new CombatSystem());

@@ -995,6 +995,19 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_invasion_penalty',0.45,'força do atacante que vem do mar'),
  ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo');
 
+-- Salto de pára-quedas (ParadropSystem): quem tem a marca `airborne` na ficha não precisa de estrada nem
+-- de praia — salta por cima da frente e cai na retaguarda do outro. O transporte prende asas ao voo
+-- (paradrop_wings por divisão) durante paradrop_days dias, o alcance é em saltos de região a partir da
+-- origem, e aterrar de pára-quedas custa organização e gente: uma divisão largada lá atrás toma um cruzamento
+-- vazio, não ganha uma batalha. Não se salta em cima de tropa inimiga nem debaixo de um céu que é dela.
+INSERT INTO rule (key,value,note) VALUES
+ ('paradrop_range_hops',4,'regiões de distância que os transportes alcançam a partir da origem'),
+ ('paradrop_days',2,'dias entre a ordem e a aterragem'),
+ ('paradrop_wings',3,'asas de transporte presas a cada divisão em voo'),
+ ('paradrop_min_org',40,'organização mínima para embarcar'),
+ ('paradrop_org_cost',45,'organização perdida na aterragem'),
+ ('paradrop_hp_cost',8,'efectivo perdido na queda');
+
 -- Produção em série: a encomenda marcada volta ao fim da fila quando é entregue, até ao tecto da fila.
 INSERT INTO rule (key,value,note) VALUES ('production_queue_max',30,'encomendas em fila por país');
 INSERT INTO rule (key,value,note) VALUES ('order_factories_max',8,'fábricas militares que se podem dedicar a uma só encomenda');

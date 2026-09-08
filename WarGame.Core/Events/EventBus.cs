@@ -85,6 +85,12 @@ public sealed record WhitePeaceSigned(int A, int B) : IGameEvent;
 public sealed record PeaceSigned(int Winner, int Loser, int Regions) : IGameEvent;
 /// <summary>Desembarque desistido: a divisão chegou à costa inimiga sem organização para assaltar.</summary>
 public sealed record LandingAborted(int DivisionId, int RegionId) : IGameEvent;
+/// <summary>Os transportes levantaram com os pára-quedistas a bordo (ParadropSystem).</summary>
+public sealed record ParadropLaunched(int DivisionId, int CountryId, int FromRegionId, int TargetRegionId, float Days) : IGameEvent;
+/// <summary>Os pára-quedistas caíram na região; Captured = o terreno era do inimigo e passou a ser nosso.</summary>
+public sealed record ParadropLanded(int DivisionId, int CountryId, int RegionId, bool Captured) : IGameEvent;
+/// <summary>O salto foi por água abaixo em voo (o chão deixou de estar livre) e a tropa voltou ao ponto de partida.</summary>
+public sealed record ParadropAborted(int DivisionId, int CountryId, int RegionId, string Why) : IGameEvent;
 /// <summary>Um país controla ≥ victory_pop_share da população mundial (VictorySystem, uma vez por jogo).</summary>
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>

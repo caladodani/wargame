@@ -226,6 +226,9 @@ public partial class RegionPanel : PanelContainer
         var tag = w.Countries.TryGetValue(d.CountryId, out var c) ? c.Tag : "?";
         var s = $"{tag} {name}   HP {d.Hp:0}  Org {d.Org:0}  Sup {d.Supply:0.0}";
         if (d.DestinationRegionId is int dest) s += $"   → {(w.Regions.TryGetValue(dest, out var rr) ? rr.Name : "R" + dest)}";
+        // no ar: os aviões já levantaram desta região e a tropa cai noutra dentro de dias
+        if (d.InFlight && d.DropTargetId is int drop)
+            s += $"   🪂 {(w.Regions.TryGetValue(drop, out var dr) ? dr.Name : "R" + drop)} em {d.DropDays:0} dia{(d.DropDays < 1.5f ? "" : "s")}";
         // travessia marítima em curso: quem vai no barco desembarca com menos organização
         if (d.TargetRegionId is int hop && w.IsSeaHop(d.RegionId, hop)) s += "   🌊";
         if (d.Xp >= 1f) s += $"   XP {d.Xp:0}";
