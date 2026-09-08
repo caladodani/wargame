@@ -801,6 +801,26 @@ public sealed record SendAttacheCommand(int CountryId, int HostId) : ICommand
     public void Execute(World w) => AttacheSystem.Send(w, CountryId, HostId);
 }
 
+/// <summary>Manda divisões nossas como voluntárias para a guerra de outro país, sem entrarmos nela. Passam
+/// a combater sob a bandeira dele e continuam a custar-nos homens e material (VolunteerSystem).</summary>
+public sealed record SendVolunteersCommand(int CountryId, int HostId, int Count = 1) : ICommand
+{
+    public string? Validate(World w) => Count < 1 ? "nem meia divisão" : w.VolunteerBlock(CountryId, HostId);
+
+    public void Execute(World w) => VolunteerSystem.Send(w, CountryId, HostId, Count);
+}
+
+/// <summary>Chama os voluntários de volta: voltam à capital e à nossa bandeira no próprio dia.</summary>
+public sealed record RecallVolunteersCommand(int CountryId, int? HostId = null) : ICommand
+{
+    public string? Validate(World w) =>
+        !w.Countries.ContainsKey(CountryId) ? "país inválido"
+        : !w.Divisions.Values.Any(d => d.VolunteerFrom == CountryId && (HostId is null || d.CountryId == HostId))
+            ? "não temos voluntários lá fora" : null;
+
+    public void Execute(World w) => VolunteerSystem.RecallAll(w, CountryId, HostId);
+}
+
 /// <summary>Chama o adido de volta: acaba a despesa e acaba a aprendizagem.</summary>
 public sealed record RecallAttacheCommand(int CountryId) : ICommand
 {

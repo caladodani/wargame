@@ -78,6 +78,19 @@ public static class Alerts
                                        : $"o combustível dá para {fd:0} dias ao ritmo de agora",
                                fd <= w.Rule("alert_fuel_days", 10f) / 3f ? AlertLevel.Danger : AlertLevel.Warn));
 
+        // 2d. Voluntários: as nossas divisões que se batem na guerra de outro não aparecem em lado nenhum do
+        // mapa nosso, e é fácil esquecê-las lá — enquanto vão comendo homens e material do nosso cofre.
+        int away = VolunteerSystem.Away(w, c.Id);
+        if (away > 0)
+        {
+            var hosts = w.Divisions.Values.Where(d => d.VolunteerFrom == c.Id)
+                         .Select(d => w.Countries.TryGetValue(d.CountryId, out var h) ? h.Name : "?")
+                         .Distinct().OrderBy(n => n).ToList();
+            list.Add(new Alert("volunteers", "🤝",
+                               $"{away} {(away == 1 ? "divisão nossa bate-se" : "divisões nossas batem-se")} por {string.Join(" e ", hosts)}",
+                               AlertLevel.Info));
+        }
+
         // 3. Fronteira aberta: região nossa encostada a terreno de quem está em guerra connosco e sem
         // ninguém lá dentro. É por onde entram.
         Region? gap = null; int gaps = 0;

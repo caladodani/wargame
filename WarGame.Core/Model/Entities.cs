@@ -583,7 +583,18 @@ public sealed class ArmyGroup
 public sealed class Division
 {
     public int Id { get; init; }
-    public int CountryId { get; init; }
+    /// <summary>Bandeira sob a qual esta divisão se bate hoje. Normalmente é a de casa e não muda em toda a
+    /// vida da divisão; muda quando ela vai como voluntária para a guerra de outro (VolunteerSystem) e volta
+    /// a mudar quando é chamada de volta. É por isto que não é `init`: o mundo tem uma forma legítima de a
+    /// emprestar, e todo o resto do jogo — mapa, frentes, combate, abastecimento — só tem de olhar para
+    /// quem ela obedece hoje, sem saber nada de voluntários.</summary>
+    public int CountryId { get; set; }
+    /// <summary>Casa, quando anda emprestada: o país que a criou e a quem ela volta. null = está em casa.
+    /// Os homens e os reforços saem sempre daqui, mesmo com ela a combater por outro (RecoverySystem).</summary>
+    public int? VolunteerFrom { get; set; }
+    /// <summary>Quem paga esta divisão: a casa, ande ela onde andar.</summary>
+    public int HomeId => VolunteerFrom ?? CountryId;
+    public bool IsVolunteer => VolunteerFrom is not null;
     public int TemplateId { get; set; }
     public int RegionId { get; set; }
     public string? Name { get; set; }             // "Brigada Mecanizada"… (start_division.name / produção); null = nome do template

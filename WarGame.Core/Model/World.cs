@@ -227,6 +227,23 @@ public sealed class World
         return null;
     }
 
+    /// <summary>Porque é que não podemos mandar voluntários para a guerra deste país (null = podemos).
+    /// É a mesma porta do adido, com uma condição a mais: só se manda quem se tem de sobra.</summary>
+    public string? VolunteerBlock(int countryId, int hostId)
+    {
+        if (!Countries.TryGetValue(countryId, out var c) || c.Capitulated) return "país inválido";
+        if (!Countries.TryGetValue(hostId, out var h) || h.Capitulated) return "anfitrião inválido";
+        if (countryId == hostId) return "para a nossa guerra não se mandam voluntários";
+        if (AreAtWar(countryId, hostId)) return $"estamos em guerra com {h.Name}";
+        if (!AtWar(hostId)) return $"{h.Name} não está em guerra";
+        int cap = WarGame.Core.Systems.VolunteerSystem.Cap(this, countryId);
+        if (cap == 0) return $"o exército não chega para emprestar (mínimo {Rule("volunteer_min_army", 5f):0} divisões)";
+        int away = WarGame.Core.Systems.VolunteerSystem.Away(this, countryId);
+        if (away >= cap) return $"já temos {away} lá fora, que é o limite";
+        if (!Divisions.Values.Any(d => d.CountryId == countryId && !d.IsVolunteer)) return "não há divisões em casa";
+        return null;
+    }
+
     /// <summary>Escolha feita por evento (s_news_choice no save): event_id → option_id.</summary>
     public Dictionary<string, string> NewsChoices { get; } = new();
     public Dictionary<string, List<(string Key, float Mul)>> FocusEffects { get; } = new();

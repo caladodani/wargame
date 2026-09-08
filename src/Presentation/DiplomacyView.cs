@@ -1,6 +1,7 @@
 using Godot;
 using WarGame.Core.Commands;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -62,6 +63,20 @@ public static class DiplomacyView
 
         v.AddChild(Row(w, "🎖", "Adido militar", $"{w.Rule("attache_cost_per_day", 0.5f):0.0}/dia — vê a guerra dele por dentro",
             "Enviar", new SendAttacheCommand(pid, other.Id), act, null));
+
+        // Voluntários: a única ajuda que custa sangue. Quando já lá temos gente, a linha deixa de oferecer
+        // mais e passa a oferecer o regresso — que é a pergunta que o jogador faz a seguir.
+        int away = VolunteerSystem.Away(w, pid), cap = VolunteerSystem.Cap(w, pid);
+        int here = w.Divisions.Values.Count(d => d.VolunteerFrom == pid && d.CountryId == other.Id);
+        if (here > 0)
+            v.AddChild(Row(w, "🤝", "Chamar os voluntários",
+                $"{here} {(here == 1 ? "divisão nossa bate-se" : "divisões nossas batem-se")} por {other.Name}",
+                "Chamar", new RecallVolunteersCommand(pid, other.Id), act,
+                $"Chamar de volta as nossas {here} divisões que se batem por {other.Name}? Voltam à capital hoje mesmo."));
+        else
+            v.AddChild(Row(w, "🤝", "Voluntários", $"{away} de {cap} lá fora — batem-se por eles, custam-nos a nós",
+                "Mandar", new SendVolunteersCommand(pid, other.Id), act,
+                $"Mandar uma divisão nossa para a guerra de {other.Name}? Passa a combater sob a bandeira dele, mas os homens e o material continuam a sair do nosso."));
 
         v.AddChild(Go("📦", "Material de guerra", "uma fatia do nosso rendimento, todos os dias", "Abrir", material));
         return v;

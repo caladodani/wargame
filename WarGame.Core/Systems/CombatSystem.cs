@@ -133,7 +133,9 @@ public sealed class CombatSystem : ISystem
             if (d.Hp <= 0f)
             {
                 w.Events.Publish(new DivisionDestroyed(d.Id));
-                if (w.Countries.TryGetValue(d.CountryId, out var cc))
+                // O cansaço de guerra é de quem enterra os seus: uma divisão voluntária morre longe, mas
+                // quem a perde é a casa dela, não o anfitrião que a estava a comandar.
+                if (w.Countries.TryGetValue(d.HomeId, out var cc))
                     cc.WarExhaustion = MathF.Min(w.Rule("exhaustion_max", 30f),
                         cc.WarExhaustion + w.Rule("exhaustion_per_division", 2f));
             }
@@ -151,6 +153,9 @@ public sealed class CombatSystem : ISystem
         for (int i = 0; i < divs.Count; i++)
         {
             var d = divs[i]; var st = w.Stats.Get(d.TemplateId);
+            // O contexto é do lado, mas ser voluntário é da divisão: quem veio de fora bate-se pior na guerra
+            // dos outros, e quanto pior é uma linha da tabela modifier que decide (VolunteerSystem).
+            if (d.IsVolunteer) ctx["volunteer"] = "true"; else ctx.Remove("volunteer");
             var (f1, m1) = w.Modifiers.Evaluate("str", st, ctx);
             var (f2, m2) = w.Modifiers.Evaluate(attacking ? "str_attacker" : "str_defender", st, ctx);
             float terrainAir = MathF.Max(0.1f, m1 * m2 + f1 + f2);
@@ -171,6 +176,7 @@ public sealed class CombatSystem : ISystem
             float plan = BattlePlanSystem.Bonus(w, d);
             out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * MathF.Max(0.3f, command));
         }
+        ctx.Remove("volunteer");   // o contexto é do lado: não fica sujo com a última divisão que passou
         return out_;
     }
 

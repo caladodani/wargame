@@ -354,6 +354,17 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
  ('fuel','fuel_out','true','str','armored','mul',0.5);
 
+-- Voluntários (HoI4: volunteers). Mandam-se divisões nossas para a guerra de outro sem entrar nela: passam
+-- a combater sob a bandeira dele, mas continuam nossas — quem paga os reforços e os homens somos nós, e no
+-- fim voltam para casa. O tecto é uma fatia do nosso exército, com um mínimo de divisões em casa.
+INSERT INTO rule (key,value,note) VALUES
+ ('volunteer_share',0.2,'fatia do nosso exército que pode andar fora como voluntária'),
+ ('volunteer_min_army',5,'divisões que um exército tem de ter antes de emprestar alguma'),
+ ('volunteer_max',8,'tecto absoluto de divisões voluntárias fora de casa, venha de onde vier');
+
+INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,op,value) VALUES
+ ('volunteer','volunteer','true','str','mul',0.9);
+
 -- Retirada manual de batalha (RetreatFromBattleCommand): sai do combate com penalização de organização.
 INSERT INTO rule (key,value,note) VALUES
  ('retreat_org_penalty',0.5,'multiplicador de organização ao retirar de uma batalha');

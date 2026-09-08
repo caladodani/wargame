@@ -18,7 +18,9 @@ public sealed class RecoverySystem : ISystem
         foreach (var d in w.Divisions.Values)
         {
             if (inBattle.Contains(d.Id)) continue;
-            var c = w.Countries[d.CountryId];
+            // Quem paga os reforços é a casa, mesmo com a divisão a combater sob outra bandeira: os
+            // voluntários são nossos, e é do nosso pool de homens e do nosso cofre que eles se recompõem.
+            var c = w.Countries[d.HomeId];
             bool resting = w.GroupOf(d.Id)?.Resting == true;
             float rest = resting ? w.Rule("reserve_org_bonus", 1.6f) : 1f;
             rest += DivisionHonourSystem.Bonus(w, d);   // tropa com nome próprio volta a si mais depressa

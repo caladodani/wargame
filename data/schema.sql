@@ -301,6 +301,7 @@ CREATE TABLE IF NOT EXISTS s_division (
   honour TEXT,                              -- honra de batalha em vigor (division_honour.id)
   honour_name TEXT,                         -- nome de guerra já resolvido ("Leões de Braga")
   entrench REAL NOT NULL DEFAULT 0,         -- trincheira cavada nesta posição (EntrenchSystem)
+  volunteer_from INTEGER,                   -- casa desta divisão quando anda como voluntária (VolunteerSystem)
   pocket_days INTEGER NOT NULL DEFAULT 0    -- dias seguidos em cerco (PocketSystem); o corte em si recalcula-se
 );
 CREATE TABLE IF NOT EXISTS s_division_medal (    -- condecorações ganhas (MedalSystem)
