@@ -21,12 +21,11 @@ public sealed class ProductionSystem : ISystem
 
     public void Tick(World w)
     {
-        float minDays = MathF.Max(1f, w.Rule("build_min_days", 10f));
         float newOrg = w.Rule("new_division_org", 40f);
         foreach (var c in w.Countries.Values)
         {
             if (c.Queue.Count == 0) continue;
-            Spend(w, c, minDays, Industry.Of(w, c.Id).Military);
+            Spend(w, c, Industry.Of(w, c.Id).Military);
             Deliver(w, c, newOrg);
         }
     }
@@ -36,7 +35,7 @@ public sealed class ProductionSystem : ISystem
     /// fábrica vale um dia de trabalho: uma encomenda com três anda três vezes mais depressa e deixa duas a
     /// menos para quem vem atrás. Quem fica sem fábrica nenhuma não anda. Uma encomenda já pronta à espera
     /// de recrutas não ocupa linha: a fábrica largou-a. Money nunca fica negativo.</summary>
-    private static void Spend(World w, Country c, float minDays, int factories)
+    private static void Spend(World w, Country c, int factories)
     {
         int free = factories;
         var worked = new HashSet<ProductionOrder>();
@@ -47,7 +46,8 @@ public sealed class ProductionSystem : ISystem
             if (o.Progress >= cost - 1e-3f) continue;      // pronta: espera homens, não linha
             int mine = Math.Clamp(o.Factories, 1, free);
             free -= mine;
-            float spend = MathF.Min(MathF.Min(cost / minDays * c.Stat("production_speed") * mine * o.Efficiency, cost - o.Progress), c.Money);
+            // a conta do dia é a do ProductionPlan — a mesma que o painel mostra, para não haver duas
+            float spend = MathF.Min(MathF.Min(ProductionPlan.DayOutput(w, c, o, mine), cost - o.Progress), c.Money);
             if (spend <= 0f) continue;
             o.Progress += spend; c.Money -= spend;
             worked.Add(o);

@@ -140,16 +140,19 @@ public partial class ProductionPanel : PanelContainer
             _tally.Text = c.Queue.Count == 0
                 ? "Nada encomendado — carrega no + de um modelo para o pôr na fila."
                 : $"{c.Queue.Count} encomenda{(c.Queue.Count == 1 ? "" : "s")} na fila, na aba ao lado.";
+            // a conta da encomenda da frente, em chapas: é a que está a gastar as fábricas hoje
+            if (PlanView.Card(w, c, 0) is PanelContainer plan) _queue.AddChild(plan);
             for (int i = 0; i < c.Queue.Count; i++)
             {
                 var o = c.Queue[i]; int idx = i, tid = o.TemplateId;
                 string name; try { name = w.Units.GetTemplate(tid).Name; } catch { name = "T" + tid; }
                 float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
                 bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
-                // as fábricas repartem-se de cima para baixo: quem chega e já não há nenhuma livre, espera
-                int ahead = FactoriesAhead(w, c, i);
-                int mine = Math.Clamp(o.Factories, 1, Math.Max(1, y.Military - ahead));
-                bool waitingLine = !waitingMen && ahead >= y.Military;
+                // as fábricas repartem-se de cima para baixo (ProductionPlan.LinesFor, a mesma repartição
+                // que a fábrica faz): quem chega e já não há nenhuma livre, espera
+                int lines0 = ProductionPlan.LinesFor(w, c, i);
+                int mine = Math.Max(1, lines0);
+                bool waitingLine = !waitingMen && lines0 <= 0;
                 bool rep = o.Repeat;
 
                 // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
@@ -166,8 +169,12 @@ public partial class ProductionPanel : PanelContainer
                 line.AddChild(UnitSymbol.Of(kind, 34f, 24f));
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
-                cell.AddChild(Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
-                                     + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : "")));
+                var head = Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
+                                   + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : ""));
+                // a data não chega: o dedo em cima diz de que parcelas ela sai
+                head.TooltipText = ProductionPlan.Why(w, c, o, lines0);
+                head.MouseFilter = MouseFilterEnum.Stop;
+                cell.AddChild(head);
                 cell.AddChild(Ui.Grow(Ui.Bar(Pct(w, o) / 100f, waitingMen ? Ui.Danger : waitingLine ? Ui.TextDim : Ui.Accent)));
                 // quadro de fábricas desta encomenda: chapa acesa = fábrica dedicada, e o que se lhe dá
                 // tira-se a quem vem atrás na fila
@@ -194,18 +201,6 @@ public partial class ProductionPanel : PanelContainer
         catch (Exception ex) { GD.PushError("ProductionPanel.Fill: " + ex); }
     }
 
-    /// <summary>Quantas fábricas estão pedidas pelas encomendas por acabar à frente desta: se já forem
-    /// tantas como as fábricas militares do país, esta não tem linha hoje.</summary>
-    private static int FactoriesAhead(World w, Country c, int index)
-    {
-        int n = 0;
-        for (int i = 0; i < index; i++)
-        {
-            float cost; try { cost = w.TemplateCost(c.Queue[i].TemplateId); } catch { cost = 0f; }
-            if (c.Queue[i].Progress < cost - 1e-3f) n += Math.Max(1, c.Queue[i].Factories);
-        }
-        return n;
-    }
 
     /// <summary>O ritmo da linha, à maneira dos mostradores de fábrica do HoI4: uma calha escura com a
     /// agulha de latão a subir do ritmo de origem (100%) até ao tecto, o número por extenso e a seta a dizer
@@ -246,13 +241,11 @@ public partial class ProductionPanel : PanelContainer
     /// seria mentir.</summary>
     private static string Eta(World w, Country c, ProductionOrder o, int lines)
     {
-        float cost; try { cost = w.TemplateCost(o.TemplateId); } catch { return "—"; }
-        float left = cost - o.Progress;
-        if (left <= 1e-3f) return "pronta";
-        if (lines <= 0) return "à espera de vez";
-        float perDay = cost / MathF.Max(1f, w.Rule("build_min_days", 10f)) * c.Stat("production_speed") * lines * o.Efficiency;
-        if (perDay <= 0f) return "parada";
-        int days = Mathf.CeilToInt(left / perDay);
+        if (lines <= 0 && o.Progress < w.TemplateCost(o.TemplateId) - 1e-3f) return "à espera de vez";
+        float dias = ProductionPlan.Days(w, c, o, lines);
+        if (dias < 0f) return "parada";
+        if (dias <= 0f) return "pronta";
+        int days = Mathf.CeilToInt(dias);
         return days == 1 ? "amanhã" : $"~{days} dias";
     }
 
