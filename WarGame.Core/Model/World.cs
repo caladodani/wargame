@@ -75,6 +75,10 @@ public sealed class World
     /// <summary>Degraus de vassalagem (tabela subject_type), do mais preso ao mais solto (Subjects).</summary>
     public Dictionary<string, SubjectTypeDef> SubjectTypeDefs { get; } = new();
 
+    /// <summary>Graus de ponto de vitória (tabela victory_tier): o que cada região vale na conta da guerra
+    /// (VictoryPoints). Sem a tabela carregada não há pontos nenhuns e a paz mede-se como antes.</summary>
+    public Dictionary<string, VictoryTierDef> VictoryTiers { get; } = new();
+
     /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
     public float SeasonBite(string seasonId, string terrain) =>
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;

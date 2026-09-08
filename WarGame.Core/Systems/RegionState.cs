@@ -81,6 +81,15 @@ public static class RegionState
             new("estrada", $"×{r.Infrastructure:0.00}", "estrada", InfraNote(w, r)),
         };
 
+        // o que esta praça vale na conta da guerra: sem isto o jogador tinha de adivinhar quais das
+        // trezentas regiões do inimigo é que valiam uma campanha
+        if (VictoryPoints.Tier(w, r) is VictoryTierDef vt)
+            parts.Add(new StatePart(vt.Glyph.Length > 0 ? vt.Glyph : "coroa", $"{vt.Points}", "vitória",
+                $"{vt.Name}: {vt.Note}\n"
+              + $"Vale {vt.Points} ponto{(vt.Points == 1 ? "" : "s")} de vitória na mesa de paz —"
+              + $" o país dele inteiro vale {VictoryPoints.Total(w, r.OwnerId)}.\n"
+              + "Quem tem os pontos tem a pressão: é por eles, e não pelo número de regiões, que se mede quem está a ganhar."));
+
         if (r.Fort > 0)
             parts.Add(new StatePart("escudo", $"{r.Fort}", "forte",
                 $"Cada nível dá vantagem a quem defende esta região.\n"

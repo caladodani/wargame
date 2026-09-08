@@ -674,10 +674,32 @@ INSERT INTO rule (key,value,note) VALUES
  ('subject_autonomy_war',0.0035,'autonomia extra por dia enquanto o vassalo se bate numa guerra'),
  ('puppet_price',0.85,'preço, em fatias do país dele, de o pôr debaixo de nós em vez de lhe tirar terra');
 
+-- Pontos de vitória (tabela victory_tier; VictoryPoints): nem toda a terra vale o mesmo. Uma província de
+-- serra com meia dúzia de aldeias não pesa numa mesa de paz como a cidade onde está metade da indústria do
+-- país. No HoI4 isto está no mapa em números, e é por eles que se mede quem está a ganhar.
+-- O grau não se guarda em lado nenhum: lê-se da região (população e capital), por isso nunca contradiz o
+-- mapa. min_pop é a população a partir da qual a região entra neste grau; capital=1 é o grau que só a
+-- capital do país tem, e ganha sempre ao que a população dela daria.
+CREATE TABLE IF NOT EXISTS victory_tier (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  points INTEGER NOT NULL,                   -- o que a região vale na conta da guerra
+  min_pop INTEGER NOT NULL,                  -- população a partir da qual a região é deste grau
+  capital INTEGER NOT NULL DEFAULT 0,        -- 1 = grau da capital do país (ganha ao grau da população)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO victory_tier (id,name,icon,points,min_pop,capital,note,sort,glyph) VALUES
+ ('capital','Capital','👑',10,0,1,'A cadeira do governo: tomá-la vale por uma campanha inteira.',0,'coroa'),
+ ('metropole','Metrópole','🏙',5,20000000,0,'Milhões de pessoas e a indústria que vive delas.',1,'cidade'),
+ ('cidade','Cidade','🏛',3,5000000,0,'Praça grande: nó de estradas, fábricas e gente.',2,'coluna'),
+ ('praca','Praça','⌂',1,1000000,0,'Terra povoada que se conta na soma, sem ser um prémio por si.',3,'caixa');
+INSERT INTO rule (key,value,note) VALUES
+ ('peace_weight_vp',0.8,'peso da fatia de pontos de vitória tomados na pressão de uma paz negociada'),
+ ('victory_marker_min',5,'pontos a partir dos quais a região se marca sozinha no mapa');
+
 -- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
 CREATE TABLE IF NOT EXISTS map_mode (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather | subject
+  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather | subject | victory
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
   sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
@@ -688,7 +710,8 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica'),
  ('populacao','População','♟','population','deserto','multidão',4,'gente'),
  ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva'),
- ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente');
+ ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente'),
+ ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa');
 
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (

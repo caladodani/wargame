@@ -189,6 +189,12 @@ public sealed record WeatherDef(string Id, string Name, string Icon, float MoveM
 public sealed record SubjectTypeDef(string Id, string Name, string Icon, float AutonomyMin, float YieldShare,
                                     float ManpowerShare, float Drift, string Note, int Sort, string Glyph = "");
 
+/// <summary>Um grau de ponto de vitória (tabela victory_tier; VictoryPoints). MinPop é a população a partir
+/// da qual a região é deste grau, Capital marca o grau que só a capital do país tem — e que ganha sempre ao
+/// que a população dela daria. O grau não se guarda: lê-se da região, por isso nunca a contradiz.</summary>
+public sealed record VictoryTierDef(string Id, string Name, string Icon, int Points, long MinPop, bool Capital,
+                                    string Note, int Sort, string Glyph = "");
+
 /// <summary>Uma táctica de combate (tabela tactic; Tactics). Side diz quem a pode escolher ('attacker' ou
 /// 'defender'), Mult o que ela vale à força desse lado, CounterId a táctica INIMIGA que esta lê e desmonta,
 /// Terrain vazio serve qualquer chão e Weight é o peso no sorteio. É o pedra-papel-tesoura que o HoI4 põe

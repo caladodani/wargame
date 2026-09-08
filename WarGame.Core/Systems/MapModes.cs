@@ -56,6 +56,9 @@ public static class MapModes
         // lhe resta. Um país livre não tem resposta nenhuma — e é assim que se vê de relance onde acaba o
         // império de alguém e começa gente que ainda manda em si.
         "subject" => Subject(w, r),
+        // Pontos de vitória: o que a região vale na conta da guerra. Terra que não chega a grau nenhum não
+        // tem resposta — o mapa fica com as praças acesas e o resto apagado, que é como se lê uma frente.
+        "victory" => VictoryPoints.Of(w, r) is int vp && vp > 0 ? vp : null,
         _ => null,
     };
 
@@ -69,6 +72,7 @@ public static class MapModes
                 "resistance" => "terra do próprio dono: sem resistência",
                 "weather" => "sem tempo carregado",
                 "subject" => "país livre",
+                "victory" => "não conta pontos de vitória",
                 _ => "",
             };
         // {v*100:0}% em vez de {v:P0}: o formato P depende da cultura do sistema (o padrão invariant, o que
@@ -78,6 +82,7 @@ public static class MapModes
         {
             "weather" => Weather.Line(w, r),
             "subject" => w.Countries.TryGetValue(r.OwnerId, out var owner) ? Subjects.Line(w, owner) : "",
+            "victory" => VictoryPoints.Line(w, r),
             "supply" => $"abastecimento {v * 100:0}%",
             "resistance" => $"resistência {v * 100:0}%",
             "industry" => $"indústria {v:0.00} (edifícios + infra)",

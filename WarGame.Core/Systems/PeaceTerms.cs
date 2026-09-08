@@ -27,7 +27,12 @@ public static class PeaceTerms
         float exhaustion = t.WarExhaustion / MathF.Max(1f, w.Rule("exhaustion_max", 30f));
         bool capitalHeld = w.Regions.TryGetValue(t.CapitalRegionId, out var cap) && cap.ControllerId == demanderId;
 
+        // não é o mesmo tomar-lhe metade do mapa em serra e metade em cidades: a fatia dos pontos de
+        // vitória dele que já temos pesa por si, ao lado da fatia crua do território
+        float vpShare = VictoryPoints.Taken(w, demanderId, targetId);
+
         float pressure = occupiedShare * w.Rule("peace_weight_occupied", 1f)
+                       + vpShare * w.Rule("peace_weight_vp", 0f)
                        + strength * w.Rule("peace_weight_strength", 0.3f)
                        + exhaustion * w.Rule("peace_weight_exhaustion", 0.3f)
                        + (capitalHeld ? w.Rule("peace_weight_capital", 0.3f) : 0f);

@@ -99,7 +99,9 @@ public class PeaceSuggestTests
         var w = Build();
         Crush(w, 4, 5, 6);
         // pedir as três de uma vez não passa; a sugestão corta até ao que o outro assina
-        w.Rules["peace_demand_greed"] = 4f;
+        // (a ganância tem de subir a 5: desde que os pontos de vitória entram na pressão, ter-lhe as três
+        // regiões — capital incluída — pesa mais na mesa do que pesava só o número delas)
+        w.Rules["peace_demand_greed"] = 5f;
         Assert.False(PeaceTerms.Evaluate(w, 1, 2, new[] { 4, 5, 6 }).Accepted);
         var terms = PeaceTerms.Suggest(w, 1, 2);
         Assert.NotEmpty(terms);

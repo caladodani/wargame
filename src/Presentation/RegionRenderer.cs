@@ -20,6 +20,9 @@ public partial class RegionRenderer : Node2D
     public const string GoalMark = "🎯";
     /// <summary>Região com porto: é por aqui que o abastecimento salta o mar.</summary>
     public const string PortMark = "⚓";
+    /// <summary>Praça que conta pontos de vitória: o número entra na pastilha a seguir a esta marca, como
+    /// no mapa do HoI4 — é por eles que se lê de relance quem está a ganhar a guerra.</summary>
+    public const string VictoryMark = "👑";
 
     private readonly Dictionary<int, List<Polygon2D>> _byRegion = new();
     private readonly Dictionary<int, List<Line2D>> _borders = new();   // moldura colorida por anel
@@ -629,6 +632,7 @@ public partial class RegionRenderer : Node2D
             var goals = PlayerGoals(w);
             DrawGoals(goals);
             var capitals = new HashSet<int>(w.Countries.Values.Where(c => !c.Capitulated).Select(c => c.CapitalRegionId));
+            int vpMark = Math.Max(1, (int)w.Rule("victory_marker_min", 5f));
             var seen = new HashSet<int>();
             foreach (var r in w.Regions.Values)
             {
@@ -638,7 +642,11 @@ public partial class RegionRenderer : Node2D
                 bool port = r.Buildings.Any(b => b.Value > 0 && portIds.Contains(b.Key));
                 // o marcador conta o que o jogador tem como ver: tropa do outro lado do nevoeiro não aparece
                 int shown = _game.PlayerId is int viewer ? Vision.CountIn(w, viewer, r) : r.DivisionIds.Count;
-                if (shown == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port) continue;
+                // as praças que valem alguma coisa marcam-se sozinhas: um mapa em que as cidades grandes só
+                // aparecem quando lá está tropa não deixa planear campanha nenhuma
+                int vp = VictoryPoints.Of(w, r);
+                bool prize = vp >= vpMark;
+                if (shown == 0 && r.Fort == 0 && !resisting && !capital && !goal && !port && !prize) continue;
                 seen.Add(r.Id);
                 if (!_markers.TryGetValue(r.Id, out var m)) _markers[r.Id] = m = NewMarker(r);
                 var pill = m.GetNode<PanelContainer>("Center/Pill");
@@ -646,6 +654,7 @@ public partial class RegionRenderer : Node2D
                 bool fighting = battles.Contains(r.Id);
                 label.Text = (goal ? GoalMark : "")
                            + (capital ? CapitalMark : "")
+                           + (prize && !capital ? VictoryMark + vp : "")
                            + (fighting ? BattleMark : "")
                            + (shown > 0 && !_countersOn ? shown.ToString() : "")   // de perto, quem conta é o contador
                            + (r.Fort > 0 ? FortMark : "")
@@ -701,6 +710,10 @@ public partial class RegionRenderer : Node2D
 
     /// <summary>--smoke: quantos contadores estão desenhados no mapa (o zoom de perto tem de estar ligado).</summary>
     public int Counters() => _counters.Values.Count(c => c.Visible);
+
+    /// <summary>--smoke: quantas praças de pontos de vitória estão marcadas no mapa (a coroa e o número).</summary>
+    public int Prizes() => _markers.Values.Count(m => m.Visible
+        && m.GetNode<Label>("Center/Pill/Text").Text.Contains(VictoryMark));
 
     /// <summary>Nome de cada país escrito por cima do território que controla, no centro de gravidade das
     /// regiões dele (pesadas pela área, para o nome cair na massa principal e não num arquipélago).

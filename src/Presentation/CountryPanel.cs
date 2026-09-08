@@ -482,6 +482,17 @@ public partial class CountryPanel : PanelContainer
                             _body.AddChild(Ui.Btn($"Exigir {held.Count} regiões e fazer paz",
                                 () => Faction(new DemandPeaceCommand(inviter, c.Id, held)), 320));
                         }
+                        // Pontos de vitória: a conta que diz se o avanço vale alguma coisa. Ocupar meia
+                        // dúzia de serras não move a mesa; tomar-lhe as praças move.
+                        if (w.VictoryTiers.Count > 0 && VictoryPoints.Total(w, c.Id) is int theirVp && theirVp > 0)
+                        {
+                            Line($"👑 Pontos de vitória: {VictoryPoints.Taken(w, inviter, c.Id) * theirVp:0}"
+                               + $" de {theirVp} dele na nossa mão ({VictoryPoints.Taken(w, inviter, c.Id):P0})", 16);
+                            var prizes = VictoryPoints.Prizes(w, c.Id, 3)
+                                .Select(pr => $"{pr.Name} {VictoryPoints.Of(w, pr)}"
+                                            + (pr.ControllerId == inviter ? " ✔" : ""));
+                            Line($"   praças dele: {string.Join(", ", prizes)}", 15);
+                        }
                         // Conferência de paz: se ele cair, a terra dele reparte-se por pontos de espólio entre
                         // todos os que lhe fizeram guerra. Aqui vê-se com quantos pontos chegamos à mesa, quantos
                         // se sentam nela connosco e quanto custa a jóia da coroa.

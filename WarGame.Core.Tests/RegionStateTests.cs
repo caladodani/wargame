@@ -24,9 +24,12 @@ public class RegionStateTests
     {
         var (w, r) = Build();
         var parts = RegionState.Parts(w, r);
-        Assert.Equal(2, parts.Count);
+        // gente e estrada primeiro; a terceira é o que esta terra vale na guerra — dez milhões de gente e a
+        // capital do país contam pontos de vitória, e isso é ficha como o forte ou o cais
+        Assert.Equal(3, parts.Count);
         Assert.Equal("habitantes", parts[0].Name);
         Assert.Equal("estrada", parts[1].Name);
+        Assert.Equal("vitória", parts[2].Name);
         Assert.All(parts, p => Assert.False(string.IsNullOrWhiteSpace(p.Note)));
         // uma vila não se lê "0,0 M": aos milhares diz-se em milhares
         Assert.Equal($"{10f:0.0} M", RegionState.People(10_000_000f));

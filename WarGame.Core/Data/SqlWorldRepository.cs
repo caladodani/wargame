@@ -152,6 +152,11 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.SubjectTypeDefs[(string)r["id"]!] = new SubjectTypeDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToSingle(r["autonomy_min"]), Convert.ToSingle(r["yield_share"]), Convert.ToSingle(r["manpower_share"]),
                 Convert.ToSingle(r["drift"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        w.VictoryTiers.Clear();
+        foreach (var r in _static.Query("SELECT id,name,icon,points,min_pop,capital,note,sort,glyph FROM victory_tier ORDER BY sort"))
+            w.VictoryTiers[(string)r["id"]!] = new VictoryTierDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                Convert.ToInt32(r["points"]), Convert.ToInt64(r["min_pop"]), Convert.ToInt32(r["capital"]) != 0,
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         w.TacticDefs.Clear();
         foreach (var r in _static.Query("SELECT id,name,icon,side,mult,counter_id,terrain,weight,note,sort,glyph FROM tactic ORDER BY sort"))
             w.TacticDefs[(string)r["id"]!] = new TacticDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
