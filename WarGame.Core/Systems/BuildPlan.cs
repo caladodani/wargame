@@ -24,8 +24,8 @@ public readonly record struct BuildPart(string Glyph, string Value, string Name,
 /// mudar num, muda no menu no mesmo dia.</summary>
 public static class BuildPlan
 {
-    /// <summary>Ids reservados das duas obras que não são linhas da tabela `building`.</summary>
-    public const string Infra = "@infra", Fort = "@fort";
+    /// <summary>Ids reservados das obras que não são linhas da tabela `building`.</summary>
+    public const string Infra = "@infra", Fort = "@fort", Rail = "@rail";
 
     /// <summary>Tudo o que se pode mandar construir: as linhas da tabela e, no fim, a estrada e o forte.</summary>
     public static List<BuildOffer> Offers(World w)
@@ -41,6 +41,11 @@ public static class BuildPlan
             w.Rule("fort_build_cost", 30f), w.Rule("fort_build_days", 20f),
             $"+1 nível de forte (tecto {(int)w.Rule("fort_max", 5f)}): cada nível dá"
           + $" ×{1f + w.Rule("fort_defense_per_level", 0.15f):0.00} a quem defende esta região"));
+        list.Add(new BuildOffer(Rail, "Carril", "carril",
+            w.Rule("rail_cost", 25f), w.Rule("rail_days", 20f),
+            $"+1 nível de via férrea (tecto {(int)w.Rule("rail_max", 4f)}): cada nível conta como"
+          + $" +{w.Rule("rail_step", 0.5f):0.00} de estrada só para a rede de abastecimento — o salto da rede"
+          + " nesta região passa a custar menos e o mapa desenha a linha"));
         return list;
     }
 
@@ -62,6 +67,8 @@ public static class BuildPlan
                 _ => $"abre uma fila de {d.Yard} por nível",
             });
         if (d.SupplyRange > 0f) bits.Add($"leva abastecimento a {d.SupplyRange:0} km por nível");
+        if (d.IsHub) bits.Add($"nasce aqui uma cabeça de rede que abastece {d.HubRange:0.#} saltos à volta por nível"
+                            + " — e é a única obra que se levanta em terra tomada ao inimigo");
         if (d.Coastal) bits.Add("só se constrói em região de costa");
         bits.Add($"até ao nível {d.MaxLevel}");
         return string.Join("; ", bits);
@@ -75,6 +82,7 @@ public static class BuildPlan
         if (regionId is int rid)
             return (id == Infra ? new BuildInfrastructureCommand(countryId, rid).Validate(w)
                   : id == Fort ? new BuildFortCommand(countryId, rid).Validate(w)
+                  : id == Rail ? new BuildRailCommand(countryId, rid).Validate(w)
                   : new BuildBuildingCommand(countryId, rid, id).Validate(w));
 
         if (Find(w, id) is not BuildOffer offer) return "obra desconhecida";
@@ -113,9 +121,11 @@ public static class BuildPlan
         if (regionId is not int rid || !w.Regions.TryGetValue(rid, out var r))
             return offer.Id == Infra ? $"até ×{w.Rule("infra_max", 2f):0.00}"
                  : offer.Id == Fort ? $"até {(int)w.Rule("fort_max", 5f)}"
+                 : offer.Id == Rail ? $"até {(int)w.Rule("rail_max", 4f)}"
                  : w.BuildingDefs.TryGetValue(offer.Id, out var d0) ? $"até {d0.MaxLevel}" : "—";
         if (offer.Id == Infra) return $"×{r.Infrastructure:0.00} de ×{w.Rule("infra_max", 2f):0.00}";
         if (offer.Id == Fort) return $"{r.Fort} de {(int)w.Rule("fort_max", 5f)}";
+        if (offer.Id == Rail) return $"{Math.Max(0, r.Rail)} de {(int)w.Rule("rail_max", 4f)}";
         return w.BuildingDefs.TryGetValue(offer.Id, out var d)
             ? $"{r.Buildings.GetValueOrDefault(offer.Id)} de {d.MaxLevel}" : "—";
     }

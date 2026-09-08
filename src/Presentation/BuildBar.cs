@@ -14,8 +14,8 @@ public partial class BuildBar : PanelContainer
 {
     // As duas obras que não são linhas da tabela `building` (são regras: infra_*, fort_*). Os ids e as
     // chapas vivem agora no BuildPlan, com o resto da lista — o menu não decide o que se pode construir.
-    private const string Infra = BuildPlan.Infra, Fort = BuildPlan.Fort;
-    private const string InfraGlyph = "estrada", FortGlyph = "escudo";
+    private const string Infra = BuildPlan.Infra, Fort = BuildPlan.Fort, Rail = BuildPlan.Rail;
+    private const string InfraGlyph = "estrada", FortGlyph = "escudo", RailGlyph = "carril";
 
     private Game _game = null!;
     private VBoxContainer _list = null!;
@@ -124,6 +124,7 @@ public partial class BuildBar : PanelContainer
         if (_armed is not string id || _game.PlayerId is not int pid) return;
         var err = id == Infra ? _game.Dispatch(new BuildInfrastructureCommand(pid, regionId))
                  : id == Fort ? _game.Dispatch(new BuildFortCommand(pid, regionId))
+                 : id == Rail ? _game.Dispatch(new BuildRailCommand(pid, regionId))
                  : _game.Dispatch(new BuildBuildingCommand(pid, regionId, id));
         string name = _game.World.Regions.TryGetValue(regionId, out var r) ? r.Name : "R" + regionId;
         _game.Notify(err ?? $"Obra iniciada em {name}");
@@ -148,7 +149,7 @@ public partial class BuildBar : PanelContainer
 
         // As chapas da barra de cima entram na conta pelo mesmo caminho: não são linha de tabela nenhuma,
         // mas são pedidas pelo nome e partiriam caladas na mesma.
-        var extra = new[] { InfraGlyph, FortGlyph }.Concat(Hud.BarGlyphs).ToArray();
+        var extra = new[] { InfraGlyph, FortGlyph, RailGlyph }.Concat(Hud.BarGlyphs).ToArray();
         var asked = Glyph.Asked(w, extra);
         int known = asked.Count(Glyph.Knows);
         var (drawn, fell) = Glyph.Count(this);

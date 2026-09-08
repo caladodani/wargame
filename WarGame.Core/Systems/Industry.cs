@@ -57,8 +57,9 @@ public static class Industry
         return new Yards(civil, Math.Min(civil, sites), mil, lines, naval, yardsAtSea);
     }
 
-    /// <summary>Esta região tem obra em curso? Qualquer uma das três ocupa uma fábrica civil.</summary>
-    public static bool Working(Region r) => r.Building || r.FortBuilding || r.Project is not null;
+    /// <summary>Esta região tem obra em curso? Qualquer uma das quatro (estrada, forte, edifício ou carril)
+    /// ocupa uma fábrica civil.</summary>
+    public static bool Working(Region r) => r.Building || r.FortBuilding || r.RailBuilding || r.Project is not null;
 
     /// <summary>Encomendas que ainda gastam pontos. As que já estão prontas e esperam recrutas não ocupam
     /// linha nenhuma — a fábrica já as largou.</summary>

@@ -19,18 +19,19 @@ public class BuildPlanTests
         return w;
     }
 
-    /// <summary>Tudo o que a tabela `building` traz, mais a estrada e o forte — que são regras e não linhas,
-    /// e que o menu tinha escritos à mão.</summary>
+    /// <summary>Tudo o que a tabela `building` traz, mais a estrada, o forte e o carril — que são regras e
+    /// não linhas, e que o menu tinha escritos à mão.</summary>
     [Fact]
     public void As_obras_sao_as_da_tabela_mais_a_estrada_e_o_forte()
     {
         var w = Build();
         var offers = BuildPlan.Offers(w);
-        Assert.Equal(w.BuildingDefs.Count + 2, offers.Count);
+        Assert.Equal(w.BuildingDefs.Count + 3, offers.Count);
         foreach (var d in w.BuildingDefs.Values)
             Assert.Contains(offers, o => o.Id == d.Id && o.Name == d.Name && o.Cost == d.Cost && o.Days == d.Days);
         Assert.Contains(offers, o => o.Id == BuildPlan.Infra);
         Assert.Contains(offers, o => o.Id == BuildPlan.Fort);
+        Assert.Contains(offers, o => o.Id == BuildPlan.Rail);
         Assert.All(offers, o => Assert.False(string.IsNullOrWhiteSpace(o.Glyph)));
         Assert.All(offers, o => Assert.False(string.IsNullOrWhiteSpace(o.Gives)));
     }
@@ -46,6 +47,7 @@ public class BuildPlanTests
         {
             string? doComando = o.Id == BuildPlan.Infra ? new BuildInfrastructureCommand(1, r).Validate(w)
                               : o.Id == BuildPlan.Fort ? new BuildFortCommand(1, r).Validate(w)
+                              : o.Id == BuildPlan.Rail ? new BuildRailCommand(1, r).Validate(w)
                               : new BuildBuildingCommand(1, r, o.Id).Validate(w);
             Assert.Equal(doComando, BuildPlan.Blocked(w, 1, r, o.Id));
         }

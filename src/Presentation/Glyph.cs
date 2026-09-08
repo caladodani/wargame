@@ -196,6 +196,17 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Line(0.50f, 0.72f, 0.50f, 0.94f, 0.8f);
                 break;
 
+            // Via férrea a fugir para o horizonte: os dois carris a fechar e as travessas atravessadas —
+            // é assim que qualquer carta desenha um caminho de ferro, e é assim que o mapa o desenha.
+            case "carril":
+                Line(0.18f, 0.92f, 0.42f, 0.10f, 1.05f);
+                Line(0.82f, 0.92f, 0.58f, 0.10f, 1.05f);
+                Line(0.14f, 0.84f, 0.86f, 0.84f, 0.9f);
+                Line(0.24f, 0.56f, 0.76f, 0.56f, 0.9f);
+                Line(0.32f, 0.32f, 0.68f, 0.32f, 0.9f);
+                Line(0.38f, 0.14f, 0.62f, 0.14f, 0.9f);
+                break;
+
             // Escudo com a barra do reforço: a chapa da fortificação.
             case "escudo":
                 Poly(0.50f, 0.10f, 0.88f, 0.24f, 0.88f, 0.54f, 0.50f, 0.90f, 0.12f, 0.54f, 0.12f, 0.24f, 0.50f, 0.10f);

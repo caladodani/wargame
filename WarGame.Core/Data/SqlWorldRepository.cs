@@ -100,11 +100,12 @@ public sealed class SqlWorldRepository : IWorldRepository
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]),
                 r["fuel_per_unit"] is null ? 0f : Convert.ToSingle(r["fuel_per_unit"]),
                 r["glyph"] as string ?? "caixa");
-        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon,glyph FROM building"))
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
-                Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]), (string)r["yard"]!,
+                Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]),
+                Convert.ToSingle(r["hub_range"]), (string)r["yard"]!,
                 (string)r["icon"]!, (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT key,name,note,sort,glyph,digits,percent,shown FROM unit_stat_def ORDER BY sort"))
             w.UnitStatDefs[(string)r["key"]!] = new UnitStatDef((string)r["key"]!, (string)r["name"]!,
@@ -289,6 +290,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT region_id,resource,amount FROM region_resource"))
             if (w.Regions.TryGetValue(Convert.ToInt32(r["region_id"]), out var rr))
                 rr.Resources[(string)r["resource"]!] = Convert.ToSingle(r["amount"]);
+        w.SeedRails();   // a rede ferroviária de partida sai da infraestrutura que a terra já tinha
     }
 
     public void LoadStartArmies(World w)
@@ -388,6 +390,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_region", "project", "TEXT"),
         ("s_region", "project_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_region", "integration", "REAL NOT NULL DEFAULT 0"),
+        ("s_region", "rail", "INTEGER NOT NULL DEFAULT -1"),
+        ("s_region", "rail_building", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_region", "rail_progress", "REAL NOT NULL DEFAULT 0"),
+        ("s_region", "project_owner", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "war_exhaustion", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "xp", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "auto_advance", "INTEGER NOT NULL DEFAULT 0"),
@@ -611,7 +617,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 SinceDay = Convert.ToInt32(r["since_day"]), Learned = Convert.ToSingle(r["learned"]),
             };
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
-        foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration FROM s_region"))
+        foreach (var r in save.Query("SELECT id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration,rail,rail_building,rail_progress,project_owner FROM s_region"))
         {
             var reg = w.Regions[Convert.ToInt32(r["id"])];
             reg.ControllerId = Convert.ToInt32(r["controller_id"]); reg.Infrastructure = Convert.ToSingle(r["infrastructure"]);
@@ -625,6 +631,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["project"] is string proj && proj.Length > 0) reg.Project = proj;
             if (r["project_progress"] is not null) reg.ProjectProgress = Convert.ToSingle(r["project_progress"]);
             if (r["integration"] is not null) reg.Integration = Convert.ToSingle(r["integration"]);
+            if (r["rail"] is not null && Convert.ToInt32(r["rail"]) >= 0) reg.Rail = Convert.ToInt32(r["rail"]);
+            if (r["rail_building"] is not null) reg.RailBuilding = Convert.ToInt32(r["rail_building"]) == 1;
+            if (r["rail_progress"] is not null) reg.RailProgress = Convert.ToSingle(r["rail_progress"]);
+            if (r["project_owner"] is not null) reg.ProjectOwner = Convert.ToInt32(r["project_owner"]);
         }
         foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy FROM s_division ORDER BY id"))
         {
@@ -845,10 +855,12 @@ public sealed class SqlWorldRepository : IWorldRepository
                 rec.A, rec.B, rec.StartDay, rec.EndDay, rec.ARegions, rec.BRegions, rec.ALosses, rec.BLosses, rec.ABattles, rec.BBattles);
         foreach (var r in w.Regions.Values)
         {
-            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building || r.Fort > 0 || r.FortBuilding || r.Resistance > 0f || r.Project is not null || r.Integration > 0f)
-                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building || r.Fort > 0 || r.FortBuilding || r.Resistance > 0f || r.Project is not null || r.Integration > 0f
+                || r.Rail != r.BaseRail || r.RailBuilding)
+                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration,rail,rail_building,rail_progress,project_owner) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     r.Id, r.ControllerId, r.Infrastructure, r.OwnerId == r.InitialOwnerId ? null : r.OwnerId, r.Building ? 1 : 0, r.BuildProgress,
-                    r.Fort, r.FortBuilding ? 1 : 0, r.FortProgress, r.Resistance, r.Project, r.ProjectProgress, r.Integration);
+                    r.Fort, r.FortBuilding ? 1 : 0, r.FortProgress, r.Resistance, r.Project, r.ProjectProgress, r.Integration,
+                    r.Rail, r.RailBuilding ? 1 : 0, r.RailProgress, r.ProjectOwner);
             foreach (var (bid, lvl) in r.Buildings)
                 if (lvl > 0) save.Execute("INSERT INTO s_region_building (region_id,building,level) VALUES (?,?,?)", r.Id, bid, lvl);
         }

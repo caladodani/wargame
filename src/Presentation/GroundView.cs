@@ -48,6 +48,17 @@ public static class GroundView
             fort.AddThemeColorOverride("font_color", Ui.Good.Lightened(0.2f));
             box.AddChild(fort);
         }
+        // o carril: não muda o combate nem a marcha, muda o que a rede de abastecimento paga para atravessar
+        // aqui — e é a diferença entre uma ofensiva que chega e uma que seca a meio caminho
+        float hop = SupplySystem.StepCost(w, r), plain = 1f / MathF.Max(w.Rule("move_infra_floor", 0.5f), r.Infrastructure);
+        var via = Ui.Lbl(r.Rail > 0
+            ? $"carril nível {r.Rail}: a rede paga {hop:0.00} para atravessar aqui, em vez de {plain:0.00}"
+            : $"sem carril: a rede paga {plain:0.00} para atravessar aqui", 13);
+        via.AddThemeColorOverride("font_color", r.Rail > 0 ? Ui.Good.Lightened(0.2f) : Ui.TextDim);
+        via.TooltipText = $"cada nível de via conta como +{w.Rule("rail_step", 0.5f):0.00} de estrada só para o"
+                        + $" abastecimento (tecto {(int)w.Rule("rail_max", 4f)}); a rede pára quando a conta dos"
+                        + " saltos passa o alcance de quem a manda";
+        box.AddChild(via);
         // a marcha: os dias que a coluna leva a entrar aqui, com a estrada e a estação de hoje
         var mover = w.Divisions.Values.FirstOrDefault(d => d.CountryId == countryId)
                  ?? w.Divisions.Values.FirstOrDefault();
@@ -109,6 +120,8 @@ public static class GroundView
             ? $", mais {lines.Count - 1} linha{(lines.Count == 2 ? "" : "s")} de quem cá combate ({lines[1].Who} ×{lines[1].Attack:0.00}/×{lines[1].Defend:0.00})"
             : ", sem ninguém a sentir o chão de outra maneira";
         string chapa = w.TerrainDefs.TryGetValue(r.Terrain, out var td) ? td.Glyph : "sem chapa";
-        return $"ficha do chão de {r.Name} (chapa {chapa}, {r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}";
+        string via = r.Rail > 0 ? $", carril {r.Rail} (salto da rede {SupplySystem.StepCost(w, r):0.00})"
+                                : $", sem carril (salto da rede {SupplySystem.StepCost(w, r):0.00})";
+        return $"ficha do chão de {r.Name} (chapa {chapa}, {r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}{via}";
     }
 }

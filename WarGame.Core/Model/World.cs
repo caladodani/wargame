@@ -311,6 +311,27 @@ public sealed class World
 
     public float Rule(string key, float fallback = 0f) => Rules.TryGetValue(key, out var v) ? v : fallback;
 
+    /// <summary>A rede ferroviária de partida: cada região nasce com o carril que a gente que lá vive
+    /// justifica — uma linha a partir de rail_pop_base habitantes, mais uma por cada rail_pop_mult vezes
+    /// essa população, com tecto em rail_max. Não é dado de tabela linha a linha porque não é escolha de
+    /// ninguém: é a leitura do mundo que a static.db traz, e é por isso que a Europa nasce cosida de linhas
+    /// e o deserto nasce sem nenhuma. A partir daqui quem quer mais carril assenta-o (BuildRailCommand) e é
+    /// isso que o save guarda. Só toca em quem ainda não tem carril nenhum (−1), por isso correr isto duas
+    /// vezes não desfaz obra nenhuma.</summary>
+    public void SeedRails()
+    {
+        float bas = MathF.Max(1f, Rule("rail_pop_base", 500_000f));
+        float mult = MathF.Max(1.01f, Rule("rail_pop_mult", 3f));
+        int max = (int)Rule("rail_max", 4f);
+        foreach (var r in Regions.Values)
+        {
+            if (r.Rail >= 0) continue;
+            r.Rail = r.Population < bas ? 0
+                   : Math.Clamp(1 + (int)MathF.Floor(MathF.Log(r.Population / bas) / MathF.Log(mult)), 0, max);
+            r.BaseRail = r.Rail;
+        }
+    }
+
     /// <summary>Current difficulty setting</summary>
     /// <summary>Dificuldade escolhida (tabela difficulty; null = por escolher, vale o normal).</summary>
     public string? Difficulty { get; set; }

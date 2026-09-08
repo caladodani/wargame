@@ -516,6 +516,32 @@ public sealed record LeaveFactionCommand(int CountryId, string FactionId) : ICom
     }
 }
 
+/// <summary>Assentar carril numa região própria (paga rail_cost já; o ConstructionSystem conclui ao fim de
+/// rail_days e sobe Region.Rail). A via férrea é a metade visível da logística do HoI4: baixa o que cada
+/// salto da rede custa (SupplySystem.StepCost) e desenha-se no mapa. Ocupa uma fábrica civil, como as
+/// outras obras — uma linha de comboio não se assenta com boa vontade.</summary>
+public sealed record BuildRailCommand(int CountryId, int RegionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
+        if (r.OwnerId != CountryId || r.ControllerId != CountryId) return "a região não é tua";
+        if (r.RailBuilding) return "já há carril a ser assente";
+        if (Math.Max(0, r.Rail) >= (int)w.Rule("rail_max", 4f)) return "via férrea no máximo";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (c.Money < w.Rule("rail_cost", 25f)) return $"faltam pontos de produção ({w.Rule("rail_cost", 25f):0})";
+        if (Industry.Of(w, CountryId).FreeCivil <= 0) return "fábricas civis todas ocupadas";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.Countries[CountryId].Money -= w.Rule("rail_cost", 25f);
+        var r = w.Regions[RegionId];
+        r.RailBuilding = true; r.RailProgress = 0f;
+    }
+}
+
 /// <summary>Iniciar obra de infraestrutura numa região própria (paga infra_build_cost já;
 /// o ConstructionSystem conclui ao fim de infra_build_days). Ocupa uma fábrica civil (Industry): com todas
 /// tomadas por outras obras, a ordem é recusada mesmo com o cofre cheio.</summary>
@@ -1104,8 +1130,9 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
         if (!w.Regions.TryGetValue(RegionId, out var r)) return "região inválida";
-        if (r.ControllerId != CountryId || r.OwnerId != CountryId) return "a região não é tua";
         if (!w.BuildingDefs.TryGetValue(BuildingId, out var def)) return "edifício desconhecido";
+        // o depósito é a única obra que se levanta em terra tomada: é ele que leva a rede atrás da ofensiva
+        if (r.ControllerId != CountryId || (r.OwnerId != CountryId && !def.IsHub)) return "a região não é tua";
         if (def.Coastal && !r.Coastal) return "só na costa";
         if (r.Project is not null) return "já há uma obra de edifício em curso";
         if (r.Buildings.GetValueOrDefault(BuildingId) >= def.MaxLevel) return "nível máximo atingido";
@@ -1118,7 +1145,7 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
     {
         var c = w.Countries[CountryId]; var r = w.Regions[RegionId];
         c.Money -= w.BuildingDefs[BuildingId].Cost;
-        r.Project = BuildingId; r.ProjectProgress = 0f;
+        r.Project = BuildingId; r.ProjectProgress = 0f; r.ProjectOwner = CountryId;
     }
 }
 

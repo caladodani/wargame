@@ -26,12 +26,29 @@ public sealed class ConstructionSystem : ISystem
                     w.Events.Publish(new InfrastructureBuilt(r.Id));
                 }
             }
+            // carris: a mesma obra da infraestrutura, mas o que sobe é a via férrea da região — e é ela que
+            // o mapa desenha e que a rede de abastecimento conta (SupplySystem.StepCost)
+            if (r.RailBuilding)
+            {
+                if (r.ControllerId != r.OwnerId) { r.RailBuilding = false; r.RailProgress = 0f; }
+                else if ((r.RailProgress += 1f) >= w.Rule("rail_days", 20f))
+                {
+                    r.RailBuilding = false; r.RailProgress = 0f;
+                    r.Rail = Math.Min((int)w.Rule("rail_max", 4f), Math.Max(0, r.Rail) + 1);
+                    w.Events.Publish(new RailBuilt(r.Id, r.Rail));
+                }
+            }
             if (r.Project is string proj)
             {
-                if (r.ControllerId != r.OwnerId || !w.BuildingDefs.TryGetValue(proj, out var def)) { r.Project = null; r.ProjectProgress = 0f; }
+                // um depósito é a excepção: continua a levantar-se em terra tomada, porque é exactamente
+                // para isso que ele serve — levar a rede atrás da ofensiva
+                bool hub = w.BuildingDefs.TryGetValue(proj, out var pdef) && pdef.IsHub;
+                bool lost = hub ? r.ProjectOwner != 0 && r.ControllerId != r.ProjectOwner   // depósito: cai se a terra mudar de mãos
+                                : r.ControllerId != r.OwnerId;
+                if (lost || !w.BuildingDefs.TryGetValue(proj, out var def)) { r.Project = null; r.ProjectProgress = 0f; r.ProjectOwner = 0; }
                 else if ((r.ProjectProgress += 1f) >= def.Days)
                 {
-                    r.Project = null; r.ProjectProgress = 0f;
+                    r.Project = null; r.ProjectProgress = 0f; r.ProjectOwner = 0;
                     int lvl = Math.Min(def.MaxLevel, r.Buildings.GetValueOrDefault(proj) + 1);
                     r.Buildings[proj] = lvl;
                     w.Events.Publish(new BuildingBuilt(r.Id, proj, lvl));

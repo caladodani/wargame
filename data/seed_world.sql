@@ -566,6 +566,22 @@ INSERT INTO rule VALUES ('supply_reach_decay', 0.12, 'abastecimento perdido por 
 INSERT INTO rule VALUES ('supply_reach_min', 0.5, 'chão do abastecimento por esticar demasiado a linha');
 INSERT INTO rule VALUES ('ai_port_supply_floor', 0.9, 'abaixo deste supply a IA manda construir porto para as tropas de além-mar');
 
+-- Carris e depósitos: a rede de abastecimento do HOI4 desenhada no mapa. A via férrea de uma região faz
+-- cada salto da rede custar menos (rail_step soma-se à infraestrutura na conta do salto) e vê-se no mapa
+-- como uma linha de comboio com travessas. O carril de partida sai da gente que ali vive (rail_pop_base,
+-- ×rail_pop_mult por nível): a rede nasce onde o mundo é povoado e o deserto nasce sem linha nenhuma —
+-- que é o que se vê num mapa ferroviário verdadeiro e no do HoI4; a partir daí
+-- constrói-se com dinheiro e dias, como qualquer obra. O depósito (building 'deposito') é a outra metade:
+-- irradia hub_range saltos de crédito à volta dele e, ao contrário de todas as outras obras, levanta-se em
+-- terra que se controla sem ser nossa — é assim que uma ofensiva leva a rede atrás de si.
+INSERT INTO rule VALUES ('rail_pop_base', 500000, 'população a partir da qual uma região nasce com via férrea');
+INSERT INTO rule VALUES ('rail_pop_mult', 3, 'de quantas em quantas vezes essa população sobe mais um nível de carril');
+INSERT INTO rule VALUES ('rail_draw_max', 6000, 'tecto de troços de via desenhados no mapa (corta-se pela linha pior)');
+INSERT INTO rule VALUES ('rail_step', 0.5, 'quanto cada nível de carril vale na conta do salto da rede');
+INSERT INTO rule VALUES ('rail_max', 4, 'nível máximo de via férrea numa região');
+INSERT INTO rule VALUES ('rail_cost', 25, 'pontos de produção pagos ao mandar assentar carril');
+INSERT INTO rule VALUES ('rail_days', 20, 'dias de obra de uma via férrea');
+
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
 INSERT INTO spy_op (id,name,description,cost,days,effect,magnitude) VALUES ('contra_espionagem','Contra-espionagem','Expulsa as redes de espionagem deste país contra nós.',35,12,'purge_spies',0);
 
@@ -764,14 +780,19 @@ CREATE TABLE IF NOT EXISTS building (
   stat_key TEXT NOT NULL, per_level REAL NOT NULL, max_level INTEGER NOT NULL,
   coastal INTEGER NOT NULL DEFAULT 0,        -- 1 = só em região de costa
   supply_range REAL NOT NULL DEFAULT 0,      -- km de abastecimento projectado por mar, por nível
+  hub_range REAL NOT NULL DEFAULT 0,         -- saltos de rede que um depósito irradia, por nível (SupplySystem)
   yard TEXT NOT NULL DEFAULT '',             -- fila de fábricas que abre (Industry): civil | militar | naval
   icon TEXT NOT NULL DEFAULT '',             -- emoji de recurso: só se não houver chapa desenhada
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
-INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,yard,icon,glyph) VALUES
- ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,'civil','🏭','fabrica'),
- ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,'','🔬','frasco'),
- ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,'militar','🛠','bigorna'),
- ('porto','Porto',35,20,'port_capacity',0,2,1,900,'naval','⚓','ancora');
+INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph) VALUES
+ ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,0,'civil','🏭','fabrica'),
+ ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,0,'','🔬','frasco'),
+ ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,0,'militar','🛠','bigorna'),
+ ('porto','Porto',35,20,'port_capacity',0,2,1,900,0,'naval','⚓','ancora'),
+ -- O depósito de abastecimento: a peça que faltava à logística. Ao contrário de tudo o resto, constrói-se
+ -- em terra que se controla mesmo sem ser nossa — é assim que uma ofensiva leva a rede atrás de si, como
+ -- no HoI4 se leva o supply hub para o território conquistado.
+ ('deposito','Depósito',30,18,'supply',0,3,0,0,3,'','📦','caixa');
 
 -- Ramos da árvore de investigação: a chapa de cada um deixou de ser um switch em C# e passou a ser uma
 -- linha. `glyph` é o nome de um desenho nosso (Glyph.cs) — não é emoji: um emoji num jogo de guerra sai

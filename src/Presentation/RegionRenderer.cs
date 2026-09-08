@@ -44,6 +44,7 @@ public partial class RegionRenderer : Node2D
     private Node2D _riverRoot = null!;
     private int _riverStrips, _riverBanks;   // traços de água desenhados e regiões de rio que ficaram com margem à vista
     private TerrainMarks _terrainRoot = null!;   // serras, cidades, dunas e mata desenhadas no chão
+    private RailMarks _railRoot = null!;         // a rede ferroviária: por onde é que o abastecimento anda
     private CityMarks _cityRoot = null!;         // pontos e nomes das cidades
     /// <summary>Zoom a partir do qual a água aparece. De longe o mapa é político — trinta por cento das
     /// regiões do mundo têm rio, e desenhá-los todos à escala do planeta era pintar o mapa de azul. É a
@@ -53,6 +54,9 @@ public partial class RegionRenderer : Node2D
     /// <summary>Zoom a partir do qual o chão desenhado aparece — um degrau acima da água. Um sinal de serra
     /// tem de se ler como serra: à escala do planeta seria um borrão a mais por cima da cor do país.</summary>
     private const float TerrainZoom = 0.3f;
+    /// <summary>Degrau em que a rede ferroviária acende. Acende antes do chão desenhado: a linha é a coisa
+    /// que se procura num mapa de logística mal se começa a aproximar, e de longe ainda se lê como rede.</summary>
+    private const float RailZoom = 0.22f;
     /// <summary>Zoom a partir do qual as cidades aparecem. À escala do planeta o que se procura é o país;
     /// mal se entra num continente, o que se procura é a terra — e é aí que as capitais acendem.</summary>
     private const float CityZoom = 0.25f;
@@ -130,6 +134,13 @@ public partial class RegionRenderer : Node2D
         // e some-se de longe, que a essa distância só interessa quem manda onde.
         _terrainRoot = new TerrainMarks { Name = "Ground", Visible = false }; AddChild(_terrainRoot);
         _terrainRoot.Build(game.World, this);
+
+        // E por cima do chão, os carris: a rede de abastecimento desenhada. Vive com a pintura do terreno e
+        // não com a informação militar porque é isso que ela é — obra assente na terra, que não muda de dono
+        // quando a região muda. Refaz-se quando alguém acaba de assentar linha.
+        _railRoot = new RailMarks { Name = "Rails", Visible = false }; AddChild(_railRoot);
+        _railRoot.Build(game.World);
+        game.World.Events.Subscribe<RailBuilt>(_ => Callable.From(() => _railRoot.Build(_game.World)).CallDeferred());
 
         // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
         _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
@@ -478,6 +489,12 @@ public partial class RegionRenderer : Node2D
     /// <summary>O degrau de zoom em que o chão desenhado acende.</summary>
     public static float TerrainZoomLimit => TerrainZoom;
 
+    /// <summary>--smoke: a rede ferroviária desenhada — troços, melhor linha e se está à vista.</summary>
+    public (int Tracks, int Best, bool Visible) Rails() => (_railRoot.Count, _railRoot.Best, _railRoot.Visible);
+
+    /// <summary>O degrau de zoom em que os carris acendem.</summary>
+    public static float RailZoomLimit => RailZoom;
+
     /// <summary>--smoke: as cidades desenhadas no zoom de agora.</summary>
     public string CityReport() => _cityRoot.Report();
 
@@ -758,6 +775,7 @@ public partial class RegionRenderer : Node2D
         _counterRoot.Visible = on;
         _riverRoot.Visible = zoom >= RiverZoom;   // a água acende antes dos contadores: é chão, não tropa
         _terrainRoot.Visible = zoom >= TerrainZoom;   // e o chão desenhado logo a seguir à água
+        _railRoot.Visible = zoom >= RailZoom;         // e os carris, que acendem ainda antes do chão
         _cityRoot.Visible = zoom >= CityZoom;         // e os nomes de terra com as capitais
         if (_cityRoot.Visible) _cityRoot.SetZoom(zoom);
         _furnitureRoot.SetZoom(zoom);                 // e as chapas, que escolhem sozinhas o que cabe

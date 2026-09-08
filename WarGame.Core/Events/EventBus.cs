@@ -113,6 +113,9 @@ public sealed record InfrastructureBuilt(int RegionId) : IGameEvent;
 public sealed record LawChanged(int CountryId, string LawId) : IGameEvent;
 /// <summary>Nível de fortificação concluído (ConstructionSystem).</summary>
 public sealed record FortBuilt(int RegionId, int Level) : IGameEvent;
+/// <summary>Via férrea assente numa região (ConstructionSystem): a rede de abastecimento passa a contar
+/// com ela e o mapa desenha-lhe mais uma linha de comboio.</summary>
+public sealed record RailBuilt(int RegionId, int Level) : IGameEvent;
 /// <summary>Pontos de produção enviados a um aliado (TransferMoneyCommand).</summary>
 public sealed record MoneyTransferred(int FromCountryId, int ToCountryId, float Amount) : IGameEvent;
 /// <summary>Proposta de paz branca recusada (OfferPeaceCommand: a IA ainda acha que ganha).</summary>

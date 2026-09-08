@@ -20,8 +20,14 @@ namespace WarGame.Core.Systems;
 /// caminho de cabras vale pelo dobro. Território nosso não conta: em casa a rede está montada. É isto
 /// que faz uma ofensiva parar sozinha longe de casa em vez de correr até ao fim do mapa.
 ///
+/// E a rede tem duas peças que se vêem no mapa. Os carris (Region.Rail): cada nível de via férrea faz o
+/// salto daquela região custar menos (rail_step), por isso uma linha assente atrás da frente estica o
+/// alcance da ofensiva. E os depósitos (building com hub_range): um depósito ligado à rede é rede nova
+/// onde está — dá crédito de distância à volta dele — e, ao contrário de tudo o resto que se constrói,
+/// levanta-se em terra tomada. Cortar-lhe a estrada de casa apaga-o da conta.
+///
 /// Regras: supply_pocket, supply_stack, port_supply_factor, port_capacity_per_level, port_overflow_min,
-/// supply_reach_free, supply_reach_decay, supply_reach_min, move_infra_floor.</summary>
+/// supply_reach_free, supply_reach_decay, supply_reach_min, move_infra_floor, rail_step.</summary>
 public sealed class SupplySystem : ISystem
 {
     public string Name => "Supply";
@@ -44,6 +50,8 @@ public sealed class SupplySystem : ISystem
         var countries = stacked.Keys.Select(k => k.country).ToHashSet();
         foreach (var d in w.Divisions.Values) countries.Add(w.Regions[d.RegionId].ControllerId);
         var linked = LinkedRegions(w, countries);             // região ligada → distância à rede de casa
+        var hubs = Hubs(w, linked);                           // depósitos ligados: cada um é rede nova onde está
+        if (hubs.Count > 0) SpreadFromHubs(w, linked, hubs);
         var bySea = PortReach(w, linked, out var capacity);   // cabeças-de-praia por porto + cais de cada país
         float seaFactor = w.Rule("port_supply_factor", 0.85f);
         var strain = Strain(w, bySea, capacity);              // quanto o porto de cada país está a aguentar
@@ -57,10 +65,13 @@ public sealed class SupplySystem : ISystem
             // marcada na divisão para o PocketSystem não ter de refazer a travessia toda a seguir — e
             // porque cortado tem de querer dizer exactamente o mesmo nos dois sítios.
             d.Cut = !(friendly && linked.ContainsKey(d.RegionId));
-            d.SupplyDepth = d.Cut ? 0f : linked[d.RegionId];
+            // a distância pode vir negativa: é o crédito que um depósito perto dá. A ficha da divisão mostra
+            // zero (não se está a menos de zero saltos da rede), mas a conta do alcance leva o crédito todo
+            float depth = d.Cut ? 0f : linked[d.RegionId];
+            d.SupplyDepth = MathF.Max(0f, depth);
             float s = d.Cut ? pocket
                 : (bySea.Contains(d.RegionId) ? seaFactor * strain.GetValueOrDefault(reg.ControllerId, 1f) : 1f)
-                  * Reach(w, d.SupplyDepth);
+                  * Reach(w, depth);
             int n = stacked[(d.CountryId, d.RegionId)];
             if (n > stack) s *= stack / n;
             d.Supply = s;
@@ -75,10 +86,44 @@ public sealed class SupplySystem : ISystem
         return Math.Clamp(1f - over * w.Rule("supply_reach_decay", 0.12f), w.Rule("supply_reach_min", 0.5f), 1f);
     }
 
-    /// <summary>O que custa entrar nesta região vindo da rede: uma região, dividida pelas estradas que lá
-    /// há. Infraestrutura alta (via férrea) aproxima o depósito; infraestrutura má afasta-o.</summary>
+    /// <summary>O que custa entrar nesta região vindo da rede: uma região, dividida pelas estradas e pelos
+    /// carris que lá há. Infraestrutura alta aproxima o depósito; infraestrutura má afasta-o. A via férrea
+    /// soma-se por cima (rail_step por nível): é ela que faz uma ofensiva com a linha assente atrás dela
+    /// chegar onde uma ofensiva por estradas de terra não chega — o mesmo que no HoI4 se faz a reparar e a
+    /// subir a rede ferroviária até à frente.</summary>
     public static float StepCost(World w, Region r) =>
-        1f / MathF.Max(w.Rule("move_infra_floor", 0.5f), r.Infrastructure);
+        1f / MathF.Max(w.Rule("move_infra_floor", 0.5f), r.Infrastructure + w.Rule("rail_step", 0.5f) * Math.Max(0, r.Rail));
+
+    /// <summary>Os depósitos deste país que estão ligados à rede de casa, e o crédito de rede que cada um
+    /// dá (hub_range × nível). Um depósito cercado não conta: um armazém sem estrada até casa é um armazém
+    /// que ninguém enche.</summary>
+    public static Dictionary<int, float> Hubs(World w, IReadOnlyDictionary<int, float> linked)
+    {
+        var hubs = new Dictionary<int, float>();
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.Buildings.Count == 0 || !linked.ContainsKey(r.Id)) continue;
+            float credit = 0f;
+            foreach (var (bid, lvl) in r.Buildings)
+                if (w.BuildingDefs.TryGetValue(bid, out var def) && def.IsHub) credit += def.HubRange * lvl;
+            if (credit > 0f) hubs[r.Id] = credit;
+        }
+        return hubs;
+    }
+
+    /// <summary>A rede de um país como a Tick a vê, para quem só a quer ler (a ficha e a prova headless):
+    /// quantas regiões estão ligadas a casa, quantos depósitos ligados há e que crédito de rede dão, e a
+    /// que distância fica a região ligada mais longe. Não decide nada — corre a mesma travessia.</summary>
+    public static (int Linked, int Hubs, float Credit, float Deepest) Network(World w, int countryId)
+    {
+        var linked = LinkedRegions(w, new HashSet<int> { countryId });
+        var hubs = Hubs(w, linked).Where(kv => w.Regions[kv.Key].ControllerId == countryId).ToList();
+        float deep = 0f;
+        foreach (var (id, dist) in linked)
+            if (w.Regions[id].ControllerId == countryId) deep = MathF.Max(deep, dist);
+        return (linked.Count(kv => w.Regions[kv.Key].ControllerId == countryId),
+                hubs.Count, hubs.Sum(kv => kv.Value), deep);
+    }
 
     /// <summary>Abastecimento por mar: um porto numa região já ligada por terra alcança, até
     /// supply_range × nível quilómetros de travessia, outras regiões costeiras do mesmo controlador —
@@ -209,5 +254,35 @@ public sealed class SupplySystem : ISystem
             }
         }
         return linked;
+    }
+
+    /// <summary>Segunda travessia: cada depósito ligado é uma rede nova onde está. Começa com crédito
+    /// (distância negativa, hub_range × nível) e espalha-o pela terra que o mesmo controlador tem à volta —
+    /// por isso um depósito no meio da terra tomada devolve à ofensiva o alcance que a marcha lhe comeu. É
+    /// a leitura do HoI4: quem quer atacar longe leva o hub atrás de si, e quem lhe corta a estrada de casa
+    /// tira-lhe o hub da conta (Hubs só devolve os que estão ligados).</summary>
+    private static void SpreadFromHubs(World w, Dictionary<int, float> linked, Dictionary<int, float> hubs)
+    {
+        var queue = new PriorityQueue<Region, float>();
+        foreach (var (id, credit) in hubs)
+        {
+            float start = -credit;
+            if (linked.TryGetValue(id, out float had) && had <= start) continue;
+            linked[id] = start;
+            queue.Enqueue(w.Regions[id], start);
+        }
+        while (queue.TryDequeue(out var cur, out float dist))
+        {
+            if (dist > linked[cur.Id]) continue;
+            foreach (var n in cur.Neighbours)
+            {
+                var r = w.Regions[n];
+                if (r.ControllerId != cur.ControllerId) continue;
+                float cost = dist + (r.OwnerId == r.ControllerId ? 0f : StepCost(w, r));
+                if (linked.TryGetValue(n, out float had) && had <= cost) continue;
+                linked[n] = cost;
+                queue.Enqueue(r, cost);
+            }
+        }
     }
 }

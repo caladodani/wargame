@@ -323,7 +323,9 @@ CREATE TABLE IF NOT EXISTS s_region (
   owner_id INTEGER,         -- NULL = dono da static.db (só muda com capitulações)
   building INTEGER NOT NULL DEFAULT 0, build_progress REAL NOT NULL DEFAULT 0,
   fort INTEGER NOT NULL DEFAULT 0, fort_building INTEGER NOT NULL DEFAULT 0, fort_progress REAL NOT NULL DEFAULT 0,
-  resistance REAL NOT NULL DEFAULT 0
+  resistance REAL NOT NULL DEFAULT 0,
+  rail INTEGER NOT NULL DEFAULT -1,          -- nível de via férrea; -1 = ainda por derivar da infraestrutura
+  rail_building INTEGER NOT NULL DEFAULT 0, rail_progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS template (
   id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL

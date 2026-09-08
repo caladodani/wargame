@@ -105,7 +105,9 @@ public static class MapMarks
     public static List<Work> Works(World w, int viewerId)
     {
         var list = new List<Work>();
-        var ports = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).ToDictionary(d => d.Id, d => d.Glyph);
+        // portos e depósitos: as duas obras que a logística desenha no mapa. Um depósito é uma chapa como o
+        // porto porque faz o mesmo trabalho — é onde a rede começa outra vez
+        var ports = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f || d.IsHub).ToDictionary(d => d.Id, d => d.Glyph);
         foreach (var r in w.Regions.Values)
         {
             if (Vision.Enabled(w) && !Vision.Sees(w, viewerId, r)) continue;

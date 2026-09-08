@@ -128,6 +128,15 @@ public sealed class Region
     /// <summary>Obra de infraestrutura em curso (ConstructionSystem); cancela se a região for capturada.</summary>
     public bool Building { get; set; }
     public float BuildProgress { get; set; }
+    /// <summary>Nível da via férrea desta região (0..rail_max). Cada nível faz o salto da rede de
+    /// abastecimento custar menos (rail_step) e desenha-se no mapa como linha de comboio. −1 = ainda por
+    /// derivar da infraestrutura de origem (World.SeedRails).</summary>
+    public int Rail { get; set; } = -1;
+    public bool RailBuilding { get; set; }
+    public float RailProgress { get; set; }
+    /// <summary>O carril com que esta região nasceu (World.SeedRails). Serve ao save para só guardar as
+    /// linhas que alguém mudou — o mundo tem quase 3000 regiões e a rede de origem é sempre a mesma.</summary>
+    public int BaseRail { get; set; } = -1;
     /// <summary>Nível de fortificação (0..fort_max): multiplica a força dos defensores (fort_defense_per_level).
     /// Captura tira um nível. Obra própria (FortBuilding/FortProgress) ao lado da de infraestrutura.</summary>
     public int Fort { get; set; }
@@ -138,6 +147,9 @@ public sealed class Region
     /// <summary>Edifício em obra (id da tabela building; null = nenhuma) e dias de progresso.</summary>
     public string? Project { get; set; }
     public float ProjectProgress { get; set; }
+    /// <summary>Quem mandou levantar o edifício em curso. Só interessa aos depósitos, que se constroem em
+    /// terra tomada: se a região mudar de mãos a meio da obra, ela morre com quem a pagou.</summary>
+    public int ProjectOwner { get; set; }
     /// <summary>Resistência da população ocupada (0..1, ResistanceSystem): cresce sem guarnição do ocupante,
     /// corta o rendimento (resistance_output_hit) e a 1.0 devolve o controlo ao dono.</summary>
     public float Resistance { get; set; }
@@ -241,7 +253,12 @@ public sealed record MapModeDef(string Id, string Name, string Icon, string Metr
 /// <param name="Icon">Desenho do edifício na lista do Construir (coluna building.icon). Vem da tabela e não
 /// do código pela mesma razão que o resto: um edifício novo é uma linha de SQL, não uma linha de C#.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
-    bool Coastal = false, float SupplyRange = 0f, string Yard = "", string Icon = "", string Glyph = "");
+    bool Coastal = false, float SupplyRange = 0f, float HubRange = 0f, string Yard = "", string Icon = "", string Glyph = "")
+{
+    /// <summary>Depósito: irradia rede à sua volta. É o que o distingue de uma fábrica — e o que lhe dá o
+    /// direito de se levantar em terra tomada, que nenhuma outra obra tem.</summary>
+    public bool IsHub => HubRange > 0f;
+}
 
 /// <summary>Ramo da árvore de investigação (tabela tech_branch). O id é o texto que está em tech.branch; o
 /// Glyph é o nome de uma chapa desenhada — qual chapa cabe a que ramo é dado, não é decidido em código.</summary>
