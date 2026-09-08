@@ -19,6 +19,16 @@ public sealed record DivisionSurrendered(int DivisionId, int CaptorId, int Count
 public sealed record TechResearched(int CountryId, string TechId) : IGameEvent;
 /// <summary>Um país capitulou (PeaceSystem); Winner ficou com as regiões que o capitulado ainda controlava.</summary>
 public sealed record CountryCapitulated(int CountryId, int WinnerId) : IGameEvent;
+/// <summary>O governo de um país capitulado embarcou para o exílio (ExileSystem): quem o acolhe.</summary>
+public sealed record GovernmentExiled(int CountryId, int HostId) : IGameEvent;
+/// <summary>O governo no exílio mudou de casa: o anfitrião caiu e outro aliado recolheu-o.</summary>
+public sealed record ExileMoved(int CountryId, int OldHostId, int HostId) : IGameEvent;
+/// <summary>Acabou-se o exílio sem regresso (ExileSystem): ficou sem quem o acolhesse, ou sem legitimidade
+/// nenhuma. O país continua capitulado — o que morreu foi o governo que ainda se dizia dele.</summary>
+public sealed record ExileEnded(int CountryId) : IGameEvent;
+/// <summary>O governo voltou do exílio (ExileSystem): quem libertou a capital, quantas regiões lhe foram
+/// devolvidas e com quantas divisões de exílio regressou.</summary>
+public sealed record GovernmentReturned(int CountryId, int LiberatorId, int Regions, int Divisions) : IGameEvent;
 /// <summary>Um vencedor levou a sua parte na conferência de paz (PeaceSpoils): quantas regiões do
 /// derrotado e quantos pontos de espólio pagou por elas.</summary>
 public sealed record SpoilsTaken(int WinnerId, int LoserId, int Regions, float Points) : IGameEvent;

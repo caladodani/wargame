@@ -362,6 +362,12 @@ CREATE TABLE IF NOT EXISTS s_cabinet (           -- gabinete civil em funções 
   since_day INTEGER NOT NULL DEFAULT 0,         -- dia da nomeação, para o painel contar o tempo de casa
   PRIMARY KEY (country_id, slot));
 
+CREATE TABLE IF NOT EXISTS s_exile (           -- governos no exílio (ExileSystem)
+  country_id INTEGER PRIMARY KEY,               -- o governo que caiu e continua a existir em papel
+  host_id INTEGER NOT NULL,                     -- o aliado que o acolhe; se este cair, procura-se outro
+  since_day INTEGER NOT NULL,                   -- dia em que embarcou
+  legitimacy REAL NOT NULL);                    -- 0..1; a exile_return_legitimacy pode voltar
+
 CREATE TABLE IF NOT EXISTS s_prisoner (        -- prisioneiros de guerra (PrisonerSystem)
   country_id INTEGER NOT NULL,                  -- quem os guarda
   from_country_id INTEGER NOT NULL,             -- de quem são

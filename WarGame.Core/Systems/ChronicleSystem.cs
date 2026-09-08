@@ -34,6 +34,14 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "paz", $"{Who(w, e.A)} e {Who(w, e.B)} assinam paz branca: tudo fica como estava.", e.A));
         w.Events.Subscribe<CountryCapitulated>(e =>
             Write(w, "capitulacao", $"{Who(w, e.CountryId)} capitula perante {Who(w, e.WinnerId)}.", e.CountryId));
+        w.Events.Subscribe<GovernmentExiled>(e =>
+            Write(w, "exilio", $"O governo de {Who(w, e.CountryId)} embarca para {Who(w, e.HostId)} e continua a governar de lá.", e.CountryId));
+        w.Events.Subscribe<ExileMoved>(e =>
+            Write(w, "exilio", $"O governo de {Who(w, e.CountryId)} muda de asilo: {Who(w, e.OldHostId)} caiu, recolhe-o {Who(w, e.HostId)}.", e.CountryId));
+        w.Events.Subscribe<ExileEnded>(e =>
+            Write(w, "exilio", $"O governo de {Who(w, e.CountryId)} no exílio dissolve-se: já não há quem o reconheça.", e.CountryId));
+        w.Events.Subscribe<GovernmentReturned>(e =>
+            Write(w, "exilio", $"O governo de {Who(w, e.CountryId)} regressa do exílio pela mão de {Who(w, e.LiberatorId)}: {e.Regions} regiões devolvidas e {e.Divisions} divisões de exílio em casa.", e.CountryId));
         w.Events.Subscribe<SpoilsTaken>(e =>
             Write(w, "espolio", $"{Who(w, e.WinnerId)} leva {e.Regions} regiões de {Who(w, e.LoserId)} na conferência de paz ({e.Points:0} pontos de espólio).", e.WinnerId));
         w.Events.Subscribe<AdvisorAppointed>(e =>

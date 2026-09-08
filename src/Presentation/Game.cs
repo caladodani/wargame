@@ -131,6 +131,9 @@ public partial class Game : Node
         World.Register(new MedalSystem());       // depois do combate: condecora com os contadores do dia
         World.Register(new DivisionHonourSystem());  // e logo a seguir dá nome próprio a quem já o merece
         World.Register(new PeaceSystem());
+        var exile = new ExileSystem();
+        exile.Bind(World);                       // ao barramento JÁ: a capitulação é publicada pelo sistema
+        World.Register(exile);                   // acima, e sem isto o governo do primeiro dia não embarcava
         World.Register(new TruceSystem());
         World.Register(new ConstructionSystem());
         World.Register(new ResistanceSystem());

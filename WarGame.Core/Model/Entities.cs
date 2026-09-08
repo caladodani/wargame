@@ -542,6 +542,15 @@ public sealed class Country
     public int PowerRankPrev { get; set; }
     public bool Capitulated { get; set; }
     public int? CapitulatedDay { get; set; }
+    /// <summary>País que acolhe o governo no exílio, ou null — capitulado sem anfitrião é um governo que
+    /// acabou de vez. Enquanto lá está não tem terra nem exército: o que tem é a legitimidade
+    /// (ExileLegitimacy, 0..1), que sobe enquanto o anfitrião se bate contra quem o derrubou e é o que lhe
+    /// permite voltar quando a capital for libertada. Ver ExileSystem; persiste em s_exile.</summary>
+    public int? ExileHostId { get; set; }
+    public int? ExileDay { get; set; }
+    public float ExileLegitimacy { get; set; }
+    /// <summary>Está no exílio: capitulou e ainda tem quem o acolha.</summary>
+    public bool InExile => Capitulated && ExileHostId is not null;
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>

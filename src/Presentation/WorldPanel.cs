@@ -9,7 +9,7 @@ namespace WarGame.Presentation;
 public partial class WorldPanel : PanelContainer
 {
     /// <summary>Secções do painel, uma por aba de metal (as mesmas que antes eram um rolo só).</summary>
-    private static readonly string[] Sections = { "Potências", "Guerras", "Espionagem", "Facções" };
+    private static readonly string[] Sections = { "Potências", "Guerras", "Espionagem", "Facções", "Exílio" };
 
     private Game _game = null!;
     private CountryPanel _countryPanel = null!;
@@ -79,7 +79,7 @@ public partial class WorldPanel : PanelContainer
             Ui.Clear(_tabs);
             _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             Ui.Clear(_body);
-            bool tPower = _tab == 0, tWars = _tab == 1, tSpy = _tab == 2, tFactions = _tab == 3;
+            bool tPower = _tab == 0, tWars = _tab == 1, tSpy = _tab == 2, tFactions = _tab == 3, tExile = _tab == 4;
 
             var divs = new Dictionary<int, int>();
             foreach (var d in w.Divisions.Values) divs[d.CountryId] = divs.GetValueOrDefault(d.CountryId) + 1;
@@ -148,6 +148,27 @@ public partial class WorldPanel : PanelContainer
                 }
             }
 
+            if (tExile)
+            {
+                // Quem caiu e continua a governar de fora. É a única folha do jogo onde um país capitulado
+                // ainda aparece: no mapa ele já não existe, e sem isto o jogador nunca saberia que a bandeira
+                // que libertou hoje tem dono à espera.
+                Header("Governos no exílio");
+                var exiled = w.Countries.Values.Where(c => c.InExile)
+                              .OrderByDescending(c => c.ExileLegitimacy).ThenBy(c => c.Id).ToList();
+                if (exiled.Count == 0) Line("Nenhum — nenhum governo aliado embarcou");
+                float need = w.Rule("exile_return_legitimacy", 0.6f);
+                foreach (var c in exiled) _body.AddChild(Exile(w, c, need));
+
+                var fallen = w.Countries.Values.Where(c => c.Capitulated && c.ExileHostId is null).ToList();
+                if (fallen.Count > 0)
+                {
+                    Header("Capitulados sem governo");
+                    Line(string.Join(", ", fallen.OrderBy(c => c.Id).Select(c => c.Name)), 15);
+                }
+                return;
+            }
+
             if (!tFactions) return;
             Header("Facções");
             foreach (var f in w.Factions.Values.Where(f => f.Members.Count > 0).OrderByDescending(f => f.Members.Count))
@@ -158,6 +179,38 @@ public partial class WorldPanel : PanelContainer
             }
         }
         catch (Exception ex) { GD.PushError("WorldPanel.Fill: " + ex); }
+    }
+
+    /// <summary>Cartão de um governo no exílio: de quem é, onde está hospedado, há quanto tempo, e a barra
+    /// da legitimidade — verde a partir do que lhe basta para voltar. A linha de baixo diz quem lhe ocupa a
+    /// capital — que é ao mesmo tempo o que trava o regresso e o que faz a legitimidade subir.</summary>
+    private Control Exile(World w, Country c, float need)
+    {
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface with { A = 0.75f }, 8));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 3); card.AddChild(v);
+
+        var top = new HBoxContainer(); top.AddThemeConstantOverride("separation", 8); v.AddChild(top);
+        var fl = Flags.Rect(22); fl.Texture = Flags.Of(c.Tag); fl.Visible = fl.Texture is not null;
+        top.AddChild(fl);
+        int id = c.Id;
+        var btn = Ui.Btn(c.Name, () => { Close(); _countryPanel.Open(id); }, 0);
+        btn.Alignment = HorizontalAlignment.Left;
+        top.AddChild(Ui.Grow(btn));
+        var where = Ui.Lbl($"em {Name(w, c.ExileHostId!.Value)}", 15);
+        where.AddThemeColorOverride("font_color", Ui.TextDim);
+        top.AddChild(where);
+
+        bool ready = c.ExileLegitimacy >= need;
+        v.AddChild(Ui.Bar(Math.Clamp(c.ExileLegitimacy, 0f, 1f), ready ? Ui.Good : Ui.Accent, 0f));
+
+        string foe = ExileSystem.Occupier(w, c) is int o ? Name(w, o) : "ninguém";
+        int days = c.ExileDay is int d ? w.Clock.Day - d : 0;
+        var note = Ui.Lbl($"legitimidade {c.ExileLegitimacy:P0} de {need:P0} · {days} dias fora · capital com {foe}"
+                        + (ready ? " · pronto a voltar quando a capital for libertada" : ""), 14);
+        note.AddThemeColorOverride("font_color", Ui.TextDim);
+        v.AddChild(note);
+        return card;
     }
 
     /// <summary>Cartão de um país na tabela mundial: lugar, seta de subida/descida, bandeira, patamar,

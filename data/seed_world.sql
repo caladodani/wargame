@@ -365,6 +365,19 @@ INSERT INTO rule (key,value,note) VALUES
 INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,op,value) VALUES
  ('volunteer','volunteer','true','str','mul',0.9);
 
+-- Governos no exílio (HoI4: governments in exile). Um país que capitula não desaparece do mundo: se ainda
+-- tem um aliado de pé, o governo embarca para casa dele e continua a existir em papel. O que ele tem é
+-- legitimidade — sobe enquanto quem o acolhe se bate contra quem o derrubou, desce quando a guerra dele
+-- para. Chegada a legitimidade ao ponto de exile_return_legitimacy, e libertada a capital por mão amiga, o
+-- governo volta: recebe as suas regiões de volta da mão de quem as libertou e traz um exército de exílio
+-- proporcional à legitimidade com que voltou. Ver ExileSystem.
+INSERT INTO rule (key,value,note) VALUES
+ ('exile_legitimacy_start',0.2,'legitimidade com que um governo chega ao exílio'),
+ ('exile_legitimacy_per_day',0.01,'legitimidade por dia enquanto o anfitrião se bate contra quem o derrubou'),
+ ('exile_legitimacy_decay',0.005,'legitimidade perdida por dia quando essa guerra para'),
+ ('exile_return_legitimacy',0.6,'legitimidade precisa para o governo voltar à capital libertada'),
+ ('exile_return_divisions',4,'divisões que o governo traz do exílio à legitimidade cheia');
+
 -- Retirada manual de batalha (RetreatFromBattleCommand): sai do combate com penalização de organização.
 INSERT INTO rule (key,value,note) VALUES
  ('retreat_org_penalty',0.5,'multiplicador de organização ao retirar de uma batalha');
@@ -504,6 +517,7 @@ INSERT INTO chronicle_kind VALUES ('foco','Foco nacional','🎯',2);
 INSERT INTO chronicle_kind VALUES ('espolio','Espólio de guerra','🏆',3);
 INSERT INTO chronicle_kind VALUES ('frente','Avanço na frente','🛡',2);
 INSERT INTO chronicle_kind VALUES ('estacao','Estação','🌦',1);
+INSERT INTO chronicle_kind VALUES ('exilio','Governo no exílio','⚑',3);
 INSERT INTO rule (key,value,note) VALUES
  ('chronicle_min_weight',2,'peso mínimo para um acontecimento entrar na crónica'),
  ('chronicle_max',400,'entradas guardadas na crónica; as mais antigas caem');
