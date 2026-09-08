@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Commands;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -11,10 +12,9 @@ namespace WarGame.Presentation;
 /// Lê o World só via RunWhenIdle e muta só por Game.Dispatch.</summary>
 public partial class BuildBar : PanelContainer
 {
-    private const string Infra = "@infra", Fort = "@fort";
-
-    // Os edifícios trazem o desenho da tabela `building` (coluna glyph); estes dois não são linhas de lá —
-    // são regras (infra_build_cost, fort_build_cost) e já tinham o nome escrito aqui. A chapa também.
+    // As duas obras que não são linhas da tabela `building` (são regras: infra_*, fort_*). Os ids e as
+    // chapas vivem agora no BuildPlan, com o resto da lista — o menu não decide o que se pode construir.
+    private const string Infra = BuildPlan.Infra, Fort = BuildPlan.Fort;
     private const string InfraGlyph = "estrada", FortGlyph = "escudo";
 
     private Game _game = null!;
@@ -65,26 +65,39 @@ public partial class BuildBar : PanelContainer
     private void Fill()
     {
         var w = _game.World;
-        string key = string.Join(",", w.BuildingDefs.Keys.OrderBy(k => k)) + "|" + _armed;
+        int pid = _game.PlayerId ?? 0;
+        var yards = Industry.Of(w, pid);
+        float money = w.Countries.TryGetValue(pid, out var me) ? me.Money : 0f;
+        // a lista repinta-se quando o que ela diz muda: o cofre e as fábricas livres decidem o que está
+        // acinzentado, e uma lista que não os visse mentia até se fechar e abrir o menu
+        string key = string.Join(",", w.BuildingDefs.Keys.OrderBy(k => k)) + "|" + _armed
+                   + "|" + (int)money + "|" + yards.FreeCivil + "/" + yards.Civil;
         if (key == _painted) return;
         _painted = key;
         Ui.Clear(_list);
-        foreach (var d in w.BuildingDefs.Values.OrderBy(d => d.Id))
-            _list.AddChild(Pick(d.Name, d.Id, $"{d.Cost:0}, {d.Days:0} d", d.Glyph));
-        _list.AddChild(Pick("Infra-estrutura", Infra, $"{w.Rule("infra_build_cost", 40f):0}, {w.Rule("infra_build_days", 30f):0} d", InfraGlyph));
-        _list.AddChild(Pick("Fortificação", Fort, $"{w.Rule("fort_build_cost", 30f):0}, {w.Rule("fort_build_days", 20f):0} d", FortGlyph));
+        foreach (var o in BuildPlan.Offers(w))
+            _list.AddChild(Pick(o, pid));
+        // a conta da obra armada, em chapas: o que custa, quanto demora, quantas fábricas civis sobram e
+        // até que nível vai. Sem nada armado não se desenha cartão nenhum — o menu é estreito.
+        if (_armed is string armed && BuildView.Card(w, pid, null, armed) is PanelContainer card)
+            _list.AddChild(card);
     }
 
     /// <summary>Uma chapa da lista. O desenho vai à cabeça do nome, como no menu de construção do HoI4: numa
     /// lista de seis obras todas escritas do mesmo tamanho, o que se procura encontra-se pela figura e não
     /// pela leitura. A chapa é desenhada por cima do botão, ancorada à esquerda e ao meio da altura, porque
     /// um Button não arruma filhos — e o texto começa com um recuo do tamanho dela para não lhe ir por cima.</summary>
-    private Button Pick(string name, string id, string cost, string glyph)
+    private Button Pick(BuildOffer o, int pid)
     {
-        var b = Ui.Btn($"        {name} ({cost})", () => Arm(id), 0f,
-                       id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
+        string travao = BuildPlan.Blocked(_game.World, pid, null, o.Id) ?? "";
+        var b = Ui.Btn($"        {o.Name} ({o.Cost:0}, {o.Days:0} d)", () => Arm(o.Id), 0f,
+                       o.Id == _armed ? Ui.Kind.Primary : Ui.Kind.Normal);
         b.Alignment = HorizontalAlignment.Left;
-        Glyph.Stamp(b, glyph, id == _armed ? Ui.Ink : Ui.Accent, PlateSize);
+        // o que o país não pode pagar (ou não tem fábrica para começar) fica apagado, como no menu de
+        // construção do HoI4 — mas continua a carregar-se, para se ver a conta e perceber o que falta
+        if (travao.Length > 0 && o.Id != _armed) b.AddThemeColorOverride("font_color", Ui.TextDim);
+        b.TooltipText = BuildPlan.Why(_game.World, pid, null, o.Id);
+        Glyph.Stamp(b, o.Glyph, o.Id == _armed ? Ui.Ink : Ui.Accent, PlateSize);
         return b;
     }
 
@@ -94,12 +107,14 @@ public partial class BuildBar : PanelContainer
     {
         _armed = id; _painted = "";
         Fill();
-        (string name, string glyph) = id == Infra ? ("Infra-estrutura", InfraGlyph)
-            : id == Fort ? ("Fortificação", FortGlyph)
-            : _game.World.BuildingDefs.TryGetValue(id, out var d) ? (d.Name, d.Glyph) : (id, "roda");
+        var offer = BuildPlan.Find(_game.World, id);
+        (string name, string glyph) = offer is BuildOffer o ? (o.Name, o.Glyph) : (id, "roda");
         Ui.Clear(_stamp);
         _stamp.AddChild(Glyph.Make(glyph, 16, Ui.TextDim));
-        _status.Text = $"Toca no mapa onde construir — {name}";
+        // a razão pela qual o toque no mapa vai ser recusado diz-se ANTES do toque, não depois
+        string travao = BuildPlan.Blocked(_game.World, _game.PlayerId ?? 0, null, id) ?? "";
+        _status.Text = travao.Length > 0 ? $"{name}: {travao}" : $"Toca no mapa onde construir — {name}";
+        _status.AddThemeColorOverride("font_color", travao.Length > 0 ? Ui.Danger : Ui.TextDim);
     }
 
     /// <summary>Toque no mapa enquanto armado: uma ordem de construção nessa região; o menu fica armado
