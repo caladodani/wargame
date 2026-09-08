@@ -16,6 +16,10 @@ public partial class CountryPanel : PanelContainer
     /// <summary>E isto à árvore das escolas de guerra (doutrinas de exército).</summary>
     public Action<int>? OnDoctrines;
 
+    /// <summary>E isto ao painel da Guerra, numa aba dada: o empréstimo de material mede-se numa gama, com
+    /// deslizador, e isso vive lá — a folha de acções leva-nos até ele em vez de o copiar.</summary>
+    public Action<int>? OnWarTab;
+
     /// <summary>Último gráfico desenhado, só para o --smoke lhe poder mexer na métrica e na mira.</summary>
     private HistoryChart? _chart;
 
@@ -88,6 +92,34 @@ public partial class CountryPanel : PanelContainer
         int day = _chart.SmokeCursor();
         _chart.QueueRedraw();
         return day;
+    }
+
+    /// <summary>--smoke: abre a aba da diplomacia sobre um país estrangeiro e conta a folha de acções. Só
+    /// aparece para os outros (na nossa ficha não há nada a fazer contra nós), por isso as outras provas do
+    /// smoke, que correm sobre o país do jogador, nunca lhe tocavam. Diz também quantas estão ao nosso
+    /// alcance hoje: uma folha inteira barrada desenha-se na mesma e não se distingue de uma folha viva.</summary>
+    public string SmokeDiplomacy(int otherId)
+    {
+        int keepId = _countryId, keepTab = _tab;
+        _countryId = otherId; _tab = Diplomacy; _lastKey = ""; Visible = true; Fill();
+        int rows = 0, open = 0;
+        foreach (var sheet in _body.GetChildren().OfType<VBoxContainer>().Where(v => v.Name == "Accoes"))
+        {
+            rows = sheet.GetChildCount();
+            foreach (var b in Buttons(sheet)) if (!b.Disabled) open++;
+        }
+        string name = _game.World.Countries.TryGetValue(otherId, out var o) ? o.Name : "#" + otherId;
+        _countryId = keepId; _tab = keepTab; _lastKey = ""; Visible = false; Fill();
+        return $"folha de diplomacia contra {name}: {rows} acções ({open} ao nosso alcance)";
+    }
+
+    private static IEnumerable<Button> Buttons(Node root)
+    {
+        foreach (var child in root.GetChildren())
+        {
+            if (child is Button b) yield return b;
+            foreach (var deep in Buttons(child)) yield return deep;
+        }
     }
 
     public void Close() => Visible = false;
@@ -361,6 +393,15 @@ public partial class CountryPanel : PanelContainer
             // facções, mesa de paz, mercado e espionagem: tudo o que se faz com os outros
             if (tDip)
             {
+                // A folha de acções: tudo o que se lhe pode fazer, com o preço e o motivo de quando não se
+                // pode. Estava espalhado por três painéis e não havia sítio onde se visse a lista inteira.
+                if (!mine && _game.PlayerId is int actor && w.Countries.ContainsKey(actor))
+                {
+                    Header("Acções");
+                    _body.AddChild(Ui.Grow(DiplomacyView.Sheet(w, actor, c, Act, OpenCreateFaction,
+                        () => { Close(); OnWarTab?.Invoke(WarPanel.Material); })));
+                }
+
                 // facções (alianças defensivas: declarar guerra a um membro chama os outros contra o agressor)
                 Header("Facções");
                 var factions = w.FactionsOf(c.Id).ToList();
@@ -642,6 +683,29 @@ public partial class CountryPanel : PanelContainer
             if (err is not null) GetParent<Hud>().Toast(err);
         });
     }
+
+    /// <summary>Despacha uma acção da folha. Com pergunta passa primeiro pela caixa de confirmação — a
+    /// justificação de guerra não se desfaz, e uma linha de lista é fácil de tocar sem querer.</summary>
+    private void Act(WarGame.Core.Commands.ICommand cmd, string? ask)
+    {
+        if (ask is null) { Do(cmd); return; }
+        _pending = cmd;
+        _confirm ??= Ui.Dialog(this, () => { if (_pending is WarGame.Core.Commands.ICommand p) Do(p); });
+        _confirm.DialogText = ask;
+        _confirm.PopupCentered();
+    }
+
+    private WarGame.Core.Commands.ICommand? _pending;
+    private ConfirmationDialog? _confirm;
+
+    /// <summary>Como o Faction, mas volta a desenhar a folha: quem carrega numa acção tem de a ver mudar de
+    /// estado sem fechar e abrir o painel.</summary>
+    private void Do(WarGame.Core.Commands.ICommand cmd) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(cmd);
+        if (err is not null) GetParent<Hud>().Toast(err);
+        _lastKey = ""; Fill();
+    });
 
     private void OpenCreateFaction()
     {

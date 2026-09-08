@@ -55,7 +55,17 @@ public partial class WarPanel : PanelContainer
     /// <summary>Trocar de secção: guarda a aba e manda encher outra vez (o desenho é sempre no idle).</summary>
     private void Pick(int i) { _tab = i; _lastKey = ""; _game.RunWhenIdle(Fill); }
 
-    public void Open() { _lastKey = ""; _deal = null; _demand.Clear(); _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); }); }
+    /// <summary>Índice da aba do material em `Sections`. Quem vem da folha de acções da diplomacia quer o
+    /// deslizador do empréstimo, e o índice não se escreve à mão de fora: uma aba nova pelo meio partia-o.</summary>
+    public static readonly int Material = Array.IndexOf(Sections, "Material");
+
+    /// <summary>Abre o painel. Sem `tab` fica na aba onde estava.</summary>
+    public void Open(int? tab = null)
+    {
+        _lastKey = ""; _deal = null; _demand.Clear();
+        if (tab is int t && t >= 0 && t < Sections.Length) _tab = t;
+        _game.RunWhenIdle(() => { Fill(); Visible = true; Ui.FadeIn(this); });
+    }
     public void Refresh() { if (Visible) Fill(); }
     public void Close() => Visible = false;
 
