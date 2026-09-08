@@ -161,7 +161,7 @@ public sealed class ArmyGroupSystem : ISystem
     {
         float sum = 0f;
         foreach (int id in g.Divisions)
-            if (w.Divisions.TryGetValue(id, out var d)) sum += d.Org * d.Hp / 100f;
+            if (w.Divisions.TryGetValue(id, out var d)) sum += WarLedger.Strength(d);
         return sum;
     }
 }

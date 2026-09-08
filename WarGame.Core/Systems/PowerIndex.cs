@@ -24,7 +24,7 @@ public static class PowerIndex
         foreach (var r in w.Regions.Values) pop[r.ControllerId] = pop.GetValueOrDefault(r.ControllerId) + r.Population;
 
         var army = new Dictionary<int, double>();
-        foreach (var d in w.Divisions.Values) army[d.CountryId] = army.GetValueOrDefault(d.CountryId) + d.Org * d.Hp / 100f;
+        foreach (var d in w.Divisions.Values) army[d.CountryId] = army.GetValueOrDefault(d.CountryId) + WarLedger.Strength(d);
 
         float air = w.Rule("power_air_weight", 4f), nuke = w.Rule("power_nuke_weight", 40f);
         var raw = new List<(Country C, double Pop, double Industry, double Army, double Tech)>();

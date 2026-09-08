@@ -71,7 +71,8 @@ public partial class WorldPanel : PanelContainer
         try
         {
             var w = _game.World;
-            var key = _tab + "|" + w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count;
+            var key = _tab + "|" + w.Clock.Day + "|" + w.Divisions.Count + "|" + string.Join(",", w.Wars.Keys.Select(k => k.A + ":" + k.B)) + "|" + w.ActiveSpyOps.Count
+                    + "|" + string.Join(",", w.Wars.Values.Select(x => $"{x.SideA.RegionsTaken}/{x.SideB.RegionsTaken}:{x.SideA.DivisionsLost}/{x.SideB.DivisionsLost}:{x.SideA.BattlesWon}/{x.SideB.BattlesWon}"));
             if (key == _lastKey) return;
             _lastKey = key;
             Ui.CrestInto(_crest, _game.PlayerId is int crestId && w.Countries.TryGetValue(crestId, out var mc) ? mc.Tag : "",
@@ -112,23 +113,17 @@ public partial class WorldPanel : PanelContainer
                 if (mineIdx >= 15) _body.AddChild(Standing(w, standings[mineIdx], mineIdx + 1, divs, regions, pop, popTotal));
             }
 
-            if (tWars) Header("Guerras activas");
-            if (tWars && w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
-            var orgSum = new Dictionary<int, float>();
-            foreach (var d in w.Divisions.Values)
-                orgSum[d.CountryId] = orgSum.GetValueOrDefault(d.CountryId) + d.Org * d.Hp / 100f;
-            foreach (var ((a, bId), info) in tWars ? w.Wars.OrderBy(kv => kv.Value.StartDay) : Enumerable.Empty<KeyValuePair<(int A, int B), WarInfo>>())
+            if (tWars)
             {
-                string na = w.Countries.TryGetValue(a, out var ca) ? ca.Name : "#" + a;
-                string nb = w.Countries.TryGetValue(bId, out var cb) ? cb.Name : "#" + bId;
-                Line($"⚔ {na} vs {nb}   ({w.Clock.Day - info.StartDay} dias)", 17);
-                // balança de força: org×HP de cada lado, barra de 10 posições
-                float fa = orgSum.GetValueOrDefault(a), fb = orgSum.GetValueOrDefault(bId);
-                if (fa + fb > 0f)
-                {
-                    int seg = (int)MathF.Round(10f * fa / (fa + fb));
-                    Line($"   {divs.GetValueOrDefault(a)} div  {new string('█', seg)}{new string('░', 10 - seg)}  {divs.GetValueOrDefault(bId)} div", 15);
-                }
+                Header("Guerras activas");
+                if (w.Wars.Count == 0) Line("Nenhuma — o mundo está em paz");
+                // o saldo de cada guerra em chapas: a balança de força, o veredicto e, por lado, a terra
+                // tomada, as divisões perdidas e as batalhas ganhas que o WarStatsSystem conta desde sempre.
+                // As guerras do jogador primeiro: são as que ele veio ver.
+                foreach (var info in w.Wars.Values
+                             .OrderByDescending(x => _game.PlayerId is int me && x.Involves(me))
+                             .ThenBy(x => x.StartDay))
+                    _body.AddChild(WarLedgerView.Card(w, info, _game.PlayerId));
             }
 
             if (tSpy && _game.PlayerId is int pid)

@@ -24,11 +24,9 @@ public sealed class WarStatsSystem : ISystem
         foreach (var key in _snap.Keys.Where(k => !w.Wars.ContainsKey(k)).ToList()) _snap.Remove(key);
     }
 
-    private static WarRecord Snapshot(World w, WarInfo war) => new(
-        war.A, war.B, war.StartDay, w.Clock.Day,
-        war.SideA.RegionsTaken, war.SideB.RegionsTaken,
-        war.SideA.DivisionsLost, war.SideB.DivisionsLost,
-        war.SideA.BattlesWon, war.SideB.BattlesWon);
+    /// <summary>A fotografia dos contadores é a mesma que a UI mostra a meio da guerra (WarLedger): o
+    /// saldo do arquivo e o saldo do ecrã nunca podem ser dois números diferentes.</summary>
+    private static WarRecord Snapshot(World w, WarInfo war) => WarLedger.Snapshot(w, war);
 
     /// <summary>Liga-se ao barramento de eventos do mundo. Idempotente por mundo: um save carregado
     /// traz um World novo e volta a subscrever; o mesmo mundo nunca subscreve duas vezes.</summary>

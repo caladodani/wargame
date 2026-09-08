@@ -69,7 +69,7 @@ public static class CampaignReport
             DivisionsLost = losses,
             BattlesWon = battles,
             Divisions = divisions.Count,
-            Strength = divisions.Sum(d => d.Org * d.Hp / 100f),
+            Strength = divisions.Sum(WarLedger.Strength),
             Medals = divisions.Sum(d => d.Medals.Count),
             Techs = c?.Techs.Count ?? 0,
             Focuses = c?.FocusesDone.Count ?? 0,
