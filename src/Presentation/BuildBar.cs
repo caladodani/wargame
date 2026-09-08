@@ -131,7 +131,10 @@ public partial class BuildBar : PanelContainer
         if (first is not null) Arm(first.Id);
         string status = _status.Text;
 
-        var asked = Glyph.Asked(w, InfraGlyph, FortGlyph);
+        // As chapas da barra de cima entram na conta pelo mesmo caminho: não são linha de tabela nenhuma,
+        // mas são pedidas pelo nome e partiriam caladas na mesma.
+        var extra = new[] { InfraGlyph, FortGlyph }.Concat(Hud.BarGlyphs).ToArray();
+        var asked = Glyph.Asked(w, extra);
         int known = asked.Count(Glyph.Knows);
         var (drawn, fell) = Glyph.Count(this);
         Close();

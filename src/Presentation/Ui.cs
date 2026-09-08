@@ -111,10 +111,20 @@ internal static class Ui
     /// aqui vivia em duas frases de texto corrido que ninguém lia de relance.</summary>
     public static PanelContainer Counter(string icon, out Label value, out Label note, Color? tint = null)
     {
+        var ic = Lbl(icon, 18); ic.AddThemeColorOverride("font_color", tint ?? Accent);
+        return Counter(ic, out value, out note);
+    }
+
+    /// <summary>O mesmo mostrador com uma chapa desenhada por símbolo (Glyph.Make) em vez de um emoji. A
+    /// chapa não estica com a linha: um mostrador tem duas linhas de texto e uma chapa esticada à altura
+    /// delas fica um desenho alto e magro em cima de um número.</summary>
+    public static PanelContainer Counter(Control icon, out Label value, out Label note)
+    {
         var plate = new PanelContainer();
         plate.AddThemeStyleboxOverride("panel", Box(Ink with { A = 0.85f }, 6));
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6); plate.AddChild(row);
-        var ic = Lbl(icon, 18); ic.AddThemeColorOverride("font_color", tint ?? Accent); row.AddChild(ic);
+        icon.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(icon);
         var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 0); row.AddChild(v);
         value = Lbl("—", 18); value.AddThemeColorOverride("font_color", Text); v.AddChild(value);
         note = Lbl("", 13); note.AddThemeColorOverride("font_color", TextDim); v.AddChild(note);

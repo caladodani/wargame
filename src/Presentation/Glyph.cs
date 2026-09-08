@@ -38,6 +38,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "espadas", "pomba", "bandeira", "medalha", "coluna", "coroa", "aperto", "fita",
         "galao", "taca", "barco", "estilhaco", "pasta", "corrente", "balanca", "caveira",
         "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
+        // a barra de cima: as duas que não vêm de tabela nenhuma — o cofre e o barril
+        "cofre", "barril",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -496,6 +498,43 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                     Arc(0.70f, y, 0.20f, 0f, Mathf.Pi);
                 }
                 break;
+
+            // Cofre do tesouro: a porta blindada com o disco do segredo. É o dinheiro do país — vai no
+            // primeiro mostrador da barra de cima, onde antes estava um cifrão emprestado a outra moeda.
+            case "cofre":
+                Poly(0.12f, 0.18f, 0.88f, 0.18f, 0.88f, 0.80f, 0.12f, 0.80f, 0.12f, 0.18f);
+                Poly(0.22f, 0.26f, 0.78f, 0.26f, 0.78f, 0.72f, 0.22f, 0.72f, 0.22f, 0.26f);
+                Ring(0.50f, 0.49f, 0.13f);
+                Dot(0.50f, 0.49f, 0.035f);
+                Line(0.50f, 0.49f, 0.50f, 0.33f, 0.85f);
+                Line(0.50f, 0.49f, 0.63f, 0.57f, 0.85f);
+                Line(0.22f, 0.80f, 0.22f, 0.90f, 0.85f);
+                Line(0.78f, 0.80f, 0.78f, 0.90f, 0.85f);
+                break;
+
+            // Barril de combustível: o tambor de pé, com os dois aros. Os tampos são elipses e não círculos
+            // — um tambor desenhado com círculos lê-se como lata de conserva —, por isso vão à mão.
+            case "barril":
+            {
+                void Rim(float cy, float half)
+                {
+                    var prev = P(0.72f, cy);
+                    for (int i = 1; i <= 24; i++)
+                    {
+                        float a = Mathf.Tau * i / 24f;
+                        var next = P(0.50f + 0.22f * Mathf.Cos(a), cy + half * Mathf.Sin(a));
+                        ci.DrawLine(prev, next, ink, thick);
+                        prev = next;
+                    }
+                }
+                Line(0.28f, 0.22f, 0.28f, 0.80f, 1.1f);
+                Line(0.72f, 0.22f, 0.72f, 0.80f, 1.1f);
+                Rim(0.22f, 0.08f);
+                Rim(0.80f, 0.08f);
+                Line(0.28f, 0.42f, 0.72f, 0.42f, 0.85f);
+                Line(0.28f, 0.60f, 0.72f, 0.60f, 0.85f);
+                break;
+            }
 
             // Roda dentada: a peça neutra de quem não tem chapa própria.
             default:

@@ -22,6 +22,8 @@ public class GlyphDataTests
         "espadas", "pomba", "bandeira", "medalha", "coluna", "coroa", "aperto", "fita",
         "galao", "taca", "barco", "estilhaco", "pasta", "corrente", "balanca", "caveira",
         "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
+        // a barra de cima: o cofre e o barril não vêm de tabela nenhuma, mas são desenhos como os outros
+        "cofre", "barril",
     };
 
     [Fact]

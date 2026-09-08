@@ -25,6 +25,9 @@ public partial class Hud : CanvasLayer
     private Label _pocket = null!, _pocketNote = null!;
     private PanelContainer _fuelPlate = null!;
     private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!, _pocketPlate = null!;
+    // Os mostradores que sempre estiveram à vista também se guardam agora: cada um leva um tooltip com as
+    // parcelas da conta dele, e um tooltip escreve-se no mostrador, não no número lá dentro.
+    private PanelContainer _moneyPlate = null!, _menPlate = null!, _divsPlate = null!, _civPlate = null!, _milPlate = null!;
     private PanelContainer _season = null!;
     private PanelContainer _top = null!;                    // a barra inteira: quem está por baixo mede-se por ela
     private HFlowContainer _plates = null!, _nav = null!;   // mostradores e chapas de painel: filas que dobram
@@ -219,6 +222,13 @@ public partial class Hud : CanvasLayer
         _subs.Clear();
     }
 
+    /// <summary>As chapas da barra de cima, pela ordem em que lá estão. Nenhuma delas é linha de tabela: a
+    /// barra não é uma lista de nada, é o mesmo estado de sempre com um símbolo por cima. Por isso vão daqui
+    /// ao Glyph.Asked como extras — assim o contador do smoke conta-as com as outras e um nome mal escrito
+    /// aparece na conta em vez de sair calado como roda dentada.</summary>
+    public static readonly string[] BarGlyphs =
+        { "cofre", "gente", "espadas", "fabrica", "bigorna", "ancora", "barril", "medalha", "asa", "barco", "corrente" };
+
     private void BuildTopBar()
     {
         var bar = new PanelContainer { Name = "Top" };
@@ -260,35 +270,40 @@ public partial class Hud : CanvasLayer
         plates.AddThemeConstantOverride("h_separation", 10);
         plates.AddThemeConstantOverride("v_separation", 6);
         deck.AddChild(plates);
-        plates.AddChild(Ui.Counter("₵", out _money, out _moneyNote, Ui.Accent));
-        plates.AddChild(Ui.Counter("♟", out _men, out _menNote, Ui.Text));
-        plates.AddChild(Ui.Counter("⚔", out _divs, out _divsNote, Ui.Danger.Lightened(0.25f)));
+        // Os símbolos da barra eram os últimos emoji do jogo à vista permanente — um cifrão, um peão de
+        // xadrez, uma fábrica redonda e colorida da fonte do telemóvel. Agora são chapas desenhadas, como
+        // tudo o resto: o cofre, a gente, as espadas, o telhado da fábrica, a bigorna, a âncora, o barril,
+        // as medalhas e a corrente. Estas duas não vêm de tabela nenhuma (o cofre e o barril não são linha
+        // de nada) e por isso passam pelo Glyph.Asked como extras, para o contador do smoke as ver.
+        plates.AddChild(_moneyPlate = Ui.Counter(Glyph.Make("cofre", 19, Ui.Accent), out _money, out _moneyNote));
+        plates.AddChild(_menPlate = Ui.Counter(Glyph.Make("gente", 19, Ui.Text), out _men, out _menNote));
+        plates.AddChild(_divsPlate = Ui.Counter(Glyph.Make("espadas", 19, Ui.Danger.Lightened(0.25f)), out _divs, out _divsNote));
         // Indústria: quantas fábricas estão ao serviço e quantas há. Sem isto o jogador só descobria o
         // tecto da economia quando uma obra ou uma encomenda era recusada.
-        plates.AddChild(Ui.Counter("🏭", out _civ, out _civNote, Ui.Good.Lightened(0.2f)));
-        plates.AddChild(Ui.Counter("⚙", out _mil, out _milNote, Ui.Accent));
-        _yardPlate = Ui.Counter("⚓", out _yard, out _yardNote, Ui.Text);
+        plates.AddChild(_civPlate = Ui.Counter(Glyph.Make("fabrica", 19, Ui.Good.Lightened(0.2f)), out _civ, out _civNote));
+        plates.AddChild(_milPlate = Ui.Counter(Glyph.Make("bigorna", 19, Ui.Accent), out _mil, out _milNote));
+        _yardPlate = Ui.Counter(Glyph.Make("ancora", 19, Ui.Text), out _yard, out _yardNote);
         plates.AddChild(_yardPlate);
         // Combustível: o barril fica ao lado das fábricas porque é a mesma pergunta que elas — o que é que
         // hoje dá para pôr a andar. Some-se em quem não tem máquinas nenhumas a beber.
-        _fuelPlate = Ui.Counter("🛢", out _fuel, out _fuelNote, Ui.Accent);
+        _fuelPlate = Ui.Counter(Glyph.Make("barril", 19, Ui.Accent), out _fuel, out _fuelNote);
         plates.AddChild(_fuelPlate);
         // Experiência: a moeda das escolas de guerra. Fica ao lado das fábricas porque é a mesma pergunta —
         // o que é que hoje já dá para comprar. São três medalhas, uma por arma, como o HoI4 as tem lado a
         // lado na barra de cima: o exército aprende a combater, o ar a voar, o mar a navegar, e cada bolso
         // é seu. Carregar numa abre a árvore de escolas daquela arma — na barra nada é só enfeite.
-        _xpPlate = Ui.Click(Ui.Counter("🎖", out _xp, out _xpNote, Ui.Good.Lightened(0.2f)),
+        _xpPlate = Ui.Click(Ui.Counter(Glyph.Make("medalha", 19, Ui.Good.Lightened(0.2f)), out _xp, out _xpNote),
                             () => Schools(World.Land), "escolas de guerra do exército");
         plates.AddChild(_xpPlate);
-        _airXpPlate = Ui.Click(Ui.Counter("✈", out _airXp, out _airXpNote, Ui.Text),
+        _airXpPlate = Ui.Click(Ui.Counter(Glyph.Make("asa", 19, Ui.Text), out _airXp, out _airXpNote),
                                () => Schools(World.Air), "escolas de guerra do ar");
         plates.AddChild(_airXpPlate);
-        _seaXpPlate = Ui.Click(Ui.Counter("🚢", out _seaXp, out _seaXpNote, Ui.Text),
+        _seaXpPlate = Ui.Click(Ui.Counter(Glyph.Make("barco", 19, Ui.Text), out _seaXp, out _seaXpNote),
                                () => Schools(World.Sea), "escolas de guerra do mar");
         plates.AddChild(_seaXpPlate);
         // Cerco: só aparece quando há tropa nossa cortada, e é a chapa mais cara de ignorar da barra —
         // dias de bolsa e o prazo até as armas baixarem. Carregar leva o mapa à pior das bolsas.
-        _pocketPlate = Ui.Click(Ui.Counter("⛓", out _pocket, out _pocketNote, Ui.Danger.Lightened(0.15f)),
+        _pocketPlate = Ui.Click(Ui.Counter(Glyph.Make("corrente", 19, Ui.Danger.Lightened(0.15f)), out _pocket, out _pocketNote),
                                 ShowWorstPocket, "divisões cercadas");
         _pocketPlate.Visible = false;
         plates.AddChild(_pocketPlate);
@@ -1018,14 +1033,20 @@ public partial class Hud : CanvasLayer
         {
             if (_playerFlag.Texture is null) { _playerFlag.Texture = Flags.Of(p.Tag); _playerFlag.Visible = _playerFlag.Texture is not null; }
             _country.Text = p.Tag;
-            float income = EconomySystem.Income(w, pid);
+            // Um varrimento só às regiões, e dele saem o rendimento, o pool de homens e as três filas de
+            // fábricas — e as parcelas com que cada mostrador se explica ao dedo que lhe pousa em cima.
+            var parts = Breakdown.Scan(w, pid);
+            float income = parts.Income;
             _money.Text = $"{p.Money:0.0}";
             _money.AddThemeColorOverride("font_color", income < 0f ? Ui.Danger : Ui.Text);
             _moneyNote.Text = $"{(income < 0 ? "" : "+")}{income:0.0}/dia";
             _men.Text = FmtMen(p.Manpower);
             _menNote.Text = "recrutas";
+            _moneyPlate.TooltipText = Breakdown.Money(p, parts);
+            _menPlate.TooltipText = Breakdown.Men(w, p, parts);
             _divs.Text = w.Divisions.Values.Count(d => d.CountryId == pid).ToString();
             _divsNote.Text = p.Queue.Count > 0 ? $"fila {p.Queue.Count}" : "divisões";
+            _divsPlate.TooltipText = Breakdown.Divisions(w, p);
             var yards = Industry.Of(w, pid);
             _civ.Text = $"{yards.CivilBusy}/{yards.Civil}";
             _civ.AddThemeColorOverride("font_color", yards.FreeCivil > 0 ? Ui.TextDim : Ui.Text);
@@ -1036,6 +1057,12 @@ public partial class Hud : CanvasLayer
             _yardPlate.Visible = yards.Naval > 0;                 // país sem costa não tem cais nenhum a mostrar
             _yard.Text = $"{yards.NavalBusy}/{yards.Naval}";
             _yardNote.Text = yards.Naval == 1 ? "estaleiro" : "estaleiros";
+            _civPlate.TooltipText = Breakdown.Factories(w, parts, "civil", yards.CivilBusy, yards.Civil,
+                                                        "Fábricas civis", "em obra");
+            _milPlate.TooltipText = Breakdown.Factories(w, parts, "militar", yards.MilitaryBusy, yards.Military,
+                                                        "Fábricas militares", "na fila de produção");
+            _yardPlate.TooltipText = Breakdown.Factories(w, parts, "naval", yards.NavalBusy, yards.Naval,
+                                                         "Estaleiros", "a levar abastecimento por mar");
             Fuel(w, p);
             Medal(w, p, World.Land, _xpPlate, _xp, _xpNote);
             Medal(w, p, World.Air, _airXpPlate, _airXp, _airXpNote);
@@ -1171,6 +1198,7 @@ public partial class Hud : CanvasLayer
         note.Text = next is string id && w.ArmyDoctrines.TryGetValue(id, out var nd)
             ? "dá para " + nd.Name.ToLowerInvariant()
             : domain switch { World.Air => "experiência do ar", World.Sea => "experiência do mar", _ => "experiência" };
+        plate.TooltipText = Breakdown.Medal(w, p, domain);
     }
 
     /// <summary>--smoke: a barra de topo medida — quantos mostradores estão à vista, quanta largura pedem
@@ -1180,8 +1208,21 @@ public partial class Hud : CanvasLayer
     {
         float wide = MathF.Max(1f, _top.GetViewportRect().Size.X);
         float tall = MathF.Max(_top.Size.Y, _top.GetCombinedMinimumSize().Y);
+        // As chapas da barra e quantos mostradores se explicam ao dedo: um mostrador com uma conta por
+        // trás tem um tooltip de várias linhas (as parcelas), e é isso que aqui se conta — um número sem
+        // parcelas na barra de cima é um oráculo, e era o que o jogo tinha antes.
+        var (drawn, fell) = Glyph.Count(_top);
+        int counters = 0, explains = 0;
+        foreach (var child in _plates.GetChildren())
+            if (child is PanelContainer pc)
+            {
+                counters++;
+                if (pc.TooltipText.Contains('\n')) explains++;
+            }
         return $"{Rows(_plates, "mostradores", wide)}, {Rows(_nav, "chapas", wide)}"
-             + $", barra de {tall:0}px (faixa de alarmes a {_alerts.OffsetTop:0})";
+             + $", barra de {tall:0}px (faixa de alarmes a {_alerts.OffsetTop:0})"
+             + $", {drawn} chapas desenhadas na barra ({fell} na roda)"
+             + $", {explains} de {counters} mostradores explicam a conta";
     }
 
     /// <summary>Quantas linhas é que uma fila que dobra ocupa na largura de agora (o layout headless não a
@@ -1218,13 +1259,28 @@ public partial class Hud : CanvasLayer
     {
         var pocketed = PocketSystem.Of(w, pid);
         _pocketPlate.Visible = pocketed.Count > 0;
-        if (pocketed.Count == 0) { _worstPocketRegion = 0; return; }
+        if (pocketed.Count == 0)
+        {
+            _worstPocketRegion = 0;
+            // A chapa está escondida, mas a explicação fica escrita: quem a vir aparecer a meio de uma
+            // campanha tem de saber ao primeiro toque o que é um cerco e o que lhe acontece se o ignorar.
+            _pocketPlate.TooltipText = "Divisões cercadas: nenhuma.\n"
+                + $"· uma divisão sem ligação a casa rende-se ao fim de {w.Rule("pocket_surrender", 10f):0} dias fechada"
+                + "\nA chapa aparece sozinha no dia em que houver tropa nossa cortada.";
+            return;
+        }
         var worst = pocketed[0];
         _worstPocketRegion = worst.RegionId;
         _pocket.Text = pocketed.Count.ToString();
         _pocketNote.Text = PocketSystem.DaysToSurrender(w, worst) is int days
             ? days <= 0 ? "rende-se hoje" : days == 1 ? "rende-se amanhã" : $"rende-se em {days} d"
             : pocketed.Count == 1 ? "cercada" : "cercadas";
+        _pocketPlate.TooltipText = $"Divisões cercadas: {pocketed.Count}.\n"
+            + $"· a pior está em {w.Regions[worst.RegionId].Name}, fechada há {worst.PocketDays} "
+            + (worst.PocketDays == 1 ? "dia" : "dias")
+            + $"\n· rende-se ao fim de {w.Rule("pocket_surrender", 10f):0} dias fechada"
+            + "\nSem ligação a casa não chega abastecimento: as armas baixam e a organização não recupera."
+            + "\nToque para levar o mapa à pior das bolsas.";
     }
 
     /// <summary>Toque na chapa do cerco: o mapa vai à bolsa pior e abre-lhe a ficha.</summary>
