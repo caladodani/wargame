@@ -462,6 +462,12 @@ public sealed class NavalMission
 public sealed class ProductionOrder
 {
     public int TemplateId { get; init; }
+    /// <summary>Linha de material (HoI4: linha de produção de equipamento) em vez de divisão: > 0 = esta
+    /// linha não monta divisão nenhuma, fabrica conjuntos de material daquele tipo de unidade e mete-os no
+    /// armazém do país (Country.Stock). É de lá que saem os reforços das divisões gastas — sem armazém, uma
+    /// divisão batida fica batida. Zero = encomenda de divisão, como sempre foi.</summary>
+    public int UnitTypeId { get; init; }
+    public bool IsKit => UnitTypeId > 0;
     public float Progress { get; set; }
     /// <summary>Produção em série: ao ser entregue, a encomenda volta ao fim da fila (ProductionSystem).</summary>
     public bool Repeat { get; set; }
@@ -579,6 +585,13 @@ public sealed class Country
     /// <summary>Efeito da estabilidade no rendimento e no recrutamento: 0.5 (colapso) a 1.5 (união nacional).</summary>
     public float StabilityFactor => 0.5f + Stability / 100f;
     public List<ProductionOrder> Queue { get; } = new();
+    /// <summary>Armazém de material (HoI4: stockpile): tipo de unidade → conjuntos de material em depósito.
+    /// Um conjunto é o que arma um batalhão daquele tipo. As fábricas enchem-no (linhas de material e as
+    /// fábricas que sobram sem encomenda), as divisões gastas esvaziam-no (EquipmentSystem). Fracções contam:
+    /// meio conjunto é meia divisão reforçada amanhã.</summary>
+    public Dictionary<int, float> Stock { get; } = new();
+    /// <summary>Material em armazém daquele tipo (0 se nunca lá houve nenhum).</summary>
+    public float Stocked(int unitTypeId) => Stock.TryGetValue(unitTypeId, out var q) ? q : 0f;
     public HashSet<string> Techs { get; } = new();
     /// <summary>Doutrinas de exército adoptadas (tabela army_doctrine). Só de um ramo: a primeira escolha
     /// fecha as outras escolas. Não se largam — o que o exército aprendeu, aprendeu.</summary>
@@ -692,6 +705,11 @@ public sealed class Division
     public float Hp { get; set; } = 100f;
     public float Org { get; set; } = 100f;
     public float Supply { get; set; } = 1f;
+    /// <summary>Quanto do material que o modelo pede é que esta divisão tem hoje (0..1). Sai da fábrica
+    /// armada de raiz (1); o combate destrói equipamento e o número desce; o armazém do país repõe-no todos
+    /// os dias, se lá houver material (EquipmentSystem). É o número do HoI4 que explica porque é que uma
+    /// divisão inteira de homens se bate mal: os homens voltaram, as armas não.</summary>
+    public float Kit { get; set; } = 1f;
     public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
     /// <summary>Trincheira cavada nesta posição (0..entrench_max + fortes): sobe a cada dia parado, zera ao
     /// mudar de região e gasta-se a assaltar. Só conta a defender (EntrenchSystem).</summary>

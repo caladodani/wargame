@@ -3,7 +3,8 @@ using WarGame.Core.Model;
 namespace WarGame.Core.Systems;
 
 /// <summary>Org recupera de graça fora de combate; HP (reforços) custa homens e pontos de produção
-/// (rules reinforce_hp_manpower, reinforce_hp_money) — sem stock, a divisão fica danificada (HoI4).
+/// (rules reinforce_hp_manpower, reinforce_hp_money) — e nunca passa do material que a divisão tem
+/// (Division.Kit, EquipmentSystem): sem armazém, a divisão fica danificada (HoI4).
 /// Uma divisão de um grupo em reserva recompõe-se mais depressa (reserve_org_bonus, reserve_hp_bonus):
 /// é o que dá sentido a tirar um exército da linha em vez de o gastar até ao fim. Uma divisão com honra de
 /// batalha soma ainda o seu bónus de moral (DivisionHonourSystem.Bonus).</summary>
@@ -30,8 +31,12 @@ public sealed class RecoverySystem : ISystem
             // redespacho chega depressa mas chega a dormir (Redeploy)
             if (d.Redeploying) rest *= w.Rule("redeploy_org_regain", 0.25f);
             d.Org = MathF.Min(100f, d.Org + (d.Supply >= 1f ? 8f : 3f) * c.Stat("org_regain") * w.CommandMult(d, "org_regain") * rest);
-            if (d.Hp >= 100f) continue;
-            float hp = MathF.Min(2f * (resting ? w.Rule("reserve_hp_bonus", 1.5f) : 1f), 100f - d.Hp);
+            // O tecto dos reforços é o material que a divisão tem: homens sem com que se baterem não são
+            // reforço nenhum. Quem sobe o material é o EquipmentSystem, com o que houver no armazém — é por
+            // isto que uma ofensiva morre com o armazém vazio mesmo com o pool de recrutas cheio.
+            float roof = 100f * Math.Clamp(d.Kit, 0f, 1f);
+            if (d.Hp >= roof) continue;
+            float hp = MathF.Min(2f * (resting ? w.Rule("reserve_hp_bonus", 1.5f) : 1f), roof - d.Hp);
             if (menPerHp > 0f) hp = MathF.Min(hp, MathF.Max(0f, c.Manpower) / menPerHp);
             if (moneyPerHp > 0f) hp = MathF.Min(hp, MathF.Max(0f, c.Money) / moneyPerHp);
             if (hp <= 0f) continue;

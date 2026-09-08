@@ -23,7 +23,7 @@ public partial class UnitCounter : Node2D
     private Color _tint = Colors.Gray;
     private string _kind = "infantry", _spec = "";
     private int _count, _chevrons;
-    private float _org = 1f, _hp = 1f, _entrench;
+    private float _org = 1f, _hp = 1f, _entrench, _kit = 1f;
     private bool _known;
     private Texture2D? _flag;
     private Label _num = null!;
@@ -46,12 +46,14 @@ public partial class UnitCounter : Node2D
     /// <summary>Enche o contador. `known` distingue a nossa tropa (barras verdadeiras) da tropa alheia, de
     /// que só se sabe o que se vê de fora: quantas divisões e de que tipo. `chevrons` são os galões do grau
     /// de veterania da pilha (Veterancy) — que também são coisa de dentro de casa: da tropa alheia não se
-    /// sabe se é gente verde se é elite enquanto não se lhe bater.</summary>
+    /// sabe se é gente verde se é elite enquanto não se lhe bater. `kit` é o material que a pilha tem (1 =
+    /// armada até aos dentes): entra na barra da resistência como um tecto marcado a giz, porque é isso que
+    /// ele é — acima daquele risco a tropa não recupera enquanto não lhe chegar equipamento do armazém.</summary>
     public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known,
-                    string spec = "", int chevrons = 0)
+                    string spec = "", int chevrons = 0, float kit = 1f)
     {
         _tint = tint; _flag = flag; _kind = kind; _spec = spec; _count = count; _chevrons = Mathf.Clamp(chevrons, 0, 4);
-        _org = org; _hp = hp; _entrench = entrench; _known = known;
+        _org = org; _hp = hp; _entrench = entrench; _known = known; _kit = Mathf.Clamp(kit, 0f, 1f);
         if (_num is not null)
         {
             _num.Text = count.ToString();
@@ -75,6 +77,9 @@ public partial class UnitCounter : Node2D
 
     /// <summary>--smoke: os galões que esta caixa está a desenhar.</summary>
     public int Chevrons => _chevrons;
+
+    /// <summary>--smoke: o material da pilha desta caixa (1 = sem falta, sem caixote desenhado).</summary>
+    public float Kit => _kit;
 
     public override void _Draw()
     {
@@ -117,6 +122,27 @@ public partial class UnitCounter : Node2D
                              : new Color(0.45f, 0.45f, 0.5f);
         DrawRect(new Rect2(x, y, w * Mathf.Clamp(_known ? _org : 1f, 0f, 1f), 4f), orgColor);
         DrawRect(new Rect2(x, y + 6f, w * Mathf.Clamp(_known ? _hp : 1f, 0f, 1f), 4f), hpColor);
+
+        // tecto do material: a parte da barra da resistência que a falta de equipamento fecha fica riscada,
+        // com um risco branco no sítio onde ela pára de subir. É a leitura que o HoI4 dá com o triângulo do
+        // equipamento em falta — aqui vive na própria barra, que é onde interessa: aquela pilha não passa dali.
+        if (_known && _kit < 0.995f)
+        {
+            float roof = x + w * _kit;
+            var chalk = new Color(0.95f, 0.78f, 0.3f, 0.9f);
+            for (float hx = roof + 2f; hx < x + w; hx += 4f)
+                DrawLine(new Vector2(hx, y + 6f), new Vector2(hx - 3f, y + 10f), chalk with { A = 0.55f }, 1f);
+            DrawLine(new Vector2(roof, y + 5f), new Vector2(roof, y + 11f), Colors.White, 1.6f);
+
+            // caixote por armar, debaixo da caixa e do lado de fora dos dentes da trincheira: âmbar quando
+            // falta pouco, vermelho quando a pilha anda a meio gás
+            var crate = new Rect2(box.End.X - 16f, box.End.Y + 2f, 12f, 8f);
+            var ink = _kit < 0.6f ? new Color(0.95f, 0.35f, 0.3f) : chalk;
+            DrawRect(crate, new Color(0, 0, 0, 0.55f));
+            DrawRect(crate, ink, false, 1.4f);
+            DrawLine(crate.Position, crate.End, ink, 1.2f);
+            DrawLine(new Vector2(crate.End.X, crate.Position.Y), new Vector2(crate.Position.X, crate.End.Y), ink, 1.2f);
+        }
 
         // dentes da trincheira, um por degrau cavado: a frente parada vê-se de longe
         int teeth = Mathf.Clamp(Mathf.FloorToInt(_entrench), 0, 8);

@@ -152,6 +152,7 @@ public partial class Game : Node
         World.Register(new DiplomacySystem());
         World.Register(new ChronicleSystem());   // só ouve: escreve a história da campanha para o save
         World.Register(new WeatherSystem());     // antes da recomposição: o Inverno gasta o que a paz repõe
+        World.Register(new EquipmentSystem());   // e antes dela o armazém: os homens só voltam com que se baterem
         World.Register(new RecoverySystem());
         World.Register(new DecisionSystem());
         World.Register(new HistorySystem());

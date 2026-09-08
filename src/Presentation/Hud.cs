@@ -1593,6 +1593,69 @@ public partial class Hud : CanvasLayer
              + $"{held}, {queued} à espera, a seguir entra «{then}» e fecha em {(_card.Visible ? "aberto" : "nada")}";
     }
 
+    /// <summary>--smoke: o armazém de material. Diz a folha das prateleiras, e depois prova o ciclo inteiro
+    /// numa divisão nossa: leva-se uma pilha a meio material, enche-se o armazém do que o modelo dela pede,
+    /// corre-se o EquipmentSystem uma vez e vê-se o material subir e as prateleiras descer. Prova também o
+    /// estrangulamento (com um tipo a zero não sobe nada), o tecto que o material põe na resistência e o
+    /// caixote de "por armar" desenhado no contador do mapa. No fim repõe-se tudo como estava.</summary>
+    private string SmokeWarehouse(int pid)
+    {
+        var w = _game.World;
+        if (!w.Countries.TryGetValue(pid, out var c)) return "sem país";
+        string folha = StockView.Smoke(w, c);
+        var mine = w.Divisions.Values.FirstOrDefault(d => d.HomeId == pid);
+        if (mine is null) return folha + "; sem divisões nossas para armar";
+
+        float keptKit = mine.Kit;
+        var keptStock = new Dictionary<int, float>(c.Stock);
+        var need = w.KitNeed(mine.TemplateId);
+        mine.Kit = 0.5f;
+
+        // estrangulamento: com o armazém vazio não se repõe nada, por muitos homens que a divisão tenha
+        foreach (var (type, _) in need) c.Stock[type] = 0f;
+        float vazio = EquipmentSystem.Refill(w, c, mine, 0.1f);
+
+        // e com o armazém cheio do que aquele modelo pede, um dia de reposição
+        foreach (var (type, qty) in need) c.Stock[type] = qty;
+        float antes = need.Sum(n => c.Stocked(n.UnitTypeId));
+        new EquipmentSystem().Tick(w);
+        float depois = need.Sum(n => c.Stocked(n.UnitTypeId));
+        float tecto = 100f * mine.Kit, forca = EquipmentSystem.PowerMult(w, mine);
+
+        // o caixote no contador: aproxima-se o mapa da região onde a pilha está e conta-se quantas caixas o
+        // desenham, ainda com o material em baixo
+        int crates = 0; float worstDrawn = 1f;
+        var where = w.Regions.Values.FirstOrDefault(r => r.DivisionIds.Contains(mine.Id));
+        if (where is not null)
+        {
+            var eye = new Vector2(where.CenterX, where.CenterY);
+            _map.Focus(eye, 1.2f);
+            _map.Regions.Refresh();
+            (crates, worstDrawn) = _map.Regions.PorArmar();
+            _map.Focus(eye, 0.2f);
+        }
+
+        float reposto = mine.Kit - 0.5f;
+        mine.Kit = keptKit;
+        c.Stock.Clear();
+        foreach (var (type, qty) in keptStock) c.Stock[type] = qty;
+        if (where is not null) _map.Regions.Refresh();
+
+        string depot = "sem fábricas livres";
+        if (Warehouse.Depot(w, c) is (int dt, float dout))
+        {
+            string dn = dt.ToString();
+            try { dn = w.Units.GetUnitType(dt).Name; } catch { /* tipo sem ficha */ }
+            depot = $"{dn} +{dout:0.00}/dia";
+        }
+
+        return $"{folha}; {need.Count} tipos no modelo da pilha de prova, armazém vazio repõe {vazio:0.000},"
+             + $" cheio repõe {reposto:0.000} e gasta {antes - depois:0.00} conjuntos"
+             + $" (tecto da resistência {tecto:0}%, força ×{forca:0.00}, chão {w.Rule("kit_power_floor", 0.45f):0.00});"
+             + $" {crates} contador{(crates == 1 ? "" : "es")} com caixote (pior {worstDrawn:P0});"
+             + $" depósito: {depot}";
+    }
+
     /// <summary>--smoke: graus de veterania. Diz os degraus da tabela e o que cada um dá, conta as divisões
     /// do mundo por grau, e prova que o bónus que o combate soma é o do grau — a mesma Veterancy.Bonus nos
     /// dois sítios. Mede também os galões desenhados nos contadores do mapa.</summary>
@@ -2073,6 +2136,7 @@ public partial class Hud : CanvasLayer
         string queue = _production.Smoke();                              // fila de produção: chapas arrastáveis
         string plan = PlanView.Smoke(w, c);                              // porque é que a encomenda da frente demora
         _production.Close();
+        string armazem = SmokeWarehouse(pid);                            // armazém: as prateleiras, a reposição e o caixote do mapa
         int modes = _modeBar.Smoke();                                    // modos de mapa: pinta o mundo por cada conta e volta ao político
         var modePlates = Glyph.Count(_modeBar);                          // e as chapas da fita, desenhadas em vez de emoji
         string classes = _modeBar.SmokeClasses();                        // e o modo que pinta por classe: cor de tabela e chave desenhada
@@ -2301,7 +2365,7 @@ public partial class Hud : CanvasLayer
         string vitoria = SmokeVictory(pid);                               // pontos de vitória: o que cada praça vale e quanto do inimigo já é nosso
         string veterania = SmokeVeterancy(pid);                           // veterania: os degraus, quem está em cada um e os galões do mapa
         string rendicao = SmokeCapitulation(pid);                         // rendição: quanto falta a cada lado para cair, e por onde
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

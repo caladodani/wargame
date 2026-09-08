@@ -60,7 +60,7 @@ public static class ProductionPlan
     public static string? Blocked(World w, Country c, ProductionOrder o, int lines)
     {
         float cost = Cost(w, o);
-        if (o.Progress >= cost - 1e-3f)
+        if (!o.IsKit && o.Progress >= cost - 1e-3f)
             return c.Manpower < cost * w.Rule("manpower_per_cost", 500f) ? "à espera de homens" : null;
         if (lines <= 0) return "à espera de fábrica";
         if (c.Money <= 0f) return "sem cofre";
@@ -77,7 +77,9 @@ public static class ProductionPlan
         var parts = new List<ProductionPart>
         {
             new("cofre", $"{cost:0.0}", "custo",
-                $"O que a divisão inteira custa ao cofre.\nJá pago: {o.Progress:0.0} ({Percent(o, cost):P0})"),
+                (o.IsKit ? "O que um conjunto de material custa ao cofre — o que arma um batalhão."
+                         : "O que a divisão inteira custa ao cofre.")
+                + $"\nJá pago: {o.Progress:0.0} ({Percent(o, cost):P0})"),
             new("roda", $"{cost / minDays:0.00}", "por dia à partida",
                 $"Uma fábrica sozinha faz {cost / minDays:0.00} por dia: o custo repartido pelos"
               + $" {minDays:0} dias mínimos de montagem (regra build_min_days)."),
@@ -90,8 +92,12 @@ public static class ProductionPlan
                 o.Delivered <= 0
                     ? $"Protótipo: a primeira unidade sai sempre ao ritmo de origem. Da segunda em diante a linha ganha {w.Rule("line_efficiency_gain", 0.03f):P0} por dia de trabalho, até {w.Rule("line_efficiency_max", 1.5f):P0}."
                     : $"{o.Delivered} entregue{(o.Delivered == 1 ? "" : "s")} nesta linha. Ganha {w.Rule("line_efficiency_gain", 0.03f):P0} por dia de trabalho até {w.Rule("line_efficiency_max", 1.5f):P0}; parada, arrefece {w.Rule("line_efficiency_decay", 0.02f):P0} por dia."),
-            new("gente", $"{cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k", "homens",
-                "Os recrutas que a divisão leva ao sair da fábrica. Sem eles no pool, a encomenda fica feita à espera."),
+            o.IsKit
+                ? new("caixa", $"{Cost(w, o):0.0}", "por conjunto",
+                    "Uma linha de material não leva homens nenhuns: entrega conjuntos ao armazém e volta a começar."
+                  + " São eles que repõem as divisões gastas (EquipmentSystem).")
+                : new("gente", $"{cost * w.Rule("manpower_per_cost", 500f) / 1000f:0.0}k", "homens",
+                    "Os recrutas que a divisão leva ao sair da fábrica. Sem eles no pool, a encomenda fica feita à espera."),
             new("sol", dias < 0f ? "—" : dias <= 0f ? "pronta" : $"{MathF.Ceiling(dias):0}", "dias",
                 dias < 0f ? "Parada: ao ritmo de hoje não sai nunca — dar-lhe uma data seria mentir."
                           : $"O que falta ({cost - o.Progress:0.0}) dividido pelo trabalho de um dia ({DayOutput(w, c, o, lines):0.00})."),
@@ -109,8 +115,5 @@ public static class ProductionPlan
 
     private static float Percent(ProductionOrder o, float cost) => cost <= 0f ? 0f : Math.Clamp(o.Progress / cost, 0f, 1f);
 
-    private static float Cost(World w, ProductionOrder o)
-    {
-        try { return w.TemplateCost(o.TemplateId); } catch { return 0f; }
-    }
+    private static float Cost(World w, ProductionOrder o) => w.OrderCost(o);
 }

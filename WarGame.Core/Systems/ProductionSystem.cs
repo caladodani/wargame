@@ -24,9 +24,13 @@ public sealed class ProductionSystem : ISystem
         float newOrg = w.Rule("new_division_org", 40f);
         foreach (var c in w.Countries.Values)
         {
-            if (c.Queue.Count == 0) continue;
-            Spend(w, c, Industry.Of(w, c.Id).Military);
-            Deliver(w, c, newOrg);
+            int mil = Industry.Of(w, c.Id).Military;
+            if (c.Queue.Count > 0)
+            {
+                Spend(w, c, mil);
+                Deliver(w, c, newOrg);
+            }
+            Depot(w, c);
         }
     }
 
@@ -42,7 +46,7 @@ public sealed class ProductionSystem : ISystem
         foreach (var o in c.Queue)
         {
             if (c.Money <= 0f || free <= 0) break;
-            float cost = w.TemplateCost(o.TemplateId);
+            float cost = w.OrderCost(o);
             if (o.Progress >= cost - 1e-3f) continue;      // pronta: espera homens, não linha
             int mine = Math.Clamp(o.Factories, 1, free);
             free -= mine;
@@ -76,8 +80,21 @@ public sealed class ProductionSystem : ISystem
         for (int i = 0; i < c.Queue.Count;)
         {
             var o = c.Queue[i];
-            float cost = w.TemplateCost(o.TemplateId);
+            float cost = w.OrderCost(o);
             if (o.Progress < cost - 1e-3f) { i++; continue; }
+            // linha de material: não sai divisão nenhuma da fábrica, saem conjuntos para o armazém, e a
+            // linha continua onde está — é uma torneira, não uma encomenda
+            if (o.IsKit)
+            {
+                int made = cost <= 0f ? 0 : (int)MathF.Floor(o.Progress / cost);
+                if (made > 0)
+                {
+                    o.Progress -= made * cost;
+                    o.Delivered += made;
+                    c.Stock[o.UnitTypeId] = c.Stocked(o.UnitTypeId) + made;
+                }
+                i++; continue;
+            }
             float men = cost * perCost;
             if (c.Manpower < men) { i++; continue; }   // pool ainda por encher — a encomenda espera
             spawn ??= SpawnRegion(w, c);
@@ -98,6 +115,21 @@ public sealed class ProductionSystem : ISystem
                     Efficiency = o.Efficiency, Delivered = o.Delivered + 1,
                 });
         }
+    }
+
+    /// <summary>O depósito: as fábricas militares que a fila não usou não ficam paradas — fazem material do
+    /// tipo que mais falta ao exército e metem-no no armazém (Warehouse.Depot). Rendem menos do que uma linha
+    /// dedicada (depot_idle_share), mas é isto que faz um país sem encomendas nenhumas continuar a ter com
+    /// que repor a tropa gasta — e é o que mantém a IA de pé sem lhe ensinar a gerir armazéns.</summary>
+    private static void Depot(World w, Country c)
+    {
+        if (c.Money <= 0f) return;
+        if (Warehouse.Depot(w, c) is not (int type, float output)) return;
+        float cost = Warehouse.UnitCost(w, type);
+        if (cost <= 0f || output <= 0f) return;
+        float spend = MathF.Min(output, c.Money);
+        c.Money -= spend;
+        c.Stock[type] = c.Stocked(type) + spend / cost;
     }
 
     /// <summary>Onde nasce uma divisão nova: a capital se o país a controla, senão a região controlada com mais

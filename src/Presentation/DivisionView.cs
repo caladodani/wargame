@@ -155,6 +155,15 @@ public static class DivisionView
         h.AddChild(Ui.Bar(d.Hp / 100f, Ui.Good, 90f));
         h.AddChild(Ui.Lbl($"Org {d.Org:0}", 15));
         h.AddChild(Ui.Bar(d.Org / 100f, Ui.Accent, 90f));
+        // material: o HP diz quantos homens estão de pé, isto diz com que é que eles se batem. Uma divisão
+        // cheia de gente e sem equipamento bate-se a kit_power_floor e não repõe efectivo nenhum.
+        var kit = Ui.Lbl($"Mat {d.Kit:P0}", 15);
+        kit.AddThemeColorOverride("font_color", d.Kit >= 0.95f ? Ui.Text : d.Kit >= 0.6f ? Ui.Accent : Ui.Danger);
+        kit.TooltipText = $"material: {d.Kit:P0} do que o modelo pede\n"
+                        + $"bate-se a {EquipmentSystem.PowerMult(w, d):P0} da força e não repõe efectivo acima de {d.Kit * 100f:0}\n"
+                        + "o armazém do país repõe-no todos os dias, se lá houver material";
+        h.AddChild(kit);
+        h.AddChild(Ui.Bar(d.Kit, d.Kit >= 0.6f ? Ui.Accent : Ui.Danger, 90f));
         var sup = Ui.Lbl($"Sup {d.Supply:0.0}", 15);
         if (d.Supply < 1f) sup.AddThemeColorOverride("font_color", Ui.Danger);
         h.AddChild(sup);

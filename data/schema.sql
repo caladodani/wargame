@@ -361,9 +361,13 @@ CREATE TABLE IF NOT EXISTS s_production_queue (
   repeat_order INTEGER NOT NULL DEFAULT 0,  -- produção em série: volta à fila ao ser entregue
   factories INTEGER NOT NULL DEFAULT 1,     -- fábricas militares dedicadas a esta encomenda
   efficiency REAL NOT NULL DEFAULT 1,       -- ritmo da linha de montagem (HoI4: production efficiency)
-  delivered INTEGER NOT NULL DEFAULT 0      -- unidades já saídas desta linha
+  delivered INTEGER NOT NULL DEFAULT 0,     -- unidades já saídas desta linha
+  unit_type_id INTEGER NOT NULL DEFAULT 0   -- >0 = linha de material para o armazém, não encomenda de divisão
 );
-CREATE TABLE IF NOT EXISTS s_stock (country_id INTEGER, unit_type_id INTEGER, qty INTEGER NOT NULL, PRIMARY KEY (country_id, unit_type_id));
+CREATE TABLE IF NOT EXISTS s_stock (              -- armazém de material: conjuntos por tipo de unidade (save)
+  country_id INTEGER, unit_type_id INTEGER, qty REAL NOT NULL, PRIMARY KEY (country_id, unit_type_id));
+CREATE TABLE IF NOT EXISTS s_division_kit (       -- material que a divisão tem hoje, 0..1 (EquipmentSystem)
+  division_id INTEGER PRIMARY KEY, kit REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
   stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL,

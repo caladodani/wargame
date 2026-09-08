@@ -324,6 +324,22 @@ public sealed record BuildDivisionCommand(int CountryId, int TemplateId) : IComm
     public void Execute(World w) => w.Countries[CountryId].Queue.Add(new ProductionOrder { TemplateId = TemplateId });
 }
 
+/// <summary>Abre uma linha de material (HoI4: linha de produção de equipamento): a fábrica deixa de montar
+/// divisões e passa a entregar conjuntos daquele tipo ao armazém do país, sem parar. É de lá que saem os
+/// reforços das divisões gastas — sem armazém, uma divisão batida fica batida.</summary>
+public sealed record BuildKitCommand(int CountryId, int UnitTypeId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "país inválido";
+        try { w.Units.GetUnitType(UnitTypeId); } catch (InvalidOperationException) { return "Tipo de unidade inexistente"; }
+        if (c.Queue.Count >= w.Rule("production_queue_max", 30f)) return "Fila cheia";
+        return null;
+    }
+    public void Execute(World w) =>
+        w.Countries[CountryId].Queue.Add(new ProductionOrder { UnitTypeId = UnitTypeId, Repeat = true });
+}
+
 /// <summary>Liga/desliga a produção em série de uma encomenda: entregue, volta ao fim da fila.</summary>
 public sealed record SetProductionRepeatCommand(int CountryId, int Index, bool On) : ICommand
 {

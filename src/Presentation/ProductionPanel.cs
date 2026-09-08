@@ -19,11 +19,11 @@ namespace WarGame.Presentation;
 /// Lê o World só em Fill (mundo parado); muta só por Game.Dispatch.</summary>
 public partial class ProductionPanel : PanelContainer
 {
-    private static readonly string[] Sections = { "Fila", "Modelos" };
+    private static readonly string[] Sections = { "Fila", "Modelos", "Armazém" };
 
     private Game _game = null!;
     private HBoxContainer _crest = null!, _tabs = null!;
-    private VBoxContainer _templates = null!, _queue = null!, _queueBox = null!, _tmplBox = null!;
+    private VBoxContainer _templates = null!, _queue = null!, _queueBox = null!, _tmplBox = null!, _stockBox = null!, _stock = null!;
     private HBoxContainer _bench = null!;
     private ScrollContainer _scroll = null!;
     private Label _tally = null!;
@@ -64,6 +64,15 @@ public partial class ProductionPanel : PanelContainer
         _templates = new VBoxContainer(); _tmplBox.AddChild(_templates);
         _tally = Ui.Lbl("", 14); _tally.AddThemeColorOverride("font_color", Ui.TextDim);
         _tmplBox.AddChild(_tally);
+
+        // Armazém: o que a guerra gasta e as fábricas repõem (StockView / Warehouse)
+        _stockBox = Ui.Grow(new VBoxContainer()); body.AddChild(_stockBox);
+        var shead = new HBoxContainer(); _stockBox.AddChild(shead);
+        shead.AddChild(Ui.Grow(Ui.Head("Armazém de material")));
+        var snote = Ui.Lbl("as fábricas sem encomenda enchem-no sozinhas", 14);
+        snote.AddThemeColorOverride("font_color", Ui.TextDim);
+        shead.AddChild(snote);
+        _stock = new VBoxContainer(); _stock.AddThemeConstantOverride("separation", 4); _stockBox.AddChild(_stock);
         Show(0);
     }
 
@@ -74,6 +83,7 @@ public partial class ProductionPanel : PanelContainer
         _tab = Math.Clamp(tab, 0, Sections.Length - 1);
         _queueBox.Visible = _tab == 0;
         _tmplBox.Visible = _tab == 1;
+        _stockBox.Visible = _tab == 2;
         _scroll.ScrollVertical = 0;
     }
 
@@ -106,7 +116,7 @@ public partial class ProductionPanel : PanelContainer
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
             var y = Industry.Of(w, pid);
-            var key = _tab + "#" + string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military;
+            var key = _tab + "#" + string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military + "#" + Mathf.RoundToInt(Warehouse.Average(w, c) * 100f) + "#" + Mathf.RoundToInt(c.Stock.Values.Sum());
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -114,8 +124,9 @@ public partial class ProductionPanel : PanelContainer
                 $"{c.Money:0.0} pts no cofre  ·  {(c.Manpower < 0 ? "—" : c.Manpower >= 1e6f ? $"{c.Manpower / 1e6f:0.0}M" : $"{c.Manpower / 1e3f:0}k")} homens"
                 + $"  ·  {c.Queue.Count} na fila");
             Ui.Clear(_tabs);
-            _tabs.AddChild(Ui.Tabs(new[] { $"Fila ({c.Queue.Count})", $"Modelos ({tmpls.Count})" }, _tab, Pick));
-            Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench);
+            _tabs.AddChild(Ui.Tabs(new[] { $"Fila ({c.Queue.Count})", $"Modelos ({tmpls.Count})", $"Armazém ({Warehouse.Average(w, c):P0})" }, _tab, Pick));
+            Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench); Ui.Clear(_stock);
+            _stock.AddChild(StockView.Sheet(w, c, OrderKit));
             var gear = Ui.Lbl("⚙", 18); gear.AddThemeColorOverride("font_color", Ui.Accent); _bench.AddChild(gear);
             _bench.AddChild(Ui.Pips(y.MilitaryBusy, y.Military));
             var lines = Ui.Lbl(y.Military == 0 ? "sem fábricas militares"
@@ -145,9 +156,9 @@ public partial class ProductionPanel : PanelContainer
             for (int i = 0; i < c.Queue.Count; i++)
             {
                 var o = c.Queue[i]; int idx = i, tid = o.TemplateId;
-                string name; try { name = w.Units.GetTemplate(tid).Name; } catch { name = "T" + tid; }
-                float qcost; try { qcost = w.TemplateCost(tid); } catch { qcost = 0f; }
-                bool waitingMen = Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
+                string name = OrderName(w, o);
+                float qcost = w.OrderCost(o);
+                bool waitingMen = !o.IsKit && Pct(w, o) >= 100 && c.Manpower < qcost * w.Rule("manpower_per_cost", 500f);
                 // as fábricas repartem-se de cima para baixo (ProductionPlan.LinesFor, a mesma repartição
                 // que a fábrica faz): quem chega e já não há nenhuma livre, espera
                 int lines0 = ProductionPlan.LinesFor(w, c, i);
@@ -156,7 +167,7 @@ public partial class ProductionPanel : PanelContainer
                 bool rep = o.Repeat;
 
                 // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
-                string kind = UnitSymbol.KindFor(w, tid), spec = UnitSymbol.SpecFor(w, tid);
+                string kind = KindOf(w, o), spec = SpecOf(w, o);
                 var row = new QueueRow();
                 row.Bind(idx, name, kind, spec, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
                 var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8); row.AddChild(line);
@@ -169,7 +180,8 @@ public partial class ProductionPanel : PanelContainer
                 line.AddChild(UnitSymbol.Of(kind, 34f, 24f, spec));
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
-                var head = Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
+                var head = Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}"
+                                   + (o.IsKit ? $"   ·   {o.Delivered} conjunto{(o.Delivered == 1 ? "" : "s")} no armazém" : rep ? "   🔁" : "")
                                    + (waitingMen ? "   (à espera de homens)" : waitingLine ? "   (à espera de fábrica)" : ""));
                 // a data não chega: o dedo em cima diz de que parcelas ela sai
                 head.TooltipText = ProductionPlan.Why(w, c, o, lines0);
@@ -192,7 +204,7 @@ public partial class ProductionPanel : PanelContainer
                 line.AddChild(cell);
                 var up = Ui.Btn("▲", () => Move(idx, idx - 1), 56); up.Disabled = idx == 0; line.AddChild(up);
                 var down = Ui.Btn("▼", () => Move(idx, idx + 1), 56); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
-                line.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
+                if (!o.IsKit) line.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
                 line.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
                 _queue.AddChild(row);
             }
@@ -241,7 +253,7 @@ public partial class ProductionPanel : PanelContainer
     /// seria mentir.</summary>
     private static string Eta(World w, Country c, ProductionOrder o, int lines)
     {
-        if (lines <= 0 && o.Progress < w.TemplateCost(o.TemplateId) - 1e-3f) return "à espera de vez";
+        if (lines <= 0 && o.Progress < w.OrderCost(o) - 1e-3f) return "à espera de vez";
         float dias = ProductionPlan.Days(w, c, o, lines);
         if (dias < 0f) return "parada";
         if (dias <= 0f) return "pronta";
@@ -278,7 +290,7 @@ public partial class ProductionPanel : PanelContainer
     {
         var w = _game.World;
         if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c)) return "sem fila de produção";
-        Pick(1); Pick(0);                    // as duas abas desenhadas, e volta-se à fila
+        Pick(1); Pick(2); Pick(0);           // as três abas desenhadas, e volta-se à fila
         IReadOnlyList<DivisionTemplate> tmpls;
         try { tmpls = w.Units.GetTemplates(pid); } catch { tmpls = Array.Empty<DivisionTemplate>(); }
         foreach (var t in tmpls.Take(2)) _game.Dispatch(new BuildDivisionCommand(pid, t.Id));
@@ -337,8 +349,21 @@ public partial class ProductionPanel : PanelContainer
         string symbols = kinds.Count == 0 ? "sem símbolos"
             : $"{kinds.Count} símbolos NATO ({string.Join(", ", kinds.Distinct().OrderBy(k => k).Select(k => NatoSymbol.Name(k)))}"
             + (specs.Count == 0 ? "" : $"; marcas {string.Join(", ", specs.Select(NatoSymbol.SpecMark))}") + ")";
+        // armazém: abre-se uma linha de material do tipo que mais falta, pelo mesmo botão da aba
+        string depot = "sem armazém";
+        if (Warehouse.Neediest(w, c) is int need)
+        {
+            int before = c.Queue.Count(o => o.IsKit);
+            OrderKit(need);                  // RunWhenIdle corre já, com o mundo parado
+            _lastKey = ""; Pick(2); Fill();
+            int after = c.Queue.Count(o => o.IsKit);
+            string name; try { name = w.Units.GetUnitType(need).Name; } catch { name = "U" + need; }
+            depot = after > before ? $"linha de material de {name} aberta pela aba do armazém" : $"linha de material de {name} recusada";
+            depot += $" ({Descendants<PanelContainer>(_stock).Count()} prateleiras desenhadas)";
+            Pick(0);
+        }
         return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção em {Sections.Length} abas"
-             + $", {roll} ({dragged}, {yards}, {rhythm}, {symbols})";
+             + $", {roll} ({dragged}, {yards}, {rhythm}, {depot}, {symbols})";
     }
 
     /// <summary>Todos os nós de um tipo por baixo deste (o quadro de fábricas vive dentro da chapa).</summary>
@@ -358,9 +383,39 @@ public partial class ProductionPanel : PanelContainer
 
     private static int Pct(World w, ProductionOrder o)
     {
-        float cost; try { cost = w.TemplateCost(o.TemplateId); } catch { cost = 0f; }
+        float cost = w.OrderCost(o);
         return cost <= 0f ? 0 : Mathf.Clamp(Mathf.RoundToInt(o.Progress / cost * 100f), 0, 100);
     }
+
+    /// <summary>O nome do que ali se fabrica: a divisão, ou o material de um tipo de unidade.</summary>
+    private static string OrderName(World w, ProductionOrder o)
+    {
+        if (!o.IsKit) return TemplateName(w, o.TemplateId);
+        try { return "Material · " + w.Units.GetUnitType(o.UnitTypeId).Name; } catch { return "Material U" + o.UnitTypeId; }
+    }
+
+    /// <summary>Símbolo NATO da encomenda: o do modelo, ou o do tipo de unidade que a linha de material
+    /// arma — a fila continua a ler-se de relance mesmo cheia de linhas de material.</summary>
+    private static string KindOf(World w, ProductionOrder o)
+    {
+        if (!o.IsKit) return UnitSymbol.KindFor(w, o.TemplateId);
+        try { return UnitCounter.KindOf(w.Units.GetUnitType(o.UnitTypeId).Stats.Tags); } catch { return "support"; }
+    }
+
+    private static string SpecOf(World w, ProductionOrder o)
+    {
+        if (!o.IsKit) return UnitSymbol.SpecFor(w, o.TemplateId);
+        try { return NatoSymbol.SpecialtyOf(w.Units.GetUnitType(o.UnitTypeId).Stats.Tags); } catch { return ""; }
+    }
+
+    /// <summary>Abre uma linha de material daquele tipo (aba do armazém).</summary>
+    private void OrderKit(int unitTypeId) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new BuildKitCommand(pid, unitTypeId));
+        if (err is not null) _game.Notify(err);
+        else { _game.Notify("Linha de material aberta"); _lastKey = ""; Refresh(); }
+    });
 
     private void Order(int templateId) => _game.RunWhenIdle(() =>
     {

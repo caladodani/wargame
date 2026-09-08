@@ -122,6 +122,17 @@ public static class Alerts
         if (c.Queue.Count == 0 && c.Money >= w.Rule("alert_idle_money", 150f))
             list.Add(new Alert("queue", "⚙", $"fila de produção vazia com {c.Money:0} no cofre", AlertLevel.Warn));
 
+        // 5b. Armazém vazio com tropa por armar: a divisão continua no mapa mas bate-se com metade da força
+        // e não repõe efectivo nenhum. É o aviso que separa uma ofensiva que pára de uma que se desfaz.
+        if (Warehouse.Worst(w, c) is Division bare && bare.Kit < w.Rule("alert_kit", 0.8f))
+        {
+            int bad = w.Divisions.Values.Count(d => d.HomeId == countryId && d.Kit < w.Rule("alert_kit", 0.8f));
+            list.Add(new Alert("kit", "▣",
+                               bad == 1 ? $"1 divisão por armar ({bare.Kit:P0} do material) em {Name(w, bare.RegionId)}"
+                                        : $"{bad} divisões por armar (a pior a {bare.Kit:P0} do material)",
+                               bare.Kit < w.Rule("alert_kit_bad", 0.5f) ? AlertLevel.Danger : AlertLevel.Warn, bare.RegionId));
+        }
+
         // 6. Ranhuras de investigação por ocupar: o mesmo desperdício, do lado da ciência.
         int free = ResearchSystem.FreeSlots(w, c);
         if (free > 0)

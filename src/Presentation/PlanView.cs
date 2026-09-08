@@ -16,7 +16,9 @@ public static class PlanView
         if (index < 0 || index >= c.Queue.Count) return null;
         var o = c.Queue[index];
         int lines = ProductionPlan.LinesFor(w, c, index);
-        string name; try { name = w.Units.GetTemplate(o.TemplateId).Name; } catch { name = "T" + o.TemplateId; }
+        string name;
+        try { name = o.IsKit ? "o material de " + w.Units.GetUnitType(o.UnitTypeId).Name : w.Units.GetTemplate(o.TemplateId).Name; }
+        catch { name = o.IsKit ? "o material U" + o.UnitTypeId : "T" + o.TemplateId; }
 
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.85f }, 6));

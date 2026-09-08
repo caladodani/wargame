@@ -364,6 +364,7 @@ public sealed class SqlWorldRepository : IWorldRepository
 
     private static readonly (string Table, string Column, string Ddl)[] SaveMigrations =
     {
+        ("s_production_queue", "unit_type_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_spy_op", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_offer", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_history", "power", "REAL NOT NULL DEFAULT 0"),
@@ -653,6 +654,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var r in save.Query("SELECT division_id,medal FROM s_division_medal"))
             if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var md)) md.Medals.Add((string)r["medal"]!);
+        // material de cada divisão (0..1); um save antigo não tem linha nenhuma e a divisão fica armada, que
+        // é como ela sempre esteve antes de haver armazém
+        foreach (var r in save.Query("SELECT division_id,kit FROM s_division_kit"))
+            if (w.Divisions.TryGetValue(Convert.ToInt32(r["division_id"]), out var kd))
+                kd.Kit = Math.Clamp(Convert.ToSingle(r["kit"]), 0f, 1f);
         foreach (var r in save.Query("SELECT id,country_id,name,front_country_id,front_region_id,advancing,stance,general,planning FROM s_army_group ORDER BY id"))
         {
             var g = new ArmyGroup
@@ -702,8 +708,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in lines)
             if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var rc))
                 rc.Research[(string)r["tech_id"]!] = Convert.ToSingle(r["progress"]);
-        foreach (var r in save.Query("SELECT country_id,template_id,progress,repeat_order,factories,efficiency,delivered FROM s_production_queue ORDER BY id"))
-            w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]), Repeat = Convert.ToInt32(r["repeat_order"]) != 0, Factories = Math.Max(1, Convert.ToInt32(r["factories"])), Efficiency = MathF.Max(1f, Convert.ToSingle(r["efficiency"])), Delivered = Convert.ToInt32(r["delivered"]) });
+        foreach (var r in save.Query("SELECT country_id,template_id,progress,repeat_order,factories,efficiency,delivered,unit_type_id FROM s_production_queue ORDER BY id"))
+            w.Countries[Convert.ToInt32(r["country_id"])].Queue.Add(new ProductionOrder { TemplateId = Convert.ToInt32(r["template_id"]), Progress = Convert.ToSingle(r["progress"]), Repeat = Convert.ToInt32(r["repeat_order"]) != 0, Factories = Math.Max(1, Convert.ToInt32(r["factories"])), Efficiency = MathF.Max(1f, Convert.ToSingle(r["efficiency"])), Delivered = Convert.ToInt32(r["delivered"]), UnitTypeId = Convert.ToInt32(r["unit_type_id"]) });
+        // armazém de material: prateleira por tipo de unidade (Warehouse)
+        foreach (var r in save.Query("SELECT country_id,unit_type_id,qty FROM s_stock"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var sc))
+                sc.Stock[Convert.ToInt32(r["unit_type_id"])] = MathF.Max(0f, Convert.ToSingle(r["qty"]));
         foreach (var r in save.Query("SELECT region_id,attacker_country_id,days FROM s_battle"))
         {
             var b = new Battle { RegionId = Convert.ToInt32(r["region_id"]), AttackerCountryId = Convert.ToInt32(r["attacker_country_id"]), Days = Convert.ToInt32(r["days"]) };
@@ -716,7 +726,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -812,7 +822,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
             foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
             foreach (var d in c.Doctrines) save.Execute("INSERT INTO s_army_doctrine VALUES (?,?)", c.Id, d);
-            foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress,repeat_order,factories,efficiency,delivered) VALUES (?,?,?,?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0, o.Factories, o.Efficiency, o.Delivered);
+            foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress,repeat_order,factories,efficiency,delivered,unit_type_id) VALUES (?,?,?,?,?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0, o.Factories, o.Efficiency, o.Delivered, o.UnitTypeId);
+            foreach (var (type, qty) in c.Stock)
+                if (qty > 1e-4f) save.Execute("INSERT INTO s_stock (country_id,unit_type_id,qty) VALUES (?,?,?)", c.Id, type, qty);
             foreach (var e in c.AtWarWith)
                 if (c.Id < e)
                 {
@@ -849,6 +861,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays, d.Redeploying ? 1 : 0);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
+            if (d.Kit < 1f) save.Execute("INSERT INTO s_division_kit (division_id,kit) VALUES (?,?)", d.Id, d.Kit);
         }
         foreach (var g in w.ArmyGroups.Values)
         {

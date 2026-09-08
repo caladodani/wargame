@@ -216,7 +216,9 @@ public sealed class CombatSystem : ISystem
             float dug = attacking ? 1f : EntrenchSystem.Bonus(w, d);
             // plano de batalha: o que o estado-maior preparou enquanto a frente esteve quieta (BattlePlanSystem)
             float plan = BattlePlanSystem.Bonus(w, d);
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * MathF.Max(0.3f, command));
+            // material: os homens estão lá, as armas é que podem não estar (EquipmentSystem)
+            float kit = EquipmentSystem.PowerMult(w, d);
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * kit * MathF.Max(0.3f, command));
             if (parts is null) continue;
             Add(parts, "terreno, rio e tecnologia", terrainAir);
             Add(parts, "abastecimento", supply);
@@ -227,6 +229,7 @@ public sealed class CombatSystem : ISystem
             if (attacking) Add(parts, "assalto anfíbio", amphibious);
             else Add(parts, "trincheira", dug);
             Add(parts, "plano de batalha", plan);
+            Add(parts, "material", kit);
         }
         ctx.Remove("volunteer");   // o contexto é do lado: não fica sujo com a última divisão que passou
         return out_;
@@ -254,7 +257,10 @@ public sealed class CombatSystem : ISystem
             float covered = MathF.Min(hits, absorb), uncovered = MathF.Max(0f, hits - absorb);
             float dmg = (covered * 0.1f + uncovered * 0.4f) * DamageScale * (0.6f + 0.8f * (float)w.Rng.NextDouble());
             t.Org -= dmg * 2f;
-            t.Hp -= dmg * (1f - ts["hardness"] * 0.5f);
+            float hpLoss = dmg * (1f - ts["hardness"] * 0.5f);
+            t.Hp -= hpLoss;
+            // o que se perde não são só homens: o equipamento fica no campo, e é do armazém que ele volta
+            EquipmentSystem.Damage(w, t, hpLoss);
         }
     }
 

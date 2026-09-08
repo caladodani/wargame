@@ -849,8 +849,17 @@ public partial class RegionRenderer : Node2D
                     group.Average(d => d.Hp) / 100f,
                     known ? group.Average(d => d.Entrench) : 0f,
                     known, NatoSymbol.SpecialtyOf(tags),
-                    known ? Veterancy.Stack(w, group)?.Chevrons ?? 0 : 0);
+                    known ? Veterancy.Stack(w, group)?.Chevrons ?? 0 : 0,
+                    known ? group.Average(d => d.Kit) : 1f);
         counter.Visible = true;
+    }
+
+    /// <summary>--smoke: quantos contadores estão a desenhar o caixote de "por armar", e o material mais
+    /// baixo que algum deles traz.</summary>
+    public (int Counters, float Worst) PorArmar()
+    {
+        var seen = _counters.Values.Where(c => c.Visible).ToList();
+        return (seen.Count(c => c.Kit < 0.995f), seen.Count == 0 ? 1f : seen.Min(c => c.Kit));
     }
 
     /// <summary>--smoke: quantos contadores nossos trazem galões de veterania, e quantos galões ao todo.</summary>

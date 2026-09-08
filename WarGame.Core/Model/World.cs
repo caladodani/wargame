@@ -577,6 +577,22 @@ public sealed class World
     public float TemplateCost(int templateId) =>
         Units.GetTemplate(templateId).Units.Sum(u => Units.GetUnitType(u.UnitTypeId).Cost * u.Qty);
 
+    /// <summary>O que uma encomenda custa à fábrica: a divisão inteira, ou um conjunto de material do tipo
+    /// que a linha fabrica. A conta é a mesma para os dois feitios — é por isso que uma divisão de nove
+    /// batalhões custa exactamente o mesmo que os nove conjuntos que a voltam a armar de novo.</summary>
+    public float OrderCost(ProductionOrder o)
+    {
+        try { return o.IsKit ? Units.GetUnitType(o.UnitTypeId).Cost : TemplateCost(o.TemplateId); }
+        catch { return 0f; }
+    }
+
+    /// <summary>Quantos conjuntos de material daquele tipo é que este modelo pede — os batalhões que o
+    /// modelo tem desse tipo. Uma divisão a 100% tem-nos todos; a 60% tem 60% de cada.</summary>
+    public IReadOnlyList<(int UnitTypeId, int Qty)> KitNeed(int templateId)
+    {
+        try { return Units.GetTemplate(templateId).Units; } catch { return Array.Empty<(int, int)>(); }
+    }
+
     private int _nextGroupId;
 
     public int NewArmyGroupId()

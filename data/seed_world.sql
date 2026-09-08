@@ -1342,6 +1342,18 @@ INSERT INTO rule (key,value,note) VALUES
  ('line_efficiency_decay',0.02,'ritmo que a linha perde por dia parada'),
  ('line_efficiency_max',1.5,'tecto do ritmo de uma linha de montagem');
 
+-- Armazém de material (HoI4: equipamento em stock). Uma batalha destrói equipamento além dos homens; o
+-- equipamento sai das fábricas para o armazém do país (linhas de material, mais as fábricas que sobram sem
+-- encomenda) e é de lá que volta para a linha da frente. Uma divisão sem material bate-se pior e não repõe
+-- efectivo acima do que tem armado — é isto que faz uma ofensiva morrer com o pool de recrutas cheio.
+INSERT INTO rule (key,value,note) VALUES
+ ('kit_refill_day',0.06,'material que uma divisão repõe por dia, se o armazém der'),
+ ('kit_refill_battle',0.35,'quanto do reforço de material chega a uma divisão em combate'),
+ ('kit_loss_per_hp',0.006,'material destruído por cada ponto de efectivo perdido em combate'),
+ ('kit_power_floor',0.45,'força com que se bate uma divisão sem material nenhum'),
+ ('depot_idle_lines',1,'1 = as fábricas militares sem encomenda fazem material para o armazém'),
+ ('depot_idle_share',0.6,'quanto rende uma fábrica de depósito face a uma linha dedicada');
+
 -- Desembarques da IA: bater da praia é caro, por isso exige mais vantagem do que um ataque por terra
 -- e reserva organização para a travessia.
 INSERT INTO rule (key,value,note) VALUES
@@ -1353,7 +1365,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('alert_money_days',15,'dias de reserva no cofre abaixo dos quais se avisa que ele seca'),
  ('alert_supply',0.6,'abastecimento de uma divisão abaixo do qual ela conta como a beber areia'),
  ('alert_resistance',0.5,'resistência numa região ocupada a partir da qual se avisa que ferve'),
- ('alert_idle_money',150,'dinheiro no cofre a partir do qual a fila de produção vazia é desperdício');
+ ('alert_idle_money',150,'dinheiro no cofre a partir do qual a fila de produção vazia é desperdício'),
+ ('alert_kit',0.8,'material abaixo do qual uma divisão conta como por armar na faixa de avisos'),
+ ('alert_kit_bad',0.5,'material abaixo do qual o aviso de tropa por armar passa a vermelho');
 
 -- Ranhuras de investigação (ResearchSystem): quantas linhas um país aguenta ao mesmo tempo.
 INSERT INTO rule (key,value,note) VALUES
