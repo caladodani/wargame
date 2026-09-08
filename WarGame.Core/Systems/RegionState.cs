@@ -199,7 +199,9 @@ public static class RegionState
         float attOrg = b.Attackers.Sum(id => w.Divisions.TryGetValue(id, out var d) ? d.Org : 0f);
         float defOrg = b.Defenders.Sum(id => w.Divisions.TryGetValue(id, out var d) ? d.Org : 0f);
         string attTag = w.Countries.TryGetValue(b.AttackerCountryId, out var ac) ? ac.Tag : "?";
+        string tac = Tactics.Line(w, r);
         return $"batalha ({b.Days} dias): {attTag} ataca — org {attOrg:0} vs {defOrg:0}"
-             + (r.Fort > 0 ? $" (forte {r.Fort})" : "");
+             + (r.Fort > 0 ? $" (forte {r.Fort})" : "")
+             + (tac.Length == 0 ? "" : $" · {tac}");
     }
 }

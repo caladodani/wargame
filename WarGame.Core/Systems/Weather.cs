@@ -74,8 +74,9 @@ public static class Weather
     }
 
     /// <summary>Mistura de três inteiros num número entre 0 e 1 (variante do murmur de 32 bits). Igual em
-    /// qualquer máquina: são só somas, multiplicações e deslocamentos sem sinal.</summary>
-    private static float Hash(int x, int y, int z)
+    /// qualquer máquina: são só somas, multiplicações e deslocamentos sem sinal. Público porque as tácticas
+    /// (Tactics) sorteiam da mesma maneira — dois sorteios diferentes seriam duas maneiras de sortear.</summary>
+    public static float Hash(int x, int y, int z)
     {
         unchecked
         {

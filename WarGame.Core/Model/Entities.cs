@@ -183,6 +183,13 @@ public sealed record WeatherDef(string Id, string Name, string Icon, float MoveM
                                 float ColdMin, float ColdMax, string Terrain, float Weight, string Note, int Sort,
                                 string Glyph = "");
 
+/// <summary>Uma táctica de combate (tabela tactic; Tactics). Side diz quem a pode escolher ('attacker' ou
+/// 'defender'), Mult o que ela vale à força desse lado, CounterId a táctica INIMIGA que esta lê e desmonta,
+/// Terrain vazio serve qualquer chão e Weight é o peso no sorteio. É o pedra-papel-tesoura que o HoI4 põe
+/// por cima da soma das fichas: quem é lido fica com tactic_counter_keep do que a sua valia acima de 1.</summary>
+public sealed record TacticDef(string Id, string Name, string Icon, string Side, float Mult, string CounterId,
+                               string Terrain, float Weight, string Note, int Sort, string Glyph = "");
+
 /// <summary>Género de acontecimento da crónica (tabela chronicle_kind): o ícone com que aparece na linha do
 /// tempo e o peso (1 = rotina, 3 = história). A regra chronicle_min_weight decide o que chega a ser escrito —
 /// mudar o que a campanha lembra é mudar uma linha de SQL, não o código.</summary>

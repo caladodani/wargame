@@ -119,6 +119,8 @@ public partial class BattlePanel : PanelContainer
         string key = _regionId + "|" + (b?.Days ?? -1) + "|" + width
             // as condições do campo entram na chave: o tempo muda quatro vezes por ano e o forte muda com a
             // guerra, e sem isto a barra de chapas ficava congelada no dia em que se abriu
+            // as tácticas também: mudam de bloco em bloco sem ninguém mandar, e uma chapa congelada mentia
+            + "|" + Tactics.Line(w, r)
             + "|" + r.Fort + r.River + w.Season?.Id + "|" + string.Join(",",
             att.Concat(def).Select(d => $"{d.Id}:{d.Org:0}:{d.Hp:0}"));
         if (key == _lastKey) return;
@@ -150,14 +152,17 @@ public partial class BattlePanel : PanelContainer
         _scaleD.SizeFlagsStretchRatio = MathF.Max(0.02f, orgD / total);
         _scale.Visible = b is not null;
 
-        Side(_left, w, attC, b is null ? "guarda o terreno" : "ataca", lineA, resA, width, Ui.Accent, _balA);
-        Side(_right, w, defC, b is null ? "também aqui" : "defende", lineD, resD, width, Ui.Danger, _balD);
+        // a táctica de cada lado: a chapa que diz o que ele está a tentar hoje e se o outro já lha leu
+        Side(_left, w, attC, b is null ? "guarda o terreno" : "ataca", lineA, resA, width, Ui.Accent, _balA,
+             Tactics.Plate(w, r, attacking: true));
+        Side(_right, w, defC, b is null ? "também aqui" : "defende", lineD, resD, width, Ui.Danger, _balD,
+             Tactics.Plate(w, r, attacking: false));
         _right.Visible = b is not null || def.Count > 0;
     }
 
     private static void Side(VBoxContainer box, World w, int countryId, string role,
                              List<Division> line, List<Division> reserve, int width, Color tint,
-                             CombatSide? balance = null)
+                             CombatSide? balance = null, FieldPart? tactic = null)
     {
         Ui.Clear(box);
         var c = w.Countries.GetValueOrDefault(countryId);
@@ -178,6 +183,16 @@ public partial class BattlePanel : PanelContainer
         frame.AddChild(tag);
         frame.AddChild(Ui.Pips(line.Count, width, tint));
         box.AddChild(frame);
+        // a táctica deste lado, em chapa: é o que ele está a tentar hoje, e o valor já traz lá dentro a
+        // leitura do inimigo — a mesma conta com que a batalha se bate, não uma segunda versão dela
+        if (tactic is FieldPart t)
+        {
+            var plate = Ui.Counter(Glyph.Make(t.Glyph, 17, tint), out var value, out var note);
+            value.Text = t.Value;
+            note.Text = t.Name;
+            plate.TooltipText = $"{t.Name}: {t.Value}\n{t.Note}";
+            box.AddChild(plate);
+        }
         if (balance is not null) Balance(box, balance);
 
         foreach (var d in line) box.AddChild(Row(w, d, tint, false));

@@ -147,6 +147,11 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["move_mult"]), Convert.ToSingle(r["org_mult"]), Convert.ToSingle(r["air_mult"]),
                 Convert.ToSingle(r["cold_min"]), Convert.ToSingle(r["cold_max"]), (string)r["terrain"]!,
                 Convert.ToSingle(r["weight"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        w.TacticDefs.Clear();
+        foreach (var r in _static.Query("SELECT id,name,icon,side,mult,counter_id,terrain,weight,note,sort,glyph FROM tactic ORDER BY sort"))
+            w.TacticDefs[(string)r["id"]!] = new TacticDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                (string)r["side"]!, Convert.ToSingle(r["mult"]), (string)r["counter_id"]!, (string)r["terrain"]!,
+                Convert.ToSingle(r["weight"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT month,season_id FROM season_month"))
             w.SeasonMonths[Convert.ToInt32(r["month"])] = (string)r["season_id"]!;
         foreach (var r in _static.Query("SELECT season_id,terrain,bite FROM season_terrain"))

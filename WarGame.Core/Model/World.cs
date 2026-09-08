@@ -68,6 +68,10 @@ public sealed class World
     /// <summary>Céus possíveis (tabela weather), pela ordem da tabela: o que o Weather sorteia por região e semana.</summary>
     public Dictionary<string, WeatherDef> WeatherDefs { get; } = new();
 
+    /// <summary>Tácticas de combate (tabela tactic), pela ordem da tabela: o que cada lado pode escolher
+    /// numa batalha e o que uma lê da outra (Tactics).</summary>
+    public Dictionary<string, TacticDef> TacticDefs { get; } = new();
+
     /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
     public float SeasonBite(string seasonId, string terrain) =>
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;

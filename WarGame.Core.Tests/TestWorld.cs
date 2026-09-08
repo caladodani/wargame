@@ -32,6 +32,11 @@ public static class TestWorld
         // marcha não pode ter a estrada a mudar-lhe debaixo dos pés. Quem quer céu chama TestWorld.Sky(w).
         foreach (var kv in w.WeatherDefs) Skies[kv.Key] = kv.Value;
         w.WeatherDefs.Clear();
+        // E pela mesma razão sem tácticas: elas multiplicam a força dos dois lados e mudam de quatro em
+        // quatro dias, e um teste de combate que conta baixas exactas não pode ter isso por baixo. Quem
+        // quer tácticas chama TestWorld.Tactic(w).
+        foreach (var kv in w.TacticDefs) Plans[kv.Key] = kv.Value;
+        w.TacticDefs.Clear();
         return (w, db);
     }
 
@@ -43,6 +48,15 @@ public static class TestWorld
     public static void Sky(World w)
     {
         foreach (var kv in Skies) w.WeatherDefs[kv.Key] = kv.Value;
+    }
+
+    /// <summary>As tácticas da tabela tactic, guardadas na primeira construção, pela mesma razão dos céus.</summary>
+    private static readonly Dictionary<string, TacticDef> Plans = new();
+
+    /// <summary>Devolve as tácticas de combate ao mundo de teste (o Build limpa-as, como aos céus).</summary>
+    public static void Tactic(World w)
+    {
+        foreach (var kv in Plans) w.TacticDefs[kv.Key] = kv.Value;
     }
 
     /// <summary>Põe o mundo dentro de uma estação: manda todos os meses para ela, para o calendário do teste

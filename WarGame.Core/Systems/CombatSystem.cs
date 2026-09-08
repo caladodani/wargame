@@ -135,6 +135,16 @@ public sealed class CombatSystem : ISystem
                 for (int i = 0; i < strD.Length; i++) strD[i] *= supD;
             }
         }
+        // tácticas: a última parcela do lado inteiro, e a única que muda de dia para dia sem ninguém mandar.
+        // Precisa de saber ONDE se combate — sem região não há tabela nem chão que a escolha, e a batalha
+        // trava-se como se travava (é o caminho dos testes que chamam o ResolveTick à mão).
+        if (battleRegion is not null)
+        {
+            float tacA = Tactics.Mult(w, battleRegion, attacking: true);
+            float tacD = Tactics.Mult(w, battleRegion, attacking: false);
+            for (int i = 0; i < strA.Length; i++) strA[i] *= tacA;
+            for (int i = 0; i < strD.Length; i++) strD[i] *= tacD;
+        }
         Exchange(w, att, strA, def, "defense");
         Exchange(w, def, strD, att, "breakthrough");
         float xpGain = w.Rule("xp_per_battle_day", 1f), xpMax = w.Rule("xp_max", 100f);
@@ -289,6 +299,12 @@ public sealed class CombatSystem : ISystem
             }
             float sup = 1f + AirMissionSystem.Support(w, r.Id, me.Id);
             if (sup != 1f) { parts.Add(new CombatFactor("apoio aéreo próximo", sup)); strength *= sup; }
+        }
+        if (Tactics.Of(w, r, attacking) is TacticDef tac)
+        {
+            float m = Tactics.Mult(w, r, attacking);
+            parts.Add(new CombatFactor($"táctica: {tac.Name}" + (Tactics.Countered(w, r, attacking) ? " (lida)" : ""), m));
+            strength *= m;
         }
         return new CombatSide(strength, parts);
     }

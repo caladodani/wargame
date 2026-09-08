@@ -553,6 +553,37 @@ INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,require
  ('weather','weather','nevao',     'str_attacker','artico', 'mul',1.35),
  ('weather','weather','areia',     'str_attacker','deserto','mul',1.30);
 
+-- Tácticas de combate (tabela tactic; Tactics). No HoI4 uma batalha não é só a soma das fichas: de tempos a
+-- tempos cada lado escolhe uma táctica — assalto frontal, flanco, infiltração de um lado; linha firme,
+-- emboscada, defesa elástica do outro — e a do outro lado pode LER a nossa e desmontá-la. É o pedra-papel-
+-- tesoura que faz duas batalhas iguais no papel acabarem ao contrário, e é a razão por que se espera um dia
+-- antes de assaltar.
+-- side diz quem a pode escolher, mult o que ela vale à força desse lado, counter_id a táctica INIMIGA que
+-- esta lê (quem é lido fica com tactic_counter_keep do que a sua valia acima de 1), terrain '' serve
+-- qualquer chão e weight é o peso no sorteio. Nada disto se guarda: a escolha é uma conta determinista
+-- sobre (região, lado, bloco de dias), como o tempo local.
+CREATE TABLE IF NOT EXISTS tactic (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  side TEXT NOT NULL,                         -- 'attacker' (quem assalta) | 'defender' (quem espera)
+  mult REAL NOT NULL,                         -- o que vale à força de quem a escolhe
+  counter_id TEXT NOT NULL DEFAULT '',        -- a táctica do outro lado que esta lê e desmonta ('' = nenhuma)
+  terrain TEXT NOT NULL DEFAULT '',           -- '' = qualquer chão; senão só nesse terreno
+  weight REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO tactic (id,name,icon,side,mult,counter_id,terrain,weight,note,sort,glyph) VALUES
+ ('frontal','Assalto frontal','⚔','attacker',1.05,'','',4.0,'A linha toda de uma vez, sem esperteza nenhuma: barato de montar, caro de pagar.',0,'punho'),
+ ('flanco','Ataque de flanco','↪','attacker',1.20,'elastica','',2.2,'Bater onde a linha dobra, e não onde ela olha.',1,'gancho'),
+ ('infiltracao','Infiltração','🕳','attacker',1.15,'linha','',1.8,'Passar pelos intervalos e aparecer na retaguarda antes de a linha dar por isso.',2,'brecha'),
+ ('reconhecimento','Reconhecimento em força','🔭','attacker',1.05,'emboscada','',1.5,'Mandar à frente quem vai apanhar o tiro: descobre-se onde ele está antes de lá ir a divisão.',3,'luneta'),
+ ('ponta','Ponta de lança','⚡','attacker',1.30,'patrulha','plain',1.0,'Os blindados todos num ponto só, em terreno aberto: ou parte a linha, ou fica lá.',4,'lagarta'),
+ ('linha','Linha firme','▬','defender',1.10,'frontal','',3.5,'Ninguém recua um passo: contra quem vem de frente é o que basta.',5,'muro'),
+ ('patrulha','Patrulhas','👣','defender',1.05,'infiltracao','',2.0,'Gente miúda pelos intervalos: quem se tenta infiltrar dá de caras com ela.',6,'gente'),
+ ('emboscada','Emboscada','🌲','defender',1.30,'flanco','forest',1.2,'Esperar calado no arvoredo por quem julga que está a contornar.',7,'arvore'),
+ ('elastica','Defesa elástica','〰','defender',1.15,'ponta','',1.5,'Ceder terreno de propósito e fechar atrás: a ponta de lança fura o vazio.',8,'mola');
+INSERT INTO rule (key,value,note) VALUES
+ ('tactic_days',4,'dias que uma táctica se mantém antes de cada lado voltar a escolher'),
+ ('tactic_counter_keep',0.25,'quanto sobra do que a táctica valia acima de 1 quando o inimigo a lê');
+
 -- Crónica da campanha (tabela chronicle_kind; ChronicleSystem). weight: 1 rotina, 2 de peso, 3 história.
 -- chronicle_min_weight decide o que chega a ser escrito; chronicle_max é o tecto de entradas guardadas.
 CREATE TABLE IF NOT EXISTS chronicle_kind (

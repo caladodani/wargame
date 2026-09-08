@@ -44,6 +44,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "campo", "arvore", "cidade", "montanha", "duna", "gelo",
         // o céu: a tempestade do tempo local (as outras — sol, chuva, floco, gelo, duna — já cá estavam)
         "raio",
+        // as tácticas de combate (as outras — punho, luneta, lagarta, gente, arvore — já cá estavam)
+        "gancho", "brecha", "muro", "mola",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -224,6 +226,38 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
 
             // Nuvem fechada com um relâmpago: a tempestade do tempo local. É a chuva com a trovoada por
             // dentro — a mesma nuvem, para as duas se lerem como parentes, e o zigue-zague a dizer o resto.
+            // Gancho: a seta que contorna a linha em vez de lhe bater de frente — o ataque de flanco.
+            case "gancho":
+                Line(0.16f, 0.14f, 0.16f, 0.86f, 1.1f);       // a linha inimiga, de pé
+                Arc(0.56f, 0.52f, 0.30f, Mathf.Pi * 1.15f, Mathf.Tau * 0.98f);
+                Poly(0.72f, 0.68f, 0.80f, 0.80f, 0.62f, 0.84f);   // a ponta da seta a fechar por trás
+                break;
+
+            // Brecha: a linha partida ao meio e a seta a passar pelo buraco — a infiltração.
+            case "brecha":
+                Line(0.22f, 0.16f, 0.22f, 0.40f, 1.1f);
+                Line(0.22f, 0.60f, 0.22f, 0.84f, 1.1f);
+                Line(0.10f, 0.50f, 0.78f, 0.50f);
+                Poly(0.62f, 0.38f, 0.82f, 0.50f, 0.62f, 0.62f);
+                break;
+
+            // Muro: os blocos travados uns nos outros — a linha que não recua um passo.
+            case "muro":
+                Line(0.10f, 0.34f, 0.90f, 0.34f);
+                Line(0.10f, 0.52f, 0.90f, 0.52f);
+                Line(0.10f, 0.70f, 0.90f, 0.70f);
+                Line(0.10f, 0.34f, 0.10f, 0.70f);
+                Line(0.90f, 0.34f, 0.90f, 0.70f);
+                Line(0.36f, 0.34f, 0.36f, 0.52f, 0.8f);
+                Line(0.64f, 0.34f, 0.64f, 0.52f, 0.8f);
+                Line(0.50f, 0.52f, 0.50f, 0.70f, 0.8f);
+                break;
+
+            // Mola: a linha que cede e volta sem partir — a defesa elástica.
+            case "mola":
+                Poly(0.08f, 0.50f, 0.20f, 0.50f, 0.28f, 0.26f, 0.42f, 0.74f, 0.56f, 0.26f, 0.70f, 0.74f, 0.78f, 0.50f, 0.92f, 0.50f);
+                break;
+
             case "raio":
                 Arc(0.36f, 0.40f, 0.17f, Mathf.Pi, Mathf.Tau);
                 Arc(0.62f, 0.42f, 0.15f, Mathf.Pi, Mathf.Tau);
