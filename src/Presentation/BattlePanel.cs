@@ -19,6 +19,7 @@ public partial class BattlePanel : PanelContainer
     private Game _game = null!;
     private Label _title = null!, _sub = null!;
     private HBoxContainer _scale = null!;
+    private HFlowContainer _field = null!;      // as condições do campo: chão, rio, forte, frente, tempo
     private ColorRect _scaleA = null!, _scaleD = null!;
     private VBoxContainer _left = null!, _right = null!;
     private int _regionId;
@@ -39,6 +40,12 @@ public partial class BattlePanel : PanelContainer
         _title = Ui.Lbl("", 22); head.AddChild(Ui.Grow(_title));
         head.AddChild(Ui.Btn("Fechar", Close));
         _sub = Ui.Lbl("", 16); _sub.AddThemeColorOverride("font_color", Ui.TextDim); v.AddChild(_sub);
+
+        // a barra das condições do campo: o que é igual para os dois lados, em chapas e não em texto corrido
+        _field = new HFlowContainer();
+        _field.AddThemeConstantOverride("h_separation", 4);
+        _field.AddThemeConstantOverride("v_separation", 4);
+        v.AddChild(_field);
 
         // A balança: uma barra só, partida ao meio pela proporção de organização dos dois lados.
         _scale = new HBoxContainer { CustomMinimumSize = new Vector2(0, 14) };
@@ -109,21 +116,34 @@ public partial class BattlePanel : PanelContainer
         _balD = lineD.Count == 0 ? null : CombatSystem.Explain(w, r, lineD, attacking: false, defC, attC);
 
         // o dia e o estado de cada divisão entram na chave: sem isso as barras congelavam no primeiro dia
-        string key = _regionId + "|" + (b?.Days ?? -1) + "|" + width + "|" + string.Join(",",
+        string key = _regionId + "|" + (b?.Days ?? -1) + "|" + width
+            // as condições do campo entram na chave: o tempo muda quatro vezes por ano e o forte muda com a
+            // guerra, e sem isto a barra de chapas ficava congelada no dia em que se abriu
+            + "|" + r.Fort + r.River + w.Season?.Id + "|" + string.Join(",",
             att.Concat(def).Select(d => $"{d.Id}:{d.Org:0}:{d.Hp:0}"));
         if (key == _lastKey) return;
         _lastKey = key;
 
-        string terrain = GroundView.Name(w, r.Terrain);
-        _title.Text = b is null ? $"⚔ {r.Name}: sem batalha" : $"⚔ Batalha em {r.Name}";
+        _title.Text = b is null
+            ? $"⚔ {r.Name} ({GroundView.Name(w, r.Terrain)}): sem batalha"
+            : $"⚔ Batalha em {r.Name} ({GroundView.Name(w, r.Terrain)})";
         float orgA = att.Sum(d => d.Org), orgD = def.Sum(d => d.Org);
+        // o subtítulo ficou com o que muda de dia para dia; o chão, o rio, o forte, a frente e o tempo
+        // passaram para as chapas da barra de baixo, onde se vêem sem se lerem
         _sub.Text = b is null
-            ? $"{terrain}  ·  frente de {width} divisões por lado"
-            : $"{terrain}  ·  {b.Days} dia{(b.Days == 1 ? "" : "s")}  ·  frente de {width} por lado"
-              + $"  ·  organização {orgA:0} contra {orgD:0}"
+            ? "sem batalha: o que a tropa que aqui está traria se fosse atacada hoje"
+            : $"{b.Days} dia{(b.Days == 1 ? "" : "s")}  ·  organização {orgA:0} contra {orgD:0}"
               + (_balA is null || _balD is null ? ""
-                 : $"  ·  força por divisão {_balA.Strength:0.00} contra {_balD.Strength:0.00}")
-              + (r.Fort > 0 ? $"  ·  🏰 forte {r.Fort}" : "") + (r.River ? "  ·  🌊 rio pelo meio" : "");
+                 : $"  ·  força por divisão {_balA.Strength:0.00} contra {_balD.Strength:0.00}");
+        Ui.Clear(_field);
+        foreach (var f in BattleField.Parts(w, r))
+        {
+            var plate = Ui.Counter(Glyph.Make(f.Glyph, 17, Ui.Accent), out var value, out var note);
+            value.Text = f.Value;
+            note.Text = f.Name;
+            plate.TooltipText = $"{f.Name}: {f.Value}\n{f.Note}";
+            _field.AddChild(plate);
+        }
 
         float total = MathF.Max(1f, orgA + orgD);
         _scaleA.SizeFlagsStretchRatio = MathF.Max(0.02f, orgA / total);
@@ -245,8 +265,10 @@ public partial class BattlePanel : PanelContainer
                 : $"{(fighting ? "balanço" : "sem batalha; balanço")} de {_balA.Factors.Count} parcelas contra {_balD.Factors.Count}"
                   + $" (força {_balA.Strength:0.00} contra {_balD.Strength:0.00}"
                   + $"; pesa mais «{Heaviest(_balA)}» contra «{Heaviest(_balD)}»)";
+        var reg = w.Regions[id];
+        string campo = $"campo: {BattleField.Line(w, reg)}";
         Close();
-        return $"{rows} linhas, {balance}";
+        return $"{rows} linhas, {balance}, {campo}";
     }
 
     /// <summary>A parcela que mais mexe num lado — é o que o smoke guarda para se ver de relance se o

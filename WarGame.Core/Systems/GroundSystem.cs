@@ -34,10 +34,15 @@ public static class GroundSystem
 
     /// <summary>Só o chão: o terreno e o rio, sem os espíritos nem a tecnologia de país nenhum. É o número
     /// que responde a «quanto custa assaltar uma montanha», e o único que é igual para toda a gente.</summary>
-    public static float Terrain(World w, Region r, bool attacking)
+    public static float Terrain(World w, Region r, bool attacking) => Terrain(w, r.Terrain, r.River, attacking);
+
+    /// <summary>O mesmo número para um chão qualquer, dito à mão. Serve para perguntar o que muda quando se
+    /// tira o rio ao terreno — a única maneira honesta de dizer quanto é que o rio custa, sem inventar uma
+    /// segunda conta ao lado desta.</summary>
+    public static float Terrain(World w, string terrain, bool river, bool attacking)
     {
-        var ctx = new ModContext().With("terrain", r.Terrain);
-        if (r.River) ctx["river"] = "true";
+        var ctx = new ModContext().With("terrain", terrain);
+        if (river) ctx["river"] = "true";
         var stats = new StatBlock();
         var (f1, m1) = w.Modifiers.Evaluate("str", stats, ctx);
         var (f2, m2) = w.Modifiers.Evaluate(attacking ? "str_attacker" : "str_defender", stats, ctx);

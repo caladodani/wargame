@@ -78,8 +78,10 @@ public partial class RegionFooter : PanelContainer
                 ? $"🏰 a fortificar: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias"
             : "";
         var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);
+        // com batalha a decorrer, o rodapé diz onde ela se trava — as mesmas condições que o ecrã de
+        // batalha põe em chapas, aqui numa linha, sem obrigar a abrir nada
         string line3 = battle is not null
-            ? $"{RegionRenderer.BattleMark}batalha a decorrer ({battle.Days} dias)"
+            ? $"{RegionRenderer.BattleMark}batalha a decorrer ({battle.Days} dias) · {BattleField.Line(w, r)}"
             : build;
 
         string key = line1 + "|" + line2 + "|" + line3;
