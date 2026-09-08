@@ -23,7 +23,7 @@ INSERT INTO unit_tag VALUES
  (400,'armored'),(400,'ground'),
  (401,'armored'),(401,'ground'),
  (402,'infantry'),(402,'ground'),(402,'elite'),
- (403,'infantry'),(403,'ground');
+ (403,'infantry'),(403,'ground'),(403,'montanha');
 
 -- ===== espíritos nacionais + modificadores (ids 400..419) =====
 INSERT INTO national_spirit (id,country_tag,name,description) VALUES

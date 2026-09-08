@@ -156,9 +156,9 @@ public partial class ProductionPanel : PanelContainer
                 bool rep = o.Repeat;
 
                 // cada encomenda é uma chapa que se pega e se larga noutro lugar da fila (QueueRow)
-                string kind = UnitSymbol.KindFor(w, tid);
+                string kind = UnitSymbol.KindFor(w, tid), spec = UnitSymbol.SpecFor(w, tid);
                 var row = new QueueRow();
-                row.Bind(idx, name, kind, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
+                row.Bind(idx, name, kind, spec, waitingLine ? Ui.Surface.Darkened(0.35f) : Ui.Surface.Darkened(0.1f), Move);
                 var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8); row.AddChild(line);
                 var grip = Ui.Lbl("⣿", 18); grip.AddThemeColorOverride("font_color", Ui.TextDim); line.AddChild(grip);
                 var place = Ui.Lbl($"{idx + 1}º", 15);
@@ -166,7 +166,7 @@ public partial class ProductionPanel : PanelContainer
                 line.AddChild(place);
                 // o que ali se fabrica, em símbolo: numa fila de uma dúzia de encomendas todas escritas
                 // igual, a coluna blindada distingue-se da de infantaria sem se ler nome nenhum
-                line.AddChild(UnitSymbol.Of(kind, 34f, 24f));
+                line.AddChild(UnitSymbol.Of(kind, 34f, 24f, spec));
                 var cell = Ui.Grow(new VBoxContainer());
                 cell.AddThemeConstantOverride("separation", 2);
                 var head = Ui.Lbl($"{name}   {Pct(w, o)}%   ·   {Eta(w, c, o, waitingLine || waitingMen ? 0 : mine)}" + (rep ? "   🔁" : "")
@@ -331,9 +331,12 @@ public partial class ProductionPanel : PanelContainer
                     : $"cabe inteira ({tall:0}px em {window:0}px)";
         // Os símbolos não têm como falhar alto (um Control que não desenha nada não dá erro nenhum), por
         // isso contam-se: se a fila ou os modelos perderem o símbolo, o número cai e o smoke acusa.
-        var kinds = Descendants<UnitSymbol>(this).Select(s => s.Kind).ToList();
+        var syms = Descendants<UnitSymbol>(this).ToList();
+        var kinds = syms.Select(s => s.Kind).ToList();
+        var specs = syms.Select(s => s.Spec).Where(s => s.Length > 0).Distinct().OrderBy(s => s).ToList();
         string symbols = kinds.Count == 0 ? "sem símbolos"
-            : $"{kinds.Count} símbolos NATO ({string.Join(", ", kinds.Distinct().OrderBy(k => k).Select(NatoSymbol.Name))})";
+            : $"{kinds.Count} símbolos NATO ({string.Join(", ", kinds.Distinct().OrderBy(k => k).Select(k => NatoSymbol.Name(k)))}"
+            + (specs.Count == 0 ? "" : $"; marcas {string.Join(", ", specs.Select(NatoSymbol.SpecMark))}") + ")";
         return $"{_queue.GetChildren().OfType<QueueRow>().Count()} chapas na fila de produção em {Sections.Length} abas"
              + $", {roll} ({dragged}, {yards}, {rhythm}, {symbols})";
     }

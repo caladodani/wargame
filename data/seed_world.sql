@@ -1001,7 +1001,8 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_invasion_org_cost',25,'organização perdida ao desembarcar'),
  ('naval_invasion_min_org',45,'organização mínima para assaltar uma costa inimiga'),
  ('naval_invasion_penalty',0.45,'força do atacante que vem do mar'),
- ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo');
+ ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo'),
+ ('naval_invasion_marine',0.8,'força do atacante que vem do mar quando são fuzileiros (marca anfibio)');
 
 -- Salto de pára-quedas (ParadropSystem): quem tem a marca `airborne` na ficha não precisa de estrada nem
 -- de praia — salta por cima da frente e cai na retaguarda do outro. O transporte prende asas ao voo

@@ -15,16 +15,16 @@ namespace WarGame.Presentation;
 public partial class QueueRow : PanelContainer
 {
     private int _index;
-    private string _label = "", _kind = "infantry";
+    private string _label = "", _kind = "infantry", _spec = "";
     private Action<int, int>? _onMove;
     private StyleBoxFlat _rest = null!, _hot = null!;
 
     /// <summary>Índice desta encomenda na fila (o mesmo que o comando usa).</summary>
     public int Index => _index;
 
-    public void Bind(int index, string label, string kind, Color tint, Action<int, int> onMove)
+    public void Bind(int index, string label, string kind, string spec, Color tint, Action<int, int> onMove)
     {
-        _index = index; _label = label; _kind = kind; _onMove = onMove;
+        _index = index; _label = label; _kind = kind; _spec = spec; _onMove = onMove;
         _rest = Ui.Box(tint, 6);
         _hot = Ui.Box(Ui.SurfaceHi, 6);
         AddThemeStyleboxOverride("panel", _rest);
@@ -40,7 +40,7 @@ public partial class QueueRow : PanelContainer
         var ghost = new PanelContainer();
         ghost.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Ink with { A = 0.9f }, 6));
         var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8);
-        line.AddChild(UnitSymbol.Of(_kind, 30f, 20f));
+        line.AddChild(UnitSymbol.Of(_kind, 30f, 20f, _spec));
         var lbl = Ui.Lbl("⣿ " + _label, 15);
         lbl.AddThemeColorOverride("font_color", Ui.Accent);
         line.AddChild(lbl);

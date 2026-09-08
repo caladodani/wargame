@@ -19,7 +19,7 @@ public partial class UnitCounter : Node2D
     public const float BoxW = 104f, BoxH = 56f, DropY = 20f;
 
     private Color _tint = Colors.Gray;
-    private string _kind = "infantry";
+    private string _kind = "infantry", _spec = "";
     private int _count;
     private float _org = 1f, _hp = 1f, _entrench;
     private bool _known;
@@ -43,9 +43,9 @@ public partial class UnitCounter : Node2D
 
     /// <summary>Enche o contador. `known` distingue a nossa tropa (barras verdadeiras) da tropa alheia, de
     /// que só se sabe o que se vê de fora: quantas divisões e de que tipo.</summary>
-    public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known)
+    public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known, string spec = "")
     {
-        _tint = tint; _flag = flag; _kind = kind; _count = count;
+        _tint = tint; _flag = flag; _kind = kind; _spec = spec; _count = count;
         _org = org; _hp = hp; _entrench = entrench; _known = known;
         if (_num is not null) _num.Text = count.ToString();
         QueueRedraw();
@@ -79,7 +79,7 @@ public partial class UnitCounter : Node2D
                                        box.End + new Vector2(-6f, -6f), new Vector2(box.Position.X + 6f, box.End.Y - 6f) })
             DrawCircle(corner, 2.2f, rivet);
 
-        NatoSymbol.Draw(this, new Rect2(box.Position.X + BoxW / 2f + 6f, box.Position.Y + 16f, BoxW / 2f - 14f, BoxH - 30f), _kind);
+        NatoSymbol.Draw(this, new Rect2(box.Position.X + BoxW / 2f + 6f, box.Position.Y + 16f, BoxW / 2f - 14f, BoxH - 30f), _kind, 2.6f, _spec);
 
         // barras: organização por cima da resistência, em pé de igualdade com as do painel da região
         float y = box.End.Y - 12f, w = box.Size.X - 12f, x = box.Position.X + 6f;

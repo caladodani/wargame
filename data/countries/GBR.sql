@@ -20,7 +20,7 @@ INSERT INTO unit_stat VALUES
  (223,'soft_atk',13), (223,'hard_atk',18), (223,'defense',14),(223,'breakthrough',32),(223,'armor',75),(223,'piercing',65),(223,'hardness',0.92),(223,'hp',22);
 
 INSERT INTO unit_tag VALUES
- (220,'infantry'),(220,'ground'),(220,'especial'),
+ (220,'infantry'),(220,'ground'),(220,'especial'),(220,'anfibio'),
  (221,'infantry'),(221,'ground'),(221,'especial'),(221,'airborne'),
  (222,'infantry'),(222,'armored'),(222,'ground'),
  (223,'armored'),(223,'ground');

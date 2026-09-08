@@ -17,7 +17,7 @@ INSERT INTO unit_stat VALUES
 
 INSERT INTO unit_tag VALUES
  (420,'support'),(420,'ground'),
- (421,'infantry'),(421,'ground'),(421,'irgc'),
+ (421,'infantry'),(421,'ground'),(421,'irgc'),(421,'montanha'),
  (422,'support'),(422,'ground');
 
 -- ===== espíritos nacionais + modificadores (ids 420..439) =====

@@ -22,7 +22,7 @@ INSERT INTO unit_stat VALUES
 INSERT INTO unit_tag VALUES
  (260,'armored'),(260,'ground'),
  (261,'infantry'),(261,'ground'),(261,'especial'),(261,'airborne'),
- (262,'infantry'),(262,'ground'),(262,'especial'),
+ (262,'infantry'),(262,'ground'),(262,'especial'),(262,'montanha'),
  (263,'infantry'),(263,'armored'),(263,'ground');
 
 -- ===== espíritos nacionais + modificadores (ids 260..279) =====

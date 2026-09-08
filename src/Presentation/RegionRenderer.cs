@@ -695,7 +695,7 @@ public partial class RegionRenderer : Node2D
                     group.Average(d => d.Org) / 100f,
                     group.Average(d => d.Hp) / 100f,
                     known ? group.Average(d => d.Entrench) : 0f,
-                    known);
+                    known, NatoSymbol.SpecialtyOf(tags));
         counter.Visible = true;
     }
 

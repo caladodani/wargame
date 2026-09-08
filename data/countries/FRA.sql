@@ -20,7 +20,7 @@ INSERT INTO unit_stat VALUES
 
 INSERT INTO unit_tag VALUES
  (640,'infantry'),(640,'ground'),(640,'especial'),
- (641,'infantry'),(641,'ground'),(641,'especial'),
+ (641,'infantry'),(641,'ground'),(641,'especial'),(641,'montanha'),
  (642,'armored'),(642,'ground'),
  (643,'infantry'),(643,'armored'),(643,'ground');
 

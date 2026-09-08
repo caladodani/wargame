@@ -73,6 +73,19 @@ INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,require
  ('terrain','river',  'true',    'str_attacker',NULL,     'add',-0.3),
  ('terrain','terrain','urban',   'str_defender',NULL,     'mul',1.2),
  ('terrain','terrain','mountain','str_defender',NULL,     'mul',1.3),
+ -- Tropas especiais de terreno (HoI4: special forces). A especialidade é da unidade, não do país: quem
+ -- treinou para a serra bate-se na serra, ande sob a bandeira que andar. Até aqui estas marcas só valiam
+ -- alguma coisa aos países que por acaso tinham o espírito nacional a jeito — o Gebirgsjäger alemão subia
+ -- a montanha com a mesma penalização de um recruta qualquer. Estas linhas não apagam o terreno: descontam
+ -- a penalização de quem sabe andar lá (mountain ×0.5 × 1.7 = 0.85 do que valeria em campo aberto).
+ ('terrain','terrain','mountain','str_attacker','montanha','mul',1.7),
+ ('terrain','terrain','mountain','str_defender','montanha','mul',1.15),
+ ('terrain','terrain','forest',  'str_attacker','selva',   'mul',1.25),
+ ('terrain','terrain','tundra',  'str_attacker','artico',  'mul',1.40),
+ ('terrain','terrain','desert',  'str_attacker','deserto', 'mul',1.20),
+ -- Fuzileiros: a travessia de rio é o que mais se parece com o que eles treinam (o assalto anfíbio a sério
+ -- está no naval_invasion_marine, que o CombatSystem aplica a quem tem esta marca).
+ ('terrain','river',  'true',    'str_attacker','anfibio', 'add',0.20),
  ('air',    'air_sup','own',     'str',         NULL,     'add',0.25),
  ('air',    'air_sup','enemy',   'str',         NULL,     'add',-0.25),
  ('tech',   'tech:drones_1','true','str',       NULL,     'add',0.10),

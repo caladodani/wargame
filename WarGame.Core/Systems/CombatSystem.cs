@@ -154,9 +154,23 @@ public sealed class CombatSystem : ISystem
     }
 
     /// <summary>Assalto anfíbio: quem ataca do outro lado de uma travessia marítima bate da praia e
-    /// vale só naval_invasion_penalty da sua força. Fora disso, 1.</summary>
+    /// vale só naval_invasion_penalty da sua força. Fora disso, 1.
+    ///
+    /// Menos para os fuzileiros: a marca `anfibio` na ficha (tabela unit_tag, nunca no código) troca a
+    /// penalização pela de naval_invasion_marine. É o que os torna fuzileiros — sair do barco a bater é o
+    /// trabalho deles, e uma brigada de infantaria a fazer o mesmo chega à praia desfeita.</summary>
     public static float AmphibiousMult(World w, Division d, Region? battleRegion) =>
-        battleRegion is not null && w.IsSeaHop(d.RegionId, battleRegion.Id) ? w.Rule("naval_invasion_penalty", 0.45f) : 1f;
+        battleRegion is not null && w.IsSeaHop(d.RegionId, battleRegion.Id)
+            ? (IsMarine(w, d) ? w.Rule("naval_invasion_marine", 0.8f) : w.Rule("naval_invasion_penalty", 0.45f))
+            : 1f;
+
+    /// <summary>Fuzileiros? A marca vem da tabela. Template partido não é fuzileiro, mas também não rebenta
+    /// com a batalha.</summary>
+    public static bool IsMarine(World w, Division d)
+    {
+        try { return w.Stats.Get(d.TemplateId).Tags.Contains("anfibio"); }
+        catch { return false; }
+    }
 
     /// <summary>A força com que cada divisão de um lado se bate hoje. `parts`, quando vem, recebe a soma de
     /// cada parcela ao longo da linha — é por aí que o ecrã de batalha explica o resultado sem repetir uma
