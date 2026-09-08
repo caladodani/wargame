@@ -637,6 +637,9 @@ public sealed class Division
     /// <summary>Cortada da retaguarda: não há cadeia de terra (nem cais) que a ligue a casa. Estado
     /// derivado — quem o escreve é o SupplySystem, todos os dias, e por isso não entra no save.</summary>
     public bool Cut { get; set; }
+    /// <summary>Distância a que ficou da rede de abastecimento, em regiões tomadas (as estradas de cada uma
+    /// pesam no que custa atravessá-la). 0 = em casa ou num cais. Derivado como o Cut: SupplySystem.</summary>
+    public float SupplyDepth { get; set; }
     /// <summary>Dias seguidos em cerco (PocketSystem). Zera assim que a ligação a casa volta; passado
     /// pocket_surrender dias fechada, a divisão rende-se.</summary>
     public int PocketDays { get; set; }

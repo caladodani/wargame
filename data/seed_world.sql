@@ -420,6 +420,14 @@ INSERT INTO rule VALUES ('war_goal_period_days', 3, 'de quantos em quantos dias 
 INSERT INTO rule VALUES ('port_supply_factor', 0.85, 'abastecimento que chega por mar (1 = tão bom como por terra)');
 INSERT INTO rule VALUES ('port_capacity_per_level', 6, 'divisões que cada nível de porto consegue abastecer do outro lado do mar');
 INSERT INTO rule VALUES ('port_overflow_min', 0.35, 'chão do abastecimento por mar quando o cais está a rebentar pelas costuras');
+
+-- Alcance da rede de abastecimento (SupplySystem). Em casa come-se sempre bem; fora dela, cada região
+-- tomada afasta a tropa do depósito e o fio vai ficando fino, até ao chão de supply_reach_min. Estradas
+-- boas encurtam a distância: a infraestrutura da região divide o que cada salto custa (uma linha férrea
+-- vale por meia distância). É isto que faz uma ofensiva parar sozinha longe de casa, como no HOI4.
+INSERT INTO rule VALUES ('supply_reach_free', 3, 'regiões tomadas que a rede alcança sem perder nada');
+INSERT INTO rule VALUES ('supply_reach_decay', 0.12, 'abastecimento perdido por cada região além disso');
+INSERT INTO rule VALUES ('supply_reach_min', 0.5, 'chão do abastecimento por esticar demasiado a linha');
 INSERT INTO rule VALUES ('ai_port_supply_floor', 0.9, 'abaixo deste supply a IA manda construir porto para as tropas de além-mar');
 
 -- Contra-espionagem: expulsa todas as operações do alvo contra nós (efeito purge_spies).
