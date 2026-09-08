@@ -42,6 +42,15 @@ public partial class RegionRenderer : Node2D
     private Node2D _highlightRoot = null!, _multiRoot = null!, _markerRoot = null!, _goalRoot = null!, _nameRoot = null!;
     private Node2D _counterRoot = null!;
     private Node2D _frontierRoot = null!;
+    private Node2D _stripeRoot = null!;
+    private readonly Dictionary<int, Polygon2D> _stripes = new();   // região ocupada → riscas na cor do dono
+    /// <summary>Distância entre riscas e largura de cada uma, em unidades do mundo. A conta é a do atlas de
+    /// guerra: risca fina e espaçada, para se ver de longe que aquilo é terra tomada sem tapar a cor de
+    /// quem lá manda hoje.</summary>
+    private const float StripeGap = 26f, StripeWidth = 7f;
+    /// <summary>Tecto de faixas por região: uma região gigante com riscas a mais é um nó com milhares de
+    /// vértices, e o mapa inteiro ocupado num telemóvel não pode custar isso.</summary>
+    private const int StripeMax = 48;
     private float _zoom = 1f;
     // Modo de mapa (MapModes): o político pinta pelo controlador, os outros pela conta escolhida.
     private string _mode = MapModes.Political, _metric = "owner";
@@ -89,6 +98,12 @@ public partial class RegionRenderer : Node2D
         // como está, sem tocar na leitura política nem nas fronteiras, nomes e contadores que vêm a
         // seguir (esses ficam por cima e não levam multiplicação).
         if (Backdrop("res://assets/map/relief.png", multiplicar: true) is Sprite2D relevo) AddChild(relevo);
+
+        // Riscas do dono por cima da cor do ocupante, e por baixo de tudo o resto: são pintura de mapa,
+        // não informação militar. O mundo pode começar já com terra tomada (guerras a decorrer no
+        // arranque, saves antigos), por isso as riscas nascem aqui e não só à primeira conquista.
+        _stripeRoot = new Node2D { Name = "Occupation" }; AddChild(_stripeRoot);
+        foreach (int id in _rings.Keys) PaintStripes(id);
 
         // Por cima dos polígonos: primeiro a fronteira nacional, depois o realce e os marcadores.
         _frontierRoot = new Node2D { Name = "Frontiers" }; AddChild(_frontierRoot);
@@ -166,6 +181,7 @@ public partial class RegionRenderer : Node2D
         _shades = _game.PlayerId is int pid ? MapModes.Shades(_game.World, pid, _metric)
                                             : MapModes.Shades(_game.World, 0, _metric);
         _shadePainted.Clear();
+        _stripeRoot.Visible = _metric == "owner";   // nos modos temáticos a cor já é uma conta
         RepaintAll();
     }
 
@@ -407,6 +423,7 @@ public partial class RegionRenderer : Node2D
         {
             var col = ColorFor(id); foreach (var p in polys) p.Color = col;
             PaintBorder(id);
+            PaintStripes(id);
         }
     }
 
@@ -433,8 +450,129 @@ public partial class RegionRenderer : Node2D
             var col = ColorFor(id); foreach (var p in polys) p.Color = col;
             PaintBorder(id);
             PaintFrontier(id);
+            PaintStripes(id);
         }
     });
+
+    /// <summary>Riscas de ocupação, à maneira dos mapas de guerra (e do HOI4): a região fica pintada de quem
+    /// manda nela hoje, e por cima leva riscas na cor de quem é dona da terra. Sem isto, uma frente parada
+    /// dizia quem ocupa mas escondia o que é conquista e o que é casa — e a diferença entre as duas coisas
+    /// decide guerras (abastecimento, resistência, tratado de paz).
+    ///
+    /// Só existe no mapa político: nos modos temáticos a cor já é uma conta e as riscas mentiriam sobre ela.
+    /// Uma região que volte ao dono, ou que seja anexada num tratado, perde as riscas no mesmo passo em que
+    /// muda de cor.</summary>
+    private void PaintStripes(int regionId)
+    {
+        var w = _game.World;
+        bool occupied = _metric == "owner" && w.Regions.TryGetValue(regionId, out var r)
+                     && r.ControllerId != r.OwnerId;
+        if (_stripes.Remove(regionId, out var old)) old.QueueFree();
+        if (!occupied) return;
+
+        var owner = _countryColor.GetValueOrDefault(w.Regions[regionId].OwnerId, Colors.White);
+        if (Bands(regionId, out var verts, out var faces) is 0) return;
+        var poly = new Polygon2D
+        {
+            Name = "Stripes" + regionId,
+            Polygon = verts,
+            Polygons = faces,
+            Color = owner.Lightened(0.15f) with { A = 0.55f },
+        };
+        _stripeRoot.AddChild(poly);
+        _stripes[regionId] = poly;
+    }
+
+    /// <summary>Corta faixas diagonais dentro dos anéis da região e devolve-as como um só polígono de várias
+    /// faces — um nó por região, não um por risca. As faixas são linhas de x+y constante (45°), o corte é
+    /// feito pelo Geometry2D, e o número de faces devolvido serve para a prova saber que isto pintou mesmo
+    /// alguma coisa.</summary>
+    private int Bands(int regionId, out Vector2[] verts, out Godot.Collections.Array faces)
+    {
+        var pts = new List<Vector2>();
+        faces = new Godot.Collections.Array();
+        foreach (var ring in _rings.GetValueOrDefault(regionId) ?? new List<Vector2[]>())
+        {
+            if (ring.Length < 3) continue;
+            float minX = ring[0].X, maxX = ring[0].X, minY = ring[0].Y, maxY = ring[0].Y;
+            foreach (var p in ring)
+            {
+                minX = MathF.Min(minX, p.X); maxX = MathF.Max(maxX, p.X);
+                minY = MathF.Min(minY, p.Y); maxY = MathF.Max(maxY, p.Y);
+            }
+            float span = maxY - minY + 8f;                    // a faixa tem de sair da caixa pelos dois lados
+            float x0 = minX - span, x1 = maxX + span;
+            for (float t = MathF.Floor((minX + minY) / StripeGap) * StripeGap; t <= maxX + maxY; t += StripeGap)
+            {
+                if (faces.Count >= StripeMax) break;
+                var band = new[]
+                {
+                    new Vector2(x0, t - x0), new Vector2(x1, t - x1),
+                    new Vector2(x1, t + StripeWidth - x1), new Vector2(x0, t + StripeWidth - x0),
+                };
+                foreach (var piece in Geometry2D.IntersectPolygons(band, ring))
+                {
+                    if (piece.Length < 3 || faces.Count >= StripeMax) continue;
+                    int start = pts.Count;
+                    pts.AddRange(piece);
+                    faces.Add(Enumerable.Range(start, piece.Length).ToArray());
+                }
+            }
+        }
+        verts = pts.ToArray();
+        return faces.Count;
+    }
+
+    /// <summary>Riscas de ocupação desenhadas agora, para a prova headless: sem isto, uma conquista podia
+    /// deixar de se ver no mapa sem nada dar erro.</summary>
+    public string StripeReport()
+    {
+        int faces = _stripes.Values.Sum(p => p.Polygons.Count);
+        int occupied = _game.World.Regions.Values.Count(r => r.ControllerId != r.OwnerId);
+        return $"{_stripes.Count} de {occupied} regiões ocupadas com riscas do dono ({faces} faixas,"
+             + $" {StripeGap:0}/{StripeWidth:0} de passo, {(_stripeRoot.Visible ? "à vista" : "escondidas")})";
+    }
+
+    /// <summary>Acerta as riscas de ocupação com o mundo de hoje: terra que passou de mãos ganha-as, terra
+    /// devolvida ou anexada perde-as. Os eventos de conquista já pintam à passagem, mas nem tudo passa por
+    /// um evento — uma capitulação, um tratado ou um save carregado mudam o mapa em bloco, e uma volta pelas
+    /// regiões ocupadas (poucas, quase sempre) é mais barata do que ficar a dever riscas ao mapa.</summary>
+    private void SyncStripes(World w)
+    {
+        if (_metric != "owner") return;
+        foreach (var r in w.Regions.Values)
+        {
+            bool occupied = r.ControllerId != r.OwnerId;
+            if (occupied != _stripes.ContainsKey(r.Id)) PaintStripes(r.Id);
+        }
+    }
+
+    /// <summary>--smoke: ocupa por um instante uma região vizinha da capital, conta as riscas que lhe saem
+    /// na cor do dono e põe tudo como estava. Num mundo em paz não há terra tomada nenhuma, e sem isto a
+    /// prova passava na mesma com o desenho partido.</summary>
+    public string SmokeStripes(int pid)
+    {
+        var w = _game.World;
+        if (!w.Countries.TryGetValue(pid, out var me) || !w.Regions.TryGetValue(me.CapitalRegionId, out var cap))
+            return "sem capital; " + StripeReport();
+        // de preferência ao lado de casa, para a prova ser a de uma frente a mexer; se a capital só tiver
+        // vizinhas nossas, serve qualquer terra alheia — o que se prova é o desenho, não a geografia
+        var probe = cap.Neighbours.Select(id => w.Regions[id])
+                       .FirstOrDefault(r => r.OwnerId != pid && r.ControllerId == r.OwnerId)
+                    ?? w.Regions.Values.OrderBy(r => r.Id)
+                        .FirstOrDefault(r => r.OwnerId != pid && r.ControllerId == r.OwnerId);
+        if (probe is null) return "sem terra alheia por ocupar; " + StripeReport();
+
+        int was = probe.ControllerId;
+        probe.ControllerId = pid;
+        PaintStripes(probe.Id);
+        int bands = _stripes.TryGetValue(probe.Id, out var p) ? p.Polygons.Count : 0;
+        string dono = w.Countries.TryGetValue(probe.OwnerId, out var o) ? o.Name : "?";
+        string report = $"{probe.Name} tomada dá {bands} faixas na cor de {dono}; " + StripeReport();
+        probe.ControllerId = was;
+        PaintStripes(probe.Id);
+        return report;
+    }
 
     /// <summary>Moldura da região: cor e espessura conforme seja fronteira nacional ou risco interno.</summary>
     private void PaintBorder(int regionId)
@@ -450,6 +588,7 @@ public partial class RegionRenderer : Node2D
         if (_byRegion.TryGetValue(regionId, out var polys)) foreach (var p in polys) p.Color = ColorFor(regionId);
         PaintBorder(regionId);
         PaintFrontier(regionId);
+        PaintStripes(regionId);
         // mudar de dono muda a fronteira dos dois lados: os vizinhos têm de ser repintados também
         if (_game.World.Regions.TryGetValue(regionId, out var reg))
             foreach (int n in reg.Neighbours) { PaintBorder(n); PaintFrontier(n); }
@@ -484,6 +623,7 @@ public partial class RegionRenderer : Node2D
         {
             var w = _game.World;
             RefreshShades();
+            SyncStripes(w);
             var battles = new HashSet<int>(w.ActiveBattles.Select(b => b.RegionId));
             var portIds = w.BuildingDefs.Values.Where(d => d.SupplyRange > 0f).Select(d => d.Id).ToHashSet();
             var goals = PlayerGoals(w);
