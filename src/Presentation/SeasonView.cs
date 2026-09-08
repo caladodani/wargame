@@ -64,13 +64,5 @@ public static class SeasonView
 
     /// <summary>Linha para o painel da região: o que o tempo custa ali, naquele terreno, por dia. Vazio quando
     /// não há estação carregada ou quando ela não castiga nada.</summary>
-    public static string RegionLine(World w, Region r)
-    {
-        if (w.Season is not SeasonDef s) return "";
-        float bite = WeatherSystem.BiteOn(w, r.Terrain);
-        string cost = bite <= 0f
-            ? "sem desgaste"
-            : $"−{bite:0.0} org/dia em campo (−{bite * w.Rule("season_shelter", 0.4f):0.0} em terreno nosso)";
-        return $"{s.Name}: {cost} · marcha ×{s.MoveMult:0.00}";
-    }
+    public static string RegionLine(World w, Region r) => RegionState.SeasonNote(w, r);
 }

@@ -143,39 +143,11 @@ public partial class RegionPanel : PanelContainer
 
             _flag.Texture = ctrl is not null ? Flags.Of(ctrl.Tag) : null;
             _title.Text = $"{r.Name}  ·  {GroundView.Name(w, r.Terrain)}{(r.Coastal ? " ⚓" : "")}";
-            // o rendimento, os homens, os depósitos e as obras já de pé saem daqui: têm cartão próprio
-            // (YieldView), com chapa e explicação, em vez de mais um pedaço deste parágrafo corrido
-            var info = $"{ctrl?.Name ?? "—"}{(r.ControllerId != r.OwnerId ? " (ocupada)" : "")}  ·  {r.Population / 1e6f:0.0} M hab.  ·  Infra ×{r.Infrastructure:0.00}";
-            if (r.Infrastructure < r.BaseInfrastructure - 1e-4f) info += $"  ·  🔧 danificada (repõe até ×{r.BaseInfrastructure:0.00})";
-            if (r.Fort > 0) info += $"  ·  🏰 Forte {r.Fort}";
-            if (r.Project is string proj && w.BuildingDefs.TryGetValue(proj, out var pd))
-                info += $"  🏗 {pd.Name}: {(int)MathF.Ceiling(pd.Days - r.ProjectProgress)} dias";
-            if (PortView.RegionLine(w, r) is string quay && quay.Length > 0) info += "  ·  " + quay;
-            if (SeasonView.RegionLine(w, r) is string season && season.Length > 0) info += "  ·  " + season;
-            if (r.Resistance > 0.005f) info += $"  ·  ✊ resistência {r.Resistance:P0}";
-            if (r.Integration > 0.5f) info += $"  ·  🤝 integração {r.Integration / MathF.Max(1f, w.Rule("integration_days", 150f)):P0}";
-            // fábricas civis: a obra pode ser recusada com o cofre cheio, e sem isto não se percebia porquê
-            if (pid is int owner && r.OwnerId == owner && r.ControllerId == owner)
-            {
-                var yards = Industry.Of(w, owner);
-                info += $"  ·  🏭 {yards.FreeCivil} de {yards.Civil} fábricas civis livres";
-            }
-            // com o mapa pintado por uma conta (abastecimento, resistência...), a ficha diz o número exacto
-            if (w.MapModeDefs.GetValueOrDefault(_map.Regions.Mode) is MapModeDef mode && mode.Metric != "owner"
-                && MapModes.Text(w, pid ?? 0, r, mode.Metric) is string mText && mText.Length > 0)
-                info += $"  ·  {mode.Name.ToLowerInvariant()} {mText}";
-            if (r.Building) info += $"  🏗 obra: {(int)MathF.Ceiling(w.Rule("infra_build_days", 30f) - r.BuildProgress)} dias";
-            if (r.FortBuilding) info += $"  🏰 obra: {(int)MathF.Ceiling(w.Rule("fort_build_days", 20f) - r.FortProgress)} dias";
+            // o parágrafo corrido acabou: o que a terra dá está no YieldView, o que o chão tira no
+            // GroundView e como a terra está — gente, estrada, forte, cais, tempo, resistência, integração,
+            // fábricas, obras e batalha — no StateView. Aqui em cima fica só quem manda nela.
+            _info.Text = RegionState.Control(w, r);
             var battle = w.ActiveBattles.FirstOrDefault(b => b.RegionId == r.Id);
-            if (battle is not null)
-            {
-                float attOrg = battle.Attackers.Sum(id => w.Divisions.TryGetValue(id, out var d) ? d.Org : 0f);
-                float defOrg = battle.Defenders.Sum(id => w.Divisions.TryGetValue(id, out var d) ? d.Org : 0f);
-                string attTag = w.Countries.TryGetValue(battle.AttackerCountryId, out var ac) ? ac.Tag : "?";
-                info += $"\n{RegionRenderer.BattleMark}batalha ({battle.Days} dias): {attTag} ataca — org {attOrg:0} vs {defOrg:0}"
-                      + (r.Fort > 0 ? $" (forte {r.Fort})" : "");
-            }
-            _info.Text = info;
 
             // Divisões presentes: as do jogador primeiro, depois as outras — sem caixa de selecção, é
             // a ArmySelect quem escolhe agora (toque simples no mapa).
@@ -191,12 +163,19 @@ public partial class RegionPanel : PanelContainer
             // o cartão do que a terra dá: muda com o dinheiro, os homens, os depósitos e as obras
                          + $"y{EconomySystem.RegionIncome(w, r):0.00}:{RegionYield.MenPerDay(w, r):0}:"
                          + string.Join(",", r.Resources.Select(kv => kv.Key + kv.Value.ToString("0")))
-                         + string.Join(",", r.Buildings.Select(kv => kv.Key + kv.Value)) + "|";
+                         + string.Join(",", r.Buildings.Select(kv => kv.Key + kv.Value)) + "|"
+            // o cartão de como a terra está: muda com o controlo, a estrada partida, a resistência, a
+            // integração, as obras a andar, a batalha e o modo em que o mapa está pintado
+                         + $"s{r.ControllerId}:{r.OwnerId}:{r.Population:0}:{r.BaseInfrastructure:0.00}:{r.Resistance:0.000}:"
+                         + $"{r.Integration:0}:{r.Building}{r.BuildProgress:0}:{r.FortBuilding}{r.FortProgress:0}:"
+                         + $"{r.Project}{r.ProjectProgress:0}:{_map.Regions.Mode}:{w.Season?.Id}:"
+                         + $"{(battle is null ? "" : battle.Days + "/" + battle.Attackers.Sum(id => w.Divisions.TryGetValue(id, out var da) ? (int)da.Org : 0) + "/" + battle.Defenders.Sum(id => w.Divisions.TryGetValue(id, out var dd) ? (int)dd.Org : 0))}|";
             var key = groundKey + (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
                 Ui.Clear(_rows);
+                _rows.AddChild(StateView.Card(w, r, pid, _map.Regions.Mode));
                 _rows.AddChild(YieldView.Card(w, r));
                 _rows.AddChild(GroundView.Card(w, r, ground));
                 foreach (var (_, text, hp, org) in lines) _rows.AddChild(Row(text, hp, org));

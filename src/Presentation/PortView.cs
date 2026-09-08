@@ -1,5 +1,6 @@
 using Godot;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -17,13 +18,12 @@ public static class PortView
         w.Regions.Values.Where(r => r.ControllerId == countryId && Levels(w, r) > 0)
                         .OrderByDescending(r => Levels(w, r)).ThenBy(r => r.Name).ToList();
 
-    /// <summary>Níveis de cais de uma região (só os edifícios com alcance por mar contam).</summary>
-    public static int Levels(World w, Region r) =>
-        r.Buildings.Where(kv => w.BuildingDefs.TryGetValue(kv.Key, out var d) && d.SupplyRange > 0f).Sum(kv => kv.Value);
+    /// <summary>Níveis de cais de uma região. A conta é do RegionState — a ficha da região diz o mesmo
+    /// número, e duas contas iguais em sítios diferentes acabam sempre por se afastar.</summary>
+    public static int Levels(World w, Region r) => RegionState.PortLevels(w, r);
 
     /// <summary>Alcance por mar somado dos cais de uma região, em quilómetros de travessia.</summary>
-    public static float Reach(World w, Region r) =>
-        r.Buildings.Sum(kv => w.BuildingDefs.TryGetValue(kv.Key, out var d) ? d.SupplyRange * kv.Value : 0f);
+    public static float Reach(World w, Region r) => RegionState.PortReach(w, r);
 
     /// <summary>Fracção do cais em uso (1 = cheio, &gt;1 = a rebentar).</summary>
     public static float Load(World w, int countryId) =>
@@ -79,14 +79,5 @@ public static class PortView
             row.AddChild(carry);
         }
         return card;
-    }
-
-    /// <summary>Linha curta para o painel da região: o que este cais carrega e até onde. Vazia quando a
-    /// região não tem porto.</summary>
-    public static string RegionLine(World w, Region r)
-    {
-        int lvl = Levels(w, r);
-        if (lvl <= 0) return "";
-        return $"⚓ cais {lvl}: carrega {lvl * w.Rule("port_capacity_per_level", 6f):0} divisões até {Reach(w, r):0} km";
     }
 }
