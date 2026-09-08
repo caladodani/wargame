@@ -398,6 +398,32 @@ public partial class CountryPanel : PanelContainer
                         () => { Close(); OnWarTab?.Invoke(WarPanel.Material); })));
                 }
 
+                // vassalagem: quem manda neste país e em quem ele manda. Só aparece quando há alguma coisa
+                // para dizer — um mapa sem impérios não gasta uma secção a dizer que não há nenhum.
+                var vassals = Subjects.Of(w, c.Id);
+                if (w.SubjectTypeDefs.Count > 0 && (c.IsSubject || vassals.Count > 0))
+                {
+                    Header("Vassalagem");
+                    if (Subjects.Level(w, c) is SubjectTypeDef lvl)
+                    {
+                        var row = new HBoxContainer();
+                        row.AddChild(Glyph.Make(lvl.Glyph, 22, new Color(0.86f, 0.80f, 0.62f)));
+                        row.AddChild(Ui.Grow(Ui.Lbl(Subjects.Line(w, c), 16)));
+                        _body.AddChild(row);
+                    }
+                    foreach (var v in vassals)
+                    {
+                        var row = new HBoxContainer();
+                        row.AddChild(Ui.Grow(Ui.Lbl($"{v.Tag} — {Subjects.Line(w, v)}", 16)));
+                        if (mine)
+                        {
+                            int vid = v.Id;
+                            row.AddChild(Ui.Btn("Libertar", () => Faction(new ReleaseSubjectCommand(c.Id, vid)), 130));
+                        }
+                        _body.AddChild(row);
+                    }
+                }
+
                 // facções (alianças defensivas: declarar guerra a um membro chama os outros contra o agressor)
                 Header("Facções");
                 var factions = w.FactionsOf(c.Id).ToList();
@@ -463,6 +489,19 @@ public partial class CountryPanel : PanelContainer
                         Line($"🏆 Espólio: {PeaceSpoils.Points(w, inviter, c.Id):0} pontos numa mesa de {seats.Count} vencedor{(seats.Count == 1 ? "" : "es")}", 16);
                         if (w.Regions.TryGetValue(c.CapitalRegionId, out var seat))
                             Line($"   a capital dele custa {PeaceSpoils.Cost(w, seat, true):0} pontos na conferência", 15);
+                        // A outra paz: em vez de lhe tirar terra, ficar com o país. Custa mais pressão do
+                        // que qualquer exigência, e paga-se todos os dias em tributo em vez de uma vez só.
+                        if (w.SubjectTypeDefs.Count > 0 && !c.IsSubject
+                            && new PuppetCommand(inviter, c.Id).Validate(w) is null)
+                        {
+                            var pv = PeaceTerms.PuppetVerdict(w, inviter, c.Id);
+                            var deepest = Subjects.Deepest(w)!;
+                            Line($"⛓ Fantoche: pressão {pv.Pressure:0.00} contra preço {pv.Price:0.00}"
+                               + $" — entra como {deepest.Name} e paga {deepest.YieldShare * 100f:0}% do rendimento", 16);
+                            Line(pv.Accepted ? "✔ Ele curva-se em vez de assinar uma paz." : "✘ Ainda tem país de sobra para não se vender.", 15);
+                            _body.AddChild(Ui.Btn("Fazer dele um estado-fantoche",
+                                () => Faction(new PuppetCommand(inviter, c.Id)), 320));
+                        }
                     }
                     if (!w.AreAtWar(inviter, c.Id) && w.ResourceDefs.Count > 0)
                     {

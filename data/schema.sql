@@ -200,7 +200,9 @@ CREATE TABLE IF NOT EXISTS s_country (
   defeat_streak INTEGER NOT NULL DEFAULT 0,     -- batalhas perdidas seguidas (DefeatAlarmSystem)
   last_defeat_day INTEGER NOT NULL DEFAULT -1,  -- dia da última derrota (-1 = nunca perdeu)
   last_defeat_region INTEGER NOT NULL DEFAULT 0, -- e onde foi, para o aviso levar o mapa lá
-  fuel REAL NOT NULL DEFAULT 0                  -- combustível em depósito (FuelSystem)
+  fuel REAL NOT NULL DEFAULT 0,                 -- combustível em depósito (FuelSystem)
+  overlord INTEGER NOT NULL DEFAULT 0,          -- suserano deste país, 0 = livre (SubjectSystem)
+  autonomy REAL NOT NULL DEFAULT 0              -- autonomia do vassalo; o degrau sai dela pela tabela subject_type
 );
 CREATE TABLE IF NOT EXISTS s_country_tech (country_id INTEGER, tech_id TEXT, PRIMARY KEY (country_id, tech_id));
 CREATE TABLE IF NOT EXISTS s_focus (country_id INTEGER, focus_id TEXT, PRIMARY KEY (country_id, focus_id));

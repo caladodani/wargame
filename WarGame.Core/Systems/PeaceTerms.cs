@@ -100,6 +100,44 @@ public static class PeaceTerms
         return picked;
     }
 
+    /// <summary>A outra paz: em vez de fatias, o país inteiro. A pressão é a mesma que se mede numa paz
+    /// negociada; o preço é fixo (regra puppet_price) e é o mais caro que há, porque não se pede um pedaço
+    /// — pede-se o país. Um país sem terra nenhuma não se põe debaixo de ninguém (não sobra nada para
+    /// mandar), e um vassalo alheio também não: primeiro solta-se do dono que tem.</summary>
+    public static Verdict PuppetVerdict(World w, int demanderId, int targetId)
+    {
+        float price = w.Rule("puppet_price", 0.85f);
+        if (!w.Countries.TryGetValue(targetId, out var t) || demanderId == targetId)
+            return new Verdict(false, 0f, price);
+        if (t.IsSubject && t.OverlordId != demanderId) return new Verdict(false, 0f, price);
+        if (!w.Regions.Values.Any(r => r.OwnerId == targetId)) return new Verdict(false, 0f, price);
+
+        float pressure = Evaluate(w, demanderId, targetId, Array.Empty<int>()).Pressure;
+        return new Verdict(pressure >= price, pressure, price);
+    }
+
+    /// <summary>Fecha a guerra pondo o derrotado debaixo de quem venceu. Ninguém perde terra: o que estava
+    /// ocupado dos dois lados volta ao dono, porque quem manda no país já não precisa de lhe ocupar as
+    /// províncias — a terra continua no mapa com a cor dele e é dele que se cobra o tributo.</summary>
+    public static void Puppet(World w, int demanderId, int targetId)
+    {
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.OwnerId == targetId && r.ControllerId == demanderId) r.ControllerId = targetId;
+            else if (r.OwnerId == demanderId && r.ControllerId == targetId) r.ControllerId = demanderId;
+        }
+
+        w.ActiveBattles.RemoveAll(bt =>
+            (bt.AttackerCountryId == demanderId || bt.AttackerCountryId == targetId)
+            && !bt.Attackers.Concat(bt.Defenders).Any(id =>
+                w.Divisions.TryGetValue(id, out var d) && d.CountryId != demanderId && d.CountryId != targetId));
+
+        Subjects.Puppet(w, demanderId, targetId);
+        w.EndWar(demanderId, targetId);
+        w.Events.Publish(new PeaceSigned(demanderId, targetId, 0));
+        w.Events.Publish(new WarEnded(demanderId, targetId));
+    }
+
     /// <summary>As regiões do alvo que quem exige já ocupa — a exigência natural de quem está a ganhar.</summary>
     public static List<int> OccupiedRegions(World w, int demanderId, int targetId) =>
         w.Regions.Values.Where(r => r.OwnerId == targetId && r.ControllerId == demanderId).Select(r => r.Id).ToList();

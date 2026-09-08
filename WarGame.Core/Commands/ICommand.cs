@@ -642,6 +642,53 @@ public sealed record DemandPeaceCommand(int CountryId, int TargetCountryId, IRea
     }
 }
 
+/// <summary>Exigir que o derrotado se torne estado-fantoche em vez de ser esquartejado.
+///
+/// É a paz que não se vê no mapa como uma cor a comer outra: o país fica de pé, com bandeira e terra, mas
+/// passa a pagar-nos tributo e a mandar-nos homens. Custa mais pressão do que qualquer exigência de
+/// regiões (regra puppet_price) porque não se pede um pedaço — pede-se o país inteiro.</summary>
+public sealed record PuppetCommand(int CountryId, int TargetCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (w.SubjectTypeDefs.Count == 0) return "vassalagem indisponível";
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t)) return "país inválido";
+        if (CountryId == TargetCountryId) return "não podes ser fantoche de ti próprio";
+        if (c.IsSubject) return "um vassalo não faz vassalos";
+        if (t.IsSubject) return t.OverlordId == CountryId ? "já é teu fantoche" : "já é fantoche de outro";
+        if (!w.AreAtWar(CountryId, TargetCountryId)) return "não estás em guerra com ele";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        if (Systems.PeaceTerms.PuppetVerdict(w, CountryId, TargetCountryId).Accepted)
+            Systems.PeaceTerms.Puppet(w, CountryId, TargetCountryId);
+        else
+            w.Events.Publish(new PeaceOfferRejected(CountryId, TargetCountryId));
+    }
+}
+
+/// <summary>Libertar um estado-fantoche por vontade própria — a decisão de quem prefere um aliado a um
+/// devedor. Sem preço: quem larga, larga.</summary>
+public sealed record ReleaseSubjectCommand(int CountryId, int SubjectCountryId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(SubjectCountryId, out var s)) return "país inválido";
+        if (s.OverlordId != CountryId) return "não é teu fantoche";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var s = w.Countries[SubjectCountryId];
+        s.OverlordId = 0; s.Autonomy = 0f;
+        w.Events.Publish(new SubjectFreed(SubjectCountryId, CountryId));
+    }
+}
+
 /// <summary>Lançar uma operação de espionagem contra outro país (tabela spy_op).
 /// Paga à partida; conclui passado op.Days e o EspionageSystem aplica o efeito.
 /// Uma operação de cada vez por par (autor, alvo).

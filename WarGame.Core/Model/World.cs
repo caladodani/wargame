@@ -72,6 +72,9 @@ public sealed class World
     /// numa batalha e o que uma lê da outra (Tactics).</summary>
     public Dictionary<string, TacticDef> TacticDefs { get; } = new();
 
+    /// <summary>Degraus de vassalagem (tabela subject_type), do mais preso ao mais solto (Subjects).</summary>
+    public Dictionary<string, SubjectTypeDef> SubjectTypeDefs { get; } = new();
+
     /// <summary>Factor do desgaste da estação neste terreno (1 = o desgaste raso da estação).</summary>
     public float SeasonBite(string seasonId, string terrain) =>
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;

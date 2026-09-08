@@ -52,6 +52,10 @@ public static class MapModes
         // Tempo: pinta-se a severidade do céu (0 = limpo), que é o que interessa a quem vai atacar amanhã.
         // Sem tabela de tempo carregada não há resposta nenhuma, e o modo fica cinzento como qualquer outro.
         "weather" => Weather.Of(w, r) is WeatherDef sky ? 1f - sky.MoveMult : null,
+        // Vassalagem: pinta-se a terra de quem obedece a outro, tanto mais escura quanto menos autonomia
+        // lhe resta. Um país livre não tem resposta nenhuma — e é assim que se vê de relance onde acaba o
+        // império de alguém e começa gente que ainda manda em si.
+        "subject" => Subject(w, r),
         _ => null,
     };
 
@@ -64,6 +68,7 @@ public static class MapModes
                 "supply" => "sem tropa nossa à vista",
                 "resistance" => "terra do próprio dono: sem resistência",
                 "weather" => "sem tempo carregado",
+                "subject" => "país livre",
                 _ => "",
             };
         // {v*100:0}% em vez de {v:P0}: o formato P depende da cultura do sistema (o padrão invariant, o que
@@ -72,12 +77,23 @@ public static class MapModes
         return metric switch
         {
             "weather" => Weather.Line(w, r),
+            "subject" => w.Countries.TryGetValue(r.OwnerId, out var owner) ? Subjects.Line(w, owner) : "",
             "supply" => $"abastecimento {v * 100:0}%",
             "resistance" => $"resistência {v * 100:0}%",
             "industry" => $"indústria {v:0.00} (edifícios + infra)",
             "population" => $"{v:0.0} M habitantes",
             _ => "",
         };
+    }
+
+    /// <summary>Quanto deste chão é de facto de outro: 1 quando o dono acaba de cair, 0 na véspera de se
+    /// levantar. Sem tabela de vassalagem carregada não há resposta nenhuma.</summary>
+    private static float? Subject(World w, Region r)
+    {
+        if (w.SubjectTypeDefs.Count == 0) return null;
+        if (!w.Countries.TryGetValue(r.OwnerId, out var owner) || !owner.IsSubject) return null;
+        float free = MathF.Max(1e-4f, w.Rule("subject_free_autonomy", 1f));
+        return Math.Clamp(1f - owner.Autonomy / free, 0f, 1f);
     }
 
     private static float? Supply(World w, int viewerId, Region r)

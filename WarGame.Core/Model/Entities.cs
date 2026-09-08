@@ -183,6 +183,12 @@ public sealed record WeatherDef(string Id, string Name, string Icon, float MoveM
                                 float ColdMin, float ColdMax, string Terrain, float Weight, string Note, int Sort,
                                 string Glyph = "");
 
+/// <summary>Um degrau de vassalagem (tabela subject_type; Subjects). AutonomyMin é a autonomia a partir da
+/// qual o vassalo está neste degrau, YieldShare e ManpowerShare o que o suserano lhe leva por dia e Drift a
+/// autonomia que ele ganha por dia aqui — quanto mais solto, mais depressa se solta.</summary>
+public sealed record SubjectTypeDef(string Id, string Name, string Icon, float AutonomyMin, float YieldShare,
+                                    float ManpowerShare, float Drift, string Note, int Sort, string Glyph = "");
+
 /// <summary>Uma táctica de combate (tabela tactic; Tactics). Side diz quem a pode escolher ('attacker' ou
 /// 'defender'), Mult o que ela vale à força desse lado, CounterId a táctica INIMIGA que esta lê e desmonta,
 /// Terrain vazio serve qualquer chão e Weight é o peso no sorteio. É o pedra-papel-tesoura que o HoI4 põe
@@ -582,6 +588,17 @@ public sealed class Country
     public float ExileLegitimacy { get; set; }
     /// <summary>Está no exílio: capitulou e ainda tem quem o acolha.</summary>
     public bool InExile => Capitulated && ExileHostId is not null;
+
+    /// <summary>Suserano deste país, ou 0 se é livre (SubjectSystem). Um vassalo continua a ser país — tem
+    /// bandeira, terra e exército — mas paga ao suserano parte do que rende e dos homens que recruta.</summary>
+    public int OverlordId { get; set; }
+    /// <summary>Autonomia do vassalo, 0..subject_free_autonomy. Sobe todos os dias (mais depressa quanto
+    /// mais solto ele já está, e mais ainda enquanto se bate); ao chegar ao topo, levanta-se e sai.
+    /// O degrau em que ele está (protectorado, satélite, domínio) NÃO se guarda: sai daqui pela tabela
+    /// subject_type — ver Subjects.Level.</summary>
+    public float Autonomy { get; set; }
+    /// <summary>É vassalo de alguém.</summary>
+    public bool IsSubject => OverlordId != 0;
 }
 
 /// <summary>Estado mutável mínimo; stats vêm do cache por template.</summary>

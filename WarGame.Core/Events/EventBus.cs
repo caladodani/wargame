@@ -173,6 +173,10 @@ public sealed record NukeStruck(int AttackerId, int RegionId, int TargetCountryI
 /// GroundLost = a região mudou de mãos; Alarm = a série chegou à regra defeat_streak_alarm e o país
 /// pagou-a em desgaste de guerra. A UI toca o klaxon e acende a faixa; a crónica só escreve as de alarme.</summary>
 public sealed record BattleLost(int CountryId, int RegionId, int Streak, bool GroundLost, bool Alarm) : IGameEvent;
+/// <summary>Um país passou a estado-fantoche de outro: mantém bandeira e terra, paga tributo e homens.</summary>
+public sealed record SubjectMade(int SubjectId, int OverlordId) : IGameEvent;
+/// <summary>A autonomia chegou ao topo e o vassalo levantou-se: já não paga nada a ninguém.</summary>
+public sealed record SubjectFreed(int SubjectId, int OverlordId) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

@@ -649,10 +649,35 @@ INSERT INTO rule (key,value,note) VALUES
  ('factory_per_building',1,'fábricas que cada nível de um edifício de fila (building.yard) acrescenta'),
  ('yard_divisions',3,'divisões abastecidas por mar que cada estaleiro serve');
 
+-- Estados-fantoche (tabela subject_type; Subjects/SubjectSystem). Ganhar uma guerra era só tirar terra: ou
+-- se anexava província a província, ou se assinava e ficava tudo como estava. No HoI4 a vitória tem outra
+-- forma — o derrotado continua a existir, com bandeira e exército, mas debaixo de nós: paga-nos parte do que
+-- rende, dá-nos parte dos homens que recruta, e vai ganhando autonomia até um dia se levantar e sair.
+-- autonomy_min é o degrau em que o vassalo está para a autonomia que tem, yield_share e manpower_share o que
+-- o suserano lhe leva por dia, drift a autonomia que ele ganha por dia nesse degrau — quanto mais solto está,
+-- mais depressa se solta.
+CREATE TABLE IF NOT EXISTS subject_type (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  autonomy_min REAL NOT NULL,                 -- autonomia a partir da qual o vassalo está neste degrau
+  yield_share REAL NOT NULL,                  -- fatia do rendimento diário dele que sobe ao suserano
+  manpower_share REAL NOT NULL,               -- fatia dos homens que ele recruta por dia
+  drift REAL NOT NULL,                        -- autonomia que ganha por dia neste degrau
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+INSERT INTO subject_type (id,name,icon,autonomy_min,yield_share,manpower_share,drift,note,sort,glyph) VALUES
+ ('protectorado','Protectorado','⛓',0.00,0.55,0.45,0.0020,'Governa-se de fora: o que a terra rende e os homens que ela dá são quase todos nossos.',0,'corrente'),
+ ('satelite','Estado satélite','🎗',0.35,0.35,0.30,0.0030,'Já tem governo seu, mas assina o que lhe põem à frente.',1,'fita'),
+ ('dominio','Domínio','🕊',0.70,0.15,0.15,0.0045,'Aliado em tudo menos no nome; a esta altura é uma questão de tempo.',2,'pomba');
+INSERT INTO rule (key,value,note) VALUES
+ ('subject_free_autonomy',1.0,'autonomia a que o vassalo se levanta e volta a ser país livre'),
+ ('subject_autonomy_start',0.0,'autonomia com que um país fica no dia em que é posto debaixo de outro'),
+ ('subject_autonomy_war',0.0035,'autonomia extra por dia enquanto o vassalo se bate numa guerra'),
+ ('puppet_price',0.85,'preço, em fatias do país dele, de o pôr debaixo de nós em vez de lhe tirar terra');
+
 -- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
 CREATE TABLE IF NOT EXISTS map_mode (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather
+  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather | subject
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
   sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
@@ -662,7 +687,8 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('resistencia','Resistência','✊','resistance','calma','revolta',2,'punho'),
  ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica'),
  ('populacao','População','♟','population','deserto','multidão',4,'gente'),
- ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva');
+ ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva'),
+ ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente');
 
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (
