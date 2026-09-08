@@ -191,11 +191,15 @@ public partial class RegionPanel : PanelContainer
                                        : r.DivisionIds.Select(id => w.Divisions.GetValueOrDefault(id)).OfType<Division>())
                         .OrderByDescending(d => d.CountryId == pid).ThenBy(d => d.Id).ToList();
             var lines = divs.Select(d => (d.Id, text: Line(w, d), d.Hp, d.Org)).ToList();
-            var key = (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
+            // a ficha do chão: muda com o terreno, o rio, o forte, a estrada, a estação e quem olha
+            int ground = pid ?? r.ControllerId;
+            var groundKey = $"g{ground}:{r.Terrain}:{r.River}:{r.Fort}:{r.Infrastructure:0.00}:{w.SeasonMove:0.00}|";
+            var key = groundKey + (fogged ? "fog|" : "") + string.Join("|", lines.Select(l => l.Id + ":" + l.text));
             if (key != _lastKey)   // só reconstrói as linhas quando algo mudou (evita saltos de scroll a 4×)
             {
                 _lastKey = key;
                 Ui.Clear(_rows);
+                _rows.AddChild(GroundView.Card(w, r, _terrainNames.GetValueOrDefault(r.Terrain, r.Terrain), ground));
                 foreach (var (_, text, hp, org) in lines) _rows.AddChild(Row(text, hp, org));
                 if (fogged)
                 {
