@@ -519,6 +519,11 @@ public partial class RegionRenderer : Node2D
     private Color ColorFor(int regionId)
     {
         if (!_game.World.Regions.TryGetValue(regionId, out var r)) return Colors.Gray;
+        // Modos por classe (terreno): a cor vem da tabela da classe, não de escala nenhuma — montanha não é
+        // "mais" do que planície. Chão sem classe fica no aço frio, como qualquer região sem resposta.
+        if (MapModes.ByClass(_metric))
+            return MapModes.Of(_game.World, r, _metric) is MapModes.MapClass k && k.Color.Length > 0
+                ? new Color(k.Color) : Ui.Surface.Darkened(0.45f);
         // Fora do mapa político manda a conta: quente onde há muito, aço frio onde não há resposta.
         if (_metric != "owner")
             return _shades.TryGetValue(regionId, out float t) ? Ui.Heat(t) : Ui.Surface.Darkened(0.45f);

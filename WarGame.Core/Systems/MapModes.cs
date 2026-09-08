@@ -17,6 +17,35 @@ public static class MapModes
     /// <summary>O modo de sempre: cada região na cor de quem a controla.</summary>
     public const string Political = "politico";
 
+    /// <summary>Uma classe de um mapa que pinta por classe e não por escala: a cor sai da tabela, o nome e
+    /// o desenho vão para a legenda. É o que o terreno precisa — montanha não é "mais" do que planície, é
+    /// outra coisa, e um degradê quente-frio mentia sobre isso.</summary>
+    public readonly record struct MapClass(string Id, string Name, string Color, string Glyph, string Note);
+
+    /// <summary>Este modo pinta por classe (cor de tabela) em vez de escala?</summary>
+    public static bool ByClass(string metric) => metric is "terrain";
+
+    /// <summary>A classe desta região neste modo, ou null quando não há resposta.</summary>
+    public static MapClass? Of(World w, Region r, string metric) => metric switch
+    {
+        "terrain" => w.TerrainDefs.TryGetValue(r.Terrain, out var t)
+            ? new MapClass(t.Id, t.Name, t.Color, t.Glyph, $"passo ×{t.MoveCost:0.00}")
+            : null,
+        _ => null,
+    };
+
+    /// <summary>A legenda de um modo por classe: as classes que o mundo tem mesmo, da mais fácil de
+    /// atravessar para a mais dura — que é a ordem por que se lê um mapa de terreno.</summary>
+    public static List<MapClass> Key(World w, string metric)
+    {
+        var key = new List<MapClass>();
+        if (metric != "terrain") return key;
+        var used = new HashSet<string>(w.Regions.Values.Select(r => r.Terrain));
+        foreach (var t in w.TerrainDefs.Values.Where(t => used.Contains(t.Id)).OrderBy(t => t.MoveCost).ThenBy(t => t.Id))
+            key.Add(new MapClass(t.Id, t.Name, t.Color, t.Glyph, $"passo ×{t.MoveCost:0.00}"));
+        return key;
+    }
+
     /// <summary>Os modos disponíveis, pela ordem da base de dados (o político primeiro).</summary>
     public static IReadOnlyList<MapModeDef> All(World w) =>
         w.MapModeDefs.Values.OrderBy(m => m.Sort).ThenBy(m => m.Id).ToList();
@@ -27,7 +56,7 @@ public static class MapModes
     public static Dictionary<int, float> Shades(World w, int viewerId, string metric)
     {
         var raw = new Dictionary<int, float>();
-        if (metric is "owner" or "") return raw;
+        if (metric is "owner" or "" || ByClass(metric)) return raw;   // pintam por classe: não há escala nenhuma
 
         foreach (var r in w.Regions.Values)
             if (Value(w, viewerId, r, metric) is float v) raw[r.Id] = v;
@@ -65,6 +94,8 @@ public static class MapModes
     /// <summary>A frase que a ficha da região põe quando o mapa está num modo destes.</summary>
     public static string Text(World w, int viewerId, Region r, string metric)
     {
+        if (ByClass(metric))
+            return Of(w, r, metric) is MapClass k ? $"{k.Name} · {k.Note}" : "chão por classificar";
         if (Value(w, viewerId, r, metric) is not float v)
             return metric switch
             {

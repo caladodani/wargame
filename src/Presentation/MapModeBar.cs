@@ -62,6 +62,27 @@ public partial class MapModeBar : PanelContainer
 
         var cur = modes.FirstOrDefault(m => m.Id == _regions.Mode);
         if (cur is null || cur.Metric == "owner") return;
+        // Modo por classe (terreno): a legenda é a chave do mapa — uma chapa da cor de cada classe com o
+        // desenho e o nome, como no canto de qualquer carta militar. Escala nenhuma: montanha não vem
+        // depois de planície numa régua, é outra coisa.
+        if (MapModes.ByClass(cur.Metric))
+        {
+            foreach (var k in MapModes.Key(_game.World, cur.Metric))
+            {
+                var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+                row.AddChild(new ColorRect
+                {
+                    CustomMinimumSize = new Vector2(16, 12),
+                    Color = k.Color.Length > 0 ? new Color(k.Color) : Ui.Surface,
+                });
+                row.AddChild(Glyph.Make(k.Glyph, 14, Ui.TextDim, k.Note));
+                var name = Ui.Lbl(k.Name, 12);
+                name.TooltipText = k.Note;
+                row.AddChild(Ui.Grow(name));
+                _legend.AddChild(row);
+            }
+            return;
+        }
         // Legenda: dez chapas do frio ao quente, com a ponta de cada lado escrita por baixo.
         var ramp = new HBoxContainer(); ramp.AddThemeConstantOverride("separation", 1);
         for (int i = 0; i < 10; i++)
@@ -98,5 +119,33 @@ public partial class MapModeBar : PanelContainer
         foreach (var m in modes) { _regions.SetMode(m.Id); Refresh(); }
         _regions.SetMode(MapModes.Political); Refresh();
         return modes.Count;
+    }
+
+    /// <summary>--smoke: o modo que pinta por classe (terreno). Põe o mapa nele, conta as regiões que
+    /// ficaram mesmo com a cor da sua classe — a cor sai da tabela, e comparar a cor pintada com a da linha
+    /// é a única maneira de o mapa não poder mentir — e mede a chave desenhada na fita. Volta ao político,
+    /// que é como o resto da prova espera encontrar o mundo.</summary>
+    public string SmokeClasses()
+    {
+        var w = _game.World;
+        var cls = MapModes.All(w).FirstOrDefault(m => MapModes.ByClass(m.Metric));
+        if (cls is null) return "sem modo por classe";
+        _regions.SetMode(cls.Id); Refresh();
+
+        var key = MapModes.Key(w, cls.Metric);
+        var census = new Dictionary<string, int>();
+        foreach (var r in w.Regions.Values)
+            if (MapModes.Of(w, r, cls.Metric) is MapModes.MapClass k) census[k.Id] = census.GetValueOrDefault(k.Id) + 1;
+        int painted = w.Regions.Values.Count(r => MapModes.Of(w, r, cls.Metric) is MapModes.MapClass k
+                                              && k.Color.Length > 0 && _regions.ColorOf(r.Id) == new Color(k.Color));
+        int chips = 0;
+        foreach (var row in _legend.GetChildren())
+            foreach (var ch in row.GetChildren()) if (ch is ColorRect) chips++;
+        var plates = Glyph.Count(_legend);
+        string spread = string.Join(", ", key.Select(k => $"{k.Name} {census.GetValueOrDefault(k.Id)} ({k.Note})"));
+
+        _regions.SetMode(MapModes.Political); Refresh();
+        return $"{cls.Name} por classe: {key.Count} na chave ({spread}); {painted} de {w.Regions.Count}"
+             + $" regiões com a cor da sua classe; legenda com {chips} chapas de cor e {plates.Drawn} desenhos";
     }
 }

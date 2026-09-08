@@ -726,7 +726,8 @@ INSERT INTO rule (key,value,note) VALUES
 -- Modos de mapa (tabela map_mode; MapModes): o mesmo território pintado pela conta que interessa.
 CREATE TABLE IF NOT EXISTS map_mode (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather | subject | victory
+  metric TEXT NOT NULL,                      -- owner | supply | resistance | industry | population | weather | subject | victory | terrain
+                                             -- (owner e terrain pintam por classe, com cor de tabela; o resto é escala)
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
   sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
@@ -738,7 +739,8 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('populacao','População','♟','population','deserto','multidão',4,'gente'),
  ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva'),
  ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente'),
- ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa');
+ ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa'),
+ ('terreno','Terreno','⛰','terrain','','',8,'montanha');
 
 -- Missões aéreas (tabela air_mission; AirMissionSystem): o que um esquadrão vai fazer ao céu de uma região.
 CREATE TABLE IF NOT EXISTS air_mission (

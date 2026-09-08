@@ -14,7 +14,7 @@ public sealed record UnitStatDef(string Key, string Name, string Note, int Sort,
 /// <summary>Um terreno (tabela terrain). O `move_cost` já vivia nas regras como `move_cost:&lt;id&gt;` e
 /// continua lá — isto é o resto da linha: o nome que se lê e a chapa que se desenha, que andavam a ser
 /// buscados à static.db por três painéis cada um por sua conta.</summary>
-public sealed record TerrainDef(string Id, string Name, float MoveCost, string Glyph);
+public sealed record TerrainDef(string Id, string Name, float MoveCost, string Glyph, string Color = "");
 
 public sealed record DivisionTemplate(int Id, int CountryId, string Name, IReadOnlyList<(int UnitTypeId, int Qty)> Units);
 

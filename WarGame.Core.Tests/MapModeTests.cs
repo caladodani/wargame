@@ -138,4 +138,68 @@ public class MapModeTests
         TestWorld.AddDivision(w, 11, 1, TestWorld.Inf, 2).Supply = -0.2f;
         Assert.All(MapModes.Shades(w, 1, "supply").Values, v => Assert.InRange(v, 0f, 1f));
     }
+    /// <summary>Muda o chão de uma região (Region.Terrain é init: refaz-se a região).</summary>
+    private static void Ground(World w, int id, string terrain)
+    {
+        var r = w.Regions[id];
+        var copy = new Region
+        {
+            Id = r.Id, Name = r.Name, OwnerId = r.OwnerId, InitialOwnerId = r.InitialOwnerId,
+            ControllerId = r.ControllerId, Terrain = terrain, River = r.River, Population = r.Population,
+            CenterX = r.CenterX, CenterY = r.CenterY,
+        };
+        foreach (int n in r.Neighbours) copy.Neighbours.Add(n);
+        w.Regions[id] = copy;
+    }
+
+    /// <summary>O terreno é um modo por classe e não por escala: montanha não é "mais" do que planície, é
+    /// outra coisa. A cor de cada chão sai da linha da tabela terrain — o mapa não inventa nenhuma.</summary>
+    [Fact]
+    public void O_terreno_pinta_por_classe_e_nao_por_escala()
+    {
+        var w = Setup();
+        var mode = MapModes.All(w).First(m => m.Metric == "terrain");
+        Assert.True(MapModes.ByClass(mode.Metric));
+        Assert.False(MapModes.ByClass("supply"));
+        Assert.Empty(MapModes.Shades(w, 1, mode.Metric));                  // escala nenhuma para esticar
+        Assert.Null(MapModes.Value(w, 1, w.Regions[1], mode.Metric));
+
+        var k = MapModes.Of(w, w.Regions[1], "terrain");
+        Assert.NotNull(k);
+        Assert.Equal("plain", k!.Value.Id);
+        Assert.Equal(w.TerrainDefs["plain"].Name, k.Value.Name);
+        Assert.Equal(w.TerrainDefs["plain"].Color, k.Value.Color);          // a cor é a da tabela, à letra
+        Assert.StartsWith("#", k.Value.Color);
+        Assert.NotEmpty(k.Value.Glyph);
+        Assert.Contains(w.TerrainDefs["plain"].Name, MapModes.Text(w, 1, w.Regions[1], "terrain"));
+    }
+
+    /// <summary>A chave do mapa traz só o chão que o mundo tem mesmo, do mais fácil de atravessar para o
+    /// mais duro — que é a ordem por que se lê uma carta de terreno. Chão que não existe em região nenhuma
+    /// não entra na legenda.</summary>
+    [Fact]
+    public void A_chave_do_terreno_traz_so_o_chao_que_o_mundo_tem()
+    {
+        var w = Setup();
+        Assert.Equal(new[] { "plain" }, MapModes.Key(w, "terrain").Select(k => k.Id));
+
+        Ground(w, 2, "mountain"); Ground(w, 3, "forest");
+        var key = MapModes.Key(w, "terrain");
+        Assert.Equal(new[] { "plain", "forest", "mountain" }, key.Select(k => k.Id));   // por custo de passo
+        Assert.All(key, k => Assert.NotEmpty(k.Color));
+        Assert.DoesNotContain(key, k => k.Id == "urban");                  // ninguém vive em cidade neste mundo
+        Assert.Empty(MapModes.Key(w, "supply"));                           // modo de escala não tem chave
+    }
+
+    /// <summary>Chão que a tabela não conhece não inventa cor nenhuma: fica sem resposta, como qualquer
+    /// região que o modo não saiba pintar.</summary>
+    [Fact]
+    public void Chao_desconhecido_nao_inventa_cor()
+    {
+        var w = Setup();
+        Ground(w, 1, "lodo");
+        Assert.Null(MapModes.Of(w, w.Regions[1], "terrain"));
+        Assert.Equal("chão por classificar", MapModes.Text(w, 1, w.Regions[1], "terrain"));
+        Assert.DoesNotContain(MapModes.Key(w, "terrain"), k => k.Id == "lodo");
+    }
 }
