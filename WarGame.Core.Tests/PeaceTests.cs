@@ -6,9 +6,10 @@ using Xunit;
 
 namespace WarGame.Core.Tests;
 
-/// <summary>PeaceSystem: capitulação quando os inimigos controlam população a mais
-/// (capitulate_share; com capital perdida basta capitulate_share_capital) ou quando o
-/// país fica sem regiões. TestWorld não regista sistemas — Tick é chamado à mão.</summary>
+/// <summary>PeaceSystem: capitulação quando os inimigos controlam parte de mais do país — gente e praças
+/// de pontos de vitória, na dose de capitulate_weight_vp (Capitulation) — ou quando o país fica sem regiões.
+/// A fracção é capitulate_share, e capitulate_share_capital quando lhe tomaram a capital. A conta em si tem
+/// os seus testes em CapitulationTests. TestWorld não regista sistemas — Tick é chamado à mão.</summary>
 public class PeaceTests
 {
     private static void War(World w, int a, int b)
@@ -34,9 +35,11 @@ public class PeaceTests
     }
 
     [Fact]
-    public void ThreeQuartersLost_Capitulates_RegionsGoToWinner()
+    public void ThreeQuartersLost_WithTheCapital_Capitulates_RegionsGoToWinner()
     {
-        var w = Front(7, 3, 4, 5, 6);   // 3/4 = 75%
+        // 3/4 das regiões E a capital: sem a capital, três de quatro já não derrubam ninguém — a rendição
+        // conta praças e não mancha no mapa (CapitulationTests)
+        var w = Front(7, 3, 5, 6, 7);
         new PeaceSystem().Tick(w);
         var c = w.Countries[2];
         Assert.True(c.Capitulated);
@@ -61,8 +64,8 @@ public class PeaceTests
     [Fact]
     public void Capitulation_RemovesDivisions_EndsWars_PublishesEvents()
     {
-        var w = Front(7, 3, 4, 5, 6);
-        TestWorld.AddDivision(w, 21, 2, TestWorld.Inf2, 7);
+        var w = Front(7, 3, 5, 6, 7);
+        TestWorld.AddDivision(w, 21, 2, TestWorld.Inf2, 4);
         var caps = new List<CountryCapitulated>(); var ends = new List<WarEnded>(); var dead = new List<int>();
         w.Events.Subscribe<CountryCapitulated>(caps.Add);
         w.Events.Subscribe<WarEnded>(ends.Add);
@@ -92,7 +95,7 @@ public class PeaceTests
         var (w, staticDb) = TestWorld.Build();
         TestWorld.LinearMap(w, 7, 3);
         War(w, 1, 2);
-        foreach (var r in new[] { 4, 5, 6 }) w.Regions[r].ControllerId = 1;
+        foreach (var r in new[] { 5, 6, 7 }) w.Regions[r].ControllerId = 1;
         new PeaceSystem().Tick(w);
         Assert.True(w.Countries[2].Capitulated);
 

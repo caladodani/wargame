@@ -5,9 +5,10 @@ namespace WarGame.Core.Systems;
 
 /// <summary>
 /// Capitulação (estilo HoI4): um país em guerra capitula quando os inimigos controlam
-/// uma fracção suficiente da população das suas regiões (rule capitulate_share; com a
-/// capital perdida basta capitulate_share_capital) ou quando já não é dono de região
-/// nenhuma. Capitular = as regiões que ainda controlava passam para o inimigo que mais
+/// uma fracção suficiente do que ele é — gente e praças de pontos de vitória, na dose da
+/// regra capitulate_weight_vp (Capitulation) — ou quando já não é dono de região nenhuma.
+/// A fracção é capitulate_share, e capitulate_share_capital quando lhe tomaram a capital.
+/// Capitular = as regiões que ainda controlava passam para o inimigo que mais
 /// população dele ocupa, o resto fica de quem já lá está (owner=controller), o exército
 /// dissolve-se e todas as guerras dele acabam. Números vêm de linhas SQLite, nunca daqui.
 /// </summary>
@@ -17,32 +18,10 @@ public sealed class PeaceSystem : ISystem
 
     public void Tick(World w)
     {
-        var share = w.Rule("capitulate_share", 0.75f);
-        var shareCapital = w.Rule("capitulate_share_capital", 0.5f);
-
+        // A conta é toda do Capitulation: quanto do país está tomado (gente e praças, na dose de
+        // capitulate_weight_vp) contra a fracção a que ele cai hoje. Aqui só se decide quem cai.
         foreach (var c in w.Countries.Values.ToList())
-        {
-            if (c.Capitulated || c.AtWarWith.Count == 0) continue;
-
-            long total = 0, lost = 0;
-            var owned = 0;
-            var capitalLost = false;
-            foreach (var r in w.Regions.Values)
-            {
-                if (r.OwnerId != c.Id) continue;
-                owned++;
-                total += r.Population;
-                if (r.ControllerId != c.Id && c.AtWarWith.Contains(r.ControllerId))
-                {
-                    lost += r.Population;
-                    if (r.Id == c.CapitalRegionId) capitalLost = true;
-                }
-            }
-
-            var frac = total > 0 ? (float)lost / total : 0f;
-            if (owned == 0 || frac >= share || (capitalLost && frac >= shareCapital))
-                Capitulate(w, c);
-        }
+            if (Capitulation.Falls(w, c)) Capitulate(w, c);
     }
 
     private static void Capitulate(World w, Country c)

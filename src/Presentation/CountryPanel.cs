@@ -493,6 +493,22 @@ public partial class CountryPanel : PanelContainer
                                             + (pr.ControllerId == inviter ? " ✔" : ""));
                             Line($"   praças dele: {string.Join(", ", prizes)}", 15);
                         }
+                        // Rendição: a barra que responde à pergunta que se faz a olhar para a frente — falta
+                        // muito para ele cair? Conta gente e praças na dose da regra, e diz por onde é o
+                        // caminho mais curto: as praças dele que ainda não são nossas, das maiores para baixo.
+                        {
+                            float prog = Capitulation.Progress(w, c), lim = Capitulation.Limit(w, c);
+                            int seg = (int)MathF.Round(10f * Mathf.Clamp(prog / MathF.Max(0.01f, lim), 0f, 1f));
+                            Line($"🏳 Rendição: {new string('█', seg)}{new string('░', 10 - seg)}  {Capitulation.Line(w, c)}", 16);
+                            var need = Capitulation.Needed(w, c);
+                            if (need.Count > 0)
+                                Line($"   falta tomar-lhe {need.Count} regi{(need.Count == 1 ? "ão" : "ões")}: "
+                                   + string.Join(", ", need.Take(3).Select(r => r.Name + (r.Id == c.CapitalRegionId ? " 👑" : "")))
+                                   + (need.Count > 3 ? ", …" : ""), 15);
+                            var us = w.Countries[inviter];
+                            if (Capitulation.Progress(w, us) > 0f)
+                                Line($"   e nós vamos em {Capitulation.Line(w, us)}", 15);
+                        }
                         // Conferência de paz: se ele cair, a terra dele reparte-se por pontos de espólio entre
                         // todos os que lhe fizeram guerra. Aqui vê-se com quantos pontos chegamos à mesa, quantos
                         // se sentam nela connosco e quanto custa a jóia da coroa.

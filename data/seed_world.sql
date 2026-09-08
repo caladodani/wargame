@@ -63,9 +63,15 @@ INSERT INTO rule (key,value,note) VALUES
  ('war_justify_days',30,'dias a justificar um objectivo de guerra antes de poder declarar (HoI4)');
 
 -- rules: peace (PeaceSystem — capitulação estilo HoI4)
+-- A conta da capitulação (Capitulation) mistura duas medidas da terra tomada: a população dela e os pontos
+-- de vitória dela. No HoI4 um país não cai por se lhe ocupar serra: cai quando lhe tomam as praças que
+-- contam, e é por isso que a rendição se lê nos pontos de vitória e não no tamanho da mancha no mapa.
+-- capitulate_weight_vp é quanto da conta vem dos pontos; a 0 fica a conta antiga, só de população, e é
+-- também nela que a conta cai sozinha quando o país não tem ponto de vitória nenhum.
 INSERT INTO rule (key,value,note) VALUES
- ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção da população das suas regiões'),
- ('capitulate_share_capital',0.5,'fracção que chega quando a capital está controlada por um inimigo');
+ ('capitulate_share',0.75,'capitula quando os inimigos controlam esta fracção do país (população e pontos de vitória)'),
+ ('capitulate_share_capital',0.5,'fracção que chega quando a capital está controlada por um inimigo'),
+ ('capitulate_weight_vp',0.5,'quanto da conta da capitulação vem dos pontos de vitória e não da população');
 
 -- aggression: 0 (omisso) = nunca começa guerras. Só os países que na realidade as ameaçam.
 INSERT OR REPLACE INTO country_stat (country_tag,key,value) VALUES
