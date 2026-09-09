@@ -382,6 +382,23 @@ CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (ef
 CREATE TABLE IF NOT EXISTS s_pact (           -- pactos de não-agressão (a<b, até `until_day`)
   a INTEGER, b INTEGER, until_day INTEGER NOT NULL,
   PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS diplo_action (     -- campanhas diplomáticas: o que se pode fazer a um país sem
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- lhe declarar guerra (HoI4: improve relations, guarantee,
+  glyph TEXT NOT NULL DEFAULT '',             -- boost party popularity). Estática.
+  note TEXT,
+  cost_start REAL NOT NULL,                   -- poder político à assinatura
+  cost_day REAL NOT NULL,                     -- poder político por dia enquanto durar
+  effect TEXT NOT NULL,                       -- opiniao | garantia | partido
+  magnitude REAL NOT NULL,                    -- o que rende por dia (pontos de opinião ou de popularidade)
+  cap REAL NOT NULL,                          -- tecto do que a campanha pode acumular
+  hostile INTEGER NOT NULL DEFAULT 0,         -- 1 = acto hostil: o governo do alvo passa a desgostar de nós
+  sort INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS s_diplo_drive (    -- campanhas em curso (save)
+  from_id INTEGER, to_id INTEGER, action_id TEXT,
+  progress REAL NOT NULL,                     -- o que já se acumulou (decai quando se pára de pagar)
+  since_day INTEGER NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,          -- 0 = parada ou sem poder político: a acumular ao contrário
+  PRIMARY KEY (from_id, to_id, action_id));
 CREATE TABLE IF NOT EXISTS air_mission (      -- tipos de missão aérea (AirMissionSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   effect TEXT NOT NULL,                       -- superiority | support | bombing

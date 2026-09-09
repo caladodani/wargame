@@ -2064,7 +2064,13 @@ INSERT INTO opinion_source (id,name,weight,glyph,note,sort) VALUES
  ('espionagem','Espiões apanhados',-25,'luneta','operação deles a correr contra nós',11),
  ('terra_ocupada','Terra nossa ocupada',-40,'bandeira','pela fatia das nossas províncias que a tropa deles pisa',12),
  ('vizinhanca','Vizinhos',-8,'estrada','fronteira comum: o atrito de quem se vê da janela',13),
- ('ameaca','Exército maior do que o nosso',-20,'caveira','o medo do que o vizinho tem em pé',14);
+ ('ameaca','Exército maior do que o nosso',-20,'caveira','o medo do que o vizinho tem em pé',14),
+ -- as três de baixo são o que a diplomacia ACTIVA rende: o peso é 1 porque a campanha já entrega pontos
+ -- feitos (DiploDriveSystem acumula-os por dia até ao tecto da acção) — o peso fica aqui na mesma para se
+ -- poder afinar o valor de toda a diplomacia numa linha de SQL
+ ('esforco','Esforço diplomático',1,'aperto','embaixadas, visitas e jantares: o que eles andam a fazer por nós',15),
+ ('garantia','Garantem a nossa independência',1,'escudo','prometeram entrar na guerra se nos atacarem',16),
+ ('interferencia','Andam a mexer na nossa política',-22,'megafone','dinheiro deles a pagar cartazes cá dentro',17);
 
 INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph,layers) VALUES
  ('diplomacia','Diplomacia','🤝','opinion','inimigo','aliado',10,'aperto','');
@@ -2076,3 +2082,13 @@ INSERT INTO rule (key,value,note) VALUES
  ('faction_min_opinion',-25,'abaixo desta opinião uma aliança recusa-nos mesmo com inimigo comum'),
  ('volunteer_min_opinion',-40,'abaixo desta opinião não se aceitam voluntários nossos'),
  ('ai_war_friend_opinion',45,'acima desta opinião a IA não escolhe esse país como alvo de guerra');
+
+INSERT INTO diplo_action (id,name,glyph,note,cost_start,cost_day,effect,magnitude,cap,hostile,sort) VALUES
+ ('melhorar_relacoes','Melhorar relações','aperto','embaixada aberta e visitas de estado: a opinião deles sobe todos os dias enquanto se pagar',10,0.30,'opiniao',0.5,40,0,1),
+ ('garantir_independencia','Garantir independência','escudo','prometemos entrar na guerra se alguém os atacar: eles agradecem e quem os cobiça pensa duas vezes',25,0.15,'garantia',0.8,30,0,2),
+ ('impulsionar_partido','Impulsionar o nosso partido','megafone','dinheiro nosso a pagar cartazes lá dentro: a popularidade do partido mais parecido connosco sobe, e o governo deles percebe',15,0.50,'partido',0.12,25,1,3);
+
+INSERT INTO rule (key,value,note) VALUES
+ ('diplo_decay_day',0.4,'pontos que uma campanha parada perde por dia até desaparecer'),
+ ('diplo_max_drives',6,'campanhas que um país consegue manter ao mesmo tempo'),
+ ('diplo_guarantee_ratio',1.2,'divisões do garante a dividir pelas do agressor para a IA desistir do alvo');

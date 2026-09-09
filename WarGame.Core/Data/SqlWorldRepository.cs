@@ -277,6 +277,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,weight,glyph,note,sort FROM opinion_source ORDER BY sort,id"))
             w.OpinionSources[(string)r["id"]!] = new OpinionSourceDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["weight"]), (string)r["glyph"]!, r["note"] as string ?? "", Convert.ToInt32(r["sort"]));
+        w.DiploActions.Clear();
+        foreach (var r in _static.Query("SELECT id,name,glyph,note,cost_start,cost_day,effect,magnitude,cap,hostile,sort FROM diplo_action ORDER BY sort,id"))
+            w.DiploActions[(string)r["id"]!] = new DiploActionDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["glyph"]!, r["note"] as string ?? "", Convert.ToSingle(r["cost_start"]),
+                Convert.ToSingle(r["cost_day"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]),
+                Convert.ToSingle(r["cap"]), Convert.ToInt32(r["hostile"]) != 0, Convert.ToInt32(r["sort"]));
         w.StartParties.Clear();
         foreach (var r in _static.Query("SELECT country_tag,party,popularity,ruling FROM country_party"))
         {
@@ -749,6 +755,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in save.Query("SELECT country_id,target_id,op_id,days_left,region_id FROM s_spy_op"))
             w.ActiveSpyOps.Add(new ActiveSpyOp { CountryId = Convert.ToInt32(r["country_id"]), TargetCountryId = Convert.ToInt32(r["target_id"]),
                 OpId = (string)r["op_id"]!, DaysLeft = Convert.ToSingle(r["days_left"]), RegionId = Convert.ToInt32(r["region_id"]) });
+        foreach (var r in save.Query("SELECT from_id,to_id,action_id,progress,since_day,active FROM s_diplo_drive"))
+            w.DiploDrives.Add(new DiploDrive { FromId = Convert.ToInt32(r["from_id"]), ToId = Convert.ToInt32(r["to_id"]),
+                ActionId = (string)r["action_id"]!, Progress = Convert.ToSingle(r["progress"]),
+                SinceDay = Convert.ToInt32(r["since_day"]), Active = Convert.ToInt32(r["active"]) != 0 });
         foreach (var r in save.Query("SELECT country_id,target_id,until_day FROM s_intel"))
             w.Intel[(Convert.ToInt32(r["country_id"]), Convert.ToInt32(r["target_id"]))] = Convert.ToInt32(r["until_day"]);
         foreach (var r in save.Query("SELECT a,b,until_day FROM s_pact"))
@@ -1085,6 +1095,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var o in w.ActiveSpyOps)
             save.Execute("INSERT OR REPLACE INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
                 o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
+        foreach (var d in w.DiploDrives)
+            save.Execute("INSERT OR REPLACE INTO s_diplo_drive (from_id,to_id,action_id,progress,since_day,active) VALUES (?,?,?,?,?,?)",
+                d.FromId, d.ToId, d.ActionId, d.Progress, d.SinceDay, d.Active ? 1 : 0);
         foreach (var o in w.Offers)
             save.Execute("INSERT OR REPLACE INTO s_offer (from_id,to_id,kind,men,region_id,day,expires_day) VALUES (?,?,?,?,?,?,?)",
                 o.FromId, o.ToId, o.Kind, o.Men, o.RegionId, o.Day, o.ExpiresDay);

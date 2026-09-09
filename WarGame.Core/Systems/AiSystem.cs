@@ -499,6 +499,8 @@ public sealed class AiSystem : ISystem
                 if (LendLeaseSystem.Benefactor(w, other, c.Id)) continue;
                 // nem se ataca um país com quem nos damos bem: a guerra sai de onde já há mágoa (Relations)
                 if (Relations.Opinion(w, c.Id, other) >= w.Rule("ai_war_friend_opinion", 45f)) continue;
+                // e não se toca em quem tem padrinho maior do que nós (garantia de independência)
+                if (DiploDriveSystem.Deterred(w, c.Id, other)) continue;
                 int theirs = divsByCountry.GetValueOrDefault(other)?.Count ?? 0;
                 foreach (var ally in w.Allies(other)) theirs += divsByCountry.GetValueOrDefault(ally)?.Count ?? 0;
                 if (theirs * ratio > myDivs) continue;

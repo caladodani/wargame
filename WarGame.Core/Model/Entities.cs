@@ -72,6 +72,26 @@ public sealed class ActiveSpyOp
     public float DaysLeft { get; set; }
     public int RegionId { get; init; }        // alvo da sabotagem (0 = operação contra o país inteiro)
 }
+/// <summary>Uma campanha diplomática da tabela `diplo_action`: o que se pode fazer a um país sem lhe
+/// declarar guerra. Custa poder político à assinatura e todos os dias, e rende `Magnitude` por dia até
+/// `Cap`. `Effect` diz o que o dia rende — opinião nossa aos olhos deles (`opiniao`), promessa de defesa
+/// (`garantia`) ou popularidade do partido mais parecido connosco dentro do país deles (`partido`).</summary>
+public sealed record DiploActionDef(string Id, string Name, string Glyph, string Note, float CostStart,
+                                    float CostDay, string Effect, float Magnitude, float Cap, bool Hostile, int Sort);
+
+/// <summary>Uma campanha em curso de um país sobre outro. Vive no save: é dinheiro político já gasto.
+/// Parada (ou sem poder político para pagar o dia) fica `Active = false` e o que acumulou desfaz-se ao
+/// ritmo de `diplo_decay_day` — quem deixa a embaixada fechar perde o que a embaixada ganhou.</summary>
+public sealed class DiploDrive
+{
+    public int FromId { get; init; }
+    public int ToId { get; init; }
+    public string ActionId { get; init; } = "";
+    public float Progress { get; set; }
+    public int SinceDay { get; init; }
+    public bool Active { get; set; } = true;
+}
+
 /// <summary>Proposta que um país põe em cima da mesa de outro e que fica à espera de resposta. Só existe
 /// quando quem recebe é gente que não decide sozinha (o jogador): entre países da IA a resposta sai no
 /// mesmo dia. Kind diz de que é a proposta ("prisioneiros"); Men é o tamanho combinado no dia em que foi

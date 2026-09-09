@@ -116,6 +116,7 @@ public partial class Game : Node
         World.Register(new ArmyXpSystem());      // experiência de campanha e as escolas de guerra que ela paga
         World.Register(new AttacheSystem());     // adidos militares: aprender com a guerra alheia, a pagar por dia
         World.Register(new VolunteerSystem());   // voluntários: chama-os a casa no dia em que a guerra deles deixa de ser guerra
+        World.Register(new DiploDriveSystem());  // campanhas diplomáticas: embaixadas, garantias e propaganda paga ao dia
         World.Register(new FocusSystem());
         World.Register(new NewsSystem());
         World.Register(new WarStatsSystem());   // antes do combate: liga-se aos eventos que vai contar

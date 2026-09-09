@@ -1023,6 +1023,49 @@ public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountr
     }
 }
 
+/// <summary>Abrir uma campanha diplomática sobre outro país (tabela diplo_action): paga o custo de
+/// assinatura em poder político e passa a pagar todos os dias. Uma campanha parada que ainda não se
+/// desfez retoma de onde ia — a embaixada volta a abrir com os móveis lá dentro.</summary>
+public sealed record StartDiploDriveCommand(int CountryId, int TargetCountryId, string ActionId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(TargetCountryId, out var t) || t.Capitulated) return "alvo inválido";
+        if (CountryId == TargetCountryId) return "contigo próprio não";
+        if (!w.DiploActions.TryGetValue(ActionId, out var def)) return "campanha desconhecida";
+        if (w.AreAtWar(CountryId, TargetCountryId)) return "com quem nos bate não há embaixada";
+        if (DiploDriveSystem.Find(w, CountryId, TargetCountryId, ActionId) is DiploDrive open && open.Active)
+            return "essa campanha já está aberta";
+        if (DiploDriveSystem.Open(w, CountryId) >= (int)w.Rule("diplo_max_drives", 6f))
+            return $"já temos {DiploDriveSystem.Open(w, CountryId)} campanhas abertas";
+        if (c.Political < def.CostStart) return $"falta poder político ({def.CostStart:0})";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Political -= w.DiploActions[ActionId].CostStart;
+        if (DiploDriveSystem.Find(w, CountryId, TargetCountryId, ActionId) is DiploDrive d) { d.Active = true; return; }
+        w.DiploDrives.Add(new DiploDrive { FromId = CountryId, ToId = TargetCountryId, ActionId = ActionId,
+                                           SinceDay = w.Clock.Day });
+    }
+}
+
+/// <summary>Fechar a embaixada: a campanha pára de custar e o que ela acumulou começa a desfazer-se
+/// (diplo_decay_day por dia) até desaparecer de vez.</summary>
+public sealed record StopDiploDriveCommand(int CountryId, int TargetCountryId, string ActionId) : ICommand
+{
+    public string? Validate(World w) =>
+        DiploDriveSystem.Find(w, CountryId, TargetCountryId, ActionId) is { Active: true } ? null : "campanha por abrir";
+
+    public void Execute(World w)
+    {
+        if (DiploDriveSystem.Find(w, CountryId, TargetCountryId, ActionId) is DiploDrive d) d.Active = false;
+    }
+}
+
 /// <summary>Retirar as próprias divisões de uma batalha: saem das listas com organização
 /// × retreat_org_penalty. Defensores precisam de região vizinha transitável (senão "cercado");
 /// atacantes já estão fisicamente na origem. A batalha resolve-se sozinha se uma lista esvaziar.</summary>

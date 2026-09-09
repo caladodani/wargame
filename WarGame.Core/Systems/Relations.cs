@@ -71,6 +71,12 @@ public static class Relations
         // sangue deles a morrer na nossa guerra
         if (w.Divisions.Values.Any(d => d.VolunteerFrom == toId && d.CountryId == fromId)) Add(w, lines, "voluntarios", 1f);
 
+        // a diplomacia que ELES fazem por nós: embaixadas abertas e independência garantida (DiploDriveSystem).
+        // Aqui o "times" já são pontos feitos — o peso da tabela serve para afinar toda a diplomacia de uma vez.
+        Add(w, lines, "esforco", DiploDriveSystem.Earned(w, toId, fromId, "opiniao"));
+        Add(w, lines, "garantia", DiploDriveSystem.Earned(w, toId, fromId, "garantia"));
+        if (DiploDriveSystem.Meddling(w, toId, fromId)) Add(w, lines, "interferencia", 1f);
+
         if (b.JustifyTarget == fromId) Add(w, lines, "justificacao", 1f);
         if (w.ActiveSpyOps.Any(o => o.CountryId == toId && o.TargetCountryId == fromId)) Add(w, lines, "espionagem", 1f);
 

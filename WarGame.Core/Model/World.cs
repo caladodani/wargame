@@ -120,6 +120,8 @@ public sealed class World
     public Dictionary<string, List<(string Party, float Popularity, bool Ruling)>> StartParties { get; } = new();
     /// <summary>As razões por que um país gosta ou desgosta de outro (tabela opinion_source; Relations).</summary>
     public Dictionary<string, OpinionSourceDef> OpinionSources { get; } = new();
+    /// <summary>As campanhas diplomáticas que se podem abrir sobre outro país (tabela diplo_action).</summary>
+    public Dictionary<string, DiploActionDef> DiploActions { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
@@ -226,6 +228,8 @@ public sealed class World
 
     public Dictionary<string, SpyOp> SpyOps { get; } = new();
     public List<ActiveSpyOp> ActiveSpyOps { get; } = new();
+    /// <summary>Campanhas diplomáticas em curso (DiploDriveSystem). Uma por (quem, sobre quem, acção).</summary>
+    public List<DiploDrive> DiploDrives { get; } = new();
     /// <summary>Propostas à espera de resposta do jogador (OfferSystem). Uma por par e assunto.</summary>
     public List<PendingOffer> Offers { get; } = new();
     /// <summary>Acordos de comércio de recursos em vigor (TradeSystem).</summary>

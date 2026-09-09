@@ -549,6 +549,7 @@ public partial class CountryPanel : PanelContainer
                                 () => Faction(new PuppetCommand(inviter, c.Id)), 320));
                         }
                     }
+                    DiploBlock(w, inviter, c);
                     if (!w.AreAtWar(inviter, c.Id) && w.ResourceDefs.Count > 0)
                     {
                         // Mercado: o preço já não é uma tabela — sobe com o que o vendedor tem prometido e com a
@@ -766,6 +767,69 @@ public partial class CountryPanel : PanelContainer
         _game.Notify(err ?? "Divisões paradas a caminho da frente");
         Fill();
     });
+
+    /// <summary>A mesa da diplomacia com este país: primeiro o que eles sentem por nós (o número, a palavra
+    /// e as razões que o fazem), e a seguir as campanhas que se podem abrir sobre eles — cada uma com o que
+    /// custa hoje, o que já rendeu e o botão de abrir ou fechar a embaixada.</summary>
+    private void DiploBlock(World w, int me, Country c)
+    {
+        if (w.OpinionSources.Count == 0) return;
+        float op = Relations.Opinion(w, c.Id, me);
+        var colour = op >= Relations.Cap(w) * 0.25f ? Ui.Good : op > -Relations.Cap(w) * 0.25f ? Ui.Accent : Ui.Danger;
+        _body.AddChild(Ui.Head("Como eles nos vêem"));
+
+        var top = new HBoxContainer(); top.AddThemeConstantOverride("separation", 8); _body.AddChild(top);
+        top.AddChild(Glyph.Make("aperto", 18, colour));
+        var word = Ui.Lbl(Relations.Word(w, op), 18); word.AddThemeColorOverride("font_color", colour);
+        top.AddChild(Ui.Grow(word));
+        var num = Ui.Lbl($"{op:+0;-0}", 20); num.AddThemeColorOverride("font_color", colour);
+        top.AddChild(num);
+        // barra com o zero ao meio: metade cheia é indiferença
+        _body.AddChild(Ui.Bar(Math.Clamp((op + Relations.Cap(w)) / (2f * Relations.Cap(w)), 0f, 1f), colour, 0f));
+
+        var why = Relations.Lines(w, c.Id, me).OrderByDescending(l => MathF.Abs(l.Value)).Take(6).ToList();
+        if (why.Count == 0) Line("Nada entre nós: nem tratado, nem fronteira, nem mágoa.", 15);
+        else
+        {
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); _body.AddChild(row);
+            foreach (var l in why)
+            {
+                var one = new HBoxContainer(); one.AddThemeConstantOverride("separation", 3); row.AddChild(one);
+                one.AddChild(Glyph.Make(l.Glyph, 14, l.Value >= 0f ? Ui.Good : Ui.Danger));
+                var txt = Ui.Lbl($"{l.Name} {l.Value:+0;-0}", 14);
+                txt.AddThemeColorOverride("font_color", Ui.TextDim);
+                one.AddChild(txt);
+            }
+        }
+
+        if (w.DiploActions.Count == 0) return;
+        _body.AddChild(Ui.Head($"Campanhas diplomáticas ({DiploDriveSystem.Open(w, me)}/{(int)w.Rule("diplo_max_drives", 6f)})"));
+        foreach (var def in w.DiploActions.Values.OrderBy(a => a.Sort).ThenBy(a => a.Id))
+        {
+            string aid = def.Id;
+            var drive = DiploDriveSystem.Find(w, me, c.Id, aid);
+            var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8); _body.AddChild(line);
+            line.AddChild(Glyph.Make(def.Glyph, 16, def.Hostile ? Ui.Danger : Ui.Accent));
+            string state = drive is null ? $"{def.CostStart:0} + {def.CostDay:0.00}/dia"
+                         : drive.Active ? $"{drive.Progress:0.0} de {def.Cap:0} · {def.CostDay:0.00}/dia"
+                         : $"fechada, a desfazer-se ({drive.Progress:0.0})";
+            var lbl = Ui.Grow(Ui.Lbl($"{def.Name} — {state}", 16));
+            lbl.TooltipText = def.Note;
+            line.AddChild(lbl);
+            if (drive is { Active: true })
+                line.AddChild(Ui.Btn("Fechar", () => Faction(new StopDiploDriveCommand(me, c.Id, aid)), 130));
+            else
+            {
+                var go = Ui.Btn(drive is null ? "Abrir" : "Reabrir", () => Faction(new StartDiploDriveCommand(me, c.Id, aid)), 130);
+                go.Disabled = new StartDiploDriveCommand(me, c.Id, aid).Validate(w) is not null;
+                go.TooltipText = new StartDiploDriveCommand(me, c.Id, aid).Validate(w) ?? def.Note;
+                line.AddChild(go);
+            }
+            if (drive is not null && def.Cap > 0f)
+                _body.AddChild(Ui.Bar(Math.Clamp(drive.Progress / def.Cap, 0f, 1f),
+                                      drive.Active ? (def.Hostile ? Ui.Danger : Ui.Good) : Ui.TextDim, 0f));
+        }
+    }
 
     private void Faction(WarGame.Core.Commands.ICommand cmd)
     {
