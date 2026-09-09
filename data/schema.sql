@@ -205,7 +205,11 @@ CREATE TABLE IF NOT EXISTS tech (                -- investigação (HoI4): cost 
 );
 CREATE TABLE IF NOT EXISTS tech_branch (       -- ramos da árvore: o nome que se lê e a chapa que se desenha
   -- o id é o texto que está em tech.branch; glyph é o nome de um desenho do Glyph.cs (não é emoji)
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, glyph TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0
+  -- arm diz a que arma o ramo pertence: 'terra', 'ar', 'mar' ou vazio (o que serve as três: fábrica,
+  -- logística, ciência, a bomba). Quem quiser contar a árvore do exército conta por aqui — a lista dos
+  -- ramos de terra é esta coluna e não uma lista em C#.
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, glyph TEXT NOT NULL, sort INTEGER NOT NULL DEFAULT 0,
+  arm TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS tech_effect (         -- efeito de país ao concluir: Country.Stat(stat_key) × value (combate vai por modifier tech:<id>)
   tech_id TEXT NOT NULL REFERENCES tech(id), stat_key TEXT NOT NULL, value REAL NOT NULL, PRIMARY KEY (tech_id, stat_key)

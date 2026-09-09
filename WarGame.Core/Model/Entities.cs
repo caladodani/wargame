@@ -289,8 +289,10 @@ public sealed record BuildingDef(string Id, string Name, float Cost, float Days,
 }
 
 /// <summary>Ramo da árvore de investigação (tabela tech_branch). O id é o texto que está em tech.branch; o
-/// Glyph é o nome de uma chapa desenhada — qual chapa cabe a que ramo é dado, não é decidido em código.</summary>
-public sealed record TechBranchDef(string Id, string Name, string Glyph, int Sort);
+/// Glyph é o nome de uma chapa desenhada — qual chapa cabe a que ramo é dado, não é decidido em código.
+/// Arm é a arma a que o ramo serve — 'terra', 'ar', 'mar' ou vazio para o que serve as três —, e é por aqui
+/// que se conta a árvore do exército sem escrever a lista dos ramos em C#.</summary>
+public sealed record TechBranchDef(string Id, string Name, string Glyph, int Sort, string Arm = "");
 
 /// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
 /// depois Cooldown dias de espera.</summary>

@@ -806,18 +806,23 @@ INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,sup
 -- Ramos da árvore de investigação: a chapa de cada um deixou de ser um switch em C# e passou a ser uma
 -- linha. `glyph` é o nome de um desenho nosso (Glyph.cs) — não é emoji: um emoji num jogo de guerra sai
 -- redondo e colorido no telemóvel, e o HoI4 tem chapas gravadas a tinta. O que aqui não estiver leva a roda.
-INSERT INTO tech_branch (id,name,glyph,sort) VALUES
- ('Infantaria','Infantaria','capacete',1),
- ('Blindados','Blindados','lagarta',2),
- ('Artilharia','Artilharia','obus',3),
- ('Aviação','Aviação','asa',4),
- ('Marinha','Marinha','ancora',5),
- ('Drones','Drones','drone',6),
- ('Logística','Logística','camiao',7),
- ('Indústria','Indústria','fabrica',8),
- ('Doutrina','Doutrina','livro',9),
- ('Ciência','Ciência','frasco',10),
- ('Nuclear','Nuclear','atomo',11);
+-- Os ramos de terra vêm primeiro e seguidos (é onde vive a maior parte da árvore, como no HoI4), depois as
+-- outras armas, e por fim o que paga tudo: logística, fábrica, doutrina, ciência e a bomba.
+INSERT INTO tech_branch (id,name,glyph,sort,arm) VALUES
+ ('Infantaria','Infantaria','capacete',1,'terra'),
+ ('Blindados','Blindados','lagarta',2,'terra'),
+ ('Artilharia','Artilharia','obus',3,'terra'),
+ ('Apoio','Apoio de Combate','penso',4,'terra'),
+ ('Forças Especiais','Forças Especiais','paraquedas',5,'terra'),
+ ('Drones','Drones','drone',6,'terra'),
+ ('Guerra Electrónica','Guerra Electrónica','antena',7,'terra'),
+ ('Aviação','Aviação','asa',8,'ar'),
+ ('Marinha','Marinha','ancora',9,'mar'),
+ ('Logística','Logística','camiao',10,''),
+ ('Indústria','Indústria','fabrica',11,''),
+ ('Doutrina','Doutrina','livro',12,'terra'),
+ ('Ciência','Ciência','frasco',13,''),
+ ('Nuclear','Nuclear','atomo',14,'');
 
 -- Capacidade industrial (Industry): quantas obras e quantas linhas de montagem andam ao mesmo tempo.
 INSERT INTO rule (key,value,note) VALUES

@@ -114,9 +114,9 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.UnitStatDefs[(string)r["key"]!] = new UnitStatDef((string)r["key"]!, (string)r["name"]!,
                 (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
                 Convert.ToInt32(r["digits"]), Convert.ToInt32(r["percent"]) != 0, Convert.ToInt32(r["shown"]) != 0);
-        foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM tech_branch ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,glyph,sort,arm FROM tech_branch ORDER BY sort"))
             w.TechBranches[(string)r["id"]!] = new TechBranchDef((string)r["id"]!, (string)r["name"]!,
-                (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+                (string)r["glyph"]!, Convert.ToInt32(r["sort"]), r["arm"] as string ?? "");
         foreach (var r in _static.Query("SELECT id,name,description,metric,threshold,bonus,sort,country_tag FROM medal ORDER BY sort"))
             w.MedalDefs[(string)r["id"]!] = new MedalDef((string)r["id"]!, (string)r["name"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]),
