@@ -72,6 +72,10 @@ public sealed class ActiveSpyOp
     public float DaysLeft { get; set; }
     public int RegionId { get; init; }        // alvo da sabotagem (0 = operação contra o país inteiro)
 }
+/// <summary>Um estado de pilha da tabela `stack_state`: o nome e a chapa com que o contador do mapa diz o
+/// que aquela tropa está a fazer. `Sort` é a ordem por que se pergunta — o primeiro que se aplica ganha,
+/// e por isso o cerco (1) tapa a marcha (6) e não ao contrário.</summary>
+public sealed record StackStateDef(string Id, string Name, string Glyph, string Note, int Sort);
 /// <summary>Uma campanha diplomática da tabela `diplo_action`: o que se pode fazer a um país sem lhe
 /// declarar guerra. Custa poder político à assinatura e todos os dias, e rende `Magnitude` por dia até
 /// `Cap`. `Effect` diz o que o dia rende — opinião nossa aos olhos deles (`opiniao`), promessa de defesa

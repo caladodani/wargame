@@ -122,6 +122,8 @@ public sealed class World
     public Dictionary<string, OpinionSourceDef> OpinionSources { get; } = new();
     /// <summary>As campanhas diplomáticas que se podem abrir sobre outro país (tabela diplo_action).</summary>
     public Dictionary<string, DiploActionDef> DiploActions { get; } = new();
+    /// <summary>Os estados em que uma pilha do mapa pode estar (tabela stack_state; Stacks).</summary>
+    public Dictionary<string, StackStateDef> StackStates { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>

@@ -382,6 +382,11 @@ CREATE TABLE IF NOT EXISTS s_intel (          -- rede de informação activa (ef
 CREATE TABLE IF NOT EXISTS s_pact (           -- pactos de não-agressão (a<b, até `until_day`)
   a INTEGER, b INTEGER, until_day INTEGER NOT NULL,
   PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS stack_state (      -- o estado em que uma pilha do mapa está, e a chapa com que o
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- contador o diz (HoI4: a seta de marcha, as espadas do combate,
+  glyph TEXT NOT NULL DEFAULT '',             -- o cadeado do cerco). Estática: quem mede qual é que se aplica
+  note TEXT,                                  -- é o Stacks, mas a ordem em que se pergunta vem do `sort`.
+  sort INTEGER NOT NULL DEFAULT 0);           -- sort 1 = a notícia maior, que ganha às outras todas
 CREATE TABLE IF NOT EXISTS diplo_action (     -- campanhas diplomáticas: o que se pode fazer a um país sem
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- lhe declarar guerra (HoI4: improve relations, guarantee,
   glyph TEXT NOT NULL DEFAULT '',             -- boost party popularity). Estática.

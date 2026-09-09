@@ -2083,6 +2083,19 @@ INSERT INTO rule (key,value,note) VALUES
  ('volunteer_min_opinion',-40,'abaixo desta opinião não se aceitam voluntários nossos'),
  ('ai_war_friend_opinion',45,'acima desta opinião a IA não escolhe esse país como alvo de guerra');
 
+-- Os estados de uma pilha do mapa, do mais grave ao mais banal: pergunta-se por esta ordem e o primeiro que
+-- se aplicar é o que o contador desenha. Só se vê da tropa que é nossa ou de aliado — do inimigo continua a
+-- ver-se o que se vê de fora (quantos são e de que género), que é a regra do nevoeiro.
+INSERT INTO stack_state (id,name,glyph,note,sort) VALUES
+ ('cercada','Cercada','corrente','sem estrada para casa: o cerco manda em tudo o resto',1),
+ ('combate','A bater-se','espadas','há batalha aberta nesta província',2),
+ ('voo','No ar','paraquedas','a caminho do salto: nem marcha nem recebe ordens',3),
+ ('mar','No mar','praia','vai numa operação anfíbia largada, a caminho da praia',4),
+ ('comboio','No comboio','carril','redespacho estratégico pela retaguarda',5),
+ ('marcha','Em marcha','estrada','tem caminho traçado e vai a andar',6),
+ ('cavada','Entrincheirada','muro','parada há tempo que chegue para ter degraus cavados',7),
+ ('parada','Parada','capacete','está onde está, sem ordem em curso',8);
+
 INSERT INTO diplo_action (id,name,glyph,note,cost_start,cost_day,effect,magnitude,cap,hostile,sort) VALUES
  ('melhorar_relacoes','Melhorar relações','aperto','embaixada aberta e visitas de estado: a opinião deles sobe todos os dias enquanto se pagar',10,0.30,'opiniao',0.5,40,0,1),
  ('garantir_independencia','Garantir independência','escudo','prometemos entrar na guerra se alguém os atacar: eles agradecem e quem os cobiça pensa duas vezes',25,0.15,'garantia',0.8,30,0,2),

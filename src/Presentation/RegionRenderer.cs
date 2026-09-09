@@ -32,6 +32,7 @@ public partial class RegionRenderer : Node2D
     private readonly Dictionary<int, float> _area = new();          // região → área do polígono (peso do centróide do país)
     private readonly Dictionary<int, CountryLabel> _countryNames = new();  // país → nome escrito sobre o território
     private readonly Dictionary<int, UnitCounter> _counters = new();  // região → contador NATO (só de perto)
+    private readonly HashSet<int> _picked = new();                    // pilhas em mãos: caixas desenhadas marcadas
     /// <summary>Zoom a partir do qual os contadores substituem o número da pastilha: de longe o mapa é
     /// político e não militar, e cem caixas ao mesmo tempo não se leem.</summary>
     private const float CounterZoom = 0.7f;
@@ -908,9 +909,67 @@ public partial class RegionRenderer : Node2D
                     known ? group.Average(d => d.Entrench) : 0f,
                     known, NatoSymbol.SpecialtyOf(tags),
                     known ? Veterancy.Stack(w, group)?.Chevrons ?? 0 : 0,
-                    known ? group.Average(d => d.Kit) : 1f);
+                    known ? group.Average(d => d.Kit) : 1f,
+                    known ? Stacks.Read(w, r, group).Glyph : "");
+        counter.Picked = _picked.Contains(r.Id);
         counter.Visible = true;
     }
+
+    /// <summary>Hit-test dos contadores: a pilha em cuja caixa o dedo caiu, ou null. Vem antes do polígono
+    /// da província no MapView, e é por isso que tocar num contador que assenta em terra do vizinho dá
+    /// ordens à tropa que ali está desenhada e não à província que está por baixo dela — a queixa que o
+    /// mapa do HoI4 nunca tem, porque lá o contador É a unidade. Ganha o mais perto do centro, para duas
+    /// caixas encostadas não jogarem à sorte.</summary>
+    public int? CounterAt(Vector2 worldPos)
+    {
+        if (!_counterRoot.Visible) return null;
+        int? best = null; float near = float.MaxValue;
+        var box = UnitCounter.Box();
+        var mid = box.Position + box.Size / 2f;
+        var touch = box.Grow(4f);                        // folga do dedo: 4 unidades à volta da caixa
+        float scale = Mathf.Max(0.001f, _markerScale);
+        foreach (var (id, c) in _counters)
+        {
+            if (!c.Visible) continue;
+            var local = (worldPos - c.Position) / scale;
+            if (!touch.HasPoint(local)) continue;
+            // desempate pelo meio da CAIXA, não pelo centro da província: a caixa pendura-se por baixo dela e
+            // medir ao centro dava a pilha do lado a quem tocasse no meio da sua própria caixa
+            float d = local.DistanceSquaredTo(mid);
+            if (d < near) { near = d; best = id; }
+        }
+        return best;
+    }
+
+    /// <summary>As pilhas que o jogador tem em mãos: as caixas delas desenham-se marcadas.</summary>
+    public void PickCounters(IReadOnlyCollection<int> regionIds)
+    {
+        _picked.Clear();
+        foreach (int id in regionIds) _picked.Add(id);
+        foreach (var (id, c) in _counters) c.Picked = _picked.Contains(id);
+    }
+
+    /// <summary>--smoke: a prova do toque. Para cada caixa desenhada mede-se o ponto no meio dela: `Hit` são
+    /// as que o <see cref="CounterAt"/> devolve certas e `Stolen` as que assentam em terra de outra província
+    /// — essas eram exactamente as que, antes desta versão, davam a ordem ao vizinho.</summary>
+    public (int Boxes, int Hit, int Stolen) CounterTouch()
+    {
+        int boxes = 0, hit = 0, stolen = 0;
+        var box = UnitCounter.Box();
+        foreach (var (id, c) in _counters)
+        {
+            if (!c.Visible) continue;
+            boxes++;
+            var mid = c.Position + (box.Position + box.Size / 2f) * _markerScale;
+            if (CounterAt(mid) == id) hit++;
+            if (RegionAt(mid) != id) stolen++;
+        }
+        return (boxes, hit, stolen);
+    }
+
+    /// <summary>--smoke: contadores marcados e o estado que as caixas visíveis estão a desenhar.</summary>
+    public (int Picked, int WithState) CounterMarks() =>
+        (_counters.Values.Count(c => c.Visible && c.Picked), _counters.Values.Count(c => c.Visible && c.State.Length > 0));
 
     /// <summary>--smoke: quantos contadores estão a desenhar o caixote de "por armar", e o material mais
     /// baixo que algum deles traz.</summary>
@@ -1090,6 +1149,7 @@ public partial class RegionRenderer : Node2D
     /// <summary>Contorno amarelo nas regiões da selecção múltipla — camada própria, não mexe no Highlight.</summary>
     public void HighlightMulti(IReadOnlyCollection<int> regionIds)
     {
+        PickCounters(regionIds);        // de perto quem responde é o contador: a caixa marcada acende com a região
         foreach (var c in _multiRoot.GetChildren()) { _multiRoot.RemoveChild(c); c.QueueFree(); }
         foreach (var id in regionIds)
             if (_byRegion.TryGetValue(id, out var polys))

@@ -4,7 +4,8 @@ namespace WarGame.Presentation;
 
 /// <summary>Câmara 2D por toque: toque curto = selecção (RegionTapped), toque longo = marca a região para
 /// a selecção múltipla (RegionLongPressed), duplo toque = destino do movimento (RegionDoubleTapped),
-/// um dedo a arrastar = pan, dois = zoom. No PC o botão direito faz de toque longo.
+/// um dedo a arrastar = pan, dois = zoom. No PC o botão direito faz de toque longo. De perto, quem apanha
+/// o toque primeiro é o contador da pilha (ver <see cref="Pick"/>) e não o polígono do chão.
 /// Emite ZoomChanged e avisa o RegionRenderer para os marcadores manterem o tamanho.</summary>
 public partial class MapView : Node2D
 {
@@ -77,7 +78,7 @@ public partial class MapView : Node2D
         if (_longFired || _multi || _touches.Count != 1 || _dragDist >= TapMaxDrag) return;
         if (Time.GetTicksMsec() - _pressAt < LongPressMs) return;
         _longFired = true;
-        if (_regions.RegionAt(ToWorld(_pressPos)) is int rid) EmitSignal(SignalName.RegionLongPressed, rid);
+        if (Pick(_pressPos) is int rid) EmitSignal(SignalName.RegionLongPressed, rid);
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -121,7 +122,7 @@ public partial class MapView : Node2D
                     break;
                 case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mbr:
                     // botão direito no PC = toque longo (a emulação de toque só cobre o esquerdo)
-                    if (_regions.RegionAt(ToWorld(mbr.Position)) is int mrid) EmitSignal(SignalName.RegionLongPressed, mrid);
+                    if (Pick(mbr.Position) is int mrid) EmitSignal(SignalName.RegionLongPressed, mrid);
                     break;
             }
         }
@@ -132,7 +133,7 @@ public partial class MapView : Node2D
     /// janela, também RegionDoubleTapped — o painel abre à mesma e o duplo toque manda marchar.</summary>
     private void Tap(Vector2 pos)
     {
-        if (_regions.RegionAt(ToWorld(pos)) is not int rid) return;
+        if (Pick(pos) is not int rid) return;
         ulong now = Time.GetTicksMsec();
         bool doubled = now - _lastTapAt < DoubleTapMs && pos.DistanceTo(_lastTapPos) < DoubleTapMaxDist;
         _lastTapAt = doubled ? 0 : now;    // um duplo toque não encadeia com o toque seguinte
@@ -154,6 +155,16 @@ public partial class MapView : Node2D
     {
         var size = GetViewportRect().Size / _cam.Zoom;
         return new Rect2(_cam.Position - size / 2f, size);
+    }
+
+    /// <summary>Onde é que este toque caiu: primeiro nos contadores, só depois no chão. A caixa de uma
+    /// pilha fica por baixo do centro da província e transborda para a terra do lado — sem esta ordem,
+    /// tocar em cima de um contador dava ordens ao vizinho e a tropa desenhada debaixo do dedo ficava
+    /// quieta. No HoI4 o contador é a unidade e é nele que se toca; aqui passa a ser o mesmo.</summary>
+    private int? Pick(Vector2 screen)
+    {
+        var world = ToWorld(screen);
+        return _regions.CounterAt(world) ?? _regions.RegionAt(world);
     }
 
     private Vector2 ToWorld(Vector2 screen) => GetCanvasTransform().AffineInverse() * screen;

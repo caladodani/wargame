@@ -283,6 +283,10 @@ public sealed class SqlWorldRepository : IWorldRepository
                 (string)r["glyph"]!, r["note"] as string ?? "", Convert.ToSingle(r["cost_start"]),
                 Convert.ToSingle(r["cost_day"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]),
                 Convert.ToSingle(r["cap"]), Convert.ToInt32(r["hostile"]) != 0, Convert.ToInt32(r["sort"]));
+        w.StackStates.Clear();
+        foreach (var r in _static.Query("SELECT id,name,glyph,note,sort FROM stack_state ORDER BY sort,id"))
+            w.StackStates[(string)r["id"]!] = new StackStateDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["glyph"]!, r["note"] as string ?? "", Convert.ToInt32(r["sort"]));
         w.StartParties.Clear();
         foreach (var r in _static.Query("SELECT country_tag,party,popularity,ruling FROM country_party"))
         {

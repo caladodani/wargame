@@ -20,13 +20,27 @@ public partial class UnitCounter : Node2D
     /// <summary>Largura da coluna dos galões de veterania, no canto de dentro da caixa.</summary>
     public const float ChevronW = 10f;
 
+    /// <summary>Largura da chapa do estado, pendurada do lado de fora da caixa.</summary>
+    public const float TagW = 22f;
+
     private Color _tint = Colors.Gray;
-    private string _kind = "infantry", _spec = "";
+    private string _kind = "infantry", _spec = "", _state = "";
     private int _count, _chevrons;
     private float _org = 1f, _hp = 1f, _entrench, _kit = 1f;
-    private bool _known;
+    private bool _known, _picked;
     private Texture2D? _flag;
     private Label _num = null!;
+
+    /// <summary>Esta pilha está marcada pelo jogador: a caixa levanta-se e ganha os cantos brancos, que é
+    /// como o HoI4 diz qual é a unidade que tem em mãos. Mexer-lhe repinta só esta caixa.</summary>
+    public bool Picked
+    {
+        get => _picked;
+        set { if (_picked != value) { _picked = value; QueueRedraw(); } }
+    }
+
+    /// <summary>--smoke: a chapa do estado que esta caixa está a desenhar ("" = tropa alheia, sem estado).</summary>
+    public string State => _state;
 
     public override void _Ready()
     {
@@ -50,10 +64,11 @@ public partial class UnitCounter : Node2D
     /// armada até aos dentes): entra na barra da resistência como um tecto marcado a giz, porque é isso que
     /// ele é — acima daquele risco a tropa não recupera enquanto não lhe chegar equipamento do armazém.</summary>
     public void Set(Color tint, Texture2D? flag, string kind, int count, float org, float hp, float entrench, bool known,
-                    string spec = "", int chevrons = 0, float kit = 1f)
+                    string spec = "", int chevrons = 0, float kit = 1f, string state = "")
     {
         _tint = tint; _flag = flag; _kind = kind; _spec = spec; _count = count; _chevrons = Mathf.Clamp(chevrons, 0, 4);
         _org = org; _hp = hp; _entrench = entrench; _known = known; _kit = Mathf.Clamp(kit, 0f, 1f);
+        _state = Glyph.Knows(state) ? state : "";
         if (_num is not null)
         {
             _num.Text = count.ToString();
@@ -81,9 +96,31 @@ public partial class UnitCounter : Node2D
     /// <summary>--smoke: o material da pilha desta caixa (1 = sem falta, sem caixote desenhado).</summary>
     public float Kit => _kit;
 
+    /// <summary>A caixa em coordenadas locais do contador. Serve o desenho e serve o toque: é a mesma
+    /// figura que o RegionRenderer usa para saber se o dedo caiu em cima desta pilha.</summary>
+    public static Rect2 Box() => new(-BoxW / 2f, DropY, BoxW, BoxH);
+
     public override void _Draw()
     {
-        var box = new Rect2(-BoxW / 2f, DropY, BoxW, BoxH);
+        var box = Box();
+
+        // Marcado: a caixa levanta-se do mapa. Um halo por trás e os quatro cantos brancos por fora, que é a
+        // leitura do HoI4 — a unidade que se tem em mãos não se confunde com as outras dez que estão à volta.
+        if (_picked)
+        {
+            var halo = box.Grow(7f);
+            DrawRect(halo, new Color(1f, 0.95f, 0.7f, 0.16f));
+            DrawRect(halo, new Color(1f, 0.95f, 0.7f, 0.55f), false, 2f);
+            float arm = 16f;
+            foreach (var (corner, dx, dy) in new[]
+                     { (halo.Position, 1f, 1f), (new Vector2(halo.End.X, halo.Position.Y), -1f, 1f),
+                       (halo.End, -1f, -1f), (new Vector2(halo.Position.X, halo.End.Y), 1f, -1f) })
+            {
+                DrawLine(corner, corner + new Vector2(arm * dx, 0f), Colors.White, 3f);
+                DrawLine(corner, corner + new Vector2(0f, arm * dy), Colors.White, 3f);
+            }
+        }
+
         DrawRect(box, _tint.Darkened(0.78f) with { A = 0.93f });
 
         // faixa da bandeira colada ao topo da caixa (ou uma barra da cor do país quando não há bandeira)
@@ -142,6 +179,18 @@ public partial class UnitCounter : Node2D
             DrawRect(crate, ink, false, 1.4f);
             DrawLine(crate.Position, crate.End, ink, 1.2f);
             DrawLine(new Vector2(crate.End.X, crate.Position.Y), new Vector2(crate.Position.X, crate.End.Y), ink, 1.2f);
+        }
+
+        // chapa do estado, pendurada do lado de fora da caixa: o que aquela pilha está a fazer agora — a
+        // marchar, a bater-se, cercada, a ir de comboio. É a leitura que no HoI4 vem da seta e dos ícones
+        // colados ao contador, e é a razão por que ali não é preciso abrir a ficha da província para saber
+        // se a caixa está parada. Da tropa alheia não se desenha: isso é coisa que se sabe de dentro.
+        if (_state.Length > 0)
+        {
+            var tag = new Rect2(box.Position.X - TagW - 3f, box.Position.Y + (BoxH - TagW) / 2f, TagW, TagW);
+            DrawRect(tag, new Color(0.05f, 0.05f, 0.06f, 0.9f));
+            DrawRect(tag, _tint.Lightened(0.35f), false, 1.6f);
+            Glyph.Draw(this, tag.Grow(-3f), _state, new Color(0.96f, 0.93f, 0.85f), 1.7f);
         }
 
         // dentes da trincheira, um por degrau cavado: a frente parada vê-se de longe
