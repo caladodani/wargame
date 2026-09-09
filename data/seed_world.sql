@@ -980,16 +980,49 @@ INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,esc
 -- quanto rende em cada tarefa. Um caça varre o céu e não deita nada abaixo; um bombardeiro estratégico
 -- arrasa infraestrutura e não se defende de nada; um transporte não faz guerra nenhuma e é o único que
 -- larga pára-quedistas. Mudar a aviação do jogo é mudar estas linhas.
-INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck) VALUES
- ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone',900,0.2,1),
- ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre. Pequeno que chegue para levantar de um convés.',1,'asa',800,0.15,1),
- ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca',1300,0.35,1),
- ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha — mas é grande de mais para um convés.',3,'espadas',1700,0.2,0),
- ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba',1500,0.8,1),
- ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada, e do convés é ele que vai ao navio.',5,'obus',900,1.6,1),
- ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte. Sobre o mar leva o torpedo mais pesado que há.',6,'bombardeiro',2400,2.4,0),
- ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo',5200,0.9,0),
- ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga',2600,0,0);
+-- A coluna `slots` é a fuselagem vista pela oficina (PlaneShop): quantas ranhuras tem e de que tipo, pela
+-- ordem em que se vêem na prancheta. Vazia = fuselagem que não se desenha. Nada disto está em código.
+INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck,slots) VALUES
+ ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone',900,0.2,1,'motor,equipamento'),
+ ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre. Pequeno que chegue para levantar de um convés.',1,'asa',800,0.15,1,'motor,armamento,equipamento'),
+ ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca',1300,0.35,1,'motor,armamento,armamento,equipamento'),
+ ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha — mas é grande de mais para um convés.',3,'espadas',1700,0.2,0,'motor,armamento,armamento,equipamento'),
+ ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba',1500,0.8,1,'motor,bojo,equipamento'),
+ ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada, e do convés é ele que vai ao navio.',5,'obus',900,1.6,1,'motor,armamento,bojo,equipamento'),
+ ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte. Sobre o mar leva o torpedo mais pesado que há.',6,'bombardeiro',2400,2.4,0,'motor,motor,bojo,equipamento'),
+ ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo',5200,0.9,0,'motor,motor,bojo,bojo,equipamento'),
+ ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga',2600,0,0,'motor,motor,bojo,bojo');
+
+-- A oficina (tabelas plane_slot e plane_module; PlaneShop). Comprar aviação já deixara de ser um botão só
+-- quando apareceram os modelos, mas o modelo continuava a vir feito da tabela: escolhia-se de uma lista de
+-- nove e mais nada. No HoI4 desenha-se o avião à peça — a fuselagem dá as ranhuras, e o que se lá mete
+-- decide se aquilo é um caça que ganha o céu, um torpedeiro que afunda esquadras ou um camião com asas.
+-- É essa oficina que estas duas tabelas abrem: a ranhura diz o que aceita, a peça diz o que soma.
+INSERT INTO plane_slot (id,name,required,note,sort,glyph) VALUES
+ ('motor','Motor',1,'Sem motor não levanta. É ele que manda no alcance e em metade do que o avião aguenta lá em cima.',0,'helice'),
+ ('armamento','Armamento',0,'O que ele leva para fora: o que dispara contra outro avião ou contra o chão.',1,'canhao'),
+ ('bojo','Porão',0,'O que ele leva por dentro: bombas, torpedos, depósitos ou carga. É o porão que faz o avião servir para alguma coisa que não seja lutar no ar.',2,'porao'),
+ ('equipamento','Equipamento',0,'O que não se vê: sensores, blindagem da cabina, gancho de convés.',3,'antena');
+
+INSERT INTO plane_module (id,name,slot,cost,upkeep,air,superiority,support,bombing,transport,naval,range_km,deck,tech_id,note,sort,glyph) VALUES
+ ('motor_pistao','Motor a pistão','motor',0,0,0,0,0,0,0,0,0,0,'','O motor de sempre: barato, sem manutenção nenhuma e sem uma única surpresa.',0,'helice'),
+ ('motor_economico','Motor de longo curso','motor',0.2,0,-0.1,-0.1,0,0,0.1,0,700,0,'','Gasta pouco e vai longe. O que ele tira no combate devolve em mapa.',1,'helice'),
+ ('motor_reforcado','Motor reforçado','motor',0.35,0.15,0.3,0.2,0.25,0.2,0,0.1,-150,0,'','Leva mais peso e sobe mais depressa; em troca bebe o combustível todo e não vai tão longe.',2,'helice'),
+ ('motor_turbina','Turbina','motor',0.6,0.35,0.6,0.5,0,0,0,0,250,0,'air_1','Outra era: sobe, corre e desaparece. Pede oficina, e pede-a todos os dias.',3,'raio'),
+ ('metralhadoras','Metralhadoras','armamento',0.1,0.05,0.3,0.25,0.1,0,0,0,0,0,'','Quatro bocas e nada de especial. Chegam para um drone e para o susto.',4,'canhao'),
+ ('canhoes','Canhões','armamento',0.3,0.1,0.8,0.6,0.2,0,0,0.1,0,0,'','Uma passagem e o outro cai. É com isto que se ganha um céu.',5,'canhao'),
+ ('misseis_ar','Mísseis ar-ar','armamento',0.7,0.3,1.3,1.2,0,0,0,0,0,0,'air_1','Não é preciso ver-lhe a cara: dispara-se de longe e o outro não volta.',6,'alvo'),
+ ('foguetes','Foguetes ar-solo','armamento',0.35,0.15,0,-0.1,0.9,0.1,0,0.35,0,0,'','Salvas contra o que anda em baixo. Contra outro avião não servem de nada.',7,'bomba'),
+ ('bombas','Porão de bombas','bojo',0.3,0.15,-0.1,-0.15,0.4,1.1,0,0.2,0,0,'','O porão clássico: abre-se por cima do alvo e larga tudo de uma vez.',8,'bomba'),
+ ('bombas_guiadas','Bombas guiadas','bojo',0.7,0.3,-0.1,-0.15,0.9,1.8,0,0.4,0,0,'air_2','Cada bomba tem um endereço. Custa o dobro e falha um décimo das vezes.',9,'alvo'),
+ ('torpedos','Torpedos','bojo',0.45,0.2,-0.15,-0.2,0.1,0.2,0,1.7,0,0,'nav_1','Larga-se rente à água e vai por baixo da linha de flutuação. Só serve contra aço a flutuar.',10,'torpedo'),
+ ('deposito_extra','Depósitos suplementares','bojo',0.15,0.05,-0.2,-0.25,0,0,0,0,900,0,'','Combustível pendurado onde iam as bombas: chega-se ao outro lado do mar, mas chega-se mal armado.',11,'barril'),
+ ('carga','Compartimento de carga','bojo',0.2,0.1,-0.1,-0.1,0,0,1.4,0,0,0,'','Bancos, rampa e chão liso: é isto que leva homens e caixotes — e pára-quedistas.',12,'carga'),
+ ('sensores','Sensores de reconhecimento','equipamento',0.2,0.1,0,0,0.5,0.15,0,0.1,0,0,'','Câmaras e escuta: o que ele vê chega à tropa antes de a tropa lá chegar.',13,'luneta'),
+ ('radar_bordo','Radar de bordo','equipamento',0.45,0.2,0.5,0.55,0.1,0,0,0.3,0,0,'air_1','Vê primeiro. Num céu disputado é isso que decide quem dispara e quem cai.',14,'antena'),
+ ('blindagem','Blindagem da cabina','equipamento',0.25,0.15,0.5,0.2,0.1,0,0,0,-100,0,'','Aço à volta do piloto e depósitos que se fecham sozinhos. Volta mais gente para casa.',15,'escudo'),
+ ('gancho','Gancho de convés','equipamento',0.2,0.1,-0.1,-0.1,0,0,0,0.1,-100,1,'','Gancho, trem reforçado e asa que dobra: passa a caber num porta-aviões o que não cabia.',16,'conves'),
+ ('furtivo','Revestimento furtivo','equipamento',1.1,0.5,0.9,0.8,0.2,0.2,0,0.2,-150,0,'air_3','Não aparece no radar deles enquanto não estiver por cima. Custa como três aviões.',17,'sonar');
 
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
@@ -1102,6 +1135,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_naval_shield',1.2,'quanto a superioridade aérea de quem lá está no mar trava o ataque naval'),
  ('air_carrier_range',600,'alcance em km de uma asa que levanta de um convés (o casco é que vai perto)'),
  ('air_ai_naval_share',0.35,'fatia das asas livres que a IA manda ao aço deles quando há esquadra no mar ao alcance'),
+ ('plane_design_xp',25,'experiência de aviação que se paga para assinar um desenho na oficina'),
+ ('plane_design_edit_xp',10,'experiência de aviação para mexer num desenho que já está assinado'),
+ ('plane_design_max',12,'desenhos de avião que um país pode ter na oficina ao mesmo tempo'),
  ('naval_ship_cost',90,'custo de um navio de guerra'),
  ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),

@@ -520,7 +520,36 @@ public sealed record ShipClassDef(string Id, string Name, string Icon, string Ro
 public sealed record PlaneClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                    float Air, float Superiority, float Support, float Bombing, float Transport,
                                    bool Basic, string Note, int Sort, string Glyph, float RangeKm = 0f,
-                                   float Naval = 0f, bool Deck = false);
+                                   float Naval = 0f, bool Deck = false, string Slots = "")
+{
+    /// <summary>Fuselagem que se leva à oficina (PlaneShop): tem ranhuras onde pôr peças.</summary>
+    public bool Designable => Slots.Length > 0;
+}
+
+/// <summary>Uma ranhura de fuselagem (tabela plane_slot; PlaneShop). Diz o que a prancheta mostra e o que
+/// aceita lá dentro; Required a 1 é a ranhura sem a qual o desenho não se assina (o motor).</summary>
+public sealed record PlaneSlotDef(string Id, string Name, bool Required, string Note, int Sort, string Glyph);
+
+/// <summary>Uma peça de avião (tabela plane_module; PlaneShop). Cada número SOMA ao da fuselagem — é assim
+/// que o mesmo casco dá um caça ou um torpedeiro sem haver modelo nenhum escrito em código. TechId vazio =
+/// peça de origem, que todos têm; Deck a +1 põe o gancho de convés e a -1 tira-o.</summary>
+public sealed record PlaneModuleDef(string Id, string Name, string Slot, float Cost, float Upkeep, float Air,
+                                    float Superiority, float Support, float Bombing, float Transport,
+                                    float Naval, float RangeKm, int Deck, string TechId, string Note,
+                                    int Sort, string Glyph);
+
+/// <summary>Um avião desenhado em jogo (save s_plane_design). Guarda-se o que o jogador escolheu — a
+/// fuselagem e a peça de cada ranhura — e nunca os números que daí saem: esses voltam a sair da tabela
+/// pelo PlaneShop.Build, para uma peça reafinada valer logo em todos os desenhos que a levam.</summary>
+public sealed class PlaneDesign
+{
+    public int Id { get; init; }
+    public int CountryId { get; init; }
+    public string Name { get; set; } = "";
+    public string Chassis { get; set; } = "";
+    /// <summary>Uma entrada por ranhura da fuselagem, pela ordem dela; "" = ranhura vazia.</summary>
+    public List<string> Modules { get; set; } = new();
+}
 
 /// <summary>Uma geração de material (tabela equipment_mark; Marks). O armazém tinha uma espingarda só: um
 /// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de

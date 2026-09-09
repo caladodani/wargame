@@ -259,8 +259,18 @@ public sealed class World
     /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
     public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
 
-    /// <summary>Modelos de avião (tabela plane_class; Air): o que cada asa serve no céu.</summary>
+    /// <summary>Modelos de avião (tabela plane_class; Air): o que cada asa serve no céu. Os desenhados na
+    /// oficina entram aqui com id "des:N" — a partir daí são modelos como os outros para todo o jogo.</summary>
     public Dictionary<string, PlaneClassDef> PlaneClasses { get; } = new();
+
+    /// <summary>A oficina de aviões (tabelas plane_slot/plane_module; PlaneShop): as ranhuras que uma
+    /// fuselagem tem e as peças que lá cabem.</summary>
+    public Dictionary<string, PlaneSlotDef> PlaneSlotDefs { get; } = new();
+    public Dictionary<string, PlaneModuleDef> PlaneModules { get; } = new();
+
+    /// <summary>Aviões desenhados em jogo (save s_plane_design): é isto que se grava, e não os números,
+    /// que voltam a sair das tabelas no arranque seguinte.</summary>
+    public List<PlaneDesign> PlaneDesigns { get; } = new();
 
     /// <summary>Marcas de material (tabela equipment_mark; Marks): as gerações de equipamento que a
     /// investigação abre e que a fábrica passa a fazer.</summary>

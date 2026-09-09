@@ -31,6 +31,9 @@ public partial class WarPanel : PanelContainer
     /// Aceita qualquer beligerante, inimigos incluídos: o mundo do smoke tem uma guerra só, a nossa.</summary>
     private bool _smokeHosts;
 
+    /// <summary>A oficina de aviões (PlaneShopView), montada por cima deste painel.</summary>
+    private PlaneShopView _shop = null!;
+
     /// <summary>Guerra com a mesa de negociação aberta (id do inimigo), e o que lhe estamos a exigir.</summary>
     private int? _deal;
     private readonly HashSet<int> _demand = new();
@@ -50,6 +53,11 @@ public partial class WarPanel : PanelContainer
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         v.AddChild(scroll);
         _body = Ui.Grow(new VBoxContainer()); scroll.AddChild(_body);
+
+        // a oficina por cima do painel: abre-se do hangar e volta-se aqui com o avião assinado
+        _shop = new PlaneShopView { Name = "PlaneShop" };
+        AddChild(_shop);
+        _shop.Setup(game, () => { _lastKey = ""; _game.RunWhenIdle(Fill); });
     }
 
     /// <summary>Trocar de secção: guarda a aba e manda encher outra vez (o desenho é sempre no idle).</summary>
@@ -431,8 +439,22 @@ public partial class WarPanel : PanelContainer
     {
         if (w.PlaneClasses.Count == 0) return;
         var me = w.Countries[pid];
-        card.AddChild(Ui.Lbl($"Hangar ({Air.Describe(w, me.Planes)}):", 15));
-        foreach (var d in w.PlaneClasses.Values.OrderBy(x => x.Sort))
+        var hangarHead = new HBoxContainer(); hangarHead.AddThemeConstantOverride("separation", 6);
+        hangarHead.AddChild(Ui.Grow(Ui.Lbl($"Hangar ({Air.Describe(w, me.Planes)}):", 15)));
+        // A oficina: o botão que faltava ao céu. Um modelo que vem feito da tabela é o mesmo para toda a
+        // gente; aqui desenha-se o de casa, peça a peça, e paga-se em horas de voo.
+        if (PlaneShop.Chassis(w).Count > 0)
+        {
+            var open = Ui.Btn($"✎ Oficina ({me.AirXp:0} h)", () => _shop.Open(), 150);
+            open.TooltipText = $"Desenhar um avião à peça. Assinar um desenho custa {PlaneShop.Price(w, false):0} "
+                             + $"horas de voo (Country.AirXp), que a aviação ganha a combater.";
+            hangarHead.AddChild(open);
+        }
+        card.AddChild(hangarHead);
+        // os desenhos são de quem os fez: o hangar de casa não mostra a prancheta do vizinho
+        var ours = PlaneShop.Of(w, pid).Select(x => PlaneShop.ClassId(x.Id)).ToHashSet();
+        foreach (var d in w.PlaneClasses.Values.Where(x => !PlaneShop.IsDesign(x.Id) || ours.Contains(x.Id))
+                           .OrderBy(x => x.Sort))
         {
             float have = me.Planes.GetValueOrDefault(d.Id), home = Air.Free(w, pid, d.Id);
             float cost = Air.Cost(w, d.Id);
@@ -444,6 +466,12 @@ public partial class WarPanel : PanelContainer
             lbl.TooltipText = d.Note + $"\nSuperioridade ×{d.Superiority:0.#}, apoio ×{d.Support:0.#}, "
                               + $"bombardeamento ×{d.Bombing:0.#}, transporte ×{d.Transport:0.#}.";
             row.AddChild(Ui.Grow(lbl));
+            if (PlaneShop.IsDesign(cls) && int.TryParse(cls.AsSpan(4), out int did))
+            {
+                var edit = Ui.Btn("✎", () => _shop.Open(did), 46);
+                edit.TooltipText = $"Voltar à prancheta deste desenho por {PlaneShop.Price(w, true):0} horas de voo.";
+                row.AddChild(edit);
+            }
             var buy = Ui.Btn($"{cost:0}", () => BuyPlane(pid, cls), 110);
             buy.Disabled = me.Money < cost;
             buy.TooltipText = $"Encomendar um {d.Name} por {cost:0} pontos de produção.";
@@ -451,6 +479,9 @@ public partial class WarPanel : PanelContainer
             card.AddChild(row);
         }
     }
+
+    /// <summary>--smoke: a oficina, desenhada e assinada sem dedo nenhum.</summary>
+    public string SmokeShop() => _shop.Smoke();
 
     private void BuyPlane(int pid, string classId) => _game.RunWhenIdle(() =>
     {

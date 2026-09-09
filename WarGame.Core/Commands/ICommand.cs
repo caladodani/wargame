@@ -1245,6 +1245,61 @@ public sealed record BuyPlaneCommand(int CountryId, string ClassId) : ICommand
     }
 }
 
+/// <summary>Assinar um avião na oficina (HoI4: aircraft designer). Escolhe-se a fuselagem e a peça de cada
+/// ranhura; o que sai é um modelo de avião como os da tabela, que se compra no hangar e voa como os outros.
+///
+/// DesignId a 0 é desenho novo; com número, redesenha-se o que já está assinado — e nesse caso as asas que
+/// já andam no ar passam a valer o que o desenho novo diz, como acontece aos modelos de divisão. Paga-se em
+/// horas de voo (Country.AirXp, regra plane_design_xp): a experiência que a aviação ganha a combater é o
+/// que abre a prancheta, e é por isso que um país que nunca voou não desenha nada.</summary>
+public sealed record DesignPlaneCommand(int CountryId, string Name, string Chassis,
+    IReadOnlyList<string> Modules, int DesignId = 0) : ICommand
+{
+    public string? Validate(World w)
+    {
+        string trimmed = Name?.Trim() ?? "";
+        if (trimmed.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
+        return PlaneShop.Check(w, CountryId, Chassis, Modules, DesignId);
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.AirXp = MathF.Max(0f, c.AirXp - PlaneShop.Price(w, DesignId != 0));
+        var design = DesignId != 0
+            ? w.PlaneDesigns.First(d => d.Id == DesignId)
+            : new PlaneDesign { Id = PlaneShop.NextId(w), CountryId = CountryId };
+        design.Name = Name.Trim();
+        design.Chassis = Chassis;
+        design.Modules = Modules.ToList();
+        PlaneShop.Register(w, design);
+        w.Events.Publish(new Events.PlaneDesigned(CountryId, design.Id, DesignId != 0));
+    }
+}
+
+/// <summary>Riscar um desenho da oficina. Só sai o que não anda no ar: enquanto houver uma asa daquele
+/// modelo no hangar ou em missão, o desenho fica — senão ficavam aviões sem ficha nenhuma a voar.</summary>
+public sealed record ScrapPlaneDesignCommand(int CountryId, int DesignId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        var d = w.PlaneDesigns.FirstOrDefault(x => x.Id == DesignId && x.CountryId == CountryId);
+        if (d is null) return "Esse desenho não é desta casa";
+        string cls = PlaneShop.ClassId(DesignId);
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País desconhecido";
+        float have = c.Planes.GetValueOrDefault(cls)
+                   + w.AirMissions.Where(m => m.CountryId == CountryId).Sum(m => m.Squadron.GetValueOrDefault(cls));
+        if (have > 0.001f) return $"Ainda há {have:0.#} asas deste desenho no ar";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.PlaneDesigns.RemoveAll(d => d.Id == DesignId && d.CountryId == CountryId);
+        w.PlaneClasses.Remove(PlaneShop.ClassId(DesignId));
+    }
+}
+
 
 /// <summary>Destacar esquadrões para o céu de uma região (AirMissionSystem). As asas saem do pool nacional
 /// enquanto a missão durar, custam estadia todos os dias e podem ser abatidas onde o céu está disputado.

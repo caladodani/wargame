@@ -59,6 +59,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "torpedo",
         // a guerra submarina: o sonar a varrer o mar atrás do que se esconde por baixo dele
         "sonar",
+        // a oficina de aviões: as ranhuras da fuselagem e as peças que lá entram
+        "helice", "canhao", "porao", "antena",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -632,6 +634,51 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                     Arc(0.13f, 0.50f, onda, -Mathf.Pi / 3.2f, Mathf.Pi / 3.2f, onda > 0.4f ? 0.7f : 1f);
                 Dot(0.80f, 0.66f, 0.06f);                                                      // o contacto lá em baixo
                 Line(0.06f, 0.88f, 0.94f, 0.88f, 0.7f);                                        // o fundo do mar
+                break;
+
+            // Hélice de frente: o cubo ao centro e as três pás a sair dele. É o motor da oficina.
+            case "helice":
+                Dot(0.50f, 0.50f, 0.09f);
+                for (int i = 0; i < 3; i++)
+                {
+                    float a = -Mathf.Pi / 2f + i * Mathf.Tau / 3f;
+                    float dx = Mathf.Cos(a), dy = Mathf.Sin(a);
+                    // pá: sai do cubo, alarga a meio e fecha na ponta
+                    Fill(0.50f + dx * 0.10f - dy * 0.07f, 0.50f + dy * 0.10f + dx * 0.07f,
+                         0.50f + dx * 0.40f - dy * 0.04f, 0.50f + dy * 0.40f + dx * 0.04f,
+                         0.50f + dx * 0.40f + dy * 0.04f, 0.50f + dy * 0.40f - dx * 0.04f,
+                         0.50f + dx * 0.10f + dy * 0.07f, 0.50f + dy * 0.10f - dx * 0.07f);
+                }
+                break;
+
+            // Canhão de asa visto de lado: o cano com o travão de boca e o berço onde ele assenta.
+            case "canhao":
+                Line(0.10f, 0.50f, 0.78f, 0.50f, 1.6f);                    // o cano
+                Line(0.78f, 0.42f, 0.78f, 0.58f, 1.1f);                    // travão de boca
+                Line(0.88f, 0.44f, 0.88f, 0.56f, 0.9f);
+                Poly(0.10f, 0.40f, 0.34f, 0.40f, 0.34f, 0.62f, 0.10f, 0.62f, 0.10f, 0.40f);   // culatra
+                Line(0.20f, 0.62f, 0.20f, 0.76f, 0.8f);                    // berço na asa
+                Line(0.06f, 0.76f, 0.44f, 0.76f, 0.8f);
+                break;
+
+            // Porão aberto: a barriga do avião com as portas descaídas e o que ia lá dentro a sair.
+            case "porao":
+                Arc(0.50f, 0.30f, 0.34f, Mathf.Pi, Mathf.Tau, 1.1f);       // o dorso da fuselagem
+                Line(0.16f, 0.30f, 0.34f, 0.30f, 1.1f);
+                Line(0.66f, 0.30f, 0.84f, 0.30f, 1.1f);
+                Line(0.34f, 0.30f, 0.24f, 0.52f, 0.9f);                    // portas do porão, escancaradas
+                Line(0.66f, 0.30f, 0.76f, 0.52f, 0.9f);
+                Fill(0.46f, 0.44f, 0.54f, 0.44f, 0.54f, 0.72f, 0.50f, 0.80f, 0.46f, 0.72f);   // a carga a cair
+                break;
+
+            // Antena de radar: o prato virado ao céu, o pé onde ele assenta e o feixe a sair.
+            case "antena":
+                Arc(0.42f, 0.56f, 0.30f, -Mathf.Pi * 0.95f, -Mathf.Pi * 0.15f, 1.2f);         // o prato
+                Line(0.42f, 0.56f, 0.42f, 0.82f, 1f);                      // o pé
+                Line(0.26f, 0.82f, 0.58f, 0.82f, 1f);                      // a base
+                Line(0.42f, 0.56f, 0.60f, 0.30f, 0.8f);                    // o alimentador ao centro
+                foreach (float rad in new[] { 0.16f, 0.26f })
+                    Arc(0.72f, 0.24f, rad, Mathf.Pi * 0.45f, Mathf.Pi * 1.05f, 0.7f);         // o feixe
                 break;
 
             case "onda":

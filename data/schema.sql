@@ -345,7 +345,35 @@ CREATE TABLE IF NOT EXISTS plane_class (      -- modelos de avião (Air); estát
   glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
   range_km REAL NOT NULL DEFAULT 0,           -- alcance a partir do campo (AirBases); 0 = regra air_range_default
   naval REAL NOT NULL DEFAULT 0,              -- quanto vale a afundar navios (missão de efeito 'naval')
-  deck INTEGER NOT NULL DEFAULT 0);           -- 1 = cabe num porta-aviões (asa embarcada; AirBases.Decks)
+  deck INTEGER NOT NULL DEFAULT 0,            -- 1 = cabe num porta-aviões (asa embarcada; AirBases.Decks)
+  slots TEXT NOT NULL DEFAULT '');            -- ranhuras da fuselagem para a oficina (PlaneShop), ids de
+                                              -- plane_slot separados por vírgula e pela ordem em que se
+                                              -- vêem; vazio = fuselagem que não se desenha (modelo pronto)
+CREATE TABLE IF NOT EXISTS plane_slot (       -- tipos de ranhura de uma fuselagem (PlaneShop); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  required INTEGER NOT NULL DEFAULT 0,        -- 1 = ranhura que tem de levar peça (sem motor não levanta)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+CREATE TABLE IF NOT EXISTS plane_module (     -- peças que se montam nas ranhuras (PlaneShop); estática
+  -- Cada coluna SOMA à da fuselagem (plane_class): é assim que um desenho fica melhor num sítio e pior
+  -- noutro sem haver modelo nenhum escrito em código. O que a soma dá nunca desce abaixo de zero.
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  slot TEXT NOT NULL REFERENCES plane_slot(id),
+  cost REAL NOT NULL DEFAULT 0, upkeep REAL NOT NULL DEFAULT 0,
+  air REAL NOT NULL DEFAULT 0,
+  superiority REAL NOT NULL DEFAULT 0, support REAL NOT NULL DEFAULT 0,
+  bombing REAL NOT NULL DEFAULT 0, transport REAL NOT NULL DEFAULT 0,
+  naval REAL NOT NULL DEFAULT 0,
+  range_km REAL NOT NULL DEFAULT 0,
+  deck INTEGER NOT NULL DEFAULT 0,            -- +1 = passa a caber no convés, -1 = deixa de caber, 0 = igual
+  tech_id TEXT NOT NULL DEFAULT '',           -- investigação que abre a peça ('' = peça de origem)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS s_plane_design (   -- aviões desenhados em jogo na oficina (save)
+  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL, chassis TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS s_plane_design_module (   -- o que está em cada ranhura desse desenho (save)
+  design_id INTEGER NOT NULL, slot_index INTEGER NOT NULL, module_id TEXT NOT NULL,
+  PRIMARY KEY (design_id, slot_index));
 CREATE TABLE IF NOT EXISTS s_plane (          -- aviões de um país por modelo (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));

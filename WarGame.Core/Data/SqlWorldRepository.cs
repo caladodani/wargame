@@ -1,5 +1,6 @@
 using System.Text;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Core.Data;
 
@@ -144,7 +145,18 @@ public sealed class SqlWorldRepository : IWorldRepository
                 r["deck"] is null ? 0f : Convert.ToSingle(r["deck"]),
                 r["stealth"] is null ? 0f : Convert.ToSingle(r["stealth"]),
                 r["asw"] is null ? 0f : Convert.ToSingle(r["asw"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck FROM plane_class ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,slot,cost,upkeep,air,superiority,support,bombing,transport,naval,range_km,deck,tech_id,note,sort,glyph FROM plane_module ORDER BY sort"))
+            w.PlaneModules[(string)r["id"]!] = new PlaneModuleDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["slot"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]),
+                Convert.ToSingle(r["air"]), Convert.ToSingle(r["superiority"]), Convert.ToSingle(r["support"]),
+                Convert.ToSingle(r["bombing"]), Convert.ToSingle(r["transport"]), Convert.ToSingle(r["naval"]),
+                Convert.ToSingle(r["range_km"]), Convert.ToInt32(r["deck"]), (string)r["tech_id"]!,
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,required,note,sort,glyph FROM plane_slot ORDER BY sort"))
+            w.PlaneSlotDefs[(string)r["id"]!] = new PlaneSlotDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToInt32(r["required"]) != 0, (string)r["note"]!, Convert.ToInt32(r["sort"]),
+                (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck,slots FROM plane_class ORDER BY sort"))
             w.PlaneClasses[(string)r["id"]!] = new PlaneClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["air"]),
                 Convert.ToSingle(r["superiority"]), Convert.ToSingle(r["support"]), Convert.ToSingle(r["bombing"]),
@@ -152,7 +164,8 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
                 r["range_km"] is null ? 0f : Convert.ToSingle(r["range_km"]),
                 r["naval"] is null ? 0f : Convert.ToSingle(r["naval"]),
-                r["deck"] is not null && Convert.ToInt32(r["deck"]) != 0);
+                r["deck"] is not null && Convert.ToInt32(r["deck"]) != 0,
+                r["slots"] as string ?? "");
         foreach (var r in _static.Query("SELECT id,unit_type_id,mark,name,tech_id,cost,power,wear,note,glyph FROM equipment_mark ORDER BY unit_type_id, mark"))
             w.EquipmentMarks[(string)r["id"]!] = new EquipmentMarkDef((string)r["id"]!, Convert.ToInt32(r["unit_type_id"]),
                 Convert.ToInt32(r["mark"]), (string)r["name"]!, (string)r["tech_id"]!, Convert.ToSingle(r["cost"]),
@@ -633,6 +646,25 @@ public sealed class SqlWorldRepository : IWorldRepository
                 MissionId = (string)r["mission_id"]!, Ships = Convert.ToSingle(r["ships"]),
                 SinceDay = Convert.ToInt32(r["since_day"]), Name = r["name"] as string ?? "",
             });
+        // A oficina antes das asas: os aviões desenhados em casa têm de ser modelos do mundo ANTES de se ler
+        // quantos deles o país tem, senão o hangar acordava com asas de um modelo que ainda não existe.
+        foreach (var r in save.Query("SELECT id,country_id,name,chassis FROM s_plane_design ORDER BY id"))
+        {
+            int did = Convert.ToInt32(r["id"]);
+            var design = new PlaneDesign
+            {
+                Id = did, CountryId = Convert.ToInt32(r["country_id"]),
+                Name = (string)r["name"]!, Chassis = (string)r["chassis"]!,
+            };
+            var slots = PlaneShop.Slots(w, design.Chassis);
+            design.Modules = Enumerable.Repeat("", slots.Count).ToList();
+            foreach (var m in save.Query("SELECT slot_index,module_id FROM s_plane_design_module WHERE design_id=? ORDER BY slot_index", did))
+            {
+                int at = Convert.ToInt32(m["slot_index"]);
+                if (at >= 0 && at < design.Modules.Count) design.Modules[at] = (string)m["module_id"]!;
+            }
+            PlaneShop.Register(w, design);
+        }
         // os modelos vêm depois do total, pela mesma razão dos cascos: um save velho não tem estas linhas e
         // fica com asas sem modelo, que é exactamente o que aquele save era
         foreach (var r in save.Query("SELECT country_id,class_id,count FROM s_plane"))
@@ -825,7 +857,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -887,6 +919,17 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (cls.Length > 0 && n > 0f)
                     save.Execute("INSERT INTO s_air_mission_plane (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
                         m.CountryId, m.RegionId, cls, n);
+        }
+        // Da oficina guarda-se a ESCOLHA e não os números: assim uma peça reafinada na tabela vale logo em
+        // todos os desenhos que a levam, em vez de os saves ficarem presos aos números do dia em que os fez.
+        foreach (var d in w.PlaneDesigns.OrderBy(x => x.Id))
+        {
+            save.Execute("INSERT INTO s_plane_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+                d.Id, d.CountryId, d.Name, d.Chassis);
+            for (int i = 0; i < d.Modules.Count; i++)
+                if (d.Modules[i].Length > 0)
+                    save.Execute("INSERT INTO s_plane_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                        d.Id, i, d.Modules[i]);
         }
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
             foreach (var (cls, n) in c.Planes.OrderBy(kv => kv.Key, StringComparer.Ordinal))

@@ -36,6 +36,8 @@ public class GlyphDataTests
         "torpedo",
         // a guerra submarina: o sonar da caça anti-submarina
         "sonar",
+        // a oficina de aviões: as ranhuras da fuselagem e as peças que lá entram
+        "helice", "canhao", "porao", "antena",
     };
 
     [Fact]
@@ -89,6 +91,34 @@ public class GlyphDataTests
         foreach (var g in w.ShipClasses.Values.Select(s => s.Glyph)
                            .Concat(w.PlaneClasses.Values.Select(p => p.Glyph)))
             Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>A oficina: cada ranhura de fuselagem e cada peça de avião pede chapa que alguém desenha. A
+    /// prancheta é toda feita de chapas — a ranhura vazia mostra a da ranhura, a cheia mostra a da peça — e
+    /// uma que ninguém desenhe sai como roda dentada calada no sítio onde se decide o avião.</summary>
+    [Fact]
+    public void Ranhuras_e_pecas_de_aviao_pedem_chapas_que_existem()
+    {
+        var w = FactionTests.BuildReal();
+        Assert.NotEmpty(w.PlaneSlotDefs);
+        Assert.NotEmpty(w.PlaneModules);
+        foreach (var g in w.PlaneSlotDefs.Values.Select(s => s.Glyph)
+                           .Concat(w.PlaneModules.Values.Select(m => m.Glyph)))
+            Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>Nenhuma peça órfã e nenhuma fuselagem a pedir ranhura que a tabela não conhece: a coluna
+    /// slots é texto, e um id mal escrito lá dentro dava uma ranhura sem nome que nunca aceitaria peça
+    /// nenhuma — o desenho ficava por assinar sem se perceber porquê.</summary>
+    [Fact]
+    public void As_ranhuras_das_fuselagens_e_das_pecas_existem_todas()
+    {
+        var w = FactionTests.BuildReal();
+        foreach (var m in w.PlaneModules.Values)
+            Assert.True(w.PlaneSlotDefs.ContainsKey(m.Slot), $"peça com ranhura sem linha: {m.Id} → {m.Slot}");
+        foreach (var d in w.PlaneClasses.Values.Where(x => x.Designable))
+            foreach (var slot in WarGame.Core.Systems.PlaneShop.Slots(w, d.Id))
+                Assert.True(w.PlaneSlotDefs.ContainsKey(slot), $"fuselagem com ranhura sem linha: {d.Id} → {slot}");
     }
 
     /// <summary>As quatro tabelas que só agora deixaram o emoji: os géneros da crónica, as pastas do
