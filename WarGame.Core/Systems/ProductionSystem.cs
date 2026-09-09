@@ -27,6 +27,7 @@ public sealed class ProductionSystem : ISystem
             int mil = Industry.Of(w, c.Id).Military;
             if (c.Queue.Count > 0)
             {
+                Retool(w, c);
                 Spend(w, c, mil);
                 Deliver(w, c, newOrg);
             }
@@ -86,11 +87,18 @@ public sealed class ProductionSystem : ISystem
             // linha continua onde está — é uma torneira, não uma encomenda
             if (o.IsKit)
             {
-                int made = cost <= 0f ? 0 : (int)MathF.Floor(o.Progress / cost);
+                // a mesma folga com que a porta acima abriu: o gasto do dia é limitado a `cost - Progress` e
+                // em vírgula flutuante isso pousa um cabelo abaixo do custo (1,5999998 para 1,6). Sem a folga
+                // aqui, o chão dava zero conjuntos e a linha ficava presa para sempre à porta do armazém —
+                // e só se via quando um custo deixou de ser redondo, que é o que as marcas trouxeram.
+                int made = cost <= 0f ? 0 : (int)MathF.Floor(o.Progress / cost + 1e-3f);
                 if (made > 0)
                 {
-                    o.Progress -= made * cost;
+                    o.Progress = MathF.Max(0f, o.Progress - made * cost);
                     o.Delivered += made;
+                    // a prateleira é uma pilha misturada: o que chega puxa a marca média para cima (Marks)
+                    c.StockMark[o.UnitTypeId] = Marks.Blend(c.Stocked(o.UnitTypeId), c.StockedMark(o.UnitTypeId),
+                                                            made, o.Mark);
                     c.Stock[o.UnitTypeId] = c.Stocked(o.UnitTypeId) + made;
                 }
                 i++; continue;
@@ -104,6 +112,8 @@ public sealed class ProductionSystem : ISystem
             {
                 Id = w.NewDivisionId(), CountryId = c.Id, TemplateId = o.TemplateId, RegionId = spawn.Value,
                 Org = newOrg, Hp = 100f, Supply = 1f,
+                // sai da fábrica com o melhor material que a indústria do país sabe fazer hoje (Marks)
+                Mark = Marks.Fresh(w, c, o.TemplateId),
             });
             c.Queue.RemoveAt(i);
             // produção em série: a encomenda entregue volta ao fim da fila, do zero — mas a linha é a mesma
@@ -114,6 +124,19 @@ public sealed class ProductionSystem : ISystem
                     TemplateId = o.TemplateId, Repeat = true, Factories = o.Factories,
                     Efficiency = o.Efficiency, Delivered = o.Delivered + 1,
                 });
+        }
+    }
+
+    /// <summary>Reafinar as linhas de material: quando a investigação abre uma marca melhor, a linha passa a
+    /// fazê-la — e paga por isso em ritmo (mark_switch_efficiency), como uma fábrica que tem de trocar de
+    /// ferramenta. Uma linha acabada de abrir nasce já na melhor marca do país e não paga nada.</summary>
+    private static void Retool(World w, Country c)
+    {
+        foreach (var o in c.Queue)
+        {
+            if (!o.IsKit) continue;
+            var (mark, eff) = Marks.Retool(w, c, o.UnitTypeId, o.Mark, o.Efficiency);
+            o.Mark = mark; o.Efficiency = eff;
         }
     }
 
@@ -129,7 +152,9 @@ public sealed class ProductionSystem : ISystem
         if (cost <= 0f || output <= 0f) return;
         float spend = MathF.Min(output, c.Money);
         c.Money -= spend;
-        c.Stock[type] = c.Stocked(type) + spend / cost;
+        float made = spend / cost;
+        c.StockMark[type] = Marks.Blend(c.Stocked(type), c.StockedMark(type), made, Marks.Open(w, c, type));
+        c.Stock[type] = c.Stocked(type) + made;
     }
 
     /// <summary>Onde nasce uma divisão nova: a capital se o país a controla, senão a região controlada com mais

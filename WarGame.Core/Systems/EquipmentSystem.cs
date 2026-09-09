@@ -27,6 +27,7 @@ public sealed class EquipmentSystem : ISystem
         var fighting = new HashSet<int>(w.ActiveBattles.SelectMany(b => b.Attackers.Concat(b.Defenders)));
         foreach (var d in w.Divisions.Values)
         {
+            Marks.Enlist(w, d);                                    // tropa de partida: leva a marca de origem
             if (d.Kit >= 1f || d.Cut) continue;                    // cercada: o material fica do outro lado
             if (!w.Countries.TryGetValue(d.HomeId, out var c)) continue;
             float want = MathF.Min(1f - d.Kit, step * (fighting.Contains(d.Id) ? inFight : 1f));
@@ -56,6 +57,9 @@ public sealed class EquipmentSystem : ISystem
             float left = c.Stocked(type) - taken;
             c.Stock[type] = MathF.Max(0f, left);
         }
+        // a divisão bate-se com o material que RECEBEU, não com o que o país já sabe fazer: o que chega da
+        // prateleira mistura-se com o que ela já tinha, e por isso a frente anda uma geração atrás (Marks)
+        d.Mark = Marks.Blend(d.Kit, d.Mark, can, Marks.FromWarehouse(w, c, need));
         d.Kit = MathF.Min(1f, d.Kit + can);
         return can;
     }
@@ -65,7 +69,8 @@ public sealed class EquipmentSystem : ISystem
     public static void Damage(World w, Division d, float hpLoss)
     {
         if (hpLoss <= 0f) return;
-        d.Kit = MathF.Max(0f, d.Kit - hpLoss * w.Rule("kit_loss_per_hp", 0.006f));
+        // material novo estraga-se menos pela mesma pancada (equipment_mark.wear)
+        d.Kit = MathF.Max(0f, d.Kit - hpLoss * w.Rule("kit_loss_per_hp", 0.006f) * Marks.WearMult(w, d));
     }
 
     /// <summary>O que o material faz à força com que uma divisão se bate: uma divisão sem equipamento não

@@ -480,6 +480,13 @@ public sealed record ShipClassDef(string Id, string Name, string Icon, string Ro
                                   float Battle, float Screen, float Blockade, float Escort, float Patrol,
                                   bool Basic, string Note, int Sort, string Glyph);
 
+/// <summary>Uma geração de material (tabela equipment_mark; Marks). O armazém tinha uma espingarda só: um
+/// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de
+/// unidade tem marcas, cada marca abre-se com uma tecnologia (TechId vazio = a de origem, que todos têm) e
+/// custa mais (Cost), vale mais em combate (Power) e gasta-se menos (Wear). Nada disto está em código.</summary>
+public sealed record EquipmentMarkDef(string Id, int UnitTypeId, int Mark, string Name, string TechId,
+                                      float Cost, float Power, float Wear, string Note, string Glyph);
+
 /// <summary>Uma esquadra destacada para o mar de uma região costeira (NavalMissionSystem; save
 /// s_naval_mission). Ships são navios do pool nacional (Country.Warships) que ficam presos a esta missão
 /// até serem chamados de volta — ou até irem ao fundo naquele mar.</summary>
@@ -534,6 +541,10 @@ public sealed class ProductionOrder
     public float Efficiency { get; set; } = 1f;
     /// <summary>Quantas unidades esta linha já entregou (a série que a torna eficiente).</summary>
     public int Delivered { get; set; }
+    /// <summary>A marca de material que esta linha está a fazer (Marks). Zero = ainda não pegou em nenhuma;
+    /// a linha assume sozinha a melhor que o país tenha aberta e, quando a tecnologia abre a seguinte,
+    /// reafina-se: perde ritmo (mark_switch_efficiency) e passa a fazer material melhor.</summary>
+    public float Mark { get; set; }
 }
 
 public sealed class Country
@@ -666,6 +677,12 @@ public sealed class Country
     public Dictionary<int, float> Stock { get; } = new();
     /// <summary>Material em armazém daquele tipo (0 se nunca lá houve nenhum).</summary>
     public float Stocked(int unitTypeId) => Stock.TryGetValue(unitTypeId, out var q) ? q : 0f;
+    /// <summary>A marca média do que está na prateleira, por tipo (Marks). Uma prateleira é uma pilha
+    /// misturada: chega material novo e a média sobe, gasta-se e a média fica onde estava. Zero = nunca lá
+    /// entrou nada com marca (mundo sem tabela de marcas, ou save antigo).</summary>
+    public Dictionary<int, float> StockMark { get; } = new();
+    /// <summary>A marca média do material daquele tipo em armazém.</summary>
+    public float StockedMark(int unitTypeId) => StockMark.TryGetValue(unitTypeId, out var m) ? m : 0f;
     public HashSet<string> Techs { get; } = new();
     /// <summary>Doutrinas de exército adoptadas (tabela army_doctrine). Só de um ramo: a primeira escolha
     /// fecha as outras escolas. Não se largam — o que o exército aprendeu, aprendeu.</summary>
@@ -784,6 +801,10 @@ public sealed class Division
     /// os dias, se lá houver material (EquipmentSystem). É o número do HoI4 que explica porque é que uma
     /// divisão inteira de homens se bate mal: os homens voltaram, as armas não.</summary>
     public float Kit { get; set; } = 1f;
+    /// <summary>A marca do material com que esta divisão se bate hoje (Marks). Não é o que o país já sabe
+    /// fabricar: é o que lhe chegou às mãos. Uma divisão só sobe de marca quando recebe reforços da
+    /// prateleira nova, e por isso a tropa da frente anda sempre uma geração atrás do laboratório.</summary>
+    public float Mark { get; set; }
     public float Xp { get; set; }                  // 0..xp_max: veterania ganha em combate (CombatSystem)
     /// <summary>Trincheira cavada nesta posição (0..entrench_max + fortes): sobe a cada dia parado, zera ao
     /// mudar de região e gasta-se a assaltar. Só conta a defender (EntrenchSystem).</summary>

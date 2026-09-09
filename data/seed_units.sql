@@ -62,6 +62,35 @@ INSERT INTO unit_tag VALUES
  (1,'infantry'),(1,'ground'),(2,'infantry'),(2,'armored'),(2,'ground'),(3,'armored'),(3,'ground'),
  (4,'support'),(4,'ground'),(5,'support'),(5,'ground'),(6,'support'),(6,'ground');
 
+-- As marcas do material (equipment_mark). Quatro gerações por tipo: a primeira é a de origem (tech_id ''),
+-- e cada uma das outras abre-se com a tecnologia do ramo. Custam mais, valem mais e gastam-se menos — é
+-- esta a razão de se investigar, e é por causa delas que a fábrica tem de parar para se reafinar.
+INSERT INTO equipment_mark (id,unit_type_id,mark,name,tech_id,cost,power,wear,note,glyph) VALUES
+ ('inf_mk1',1,1,'Fuzil de serviço','',       1.00,1.00,1.00,'O que sai do paiol quando não há mais nada: serve e chega.','capacete'),
+ ('inf_mk2',1,2,'Fuzil de assalto','inf_1',  1.15,1.10,0.95,'Cadência a sério nas mãos do recruta, e um colete que aguenta o estilhaço.','escudo'),
+ ('inf_mk3',1,3,'Fuzil modular','inf_2',     1.35,1.22,0.88,'Mira, luz e lançador na mesma calha: a secção vê de noite e bate ao longe.','punho'),
+ ('inf_mk4',1,4,'Fuzil em rede','inf_3',     1.60,1.36,0.80,'Cada homem é um sensor: o que o primeiro vê, o pelotão inteiro sabe.','coroa'),
+ ('mec_mk1',2,1,'Transporte de rodas','',    1.00,1.00,1.00,'Leva a infantaria ao sítio e sai de lá: chapa contra estilhaço e mais nada.','capacete'),
+ ('mec_mk2',2,2,'Viatura de combate','arm_1',1.15,1.10,0.95,'Já fica a combater ao lado dos homens que despejou.','escudo'),
+ ('mec_mk3',2,3,'Viatura protegida','arm_2', 1.35,1.22,0.88,'Fundo em V e blindagem em camadas: a mina deixa de ser sentença.','punho'),
+ ('mec_mk4',2,4,'Viatura em rede','arm_3',   1.60,1.36,0.80,'Anda com o carro de combate e vê o mesmo mapa que ele.','coroa'),
+ ('arm_mk1',3,1,'Carro de combate','',       1.00,1.00,1.00,'Aço, canhão e lagarta: o que se pede a um carro e mais nada.','capacete'),
+ ('arm_mk2',3,2,'Blindagem reactiva','arm_1',1.15,1.10,0.95,'Os tijolos que rebentam para fora antes de a carga oca entrar.','escudo'),
+ ('arm_mk3',3,3,'Protecção activa','arm_2',  1.35,1.22,0.88,'Deita abaixo o míssil antes de ele chegar ao aço.','punho'),
+ ('arm_mk4',3,4,'Carro em rede','arm_3',     1.60,1.36,0.80,'Dispara no que o drone vê, sem nunca levantar a cabeça.','coroa'),
+ ('art_mk1',4,1,'Obus rebocado','',          1.00,1.00,1.00,'Chega, monta e bate; para se ir embora leva o tempo que leva.','capacete'),
+ ('art_mk2',4,2,'Obus autopropulsado','art_1',1.15,1.10,0.95,'Bate e muda de sítio antes de a resposta cair onde estava.','escudo'),
+ ('art_mk3',4,3,'Granada guiada','art_2',    1.35,1.22,0.88,'Uma granada onde antes iam vinte: acerta à primeira.','punho'),
+ ('art_mk4',4,4,'Fogo em rede','art_3',      1.60,1.36,0.80,'O drone aponta, a bateria responde em segundos.','coroa'),
+ ('aa_mk1', 5,1,'Peça antiaérea','',         1.00,1.00,1.00,'Cano a subir e sorte: contra drone pequeno faz o que pode.','capacete'),
+ ('aa_mk2', 5,2,'Míssil de curto alcance','drones_1',1.15,1.10,0.95,'Deixa de ser cortina e passa a ser pontaria.','escudo'),
+ ('aa_mk3', 5,3,'Radar e míssil','drones_2', 1.35,1.22,0.88,'Vê primeiro, decide sozinho e só depois avisa quem manda.','punho'),
+ ('aa_mk4', 5,4,'Feixe anti-drone','drones_3',1.60,1.36,0.80,'Bater um enxame ao preço da electricidade que se gasta.','coroa'),
+ ('at_mk1', 6,1,'Canhão sem recuo','',       1.00,1.00,1.00,'Um tiro, um homem exposto, e o carro de combate à vista.','capacete'),
+ ('at_mk2', 6,2,'Míssil filoguiado','art_1', 1.15,1.10,0.95,'O fio leva o míssil até onde o atirador continuar a olhar.','escudo'),
+ ('at_mk3', 6,3,'Ataque pelo topo','art_2',  1.35,1.22,0.88,'Entra por cima, onde nenhum carro leva aço a sério.','punho'),
+ ('at_mk4', 6,4,'Míssil autónomo','art_3',   1.60,1.36,0.80,'Dispara-se e esquece-se: ele procura o carro sozinho.','coroa');
+
 INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
  ('terrain','terrain','forest',  'str_attacker',NULL,     'mul',0.8),
  ('terrain','terrain','urban',   'str_attacker',NULL,     'mul',0.6),

@@ -218,7 +218,9 @@ public sealed class CombatSystem : ISystem
             float plan = BattlePlanSystem.Bonus(w, d);
             // material: os homens estão lá, as armas é que podem não estar (EquipmentSystem)
             float kit = EquipmentSystem.PowerMult(w, d);
-            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * kit * MathF.Max(0.3f, command));
+            // a marca do material: o que a investigação abriu só conta quando chega às mãos desta divisão
+            float mark = Marks.PowerMult(w, d);
+            out_[i] = MathF.Max(0.05f, terrainAir * supply * morale * veterancy * doctrine * amphibious * dug * plan * kit * mark * MathF.Max(0.3f, command));
             if (parts is null) continue;
             Add(parts, "terreno, rio e tecnologia", terrainAir);
             Add(parts, "abastecimento", supply);
@@ -230,6 +232,7 @@ public sealed class CombatSystem : ISystem
             else Add(parts, "trincheira", dug);
             Add(parts, "plano de batalha", plan);
             Add(parts, "material", kit);
+            Add(parts, "marca do material", mark);
         }
         ctx.Remove("volunteer");   // o contexto é do lado: não fica sujo com a última divisão que passou
         return out_;

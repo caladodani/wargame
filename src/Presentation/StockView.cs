@@ -53,7 +53,7 @@ public static class StockView
         var title = Ui.Lbl($"{r.Name}   ·   {r.Have:0.0} em armazém", 16);
         title.AddThemeColorOverride("font_color", dry ? Ui.Danger : Ui.Text);
         cell.AddChild(title);
-        var sub = Ui.Lbl(Line(r), 13);
+        var sub = Ui.Lbl(Line(r) + Mark(w, c, r.UnitTypeId), 13);
         sub.AddThemeColorOverride("font_color", Ui.TextDim);
         cell.AddChild(sub);
         float want = MathF.Max(r.Have + r.Missing, 1e-3f);
@@ -85,9 +85,21 @@ public static class StockView
         : days < 1f ? "acaba hoje"
         : $"aguenta {days:0} dia{(days < 1.5f ? "" : "s")}";
 
+    /// <summary>A marca do material que está nesta prateleira, e a que a indústria já sabe fazer. Vazio num
+    /// mundo sem tabela de marcas — a prateleira volta a ser a de sempre.</summary>
+    public static string Mark(World w, Country c, int unitTypeId)
+    {
+        if (Marks.All(w, unitTypeId).Count == 0) return "";
+        float have = c.StockedMark(unitTypeId), open = Marks.Open(w, c, unitTypeId);
+        string s = "  ·  " + Marks.Describe(w, unitTypeId, have <= 0f ? open : have);
+        if (open > have + 0.01f && have > 0f) s += $" (a fábrica já faz {Marks.Roman((int)open)})";
+        return s;
+    }
+
     private static string Why(World w, Country c, StockRow r) =>
         $"{r.Name} ({r.Category})\n"
-      + $"· em armazém: {r.Have:0.0} conjuntos\n"
+      + $"· em armazém: {r.Have:0.0} conjuntos, {Marks.Describe(w, r.UnitTypeId, c.StockedMark(r.UnitTypeId))}\n"
+      + $"· a indústria já sabe fazer: {Marks.Describe(w, r.UnitTypeId, Marks.Open(w, c, r.UnitTypeId))}\n"
       + $"· fábricas: {r.PerDay:0.00} por dia\n"
       + $"· a tropa pede hoje: {Warehouse.DailyDraw(w, c, r.UnitTypeId):0.00}\n"
       + $"· falta ao exército inteiro: {r.Missing:0.0}\n"
@@ -118,7 +130,10 @@ public static class StockView
         if (rows.Count == 0) return "sem armazém";
         var top = rows[0];
         string worst = Warehouse.Worst(w, c) is Division d ? $"{Name(w, d)} a {d.Kit:P0}" : "ninguém por armar";
-        return $"{rows.Count} prateleiras, exército armado a {Warehouse.Average(w, c):P0} ({worst}); "
+        string mark = Marks.All(w, top.UnitTypeId).Count == 0 ? "sem marcas"
+            : $"{top.Name}: prateleira {Marks.Describe(w, top.UnitTypeId, c.StockedMark(top.UnitTypeId))}, "
+              + $"fábrica {Marks.Describe(w, top.UnitTypeId, Marks.Open(w, c, top.UnitTypeId))}";
+        return $"{rows.Count} prateleiras, marcas: {mark}, exército armado a {Warehouse.Average(w, c):P0} ({worst}); "
              + $"a mais apertada: {top.Name} com {top.Have:0.0} em casa, {top.PerDay:0.00}/dia, "
              + $"faltam {top.Missing:0.0}, {Days(top.Days)}";
     }

@@ -255,6 +255,10 @@ public sealed class World
     /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
     public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
 
+    /// <summary>Marcas de material (tabela equipment_mark; Marks): as gerações de equipamento que a
+    /// investigação abre e que a fábrica passa a fazer.</summary>
+    public Dictionary<string, EquipmentMarkDef> EquipmentMarks { get; } = new();
+
     /// <summary>Políticas de ocupação (tabela occupation_policy) e a que cada ocupante assinou sobre cada
     /// povo que tem debaixo de si (save s_occupation; OccupationSystem).</summary>
     public Dictionary<string, OccupationPolicyDef> OccupationPolicyDefs { get; } = new();
@@ -632,7 +636,9 @@ public sealed class World
     /// batalhões custa exactamente o mesmo que os nove conjuntos que a voltam a armar de novo.</summary>
     public float OrderCost(ProductionOrder o)
     {
-        try { return o.IsKit ? Units.GetUnitType(o.UnitTypeId).Cost : TemplateCost(o.TemplateId); }
+        // material melhor custa mais a fazer: a marca da linha multiplica o preço do conjunto (Marks)
+        try { return o.IsKit ? Units.GetUnitType(o.UnitTypeId).Cost * Marks.Cost(this, o.UnitTypeId, o.Mark)
+                             : TemplateCost(o.TemplateId); }
         catch { return 0f; }
     }
 

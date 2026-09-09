@@ -1393,7 +1393,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('kit_loss_per_hp',0.006,'material destruído por cada ponto de efectivo perdido em combate'),
  ('kit_power_floor',0.45,'força com que se bate uma divisão sem material nenhum'),
  ('depot_idle_lines',1,'1 = as fábricas militares sem encomenda fazem material para o armazém'),
- ('depot_idle_share',0.6,'quanto rende uma fábrica de depósito face a uma linha dedicada');
+ ('depot_idle_share',0.6,'quanto rende uma fábrica de depósito face a uma linha dedicada'),
+ ('mark_switch_efficiency',0.55,'ritmo que sobra à linha quando ela muda para a marca seguinte'),
+ ('mark_switch_min',1,'marcas de salto a partir das quais a linha tem de parar para se reafinar');
 
 -- Desembarques da IA: bater da praia é caro, por isso exige mais vantagem do que um ataque por terra
 -- e reserva organização para a travessia.

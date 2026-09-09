@@ -26,6 +26,23 @@ CREATE TABLE IF NOT EXISTS unit_tag (
   unit_type_id INTEGER NOT NULL REFERENCES unit_type(id), tag TEXT NOT NULL,
   PRIMARY KEY (unit_type_id, tag)
 );
+CREATE TABLE IF NOT EXISTS equipment_mark (  -- as gerações de material (HoI4: Infantry Equipment I/II/III)
+  -- O armazém deste jogo tinha uma espingarda só: um conjunto de 1936 valia o mesmo que um de hoje, e por
+  -- isso investigar não mudava nada no que a tropa levava ao ombro. Aqui cada tipo de material tem marcas:
+  -- a tecnologia abre a marca seguinte, a fábrica passa a fazê-la (e perde ritmo na mudança, como uma linha
+  -- de montagem a ser reafinada), o armazém guarda a marca média do que lá está e a divisão bate-se com a
+  -- marca do material que recebeu. Nenhuma marca está escrita em código.
+  id TEXT PRIMARY KEY,
+  unit_type_id INTEGER NOT NULL REFERENCES unit_type(id),
+  mark INTEGER NOT NULL,                    -- 1, 2, 3… — a ordem das gerações deste tipo
+  name TEXT NOT NULL,
+  tech_id TEXT NOT NULL DEFAULT '',         -- a tecnologia que a abre ('' = a de origem, que todos têm)
+  cost REAL NOT NULL DEFAULT 1,             -- multiplicador do preço de produção do conjunto
+  power REAL NOT NULL DEFAULT 1,            -- o que vale em combate (multiplica a força de quem a leva)
+  wear REAL NOT NULL DEFAULT 1,             -- multiplicador do desgaste: material novo estraga-se menos
+  note TEXT NOT NULL DEFAULT '',
+  glyph TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS modifier (
   id INTEGER PRIMARY KEY, source_kind TEXT NOT NULL,
   condition_key TEXT, condition_value TEXT,
@@ -397,12 +414,16 @@ CREATE TABLE IF NOT EXISTS s_production_queue (
   factories INTEGER NOT NULL DEFAULT 1,     -- fábricas militares dedicadas a esta encomenda
   efficiency REAL NOT NULL DEFAULT 1,       -- ritmo da linha de montagem (HoI4: production efficiency)
   delivered INTEGER NOT NULL DEFAULT 0,     -- unidades já saídas desta linha
-  unit_type_id INTEGER NOT NULL DEFAULT 0   -- >0 = linha de material para o armazém, não encomenda de divisão
+  unit_type_id INTEGER NOT NULL DEFAULT 0,  -- >0 = linha de material para o armazém, não encomenda de divisão
+  mark REAL NOT NULL DEFAULT 0              -- a marca que esta linha está a fazer (0 = ainda nenhuma)
 );
 CREATE TABLE IF NOT EXISTS s_stock (              -- armazém de material: conjuntos por tipo de unidade (save)
-  country_id INTEGER, unit_type_id INTEGER, qty REAL NOT NULL, PRIMARY KEY (country_id, unit_type_id));
+  country_id INTEGER, unit_type_id INTEGER, qty REAL NOT NULL,
+  mark REAL NOT NULL DEFAULT 0,                   -- a marca média do que está na prateleira (Marks)
+  PRIMARY KEY (country_id, unit_type_id));
 CREATE TABLE IF NOT EXISTS s_division_kit (       -- material que a divisão tem hoje, 0..1 (EquipmentSystem)
-  division_id INTEGER PRIMARY KEY, kit REAL NOT NULL);
+  division_id INTEGER PRIMARY KEY, kit REAL NOT NULL,
+  mark REAL NOT NULL DEFAULT 0);                  -- a marca média do material com que ela se bate
 CREATE TABLE IF NOT EXISTS resource (         -- tipos de recurso (data-driven); cada unidade controlada
   id TEXT PRIMARY KEY, name TEXT NOT NULL,    -- multiplica stat_key por (1+per_unit), até cap unidades
   stat_key TEXT NOT NULL, per_unit REAL NOT NULL, cap REAL NOT NULL,

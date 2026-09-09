@@ -1732,7 +1732,48 @@ public partial class Hud : CanvasLayer
              + $" cheio repõe {reposto:0.000} e gasta {antes - depois:0.00} conjuntos"
              + $" (tecto da resistência {tecto:0}%, força ×{forca:0.00}, chão {w.Rule("kit_power_floor", 0.45f):0.00});"
              + $" {crates} contador{(crates == 1 ? "" : "es")} com caixote (pior {worstDrawn:P0});"
-             + $" depósito: {depot}";
+             + $" depósito: {depot}; marcas: {SmokeMarks(w, c, mine)}";
+    }
+
+    /// <summary>--smoke: as marcas do material. Conta as gerações da tabela, mostra a que o país tem aberta,
+    /// abre-lhe a última à força e prova a cadeia inteira: a linha de produção reafina-se (e paga em ritmo),
+    /// o conjunto passa a custar mais, e uma divisão com material novo bate-se com mais força do que a mesma
+    /// divisão com material de origem. No fim repõe as tecnologias e a marca como estavam.</summary>
+    private static string SmokeMarks(World w, Country c, Division mine)
+    {
+        int type = w.KitNeed(mine.TemplateId).FirstOrDefault().UnitTypeId;
+        var list = Marks.All(w, type);
+        if (list.Count == 0) return "sem tabela de marcas";
+        string nome = type.ToString();
+        try { nome = w.Units.GetUnitType(type).Name; } catch { /* tipo sem ficha */ }
+
+        float abertaAntes = Marks.Open(w, c, type);
+        var keptTechs = new HashSet<string>(c.Techs);
+        float keptMark = mine.Mark;
+
+        var linha = new ProductionOrder { UnitTypeId = type, Mark = abertaAntes, Efficiency = 1.4f };
+        float custoAntes = w.OrderCost(linha);
+
+        foreach (var m in list) if (m.TechId.Length > 0) c.Techs.Add(m.TechId);
+        float abertaDepois = Marks.Open(w, c, type);
+        var (marcaNova, ritmo) = Marks.Retool(w, c, type, linha.Mark, linha.Efficiency);
+        linha.Mark = marcaNova;
+        float custoDepois = w.OrderCost(linha);
+
+        mine.Mark = list[0].Mark;  float forcaVelha = Marks.PowerMult(w, mine);
+        mine.Mark = abertaDepois;  float forcaNova = Marks.PowerMult(w, mine);
+        float desgaste = Marks.WearMult(w, mine);
+
+        mine.Mark = keptMark;
+        c.Techs.Clear(); foreach (var t in keptTechs) c.Techs.Add(t);
+
+        return $"{w.EquipmentMarks.Count} na tabela, {list.Count} para {nome} "
+             + $"({string.Join(" → ", list.Select(m => $"{Marks.Roman(m.Mark)} {m.Name}"))}); "
+             + $"aberta {Marks.Describe(w, type, abertaAntes)}, com a investigação toda {Marks.Describe(w, type, abertaDepois)}; "
+             + $"a linha reafina-se de {Marks.Roman((int)abertaAntes)} para {Marks.Roman((int)marcaNova)} "
+             + $"(ritmo {linha.Efficiency:0.00} → {ritmo:0.00}, conjunto {custoAntes:0.00} → {custoDepois:0.00}); "
+             + $"a divisão bate-se ×{forcaVelha:0.00} com a de origem e ×{forcaNova:0.00} com a última "
+             + $"(desgaste ×{desgaste:0.00})";
     }
 
     /// <summary>--smoke: a rede — carris e depósitos. Diz quantas regiões do mundo têm via e de que nível,

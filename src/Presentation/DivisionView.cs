@@ -173,6 +173,17 @@ public static class DivisionView
                         + "o armazém do país repõe-no todos os dias, se lá houver material";
         h.AddChild(kit);
         h.AddChild(Ui.Bar(d.Kit, d.Kit >= 0.6f ? Ui.Accent : Ui.Danger, 90f));
+        // a marca do material: o que a investigação abriu só conta quando chega às mãos desta divisão
+        if (d.Mark > 0f && w.EquipmentMarks.Count > 0)
+        {
+            float mult = Marks.PowerMult(w, d);
+            var mk = Ui.Lbl(Marks.Roman((int)MathF.Round(d.Mark)), 15);
+            mk.AddThemeColorOverride("font_color", mult >= 1.15f ? Ui.Good : mult >= 1.01f ? Ui.Accent : Ui.TextDim);
+            mk.TooltipText = $"marca do material: {d.Mark:0.0}\n"
+                           + $"bate-se a {mult:P0} da força pelo equipamento que leva\n"
+                           + "sobe quando recebe reforços da prateleira nova — a frente anda atrás do laboratório";
+            h.AddChild(mk);
+        }
         var sup = Ui.Lbl($"Sup {d.Supply:0.0}", 15);
         if (d.Supply < 1f) sup.AddThemeColorOverride("font_color", Ui.Danger);
         h.AddChild(sup);
