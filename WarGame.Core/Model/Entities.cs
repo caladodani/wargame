@@ -541,6 +541,23 @@ public sealed class NavalMission
     public string Name { get; set; } = "";
 }
 
+/// <summary>Uma operação anfíbia a preparar (NavalInvasionSystem; save s_naval_invasion). Marca a praia
+/// inimiga, a costa nossa de embarque e a tropa que vai — e conta os dias até estar pronta. Enquanto
+/// prepara, a tropa fica no cais: não marcha nem aceita ordens de marcha.</summary>
+public sealed class NavalInvasion
+{
+    public int CountryId { get; init; }
+    public int TargetId { get; init; }
+    public int FromId { get; init; }
+    /// <summary>Preparação feita, 0..1. A 1 a operação larga assim que houver mar e mercantes.</summary>
+    public float Prep { get; set; }
+    public int SinceDay { get; init; }
+    /// <summary>Nome próprio da operação (formation_name), como as asas e as esquadras têm.</summary>
+    public string Name { get; set; } = "";
+    /// <summary>A tropa embarcada, por id de divisão (save s_naval_invasion_division).</summary>
+    public List<int> DivisionIds { get; } = new();
+}
+
 /// <summary>Uma encomenda na fila: divisão inteira de um template. Progress em pontos gastos.</summary>
 public sealed class ProductionOrder
 {
@@ -891,6 +908,10 @@ public sealed class Division
     public float DropDays { get; set; }
     /// <summary>Vai a caminho do salto: nem marcha, nem se lhe muda o destino.</summary>
     public bool InFlight => DropDays > 0f;
+    /// <summary>Vai numa operação anfíbia largada hoje (NavalInvasionSystem; save s_division.seaborne). É a
+    /// única maneira de assaltar uma praia inimiga: sem esta marca, uma divisão que chega ao mar pára na
+    /// costa. Apaga-se ao pisar terra, seja a tomá-la ou a bater à porta.</summary>
+    public bool Seaborne { get; set; }
     /// <summary>Vai em redespacho estratégico: atravessa a retaguarda pelos carris em vez de marchar
     /// (MovementSystem; save s_division.redeploy). Anda muito mais depressa, paga organização ao embarcar e
     /// quase não se recompõe pelo caminho — e o comboio pára sozinho se a frente lhe cortar a linha.</summary>
@@ -901,7 +922,10 @@ public sealed class Division
     public int? DestinationRegionId => Path.Count > 0 ? Path[^1] : null;
     public bool CanFight => Org >= 10f && Hp > 0f;
 
-    public void SetPath(IEnumerable<int> hops) { Path.Clear(); Path.AddRange(hops); MoveProgress = 0f; }
-    public void ClearPath() { Path.Clear(); MoveProgress = 0f; }
+    // A marca do assalto é um bilhete de uma viagem só: qualquer ordem nova apaga-a, e quem a quer põe-na
+    // depois de traçar a rota (NavalInvasionSystem.Launch). Sem isto, uma operação largada uma vez dava
+    // assaltos de graça para sempre.
+    public void SetPath(IEnumerable<int> hops) { Path.Clear(); Path.AddRange(hops); MoveProgress = 0f; Seaborne = false; }
+    public void ClearPath() { Path.Clear(); MoveProgress = 0f; Seaborne = false; }
     public void AdvanceHop() { if (Path.Count > 0) Path.RemoveAt(0); MoveProgress = 0f; }
 }

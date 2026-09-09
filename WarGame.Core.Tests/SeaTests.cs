@@ -7,6 +7,12 @@ using Xunit;
 namespace WarGame.Core.Tests;
 
 /// <summary>Ligações marítimas (sea_link): caminho, dias por distância e IA além-mar.
+///
+/// A travessia para uma praia deles já não é uma ordem de marcha: é uma operação anfíbia
+/// (NavalInvasionSystem). O caminho por mar continua a existir e os dias de travessia continuam a ser os
+/// mesmos — o que mudou foi quem põe a coluna no mar. Por isso estes testes largam a operação com o
+/// <see cref="Assault"/> e depois medem a travessia como sempre mediram.
+///
 /// Mapa: ilha A (regiões 1-2, país 1) e ilha B (3-4, país 2), travessia 2↔3.</summary>
 public class SeaTests
 {
@@ -27,6 +33,19 @@ public class SeaTests
         return w;
     }
 
+    /// <summary>Marca a operação sobre a praia e adianta-a até ao dia da largada — é a operação que põe a
+    /// coluna no mar, e sem ela nenhuma ordem de marcha atravessa para costa inimiga.</summary>
+    private static void Assault(World w, int target, params int[] ids)
+    {
+        var cmd = new PlanNavalInvasionCommand(1, target, ids.ToList());
+        Assert.Null(cmd.Validate(w));
+        cmd.Execute(w);
+        var inv = w.NavalInvasions.Single(i => i.CountryId == 1 && i.TargetId == target);
+        inv.Prep = 1f;
+        new NavalInvasionSystem().Tick(w);
+        Assert.Empty(w.NavalInvasions);            // largou: a tropa vai a caminho da praia
+    }
+
     [Fact]
     public void FindPath_CrossesSea_OnlyWhenTransitable()
     {
@@ -35,8 +54,9 @@ public class SeaTests
         // Em paz o território do país 2 não é transitável — sem caminho.
         Assert.NotNull(new MoveDivisionCommand(1, 1, 4).Validate(w));
         w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
-        Assert.Null(new MoveDivisionCommand(1, 1, 4).Validate(w));
+        // Em guerra o caminho por mar existe — o que é recusado é dar a travessia como ordem de marcha.
         Assert.Equal(new List<int> { 2, 3, 4 }, MoveDivisionCommand.FindPath(w, 1, 4, 1));
+        Assert.Contains("anfíbia", new MoveDivisionCommand(1, 1, 4).Validate(w) ?? "");
     }
 
     [Fact]
@@ -45,7 +65,7 @@ public class SeaTests
         var w = Islands(km: 1200f);   // 1200 / 400 = 3 dias
         w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
         var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 2);
-        new MoveDivisionCommand(1, 1, 3).Execute(w);
+        Assault(w, 3, d.Id);
         var sys = new MovementSystem();
         sys.Tick(w); sys.Tick(w);
         Assert.Equal(2, d.RegionId);   // ainda a atravessar
@@ -60,7 +80,7 @@ public class SeaTests
         var w = Islands(km: 100f);   // 100/400 < 1, mas sea_min_days = 2
         w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
         var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 2);
-        new MoveDivisionCommand(1, 1, 3).Execute(w);
+        Assault(w, 3, d.Id);
         var sys = new MovementSystem();
         sys.Tick(w);
         Assert.Equal(2, d.RegionId);
@@ -92,7 +112,8 @@ public class SeaTests
         w.Register(new AiSystem());
         int period = Math.Max(1, (int)w.Rule("ai_period_days", 3));
         for (int i = 0; i < 2 * period; i++) w.Tick();
-        Assert.True(d.Path.Count > 0 || d.RegionId >= 3);   // embarcou (ou já desembarcou) rumo à ilha B
+        // a IA já não manda a coluna a nado: marca a praia e a tropa fica no cais a preparar-se
+        Assert.True(NavalInvasionSystem.Embarked(w, d.Id) || d.Path.Count > 0 || d.RegionId >= 3);
     }
 }
 

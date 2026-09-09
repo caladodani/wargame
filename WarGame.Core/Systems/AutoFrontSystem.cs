@@ -21,6 +21,7 @@ public sealed class AutoFrontSystem : ISystem
         {
             if (!d.AutoAdvance || d.Path.Count > 0 || d.Org < minOrg || !d.CanFight) continue;
             if (w.InBattle(d.Id)) continue;
+            if (NavalInvasionSystem.Embarked(w, d.Id)) continue;   // embarcada: espera a operação, não avança
             if (!w.Countries.TryGetValue(d.CountryId, out var c) || c.Capitulated) continue;
             if (!w.Regions.TryGetValue(d.RegionId, out var here)) continue;
 

@@ -1379,6 +1379,19 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_invasion_max_divs',3,'divisões a assaltar a mesma praia ao mesmo tempo'),
  ('naval_invasion_marine',0.8,'força do atacante que vem do mar quando são fuzileiros (marca anfibio)');
 
+-- Operação anfíbia (NavalInvasionSystem): uma praia inimiga deixou de se tomar de improviso. Marca-se o
+-- alvo, embarca-se a tropa e espera-se — a preparação leva invasion_prep_days com uma divisão e mais
+-- invasion_prep_per_div por cada uma a mais, porque desembarcar cinco divisões não é cinco vezes desembarcar
+-- uma. Enquanto prepara, a tropa fica no cais e não marcha. E no dia em que está pronta ainda tem de haver
+-- as duas coisas que fazem uma invasão possível: mercantes livres para a levar (invasion_convoys_per_div) e
+-- mar nosso à chegada (invasion_sea_share da força naval da zona) — sem isso a operação espera no porto.
+INSERT INTO rule (key,value,note) VALUES
+ ('invasion_prep_days',12,'dias de preparação de uma operação anfíbia com uma divisão só'),
+ ('invasion_prep_per_div',4,'dias que cada divisão a mais acrescenta à preparação'),
+ ('invasion_convoys_per_div',2,'mercantes presos por cada divisão embarcada'),
+ ('invasion_sea_share',0.5,'fatia da força naval da zona que a operação exige para largar'),
+ ('ai_invasion_min_divisions',2,'divisões que a IA junta na costa antes de marcar uma praia');
+
 -- Salto de pára-quedas (ParadropSystem): quem tem a marca `airborne` na ficha não precisa de estrada nem
 -- de praia — salta por cima da frente e cai na retaguarda do outro. O transporte prende asas ao voo
 -- (paradrop_wings por divisão) durante paradrop_days dias, o alcance é em saltos de região a partir da

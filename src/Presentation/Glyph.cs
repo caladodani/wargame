@@ -51,6 +51,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         // o céu por modelos: a seta que caça, a prancha que bombardeia e o gordo que leva carga
         // (as outras — asa, drone, bomba, alvo, paraquedas — já cá estavam)
         "caca", "bombardeiro", "carga",
+        // a operação anfíbia: a barcaça com a rampa em baixo sobre a areia
+        "praia",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -576,6 +578,17 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Poly(0.66f, 0.50f, 0.66f, 0.38f, 0.76f, 0.38f, 0.76f, 0.50f);
                 Line(0.71f, 0.38f, 0.71f, 0.28f);
                 Poly(0.24f, 0.34f, 0.40f, 0.34f, 0.32f, 0.44f, 0.24f, 0.34f);
+                break;
+
+            // Barcaça de desembarque: o casco chato ainda na água, a rampa já descida sobre a areia e dois
+            // homens a sair por ela. É a chapa da operação anfíbia — o mar a entregar terra.
+            case "praia":
+                Poly(0.06f, 0.40f, 0.44f, 0.40f, 0.44f, 0.64f, 0.12f, 0.64f, 0.06f, 0.40f);   // casco
+                Line(0.44f, 0.46f, 0.70f, 0.68f, 1.15f);                                       // rampa descida
+                Line(0.34f, 0.78f, 0.94f, 0.56f);                                              // a areia a subir
+                Dot(0.60f, 0.44f, 0.055f); Dot(0.78f, 0.50f, 0.055f);                          // quem sai por ela
+                Arc(0.16f, 0.82f, 0.10f, Mathf.Pi, Mathf.Tau);                                 // água por baixo
+                Arc(0.04f, 0.82f, 0.10f, 0f, Mathf.Pi);
                 break;
 
             case "onda":

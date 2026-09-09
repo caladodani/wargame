@@ -91,6 +91,12 @@ public sealed record ParadropLaunched(int DivisionId, int CountryId, int FromReg
 public sealed record ParadropLanded(int DivisionId, int CountryId, int RegionId, bool Captured) : IGameEvent;
 /// <summary>O salto foi por água abaixo em voo (o chão deixou de estar livre) e a tropa voltou ao ponto de partida.</summary>
 public sealed record ParadropAborted(int DivisionId, int CountryId, int RegionId, string Why) : IGameEvent;
+/// <summary>Operação anfíbia marcada: a praia escolhida e a tropa embarcada no cais (NavalInvasionSystem).</summary>
+public sealed record NavalInvasionPlanned(int CountryId, int TargetId, int FromId, int Divisions, string Name) : IGameEvent;
+/// <summary>A operação largou: preparação feita, mercantes livres e mar nosso — a tropa vai a caminho da praia.</summary>
+public sealed record NavalInvasionLaunched(int CountryId, int TargetId, int FromId, int Divisions, string Name) : IGameEvent;
+/// <summary>A operação morreu antes de largar (sem tropa, praia já nossa, ou desmarcada pelo comando).</summary>
+public sealed record NavalInvasionCancelled(int CountryId, int TargetId, string Why) : IGameEvent;
 /// <summary>Um país controla ≥ victory_pop_share da população mundial (VictorySystem, uma vez por jogo).</summary>
 public sealed record WorldDominated(int CountryId) : IGameEvent;
 /// <summary>Template desenhado em jogo (CreateTemplateCommand).</summary>

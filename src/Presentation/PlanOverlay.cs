@@ -13,6 +13,10 @@ namespace WarGame.Presentation;
 /// avançar, com o corpo aberto a defender) e o enchimento da seta é a preparação do plano: uma seta vazia
 /// é um estado-maior que acabou de receber ordens, uma seta cheia é uma ofensiva pronta a partir.
 ///
+/// A operação anfíbia desenha-se com a mesma seta, do cais para a praia, e pela mesma razão: é uma ordem que
+/// leva semanas a amadurecer e o enchimento diz quanto lhe falta. É a seta que o HoI4 põe no mar quando se
+/// marca uma invasão — e sem ela a maior ordem do jogo só existia dentro de um painel.
+///
 /// Só lê o World (BattlePlanSystem faz as contas) e vive dentro do MapView, em coordenadas de mundo, por
 /// isso acompanha o pan e o zoom sem contas nossas. As etiquetas é que se encolhem ao contrário do zoom,
 /// como os marcadores das regiões.</summary>
@@ -65,14 +69,18 @@ public partial class PlanOverlay : Node2D
                 .Where(g => g.CountryId == pid && BattlePlanSystem.Plans(g) && g.Divisions.Count > 0)
                 .OrderBy(g => g.Id).ToList();
 
+            var landings = NavalInvasionSystem.Of(w, pid);
+
             string key = string.Join(";", plans.Select(g =>
-                $"{g.Id}:{(int)g.Stance}:{g.FrontCountryId}:{(int)(g.Planning * 20f)}:{string.Join(",", Regions(w, g).OrderBy(x => x))}"));
+                $"{g.Id}:{(int)g.Stance}:{g.FrontCountryId}:{(int)(g.Planning * 20f)}:{string.Join(",", Regions(w, g).OrderBy(x => x))}"))
+                + "|" + string.Join(";", landings.Select(i => $"{i.FromId}>{i.TargetId}:{(int)(i.Prep * 20f)}:{i.DivisionIds.Count}"));
             if (key == _painted) return;
             _painted = key;
 
             _arrows.Clear();
             Ui.Clear(_tagRoot);
             foreach (var g in plans) Build(w, g);
+            foreach (var inv in landings) Build(w, inv);
             QueueRedraw();
         }
         catch (Exception ex) { GD.PushError("PlanOverlay: " + ex); }
@@ -112,6 +120,36 @@ public partial class PlanOverlay : Node2D
         var tag = new Node2D { Position = from.Lerp(target, 0.5f), Scale = Vector2.One * _tagScale };
         var lbl = Ui.Lbl(text, 15);
         lbl.AddThemeColorOverride("font_color", tint.Lightened(0.5f));
+        lbl.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.9f));
+        lbl.AddThemeConstantOverride("outline_size", 5);
+        var box = new PanelContainer { Position = new Vector2(-90, -34) };
+        box.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.05f, 0.06f, 0.08f, 0.72f), 4));
+        box.AddChild(lbl);
+        tag.AddChild(box);
+        _tagRoot.AddChild(tag);
+    }
+
+    /// <summary>A seta da operação anfíbia: do cais onde a tropa espera para a praia que vai assaltar, com o
+    /// enchimento a dar a preparação — a mesma leitura da seta de plano, que é o que o HoI4 desenha quando
+    /// se marca uma invasão. Sem ela, a maior ordem do jogo só existia dentro de um painel: no mapa não se
+    /// via nem de onde partia nem para onde ia, e uma operação esquecida ficava semanas a prender tropa sem
+    /// ninguém dar por ela.</summary>
+    private void Build(World w, NavalInvasion inv)
+    {
+        if (!w.Regions.TryGetValue(inv.FromId, out var port) || !w.Regions.TryGetValue(inv.TargetId, out var beach)) return;
+        var from = Center(port); var target = Center(beach);
+        if (target.DistanceTo(from) < 1f) return;
+
+        float days = NavalInvasionSystem.Days(w, inv.DivisionIds.Count);
+        int left = (int)MathF.Ceiling((1f - inv.Prep) * days);
+        string text = inv.Prep >= 1f
+            ? $"{inv.Name} · {NavalInvasionSystem.Hold(w, inv) ?? "larga hoje"}"
+            : $"{inv.Name} · preparação {inv.Prep:P0}" + (left > 0 ? $" (~{left} d)" : "");
+        _arrows.Add(new Arrow(from, target, inv.Prep, Ui.Danger, true, text));
+
+        var tag = new Node2D { Position = from.Lerp(target, 0.5f), Scale = Vector2.One * _tagScale };
+        var lbl = Ui.Lbl(text, 15);
+        lbl.AddThemeColorOverride("font_color", Ui.Danger.Lightened(0.5f));
         lbl.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.9f));
         lbl.AddThemeConstantOverride("outline_size", 5);
         var box = new PanelContainer { Position = new Vector2(-90, -34) };

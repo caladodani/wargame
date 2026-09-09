@@ -99,7 +99,18 @@ public sealed record MoveDivisionCommand(int CountryId, int DivisionId, int Targ
         if (d.RegionId == TargetRegionId) return "Já está lá";
         if (d.InFlight) return "Em voo — só depois de aterrar";
         if (w.InBattle(DivisionId)) return "Em combate";
-        if (FindPath(w, d.RegionId, TargetRegionId, CountryId) is null) return "Sem caminho por terra ou mar: só por território próprio, aliado ou inimigo";
+        if (NavalInvasionSystem.Embarked(w, DivisionId)) return "Embarcada numa operação anfíbia";
+        var path = FindPath(w, d.RegionId, TargetRegionId, CountryId);
+        if (path is null) return "Sem caminho por terra ou mar: só por território próprio, aliado ou inimigo";
+        // Uma ordem de marcha atravessa o mar para terra nossa ou de aliado; assaltar uma praia inimiga é
+        // outra coisa e tem comando próprio (PlanNavalInvasionCommand).
+        int at = d.RegionId;
+        foreach (int hop in path)
+        {
+            if (w.IsSeaHop(at, hop) && w.IsHostile(CountryId, w.Regions[hop]))
+                return "Praia inimiga: isso é uma operação anfíbia, não uma ordem de marcha";
+            at = hop;
+        }
         return null;
     }
 
@@ -1671,5 +1682,31 @@ public sealed record DismissGeneralCommand(int CountryId, string GeneralId) : IC
             if (g.CountryId == CountryId && g.GeneralId == GeneralId) g.GeneralId = null;   // dispensado não fica a comandar
         World.ApplyGenerals(w, c);
         w.Events.Publish(new GeneralDismissed(CountryId, GeneralId));
+    }
+}
+
+/// <summary>Marca uma operação anfíbia: escolhe a praia inimiga e embarca a tropa que está no cais. A partir
+/// daqui a tropa não marcha nem aceita ordens de marcha — fica a preparar-se, e larga sozinha no dia em que
+/// a preparação, os mercantes e o mar deixarem (NavalInvasionSystem). Chamar outra vez com divisões novas
+/// engrossa a operação que já lá está (e atrasa-a, que juntar gente demora).</summary>
+public sealed record PlanNavalInvasionCommand(int CountryId, int TargetRegionId, List<int> DivisionIds) : ICommand
+{
+    public string? Validate(World w) => NavalInvasionSystem.Block(w, CountryId, TargetRegionId, DivisionIds);
+
+    public void Execute(World w) => NavalInvasionSystem.Plan(w, CountryId, TargetRegionId, DivisionIds);
+}
+
+/// <summary>Desmarca a operação: a tropa fica onde está, livre para marchar, e a preparação perde-se toda.</summary>
+public sealed record CancelNavalInvasionCommand(int CountryId, int TargetRegionId) : ICommand
+{
+    public string? Validate(World w) =>
+        w.NavalInvasions.Any(i => i.CountryId == CountryId && i.TargetId == TargetRegionId)
+            ? null : "não há operação marcada sobre essa praia";
+
+    public void Execute(World w)
+    {
+        var inv = w.NavalInvasions.First(i => i.CountryId == CountryId && i.TargetId == TargetRegionId);
+        w.NavalInvasions.Remove(inv);
+        w.Events.Publish(new NavalInvasionCancelled(CountryId, TargetRegionId, "desmarcada pelo comando"));
     }
 }

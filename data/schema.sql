@@ -356,6 +356,16 @@ CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar
   ships REAL NOT NULL, since_day INTEGER NOT NULL,
   name TEXT NOT NULL DEFAULT '',              -- nome próprio da esquadra (formation_name)
   PRIMARY KEY (country_id, region_id));
+CREATE TABLE IF NOT EXISTS s_naval_invasion (   -- operações anfíbias a preparar (save)
+  country_id INTEGER, target_id INTEGER,      -- a praia inimiga que se vai assaltar
+  from_id INTEGER NOT NULL,                   -- a costa nossa de onde se embarca
+  prep REAL NOT NULL,                         -- preparação feita, 0..1
+  since_day INTEGER NOT NULL,
+  name TEXT NOT NULL DEFAULT '',              -- nome próprio da operação (formation_name)
+  PRIMARY KEY (country_id, target_id));
+CREATE TABLE IF NOT EXISTS s_naval_invasion_division (  -- tropa embarcada nessa operação (save)
+  country_id INTEGER, target_id INTEGER, division_id INTEGER,
+  PRIMARY KEY (country_id, target_id, division_id));
 CREATE TABLE IF NOT EXISTS ship_class (      -- classes de navio (Navy); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   role TEXT NOT NULL,                         -- 'escolta' | 'linha' | 'caca' — o que se lê na ficha

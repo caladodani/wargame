@@ -465,6 +465,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_division", "drop_target", "INTEGER"),
         ("s_division", "drop_days", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "redeploy", "INTEGER NOT NULL DEFAULT 0"),
+        ("s_division", "seaborne", "INTEGER NOT NULL DEFAULT 0"),
     };
 
     public static bool HasSave(IDatabase save) =>
@@ -653,6 +654,20 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (nm.Squadron.ContainsKey("")) nm.Squadron.Clear();
                 nm.Squadron[(string)r["class_id"]!] = Convert.ToSingle(r["count"]);
             }
+        // operações anfíbias a preparar: a tropa embarcada vem a seguir, e uma operação que ficou sem tropa
+        // nenhuma não se carrega — era uma praia marcada sem ninguém para lá ir
+        foreach (var r in save.Query("SELECT country_id,target_id,from_id,prep,since_day,name FROM s_naval_invasion"))
+            w.NavalInvasions.Add(new NavalInvasion
+            {
+                CountryId = Convert.ToInt32(r["country_id"]), TargetId = Convert.ToInt32(r["target_id"]),
+                FromId = Convert.ToInt32(r["from_id"]), Prep = Convert.ToSingle(r["prep"]),
+                SinceDay = Convert.ToInt32(r["since_day"]), Name = r["name"] as string ?? "",
+            });
+        foreach (var r in save.Query("SELECT country_id,target_id,division_id FROM s_naval_invasion_division"))
+            if (w.NavalInvasions.FirstOrDefault(i => i.CountryId == Convert.ToInt32(r["country_id"])
+                                                     && i.TargetId == Convert.ToInt32(r["target_id"])) is NavalInvasion inv)
+                inv.DivisionIds.Add(Convert.ToInt32(r["division_id"]));
+        w.NavalInvasions.RemoveAll(i => i.DivisionIds.Count == 0);
         // saves feitos antes de haver nomes de formação trazem as missões com a coluna vazia (é o DEFAULT ''
         // da migração): baptizam-se aqui, senão a asa ficava para sempre "asa sem nome" na ficha da Guerra
         foreach (var m in w.AirMissions.Where(m => m.Name.Length == 0).ToList())
@@ -691,7 +706,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["rail_progress"] is not null) reg.RailProgress = Convert.ToSingle(r["rail_progress"]);
             if (r["project_owner"] is not null) reg.ProjectOwner = Convert.ToInt32(r["project_owner"]);
         }
-        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy FROM s_division ORDER BY id"))
+        foreach (var r in save.Query("SELECT id,country_id,template_id,region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy,seaborne FROM s_division ORDER BY id"))
         {
             var d = new Division
             {
@@ -714,6 +729,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (r["path"] is string p && p.Length > 0) d.SetPath(p.Split(',').Select(int.Parse));
             // o comboio a meio caminho guarda-se, mas só enquanto houver caminho: sem rota não há redespacho
             if (r["redeploy"] is not null) d.Redeploying = Convert.ToInt32(r["redeploy"]) != 0 && d.Path.Count > 0;
+            // e a operação anfíbia a meio da travessia pela mesma razão: sem rota não há assalto nenhum
+            if (r["seaborne"] is not null) d.Seaborne = Convert.ToInt32(r["seaborne"]) != 0 && d.Path.Count > 0;
             d.MoveProgress = Convert.ToSingle(r["move_progress"]);
             w.AddDivision(d);
         }
@@ -799,7 +816,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_naval_mission", "s_naval_mission_ship", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -879,6 +896,14 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var (cls, n) in c.Ships.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
                     save.Execute("INSERT INTO s_ship (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
+        foreach (var inv in w.NavalInvasions)
+        {
+            save.Execute("INSERT INTO s_naval_invasion (country_id,target_id,from_id,prep,since_day,name) VALUES (?,?,?,?,?,?)",
+                inv.CountryId, inv.TargetId, inv.FromId, inv.Prep, inv.SinceDay, inv.Name);
+            foreach (int id in inv.DivisionIds)
+                save.Execute("INSERT INTO s_naval_invasion_division (country_id,target_id,division_id) VALUES (?,?,?)",
+                    inv.CountryId, inv.TargetId, id);
+        }
         foreach (var o in w.Occupations)
             save.Execute("INSERT INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
                 o.CountryId, o.TargetId, o.PolicyId, o.SinceDay);
@@ -950,10 +975,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var d in w.Divisions.Values)
         {
             // colunas nomeadas: a tabela cresce por migração e um INSERT posicional partia-se à coluna seguinte
-            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
+            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy,seaborne)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
-                d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays, d.Redeploying ? 1 : 0);
+                d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays, d.Redeploying ? 1 : 0, d.Seaborne ? 1 : 0);
             foreach (var medal in d.Medals)
                 save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
             if (d.Kit < 1f || d.Mark > 0f) save.Execute("INSERT INTO s_division_kit (division_id,kit,mark) VALUES (?,?,?)", d.Id, d.Kit, d.Mark);

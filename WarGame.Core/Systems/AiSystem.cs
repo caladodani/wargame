@@ -618,18 +618,23 @@ public sealed class AiSystem : ISystem
             if (!frontIds.Contains(regionId) && nearest.TryGetValue(regionId, out var dest)) Send(w, c, g, dest);
     }
 
-    /// <summary>Desembarque planeado a partir de uma costa nossa. Bater da praia vale só
-    /// naval_invasion_penalty da força, por isso exige-se mais vantagem do que em terra
-    /// (ai_naval_ratio) e mais organização do que o mínimo legal (ai_naval_org_margin acima de
-    /// naval_invasion_min_org, para a travessia não a gastar toda). Embarcam no máximo
-    /// naval_invasion_max_divs — as que sobram ficam a guardar a costa em vez de esperar ao largo.
-    /// Costa inimiga vazia é a preferida: toma-se sem combate.</summary>
+    /// <summary>Operação anfíbia a partir de uma costa nossa. Já não se manda a tropa marchar para dentro do
+    /// mar: marca-se a praia (PlanNavalInvasionCommand) e a operação leva as suas semanas a preparar-se,
+    /// como a do jogador. Bater da praia vale só naval_invasion_penalty da força, por isso exige-se mais
+    /// vantagem do que em terra (ai_naval_ratio) e mais organização do que o mínimo legal
+    /// (ai_naval_org_margin acima de naval_invasion_min_org, para a travessia não a gastar toda). Embarcam
+    /// no máximo naval_invasion_max_divs. Costa inimiga vazia é a preferida — toma-se sem combate e chega-lhe
+    /// uma divisão; para uma praia defendida a IA junta primeiro ai_invasion_min_divisions.
+    ///
+    /// Um cais só prepara uma operação de cada vez: sem isso a IA remarcava a mesma praia todos os dias e
+    /// nunca deixava a preparação passar do primeiro dia.</summary>
     private static void Landing(World w, Country c, Region from, List<Division> g,
         Dictionary<int, Dictionary<int, int>> fighters)
     {
         if (from.SeaNeighbours.Count == 0) return;
+        if (w.NavalInvasions.Any(i => i.CountryId == c.Id && i.FromId == from.Id)) return;
         float minOrg = w.Rule("naval_invasion_min_org", 45f) + w.Rule("ai_naval_org_margin", 20f);
-        var ready = g.Where(d => d.Org >= minOrg && d.Path.Count == 0).ToList();
+        var ready = g.Where(d => d.Org >= minOrg && d.Path.Count == 0 && !NavalInvasionSystem.Embarked(w, d.Id)).ToList();
         if (ready.Count == 0) return;
 
         Region? target = null; int best = int.MaxValue;
@@ -643,8 +648,12 @@ public sealed class AiSystem : ISystem
         if (target is null) return;
 
         int wave = Math.Max(1, (int)w.Rule("naval_invasion_max_divs", 3f));
+        int need = best == 0 ? 1 : Math.Max(1, (int)w.Rule("ai_invasion_min_divisions", 2f));
+        if (ready.Count < need) return;
         if (best > 0 && ready.Count < best * w.Rule("ai_naval_ratio", 3f)) return;
-        Send(w, c, ready.Take(best == 0 ? 1 : wave), target.Id);
+        var force = ready.Take(best == 0 ? 1 : wave).Select(d => d.Id).ToList();
+        var cmd = new Commands.PlanNavalInvasionCommand(c.Id, target.Id, force);
+        if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
     /// <summary>Corpo expedicionário: sem frente própria mas em guerra, as divisões paradas vão

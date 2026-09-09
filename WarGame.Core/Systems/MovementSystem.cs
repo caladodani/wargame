@@ -26,6 +26,11 @@ public sealed class MovementSystem : ISystem
             var target = w.Regions[d.Path[0]];
             var origin = w.Regions[d.RegionId];
             bool bySea = w.IsSeaHop(origin.Id, target.Id);
+            // Uma praia inimiga não se toma de improviso: só entra no mar quem vai numa operação anfíbia
+            // largada (NavalInvasionSystem). Sem a marca, a coluna nem sai do cais — dizer que não ao fim de
+            // três dias de mar seria pior do que dizê-lo já.
+            if (bySea && !d.Seaborne && w.IsHostile(d.CountryId, target))
+            { d.ClearPath(); w.Events.Publish(new LandingAborted(d.Id, target.Id)); continue; }
             d.MoveProgress += 1f / HopDays(w, d, origin, target);
             if (d.MoveProgress < 1f) continue;
 
@@ -127,9 +132,13 @@ public sealed class MovementSystem : ISystem
         d.MoveProgress = 1f;   // fica na origem; entra no tick a seguir à vitória
     }
 
-    /// <summary>Desembarcar desorganiza a tropa: perde naval_invasion_org_cost de organização.</summary>
-    private static void Disembark(World w, Division d) =>
+    /// <summary>Desembarcar desorganiza a tropa: perde naval_invasion_org_cost de organização. E acaba ali a
+    /// operação anfíbia — quem pisa terra deixa de ir embarcado.</summary>
+    private static void Disembark(World w, Division d)
+    {
         d.Org = MathF.Max(0f, d.Org - w.Rule("naval_invasion_org_cost", 25f));
+        d.Seaborne = false;
+    }
 
     /// <summary>Assalto a uma costa inimiga: só embarca quem tem organização acima de
     /// naval_invasion_min_org (senão desiste e fica em casa) e cabem naval_invasion_max_divs

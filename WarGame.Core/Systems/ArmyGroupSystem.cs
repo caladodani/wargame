@@ -46,6 +46,7 @@ public sealed class ArmyGroupSystem : ISystem
             {
                 var d = w.Divisions[id];
                 if (d.Path.Count > 0 || d.Org < minOrg || !d.CanFight || w.InBattle(d.Id)) continue;
+                if (NavalInvasionSystem.Embarked(w, d.Id)) continue;   // embarcada numa operação anfíbia: fica no cais
                 if (!dist.TryGetValue(d.RegionId, out int here)) continue;   // frente fora de alcance
                 if (Target(w, d, g.Stance, here, dist, defenders) is int hop)
                     new MoveDivisionCommand(d.CountryId, d.Id, hop).Execute(w);

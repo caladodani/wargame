@@ -4,8 +4,9 @@ using Xunit;
 
 namespace WarGame.Core.Tests;
 
-/// <summary>A IA a planear desembarques: exige vantagem maior do que em terra (bate da praia),
-/// guarda organização para a travessia e não manda mais do que cabe na praia.
+/// <summary>A IA a marcar operações anfíbias: exige vantagem maior do que em terra (bate da praia),
+/// guarda organização para a travessia, junta ai_invasion_min_divisions antes de assaltar praia defendida
+/// e não embarca mais do que cabe na praia.
 /// Mapa: ilha A (1-2, país 1) e ilha B (3-4, país 2), travessia 2↔3.</summary>
 public class AiLandingTests
 {
@@ -33,8 +34,11 @@ public class AiLandingTests
         for (int i = 0; i < n; i++) TestWorld.AddDivision(w, next + i, 1, TestWorld.Inf, 2, org: org);
     }
 
-    private static List<Division> Sailing(World w) =>
-        w.Divisions.Values.Where(d => d.CountryId == 1 && d.TargetRegionId == 3).ToList();
+    /// <summary>A tropa que a IA embarcou numa operação sobre a praia deles. Já não se pergunta quem vai a
+    /// caminho da região 3: desde que a invasão passou a ser planeada, a IA marca a praia e a tropa fica no
+    /// cais a preparar-se — é a operação que diz quem embarcou, não a rota.</summary>
+    private static List<int> Sailing(World w) =>
+        w.NavalInvasions.Where(i => i.CountryId == 1 && i.TargetId == 3).SelectMany(i => i.DivisionIds).ToList();
 
     [Fact]
     public void EmptyBeach_GetsASingleDivision()

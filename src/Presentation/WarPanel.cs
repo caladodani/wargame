@@ -161,7 +161,7 @@ public partial class WarPanel : PanelContainer
 
             if (_tab == 0) Theatres(w, pid);
             if (_tab == 1) AirWar(w, pid);
-            if (_tab == 2) SeaWar(w, pid);
+            if (_tab == 2) { SeaWar(w, pid); Invasions(w, pid); }
             if (_tab == 3) Attaches(w, pid);
             if (_tab == 4) LendLease(w, pid);
 
@@ -394,7 +394,9 @@ public partial class WarPanel : PanelContainer
         + string.Join("-", w.NavalMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
             .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Ships:0.0}"))
         + ":" + (NavalMissionSystem.Target(w, pid)?.ToString() ?? "-")
-        + $":cv{ConvoySystem.Available(w, pid):0.#}/{ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0.#}/{ConvoySystem.GroundedCount(w, pid)}";
+        + $":cv{ConvoySystem.Available(w, pid):0.#}/{ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0.#}/{ConvoySystem.GroundedCount(w, pid)}"
+        + ":in" + string.Join("-", w.NavalInvasions.Where(i => i.CountryId == pid).OrderBy(i => i.TargetId)
+            .Select(i => $"{i.FromId}>{i.TargetId}:{i.DivisionIds.Count}:{i.Prep:0.00}"));
 
     /// <summary>Guerra naval: o mar era um cano de abastecimento que ninguém podia cortar. A secção mostra a
     /// frota (no porto / no mar / o que custa por dia), as esquadras destacadas com o mar que está disputado
@@ -557,6 +559,110 @@ public partial class WarPanel : PanelContainer
         var err = _game.Dispatch(new RecallNavalMissionCommand(pid, regionId));
         if (err is not null) { _game.Notify(err); return; }
         _game.Notify((port.Length > 0 ? port : "Esquadra") + $" de volta de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
+
+    /// <summary>Operações anfíbias: a secção que faltava ao mar. Até aqui uma divisão parada numa costa nossa
+    /// recebia ordem de marcha para a costa deles e atravessava o mar como quem atravessa uma estrada — sem
+    /// transporte, sem escolta e sem decisão nenhuma pelo meio. Agora marca-se a praia, embarca-se a tropa e
+    /// espera-se: a preparação leva semanas, os mercantes ficam presos e a operação só larga com o mar
+    /// daquela zona na nossa mão.
+    ///
+    /// Vive ao lado da guerra naval de propósito: é aqui que se vê para que serve ter ganho o mar.</summary>
+    private void Invasions(World w, int pid)
+    {
+        var mine = NavalInvasionSystem.Of(w, pid);
+        Header("Operações anfíbias");
+        var (box, card) = Card();
+        float per = w.Rule("invasion_convoys_per_div", 2f);
+        var head = Ui.Lbl($"⛵ {NavalInvasionSystem.FreeConvoys(w, pid):0} mercantes livres   ·   "
+                          + $"{NavalInvasionSystem.Booked(w, pid):0} presos a operações   ·   {per:0} por divisão embarcada", 16);
+        head.TooltipText = "Uma operação prende os mercantes desde o dia em que é marcada até ao dia em que larga: "
+                           + "é tonelagem que deixa de abastecer a frente e de carregar contratos.";
+        card.AddChild(head);
+
+        foreach (var inv in mine)
+        {
+            string beach = w.Regions.TryGetValue(inv.TargetId, out var br) ? br.Name : "praia";
+            string port = w.Regions.TryGetValue(inv.FromId, out var pr) ? pr.Name : "cais";
+            int target = inv.TargetId;
+            var title = new HBoxContainer(); title.AddThemeConstantOverride("separation", 6);
+            title.AddChild(Glyph.Make("praia", 18f, Ui.Accent, "operação anfíbia a preparar"));
+            title.AddChild(Ui.Grow(Ui.Lbl($"{inv.Name} — {inv.DivisionIds.Count} divis{(inv.DivisionIds.Count == 1 ? "ão" : "ões")}"
+                                          + $" de {port} sobre {beach}", 18)));
+            if (OnShowRegion is not null) title.AddChild(Ui.Btn("Ver", () => Show(target), 90));
+            title.AddChild(Ui.Btn("Desmarcar", () => CancelInvasion(pid, target), 150));
+            card.AddChild(title);
+
+            float days = NavalInvasionSystem.Days(w, inv.DivisionIds.Count);
+            Gauge(card, "Preparação", inv.Prep, Ui.Danger.Lerp(Ui.Good, inv.Prep),
+                  inv.Prep >= 1f ? "pronta" : $"faltam {MathF.Ceiling((1f - inv.Prep) * days):0} de {days:0} dias");
+            float share = NavalInvasionSystem.SeaShare(w, pid, inv.TargetId);
+            Gauge(card, "Mar da zona", share, Ui.Danger.Lerp(Ui.Good, share), $"{share:P0} nosso");
+            string state = inv.Prep < 1f ? "a preparar-se: a tropa embarcada não marcha nem aceita ordens"
+                                         : NavalInvasionSystem.Hold(w, inv) is string why ? "pronta, mas " + why
+                                         : "larga hoje";
+            var lbl = Ui.Lbl(state, 15);
+            lbl.AddThemeColorOverride("font_color", inv.Prep >= 1f && NavalInvasionSystem.Hold(w, inv) is null ? Ui.Good : Ui.TextDim);
+            card.AddChild(lbl);
+        }
+
+        // marcar uma nova: os cais nossos com tropa parada e costa inimiga do outro lado
+        int max = Math.Max(1, (int)w.Rule("naval_invasion_max_divs", 3f));
+        int shown = 0;
+        foreach (var port in w.Regions.Values
+                     .Where(r => r.ControllerId == pid && r.SeaNeighbours.Count > 0)
+                     .OrderByDescending(r => r.DivisionIds.Count).ThenBy(r => r.Id))
+        {
+            if (shown >= 3) break;
+            var force = port.DivisionIds
+                .Where(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid && !d.InFlight
+                             && d.CanFight && !w.InBattle(id) && !NavalInvasionSystem.Embarked(w, id))
+                .OrderByDescending(id => w.Divisions[id].Org).Take(max).ToList();
+            var beaches = NavalInvasionSystem.Beaches(w, pid, port.Id);
+            if (force.Count == 0 || beaches.Count == 0) continue;
+            shown++;
+
+            card.AddChild(Ui.Lbl($"Cais {port.Name}: {force.Count} divis{(force.Count == 1 ? "ão pronta" : "ões prontas")}"
+                                 + $"   ·   {beaches.Count} praia{(beaches.Count == 1 ? "" : "s")} ao alcance", 15));
+            foreach (var beach in beaches.Take(3))
+            {
+                int rid = beach.Id;
+                var ids = force.ToList();
+                string? no = NavalInvasionSystem.Block(w, pid, rid, ids);
+                var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+                var b = Ui.Btn($"    Marcar {beach.Name} ({ids.Count} div, {NavalInvasionSystem.Days(w, ids.Count):0} dias)",
+                               () => PlanInvasion(pid, rid, ids), 0, no is null ? Ui.Kind.Primary : Ui.Kind.Normal);
+                Glyph.Stamp(b, "praia", no is null ? Ui.Ink : Ui.Accent);
+                b.Disabled = no is not null;
+                b.TooltipText = no ?? $"{beach.DivisionIds.Count} divis{(beach.DivisionIds.Count == 1 ? "ão" : "ões")} a guardar a praia"
+                                      + $"   ·   {NavalInvasionSystem.Convoys(w, ids.Count):0} mercantes presos até largar";
+                row.AddChild(Ui.Grow(b));
+                if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
+                card.AddChild(row);
+            }
+        }
+        if (mine.Count == 0 && shown == 0)
+            card.AddChild(Ui.Lbl("Nenhuma praia ao alcance: é preciso tropa parada num cais nosso com costa "
+                                 + "inimiga do outro lado do mar.", 16));
+        _body.AddChild(box);
+    }
+
+    private void PlanInvasion(int pid, int regionId, List<int> divisionIds) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new PlanNavalInvasionCommand(pid, regionId, divisionIds));
+        if (err is not null) { _game.Notify(err); return; }
+        var inv = _game.World.NavalInvasions.FirstOrDefault(i => i.CountryId == pid && i.TargetId == regionId);
+        _game.Notify($"{inv?.Name ?? "Operação"} marcada sobre {_game.World.Regions[regionId].Name}"
+                     + $" — {NavalInvasionSystem.Days(_game.World, inv?.DivisionIds.Count ?? 1):0} dias de preparação");
+        _lastKey = ""; Fill();
+    });
+
+    private void CancelInvasion(int pid, int regionId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new CancelNavalInvasionCommand(pid, regionId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"Operação sobre {_game.World.Regions[regionId].Name} desmarcada: a tropa volta a marchar");
         _lastKey = ""; Fill();
     });
 

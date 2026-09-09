@@ -252,6 +252,10 @@ public sealed class World
     public Dictionary<string, NavalMissionDef> NavalMissionDefs { get; } = new();
     public List<NavalMission> NavalMissions { get; } = new();
 
+    /// <summary>Operações anfíbias a preparar (NavalInvasionSystem; save s_naval_invasion). Uma por
+    /// (país, praia alvo): marcar a mesma praia outra vez engrossa a operação que já lá está.</summary>
+    public List<NavalInvasion> NavalInvasions { get; } = new();
+
     /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
     public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
 
