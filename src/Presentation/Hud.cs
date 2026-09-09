@@ -1339,6 +1339,12 @@ public partial class Hud : CanvasLayer
         var para = w.Divisions.Values.Where(d => d.CountryId == pid && ParadropSystem.IsAirborne(w, d))
                                      .OrderBy(d => d.Id).FirstOrDefault();
         if (para is null) return $"sem pára-quedistas nossos ({world} no mundo)";
+        // --smoke: o salto passou a pedir transportes a sério (um céu de caças não larga ninguém); se o
+        // hangar não os tem, põem-se lá à mão — a prova é a divisão aterrar, não o cofre
+        float lift = w.Rule("paradrop_wings", 3f);
+        if (AirMissionSystem.Free(w, pid, "transport") < lift
+            && Air.Choose(w, float.MaxValue, "transport") is string carga && carga.Length > 0)
+            w.Countries[pid].Planes[carga] = w.Countries[pid].Planes.GetValueOrDefault(carga) + lift;
         int range = (int)w.Rule("paradrop_range_hops", 4f);
         var reach = ParadropSystem.Reach(w, para.RegionId, range);
         string name = DivisionView.Title(w, para);
