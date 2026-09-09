@@ -99,6 +99,9 @@ public sealed class World
     public Dictionary<string, OutlineSectionDef> OutlineSections { get; } = new();
     /// <summary>Famílias de fonte dos modificadores (tabela stat_source), pela ordem em que se mostram.</summary>
     public Dictionary<string, StatSourceDef> StatSourceDefs { get; } = new();
+    /// <summary>A cara de cada levantamento (tabela rebel_style): partido → nome, tag, cor e manchete do
+    /// país que nasce quando o golpe parte o país em dois (CivilWar).</summary>
+    public Dictionary<string, RebelStyleDef> RebelStyles { get; } = new();
     /// <summary>O que cada decisão multiplica enquanto corre (tabela decision_effect).</summary>
     public Dictionary<string, List<(string Key, float Mult)>> DecisionEffects { get; } = new();
     /// <summary>As portas de cada decisão (tabela decision_req).</summary>

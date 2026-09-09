@@ -23,12 +23,13 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
 
         var byTag = new Dictionary<string, Country>();
-        foreach (var r in _static.Query("SELECT id,tag,name,capital_region_id FROM country"))
+        foreach (var r in _static.Query("SELECT id,tag,name,capital_region_id,color FROM country"))
         {
             var c = new Country
             {
                 Id = Convert.ToInt32(r["id"]), Tag = (string)r["tag"]!, Name = (string)r["name"]!,
                 CapitalRegionId = r["capital_region_id"] is null ? 0 : Convert.ToInt32(r["capital_region_id"]),
+                Colour = r["color"] as string ?? "",
             };
             w.Countries[c.Id] = c; byTag[c.Tag] = c;
         }
@@ -299,6 +300,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM stat_source ORDER BY sort"))
             w.StatSourceDefs[(string)r["id"]!] = new StatSourceDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT party_id,name,tag,colour,glyph,cry FROM rebel_style ORDER BY party_id"))
+            w.RebelStyles[(string)r["party_id"]!] = new RebelStyleDef((string)r["party_id"]!, (string)r["name"]!,
+                (string)r["tag"]!, (string)r["colour"]!, (string)r["glyph"]!, (string)r["cry"]!);
         foreach (var r in _static.Query("SELECT id,name,glyph,target,sort FROM outline_section ORDER BY sort"))
             w.OutlineSections[(string)r["id"]!] = new OutlineSectionDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["glyph"]!, (string)r["target"]!, Convert.ToInt32(r["sort"]));
@@ -577,6 +581,26 @@ public sealed class SqlWorldRepository : IWorldRepository
             if ((string)r["key"]! == "day") for (int i = 0; i < Convert.ToInt32(r["value"]); i++) w.Clock.Advance();
             else if ((string)r["key"]! == "difficulty") w.ApplyDifficulty((string)r["value"]!);
         }
+        // Países nascidos de uma guerra civil (CivilWar). A identidade destes não está na static.db — está
+        // aqui — e tem de entrar ANTES de tudo o resto: há terra, tropa, governo e guerras que já são deles.
+        foreach (var r in save.Query("SELECT id,parent_id,tag,name,party,colour,capital_region_id,born_day FROM s_rebel ORDER BY id"))
+        {
+            int rid = Convert.ToInt32(r["id"]);
+            if (w.Countries.ContainsKey(rid)) continue;
+            var reb = new Country
+            {
+                Id = rid, Tag = (string)r["tag"]!, Name = (string)r["name"]!, Colour = r["colour"] as string ?? "",
+                CapitalRegionId = Convert.ToInt32(r["capital_region_id"]),
+            };
+            reb.RebelOf = Convert.ToInt32(r["parent_id"]);
+            reb.BornDay = Convert.ToInt32(r["born_day"]);
+            reb.Party = (string)r["party"]!;
+            // as características são as de casa: quem se levantou levou os quartéis e as fábricas do pai
+            if (w.Countries.TryGetValue(reb.RebelOf, out var parent))
+                foreach (var (k, v) in parent.Stats.All) reb.Stats[k] = v;
+            w.Countries[rid] = reb;
+        }
+
         // Templates desenhados em jogo — antes das divisões, que podem referenciá-los.
         foreach (var r in save.Query("SELECT id,country_id,name FROM template ORDER BY id"))
         {
@@ -989,7 +1013,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_tank_design", "s_tank_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_country_party", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_tank_design", "s_tank_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_country_party", "s_exile", "s_rebel" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -1140,9 +1164,14 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
         foreach (var c in w.Countries.Values)
         {
+            // quem nasceu de uma guerra civil grava a identidade: sem esta linha o save reabria sem ele e a
+            // terra, a tropa e a guerra dele ficavam órfãs
+            if (c.RebelOf != 0)
+                save.Execute("INSERT INTO s_rebel (id,parent_id,tag,name,party,colour,capital_region_id,born_day) VALUES (?,?,?,?,?,?,?,?)",
+                    c.Id, c.RebelOf, c.Tag, c.Name, c.Party, c.Colour, c.CapitalRegionId, c.BornDay);
             // países sem estado nenhum não gastam linha; o lugar na tabela mundial não os obriga a ter uma
             // (o PowerRankingSystem refá-la em power_rank_days), mas o do jogador vai sempre com o save
-            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f || c.Convoys != 0f || c.LastDefeatDay >= 0 || c.IsSubject)
+            if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f || c.Convoys != 0f || c.LastDefeatDay >= 0 || c.IsSubject || c.RebelOf != 0)
                 save.Execute("INSERT INTO s_country (id,is_player,money,political,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     c.Id, c.IsPlayer ? 1 : 0, c.Money, c.Political, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Warships, c.Convoys, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp, c.AirXp, c.NavyXp, c.DefeatStreak, c.LastDefeatDay, c.LastDefeatRegion, c.Fuel, c.OverlordId, c.Autonomy);
             // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a

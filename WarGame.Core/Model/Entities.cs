@@ -322,6 +322,11 @@ public sealed record OutlineSectionDef(string Id, string Name, string Glyph, str
 /// existem é a tabela; o StatLedger só as preenche.</summary>
 public sealed record StatSourceDef(string Id, string Name, string Glyph, int Sort);
 
+/// <summary>A cara de um levantamento (tabela rebel_style): quando o golpe vira guerra civil, é daqui que
+/// sai o nome do país que nasce ({pais} = o nome de quem se partiu), a letra da tag, a cor no mapa, a chapa
+/// e a manchete do dia. Um partido sem linha aqui não chega a partir o país — dá golpe e fica-se por isso.</summary>
+public sealed record RebelStyleDef(string PartyId, string Name, string Tag, string Colour, string Glyph, string Cry);
+
 /// <summary>Nome de uma característica de país (tabela country_stat_def): como se chama e que chapa leva
 /// a chave que leis, espíritos, conselheiros, tecnologias e decisões multiplicam.</summary>
 public sealed record CountryStatDef(string Key, string Name, string Note, string Glyph, int Sort);
@@ -801,6 +806,14 @@ public sealed class Country
     public int NextElection { get; set; }
     /// <summary>Multiplicadores do partido no governo (World.ApplyParty recalcula ao mudar de governo).</summary>
     public Dictionary<string, float> PartyMult { get; } = new();
+    /// <summary>Cor deste país no mapa (country.color, ou rebel_style.colour para quem nasceu de uma guerra
+    /// civil). Vazio = o mapa escolhe cinzento.</summary>
+    public string Colour { get; set; } = "";
+    /// <summary>Se este país nasceu de uma guerra civil, o país de quem se levantou; 0 = país de sempre.
+    /// É a única identidade que não vem da static.db — vive no save (tabela s_rebel).</summary>
+    public int RebelOf { get; set; }
+    /// <summary>Dia em que o levantamento rebentou (só para quem tem RebelOf).</summary>
+    public int BornDay { get; set; }
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)

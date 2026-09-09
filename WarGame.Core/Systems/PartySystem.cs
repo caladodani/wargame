@@ -57,7 +57,8 @@ public sealed class PartySystem : ISystem
         if (w.PartyDefs.Count == 0) return;
         int term = Term(w);
 
-        foreach (var c in w.Countries.Values)
+        // cópia da lista: um golpe pode partir o país em dois e acrescentar um país ao mundo a meio da volta
+        foreach (var c in w.Countries.Values.ToList())
         {
             if (c.Parties.Count == 0) World.SettleParties(w, c);
             if (c.Capitulated) continue;   // um país capitulado não vota nem se revolta: não tem casa própria
@@ -68,9 +69,15 @@ public sealed class PartySystem : ISystem
 
             var ruling = w.PartyDefs.GetValueOrDefault(c.Party);
 
-            // Golpe primeiro: quem toma o poder pela rua não espera pela data das urnas.
+            // Golpe primeiro: quem toma o poder pela rua não espera pela data das urnas. Num país com terra
+            // que chegue para dois governos, o golpe não muda de cadeiras — parte o país em dois (CivilWar).
             if (CoupCandidate(w, c) is string usurper)
             {
+                if (CivilWar.Erupt(w, c, usurper) is Country rebel)
+                {
+                    w.Events.Publish(new CivilWarBroke(c.Id, rebel.Id, usurper));
+                    continue;
+                }
                 string from = c.Party;
                 c.Party = usurper;
                 c.Stability = MathF.Max(0f, c.Stability - w.Rule("coup_stability_hit", 15f));

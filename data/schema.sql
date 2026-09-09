@@ -655,3 +655,12 @@ CREATE TABLE IF NOT EXISTS s_research (        -- ranhuras de investigação ocu
   tech_id TEXT NOT NULL,                        -- tecnologia nesta ranhura
   progress REAL NOT NULL DEFAULT 0,             -- dias acumulados × research_speed
   PRIMARY KEY (country_id, tech_id));
+
+CREATE TABLE IF NOT EXISTS s_rebel (          -- países nascidos de uma guerra civil (CivilWar)
+  id INTEGER PRIMARY KEY,                       -- id do país novo (acima de todos os da static.db)
+  parent_id INTEGER NOT NULL,                   -- de quem se levantou
+  tag TEXT NOT NULL, name TEXT NOT NULL,
+  party TEXT NOT NULL,                          -- o partido que se levantou (party.id)
+  colour TEXT NOT NULL DEFAULT '',              -- cor no mapa (rebel_style.colour)
+  capital_region_id INTEGER NOT NULL DEFAULT 0,
+  born_day INTEGER NOT NULL DEFAULT 0);

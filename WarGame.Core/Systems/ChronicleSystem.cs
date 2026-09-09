@@ -58,6 +58,11 @@ public sealed class ChronicleSystem : ISystem
             Write(w, "dominio", $"{Who(w, e.CountryId)} manda no mundo inteiro.", e.CountryId));
         w.Events.Subscribe<NukeStruck>(e =>
             Write(w, "bomba", $"Bomba atómica de {Who(w, e.AttackerId)} sobre {Place(w, e.RegionId)}: {e.DivisionsHit} divisões apanhadas.", e.AttackerId, e.RegionId));
+        w.Events.Subscribe<CivilWarBroke>(e =>
+        {
+            if (w.Countries.TryGetValue(e.ParentId, out var parent) && w.Countries.TryGetValue(e.RebelId, out var rebel))
+                Write(w, "guerracivil", CivilWar.Headline(w, parent, rebel, e.Party), e.ParentId, rebel.CapitalRegionId);
+        });
         w.Events.Subscribe<RegionRevolted>(e =>
             Write(w, "revolta", $"{Place(w, e.RegionId)} levanta-se contra {Who(w, e.OldController)}.", e.OldController, e.RegionId));
         w.Events.Subscribe<DivisionHonoured>(e =>

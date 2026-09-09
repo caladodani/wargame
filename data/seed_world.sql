@@ -1998,3 +1998,37 @@ INSERT INTO stat_source (id,name,glyph,sort) VALUES
  ('recurso','Recurso','barril',10),
  ('edificio','Edifício','bigorna',11),
  ('prisioneiro','Prisioneiros','corrente',12);
+
+-- ===== A guerra civil (0.3.81) =====
+-- No HoI4 um golpe não é uma troca de cadeiras: o país PARTE-SE. Metade das províncias levanta a outra
+-- bandeira, as guarnições que lá estão mudam de lado, e as duas metades batem-se até uma cair. Aqui o
+-- golpe era silencioso — trocava-se o partido no poder e o mapa nem piscava. Estas linhas são a cara de
+-- cada levantamento: como se chama o país que nasce, que letra leva a chapa, de que cor se pinta no mapa
+-- e o que os jornais escrevem no dia. Nenhum destes nomes vive em C#.
+CREATE TABLE IF NOT EXISTS rebel_style (
+  party_id TEXT PRIMARY KEY,        -- o partido que se levanta (party.id)
+  name TEXT NOT NULL,               -- nome do país rebelde; {pais} é o nome de quem se partiu
+  tag TEXT NOT NULL,                -- primeira letra da tag do país novo (as outras duas vêm do pai)
+  colour TEXT NOT NULL DEFAULT '#8a2b2b',
+  glyph TEXT NOT NULL DEFAULT '',
+  cry TEXT NOT NULL DEFAULT '');    -- a manchete do dia em que a coisa rebenta
+INSERT INTO rebel_style (party_id,name,tag,colour,glyph,cry) VALUES
+ ('liberais','{pais} Democrático','D','#3f7fbf','balanca',
+  'as praças da capital não se esvaziaram e metade do país deixou de obedecer ao governo'),
+ ('nacionalistas','Frente Nacional de {pais}','N','#8a6b2b','bandeira',
+  'as guarnições da fronteira içaram outra bandeira e marcharam sobre as suas próprias cidades'),
+ ('socialistas','República Popular de {pais}','S','#a52a2a','punho',
+  'os comités das fábricas tomaram as províncias do interior e declararam-se governo'),
+ ('autoritarios','Junta Militar de {pais}','J','#4f5b4a','capacete',
+  'o estado-maior das províncias de fora fechou os quartéis ao governo e assumiu o comando');
+
+INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('guerracivil','Guerra civil','⚔',3,'brecha');
+
+INSERT INTO rule (key,value,note) VALUES
+ ('civil_war_min_regions',4,'províncias que um país tem de controlar para o golpe virar guerra civil em vez de troca de governo'),
+ ('civil_war_share_min',0.2,'fatia mínima das províncias que o levantamento leva'),
+ ('civil_war_share_max',0.65,'fatia máxima das províncias que o levantamento leva'),
+ ('civil_war_stability_hit',30,'estabilidade que o país mãe perde no dia em que o país se parte'),
+ ('civil_war_rebel_stability',45,'estabilidade com que o país rebelde nasce'),
+ ('civil_war_rebel_political',0,'poder político com que o país rebelde nasce'),
+ ('civil_war_purge',25,'pontos de popularidade que o partido levantado perde na parte que fica ao governo');

@@ -212,6 +212,9 @@ public sealed record SubjectFreed(int SubjectId, int OverlordId) : IGameEvent;
 public sealed record ElectionHeld(int CountryId, string From, string To, bool Changed) : IGameEvent;
 /// <summary>Golpe: um partido da oposição com o país pelas ruas tomou o governo sem passar por urnas.</summary>
 public sealed record CoupHappened(int CountryId, string From, string To) : IGameEvent;
+/// <summary>O golpe não coube num país só: metade das províncias levantou outra bandeira e nasceu um país
+/// novo (CivilWar). Os dois ficam em guerra no mesmo dia.</summary>
+public sealed record CivilWarBroke(int ParentId, int RebelId, string Party) : IGameEvent;
 
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus

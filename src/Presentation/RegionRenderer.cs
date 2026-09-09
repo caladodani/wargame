@@ -247,8 +247,17 @@ public partial class RegionRenderer : Node2D
         _railRoot.Visible = Layer("carris") && _zoom >= RailZoom;
     }
 
-    /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
-    public Color CountryColor(int countryId) => _countryColor.GetValueOrDefault(countryId, Colors.Gray);
+    /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo). Um país nascido a
+    /// meio do jogo — a metade que se levantou numa guerra civil — não existia quando o mapa se construiu:
+    /// a cor dele vem da ficha do próprio país (rebel_style.colour) e fica aqui aprendida, senão o
+    /// levantamento pintava-se de cinzento em cima do cinzento do vizinho.</summary>
+    public Color CountryColor(int countryId)
+    {
+        if (_countryColor.TryGetValue(countryId, out var known)) return known;
+        if (_game?.World.Countries.GetValueOrDefault(countryId) is Country born && born.Colour.Length > 0)
+            try { return _countryColor[countryId] = new Color(born.Colour); } catch { /* cor mal escrita: cinzento */ }
+        return Colors.Gray;
+    }
 
     /// <summary>Cor da moldura da região: um risco discreto na cor do controlador, que separa regiões do
     /// mesmo país. A fronteira nacional não se desenha aqui — ver PaintFrontier.</summary>
@@ -598,7 +607,7 @@ public partial class RegionRenderer : Node2D
         // Fora do mapa político manda a conta: quente onde há muito, aço frio onde não há resposta.
         if (_metric != "owner")
             return _shades.TryGetValue(regionId, out float t) ? Ui.Heat(t) : Ui.Surface.Darkened(0.45f);
-        var c = _countryColor.GetValueOrDefault(r.ControllerId, Colors.Gray);
+        var c = CountryColor(r.ControllerId);
         return r.ControllerId == r.OwnerId ? c : c.Darkened(0.28f);   // ocupada: tom escuro do ocupante
     }
 
@@ -657,7 +666,7 @@ public partial class RegionRenderer : Node2D
         if (_stripes.Remove(regionId, out var old)) old.QueueFree();
         if (!occupied) return;
 
-        var owner = _countryColor.GetValueOrDefault(w.Regions[regionId].OwnerId, Colors.White);
+        var owner = CountryColor(w.Regions[regionId].OwnerId);
         if (Bands(regionId, out var verts, out var faces) is 0) return;
         var poly = new Polygon2D
         {
@@ -877,7 +886,7 @@ public partial class RegionRenderer : Node2D
             _counterRoot.AddChild(counter);
         }
         counter.Position = new Vector2(r.CenterX, r.CenterY);
-        counter.Set(_countryColor.GetValueOrDefault(owner, Colors.Gray),
+        counter.Set(CountryColor(owner),
                     w.Countries.TryGetValue(owner, out var oc) ? Flags.Of(oc.Tag) : null,
                     UnitCounter.KindOf(tags),
                     known ? group.Count : shown,
@@ -936,7 +945,7 @@ public partial class RegionRenderer : Node2D
             if (!_countryNames.TryGetValue(id, out var node)) _countryNames[id] = node = NewCountryName();
             // países grandes levam letra maior; a cor é a do país, clareada para se ler por cima do mapa
             int size = (int)Mathf.Clamp(MathF.Sqrt(area) * 0.16f, 16f, 64f);
-            node.Set(c.Name, points, _countryColor.GetValueOrDefault(id, Colors.White).Lightened(0.55f), size);
+            node.Set(c.Name, points, CountryColor(id).Lightened(0.55f), size);
         }
         foreach (var (id, node) in _countryNames)
         {
@@ -1018,7 +1027,7 @@ public partial class RegionRenderer : Node2D
     private StyleBoxFlat PillFor(int countryId)
     {
         if (_pillStyle.TryGetValue(countryId, out var box)) return box;
-        var c = _countryColor.GetValueOrDefault(countryId, Colors.Gray);
+        var c = CountryColor(countryId);
         return _pillStyle[countryId] = new StyleBoxFlat
         {
             BgColor = c.Darkened(0.72f) with { A = 0.82f },
@@ -1051,7 +1060,7 @@ public partial class RegionRenderer : Node2D
         if (_labelStyle.TryGetValue(countryId, out var s)) return s;
         return _labelStyle[countryId] = new LabelSettings
         {
-            FontSize = 28, FontColor = _countryColor.GetValueOrDefault(countryId, Colors.White),
+            FontSize = 28, FontColor = CountryColor(countryId),
             OutlineSize = 6, OutlineColor = Colors.Black,
         };
     }

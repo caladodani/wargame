@@ -227,6 +227,9 @@ public partial class CountryPanel : PanelContainer
                 // quem as vai assinar — e mostra-se de toda a gente, que a política do vizinho é notícia
                 if (PartyView.Card(w, c, mine, id => Faction(new PushPartyCommand(c.Id, id))) is PanelContainer opinion)
                     _body.AddChild(opinion);
+                // e logo a seguir a ruptura: um país à beira de se partir ao meio, ou já partido, é a maior
+                // notícia que a política dele tem para dar
+                if (CivilWarView.Card(w, c) is PanelContainer rachar) _body.AddChild(rachar);
                 if (!mine && _game.PlayerId is int me && w.Countries.TryGetValue(me, out var my))
                 {
                     string Cmp(string k) { float d = c.Stat(k) - my.Stat(k); return MathF.Abs(d) < 0.005f ? "=" : d > 0 ? "▲" : "▼"; }
