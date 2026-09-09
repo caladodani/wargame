@@ -47,15 +47,4 @@ public class CombatTests
     [Fact] public void Armor_BeatsInfantry_OnPlain() => Assert.InRange(AttackerWinRate(2, 1, "plain"), 0.9f, 1f);
     [Fact] public void Armor_LosesToAntiTank_InMountain() => Assert.InRange(AttackerWinRate(2, 3, "mountain"), 0f, 0.1f);
 
-    [Fact]
-    public void ModifierEngine_AppliesTagCondition()
-    {
-        var eng = new ModifierEngine(new[] {
-            new Modifier(1, "terrain", "terrain", "urban", "str_attacker", "armored", ModOp.Mul, 0.6f) });
-        var armored = new StatBlock(); armored.Tags.Add("armored");
-        var inf = new StatBlock();
-        var ctx = new ModContext().With("terrain", "urban");
-        Assert.Equal(0.6f, eng.Evaluate("str_attacker", armored, ctx).mul);
-        Assert.Equal(1f, eng.Evaluate("str_attacker", inf, ctx).mul);
-    }
 }

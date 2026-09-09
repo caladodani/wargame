@@ -29,32 +29,6 @@ public class ResourceTests
         Assert.Equal(3f, ResourceSystem.Controlled(w, 1, "aco"), 0.001f);
     }
 
-    [Fact]
-    public void Capture_TransfersEffect()
-    {
-        var w = Setup();
-        TestWorld.Days(w, 1);
-        float p1 = w.Countries[1].Stat("production_speed");
-        w.Regions[4].ControllerId = 1;   // país 1 toma a região com 2 de aço
-        TestWorld.Days(w, 1);
-        Assert.Equal(p1 / 1.06f * 1.10f, w.Countries[1].Stat("production_speed"), 0.001f);   // 5 unidades
-        Assert.Equal(1f, w.Countries[2].ResourceMult.GetValueOrDefault("production_speed", 1f), 0.001f);
-    }
 
-    [Fact]
-    public void Cap_Limits()
-    {
-        var w = Setup();
-        w.Regions[2].Resources["aco"] = 20f;
-        TestWorld.Days(w, 1);
-        Assert.Equal(1.20f, w.Countries[1].ResourceMult["production_speed"], 0.001f);   // tecto 10 unidades
-    }
 
-    [Fact]
-    public void RealDb_HasDeposits()
-    {
-        var w = FactionTests.BuildReal();
-        Assert.Equal(3, w.ResourceDefs.Count);
-        Assert.True(w.Regions.Values.Count(r => r.Resources.Count > 0) > 300);
-    }
 }

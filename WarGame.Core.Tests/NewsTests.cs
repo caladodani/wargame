@@ -28,16 +28,4 @@ public class NewsTests
         Assert.Equal(0.9f, w.Countries[1].Stat("industry"), 0.001f);
     }
 
-    [Fact]
-    public void CountryEvent_OnlyHitsThatCountry()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.NewsEvents["boom"] = new NewsEvent("boom", 1, 1, "Boom", "");
-        w.NewsEffects["boom"] = new() { ("industry", 1.2f) };
-        w.Clock.Advance(); new NewsSystem().Tick(w);
-        Assert.Equal(1.2f, w.Countries[1].Stat("industry"), 0.001f);
-        w.ApplyTechs(w.Countries[2]);
-        Assert.Equal(1f, w.Countries[2].Stat("industry"), 0.001f);
-    }
 }

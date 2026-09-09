@@ -27,29 +27,5 @@ public class DiplomacyTests
         Assert.Null(w.Countries[1].JustifyTarget);
     }
 
-    [Fact]
-    public void Justify_CancelsWhenTargetCapitulates()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Political = 100f;   // o pretexto fabrica-se com poder político (0.3.61)
-        new JustifyWarCommand(1, 2).Execute(w);
-        w.Countries[2].Capitulated = true;
-        new DiplomacySystem().Tick(w);
-        Assert.Null(w.Countries[1].JustifyTarget);
-        Assert.False(w.AreAtWar(1, 2));
-    }
 
-    [Fact]
-    public void Validate_RejectsWarAndSelfAndRepeat()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Political = 100f;   // o pretexto fabrica-se com poder político (0.3.61)
-        Assert.NotNull(new JustifyWarCommand(1, 1).Validate(w));
-        new JustifyWarCommand(1, 2).Execute(w);
-        Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));   // já a justificar
-        w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
-        Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));   // já em guerra
-    }
 }

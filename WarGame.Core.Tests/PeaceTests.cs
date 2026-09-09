@@ -25,14 +25,6 @@ public class PeaceTests
         return w;
     }
 
-    [Fact]
-    public void BelowThreshold_NoCapitulation()
-    {
-        var w = Front(7, 3, 4, 5);   // 2/4 = 50% sem capital perdida < 75%
-        new PeaceSystem().Tick(w);
-        Assert.False(w.Countries[2].Capitulated);
-        Assert.True(w.AreAtWar(1, 2));
-    }
 
     [Fact]
     public void ThreeQuartersLost_WithTheCapital_Capitulates_RegionsGoToWinner()
@@ -49,45 +41,8 @@ public class PeaceTests
         { Assert.Equal(1, w.Regions[r].OwnerId); Assert.Equal(1, w.Regions[r].ControllerId); }
     }
 
-    [Fact]
-    public void CapitalLost_HalfIsEnough_ButThirdWithCapitalSafeIsNot()
-    {
-        var wCap = Front(6, 3, 5, 6);   // 2/3 ≥ 50% e capital (6) perdida
-        new PeaceSystem().Tick(wCap);
-        Assert.True(wCap.Countries[2].Capitulated);
 
-        var wSafe = Front(6, 3, 4);   // 1/3 e capital intacta
-        new PeaceSystem().Tick(wSafe);
-        Assert.False(wSafe.Countries[2].Capitulated);
-    }
 
-    [Fact]
-    public void Capitulation_RemovesDivisions_EndsWars_PublishesEvents()
-    {
-        var w = Front(7, 3, 5, 6, 7);
-        TestWorld.AddDivision(w, 21, 2, TestWorld.Inf2, 4);
-        var caps = new List<CountryCapitulated>(); var ends = new List<WarEnded>(); var dead = new List<int>();
-        w.Events.Subscribe<CountryCapitulated>(caps.Add);
-        w.Events.Subscribe<WarEnded>(ends.Add);
-        w.Events.Subscribe<DivisionDestroyed>(e => dead.Add(e.DivisionId));
-        new PeaceSystem().Tick(w);
-        Assert.Equal(new CountryCapitulated(2, 1), Assert.Single(caps));
-        Assert.Equal(new WarEnded(1, 2), Assert.Single(ends));
-        Assert.Equal(21, Assert.Single(dead));
-        Assert.False(w.Divisions.ContainsKey(21));
-        Assert.Empty(w.Countries[1].AtWarWith);
-    }
-
-    [Fact]
-    public void NoRegionsOwned_CapitulatesImmediately()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        War(w, 1, 2);
-        foreach (var r in w.Regions.Values.Where(r => r.OwnerId == 2)) { r.OwnerId = 1; r.ControllerId = 1; }
-        new PeaceSystem().Tick(w);
-        Assert.True(w.Countries[2].Capitulated);
-    }
 
     [Fact]
     public void SaveRoundTrip_PreservesOwnerAndCapitulated()

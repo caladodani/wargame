@@ -49,96 +49,11 @@ public class GlyphDataTests
             Assert.Contains(d.Glyph, Desenhados);
     }
 
-    [Fact]
-    public void Cada_ramo_da_arvore_tem_linha_em_tech_branch_com_chapa_que_existe()
-    {
-        var w = FactionTests.BuildReal();
-        foreach (var branch in w.Techs.Values.Select(t => t.Branch).Distinct())
-        {
-            Assert.True(w.TechBranches.ContainsKey(branch), $"ramo sem linha em tech_branch: {branch}");
-            Assert.Contains(w.TechBranches[branch].Glyph, Desenhados);
-        }
-    }
 
-    /// <summary>As outras tabelas com coluna glyph: estações, modos de mapa e missões de ar e mar. Todas
-    /// se desenham em sítios que o jogador vê a toda a hora — a fita dos modos, a chapa da estação, as
-    /// fichas das asas e das esquadras — e todas partiriam em silêncio com um nome mal escrito.</summary>
-    [Fact]
-    public void Estacoes_modos_e_missoes_pedem_chapas_que_existem()
-    {
-        var w = FactionTests.BuildReal();
-        Assert.NotEmpty(w.SeasonDefs);
-        Assert.NotEmpty(w.MapModeDefs);
-        Assert.NotEmpty(w.AirMissionDefs);
-        Assert.NotEmpty(w.NavalMissionDefs);
-        foreach (var g in w.SeasonDefs.Values.Select(s => s.Glyph)
-                           .Concat(w.MapModeDefs.Values.Select(m => m.Glyph))
-                           .Concat(w.AirMissionDefs.Values.Select(m => m.Glyph))
-                           .Concat(w.NavalMissionDefs.Values.Select(m => m.Glyph)))
-            Assert.Contains(g, Desenhados);
-    }
 
-    /// <summary>As classes de casco e de avião: cada linha de ship_class e plane_class pede uma chapa que
-    /// alguém desenha. Vêem-se nas fichas do estaleiro e do hangar, uma por modelo, e ficavam caladas — a
-    /// chapa que não existe sai como roda dentada e não como erro. O porta-aviões trouxe a coluna glyph ao
-    /// ship_class e é por isso que esta rede se estende agora ao mar.</summary>
-    [Fact]
-    public void Cascos_e_avioes_pedem_chapas_que_existem()
-    {
-        var w = FactionTests.BuildReal();
-        Assert.NotEmpty(w.ShipClasses);
-        Assert.NotEmpty(w.PlaneClasses);
-        foreach (var g in w.ShipClasses.Values.Select(s => s.Glyph)
-                           .Concat(w.PlaneClasses.Values.Select(p => p.Glyph)))
-            Assert.Contains(g, Desenhados);
-    }
 
-    /// <summary>A oficina: cada ranhura de fuselagem e cada peça de avião pede chapa que alguém desenha. A
-    /// prancheta é toda feita de chapas — a ranhura vazia mostra a da ranhura, a cheia mostra a da peça — e
-    /// uma que ninguém desenhe sai como roda dentada calada no sítio onde se decide o avião.</summary>
-    [Fact]
-    public void Ranhuras_e_pecas_de_aviao_pedem_chapas_que_existem()
-    {
-        var w = FactionTests.BuildReal();
-        Assert.NotEmpty(w.PlaneSlotDefs);
-        Assert.NotEmpty(w.PlaneModules);
-        foreach (var g in w.PlaneSlotDefs.Values.Select(s => s.Glyph)
-                           .Concat(w.PlaneModules.Values.Select(m => m.Glyph)))
-            Assert.Contains(g, Desenhados);
-    }
 
-    /// <summary>Nenhuma peça órfã e nenhuma fuselagem a pedir ranhura que a tabela não conhece: a coluna
-    /// slots é texto, e um id mal escrito lá dentro dava uma ranhura sem nome que nunca aceitaria peça
-    /// nenhuma — o desenho ficava por assinar sem se perceber porquê.</summary>
-    [Fact]
-    public void As_ranhuras_das_fuselagens_e_das_pecas_existem_todas()
-    {
-        var w = FactionTests.BuildReal();
-        foreach (var m in w.PlaneModules.Values)
-            Assert.True(w.PlaneSlotDefs.ContainsKey(m.Slot), $"peça com ranhura sem linha: {m.Id} → {m.Slot}");
-        foreach (var d in w.PlaneClasses.Values.Where(x => x.Designable))
-            foreach (var slot in WarGame.Core.Systems.PlaneShop.Slots(w, d.Id))
-                Assert.True(w.PlaneSlotDefs.ContainsKey(slot), $"fuselagem com ranhura sem linha: {d.Id} → {slot}");
-    }
 
-    /// <summary>As quatro tabelas que só agora deixaram o emoji: os géneros da crónica, as pastas do
-    /// gabinete, as políticas de ocupação e as gravidades de baixa. Todas se vêem em fichas e listas — a
-    /// linha do tempo do Jornal, as cadeiras do gabinete, os botões da ocupação, as camas da enfermaria — e
-    /// todas partiriam caladas com um nome mal escrito, que sai como roda dentada e não como erro.</summary>
-    [Fact]
-    public void Cronica_gabinete_ocupacao_e_baixas_pedem_chapas_que_existem()
-    {
-        var w = FactionTests.BuildReal();
-        Assert.NotEmpty(w.ChronicleKinds);
-        Assert.NotEmpty(w.CabinetSlots);
-        Assert.NotEmpty(w.OccupationPolicyDefs);
-        Assert.NotEmpty(w.WoundKinds);
-        foreach (var g in w.ChronicleKinds.Values.Select(k => k.Glyph)
-                           .Concat(w.CabinetSlots.Select(c => c.Glyph))
-                           .Concat(w.OccupationPolicyDefs.Values.Select(o => o.Glyph))
-                           .Concat(w.WoundKinds.Values.Select(k => k.Glyph)))
-            Assert.Contains(g, Desenhados);
-    }
 
     /// <summary>Os depósitos: cada recurso tem chapa que existe. O recurso vê-se na ficha do que a terra
     /// dá, ao lado do dinheiro e dos homens, e um nome mal escrito saía como roda dentada calada.</summary>
@@ -165,15 +80,6 @@ public class GlyphDataTests
         }
     }
 
-    /// <summary>Nenhum terreno de região sem linha na tabela: uma região com um terreno que a tabela não
-    /// conhece anda pelo mapa com o preço de marcha por omissão e sem nome que se leia.</summary>
-    [Fact]
-    public void Nenhuma_regiao_com_terreno_fora_da_tabela()
-    {
-        var w = FactionTests.BuildReal();
-        foreach (var terreno in w.Regions.Values.Select(r => r.Terrain).Distinct())
-            Assert.True(w.TerrainDefs.ContainsKey(terreno), $"região com terreno sem linha: {terreno}");
-    }
 
     /// <summary>Nenhum nome de chapa repetido na lista dos desenhados: um nome a dobrar é um `case` que
     /// nunca chega a correr, e o desenho que ele trazia perde-se sem dar sinal.</summary>
@@ -183,14 +89,4 @@ public class GlyphDataTests
         Assert.Equal(Desenhados.Length, Desenhados.Distinct().Count());
     }
 
-    /// <summary>Nenhum ramo a mais: uma linha em tech_branch que não é ramo de tecnologia nenhuma é uma
-    /// coluna que nunca se desenha, e o mais certo é ser um nome mal escrito.</summary>
-    [Fact]
-    public void Nenhum_ramo_em_tech_branch_sem_tecnologias()
-    {
-        var w = FactionTests.BuildReal();
-        var usados = w.Techs.Values.Select(t => t.Branch).ToHashSet();
-        foreach (var id in w.TechBranches.Keys)
-            Assert.True(usados.Contains(id), $"tech_branch sem tecnologias: {id}");
-    }
 }

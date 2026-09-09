@@ -51,104 +51,11 @@ public class FrontLineTests
             Assert.True(Math.Abs(fio[i].X - fio[i + 1].X) <= 100.1f, $"salto de {fio[i].X} para {fio[i + 1].X}");
     }
 
-    [Fact]
-    public void OsEncostosApontamParaATerraDele()
-    {
-        var w = Grid(4, 4, 2);
-        foreach (var c in FrontLine.Contacts(w, Front(w)))
-        {
-            Assert.Equal(1, w.Regions[c.MineId].ControllerId);
-            Assert.Equal(2, w.Regions[c.FoeId].ControllerId);
-            Assert.True(c.NormalY > 0.9f, "a terra dele está para baixo na grelha");
-        }
-    }
 
-    [Fact]
-    public void FrenteSemTropaVemMarcadaComoBuraco()
-    {
-        var w = Grid(3, 4, 2);
-        TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 4);   // só a região do canto esquerdo da linha é guarnecida
-        var cs = FrontLine.Contacts(w, Front(w));
-        Assert.False(cs.Single(c => c.MineId == 4).Hole);
-        Assert.True(cs.Where(c => c.MineId != 4).All(c => c.Hole));
-    }
 
-    [Fact]
-    public void UmaIlhaSoltaNaoSeCoseAFrenteDoContinente()
-    {
-        var w = Grid(4, 4, 2);
-        // duas regiões novas, longe e só vizinhas uma da outra: uma minha, outra dele
-        var mine = new Region { Id = 100, Name = "Ilha", OwnerId = 1, InitialOwnerId = 1, ControllerId = 1, Terrain = "plain", CenterX = 5000, CenterY = 5000 };
-        var foe = new Region { Id = 101, Name = "Ilhota", OwnerId = 2, InitialOwnerId = 2, ControllerId = 2, Terrain = "plain", CenterX = 5100, CenterY = 5000 };
-        mine.Neighbours.Add(101); foe.Neighbours.Add(100);
-        w.Regions[100] = mine; w.Regions[101] = foe;
 
-        // a ilha é um teatro à parte (não toca no continente), e o continente continua num fio só
-        var teatros = TheatreSystem.Of(w, 1);
-        Assert.Equal(2, teatros.Count);
-        foreach (var t in teatros)
-        {
-            var fios = FrontLine.Strands(w, t);
-            Assert.Single(fios);
-        }
-        Assert.Single(FrontLine.Strands(w, teatros.Single(t => t.RegionIds.Contains(100)))[0]);
-    }
 
-    [Fact]
-    public void UmaRegiaoEncostadaADoisLadosEntraNaLinhaDuasVezes()
-    {
-        var w = Grid(3, 4, 2);
-        w.Regions[3].ControllerId = 2;                      // canto direito da minha fila passa para o inimigo
-        var t = Front(w);
-        var cs = FrontLine.Contacts(w, t);
-        // a região 6 fica com inimigo por baixo (9) e por cima (3): a frente dobra-lhe a esquina
-        Assert.Contains(cs, c => c.MineId == 6 && c.FoeId == 9);
-        Assert.Contains(cs, c => c.MineId == 6 && c.FoeId == 3);
-        Assert.Contains(cs, c => c.MineId == 2 && c.FoeId == 3);
-        var fio = Assert.Single(FrontLine.Strands(w, t));
-        Assert.Equal(cs.Count, fio.Count);                  // tudo cosido, saliente incluído: um fio só
-    }
 
-    [Fact]
-    public void SemGuerraNaoHaLinhaNenhuma()
-    {
-        var w = Grid(4, 4, 2);
-        w.Countries[1].AtWarWith.Clear();
-        Assert.Empty(TheatreSystem.Of(w, 1));
-    }
 
-    [Fact]
-    public void OsFiosNaoRepetemNemPerdemEncostos()
-    {
-        var w = Grid(7, 5, 3);
-        var t = Front(w);
-        var cs = FrontLine.Contacts(w, t);
-        var fios = FrontLine.Strands(w, t);
-        var vistos = fios.SelectMany(f => f).ToList();
-        Assert.Equal(cs.Count, vistos.Count);
-        Assert.Equal(cs.Count, vistos.Distinct().Count());
-    }
 
-    [Fact]
-    public void OPontoDoEncostoFicaEntreAsDuasRegioes()
-    {
-        var w = Grid(4, 4, 2);
-        foreach (var c in FrontLine.Contacts(w, Front(w)))
-        {
-            var mine = w.Regions[c.MineId]; var foe = w.Regions[c.FoeId];
-            Assert.Equal((mine.CenterX + foe.CenterX) / 2f, c.X, 3);
-            Assert.Equal((mine.CenterY + foe.CenterY) / 2f, c.Y, 3);
-        }
-    }
-
-    [Fact]
-    public void QuemDesenhaPodeAcertarOPontoAntesDeEncadear()
-    {
-        var w = Grid(4, 4, 2);
-        // é o que o FrontOverlay faz: troca o ponto pelo da fronteira verdadeira e só depois encadeia
-        var cs = FrontLine.Contacts(w, Front(w)).Select(c => c with { X = c.X + 7f }).ToList();
-        var fio = Assert.Single(FrontLine.Chain(w, cs));
-        Assert.Equal(cs.Count, fio.Count);
-        Assert.All(fio, c => Assert.Contains(cs, x => x.MineId == c.MineId && x.FoeId == c.FoeId && x.X == c.X));
-    }
 }

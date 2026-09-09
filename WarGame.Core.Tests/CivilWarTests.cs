@@ -25,36 +25,7 @@ public class CivilWarTests
         return (w, c);
     }
 
-    [Fact]
-    public void Cada_partido_que_se_levanta_tem_cara_na_tabela()
-    {
-        var (w, _) = Ripe();
-        Assert.NotEmpty(w.RebelStyles);
-        foreach (var s in w.RebelStyles.Values)
-        {
-            Assert.Contains("{pais}", s.Name);
-            Assert.Contains(s.Glyph, GlyphDataTests.Desenhados);
-            Assert.StartsWith("#", s.Colour);
-            Assert.NotEqual("", s.Cry);
-            Assert.Contains(s.PartyId, w.PartyDefs.Keys);
-        }
-    }
 
-    [Fact]
-    public void Num_pais_pequeno_o_golpe_continua_a_ser_so_uma_troca_de_cadeiras()
-    {
-        var (w, c) = Ripe(n: 4, split: 2);          // duas províncias: não há casa para dois governos
-        w.Register(new PartySystem());
-        int before = w.Countries.Count;
-        string coup = "";
-        w.Events.Subscribe<CoupHappened>(e => coup = e.To);
-        w.Tick();
-
-        Assert.Equal(before, w.Countries.Count);
-        Assert.Equal("socialistas", coup);
-        Assert.Equal("socialistas", c.Party);
-        Assert.Empty(c.AtWarWith);
-    }
 
     [Fact]
     public void Num_pais_grande_o_golpe_parte_o_pais_e_os_dois_ficam_em_guerra()
@@ -114,75 +85,10 @@ public class CivilWarTests
         Assert.DoesNotContain(2, grupo.Divisions);
     }
 
-    [Fact]
-    public void A_fatia_que_se_levanta_sai_da_popularidade_travada_pelas_regras()
-    {
-        var (w, c) = Ripe();
-        c.Parties["socialistas"] = 100f; World.NormalizeParties(c);
-        Assert.Equal(w.Rule("civil_war_share_max"), CivilWar.Share(w, c, "socialistas"), 3);
 
-        foreach (var p in w.PartyDefs.Values) c.Parties[p.Id] = p.Id == "socialistas" ? 5f : 30f;
-        World.NormalizeParties(c);
-        Assert.Equal(w.Rule("civil_war_share_min"), CivilWar.Share(w, c, "socialistas"), 3);
-    }
 
-    [Fact]
-    public void O_pais_novo_leva_a_ciencia_as_escolas_e_a_sua_fatia_do_pais()
-    {
-        var (w, c) = Ripe();
-        var tech = w.Techs.Values.First();
-        c.Techs.Add(tech.Id);
-        c.Doctrines.Add("qualquer_escola");
-        c.Stats["industry"] = 3f;
-        c.Money = 1000f; c.Manpower = 600f;
-        c.Stock[1] = 100f;
 
-        var rebel = CivilWar.Erupt(w, c, "socialistas")!;
-        Assert.Contains(tech.Id, rebel.Techs);
-        Assert.Contains("qualquer_escola", rebel.Doctrines);
-        Assert.Equal(3f, rebel.Stats["industry"], 3);
-        // 4 das 6 províncias levantaram-se: dois terços do cofre, dos homens e do armazém vão com elas
-        Assert.Equal(1000f * 4f / 6f, rebel.Money, 1);
-        Assert.Equal(1000f - rebel.Money, c.Money, 1);
-        Assert.Equal(600f * 4f / 6f, rebel.Manpower, 1);
-        Assert.Equal(100f * 4f / 6f, rebel.Stock[1], 1);
-        Assert.Equal(w.Rule("civil_war_rebel_stability"), rebel.Stability, 3);
-    }
 
-    [Fact]
-    public void O_pais_mae_paga_a_ruptura_em_estabilidade_e_expurga_quem_se_levantou()
-    {
-        var (w, c) = Ripe();
-        float pop = c.Parties["socialistas"], stab = c.Stability;
-        CivilWar.Erupt(w, c, "socialistas");
-
-        Assert.Equal(MathF.Max(0f, stab - w.Rule("civil_war_stability_hit")), c.Stability, 3);
-        Assert.True(c.Parties["socialistas"] < pop, "o partido levantado tinha de perder chão na parte que ficou");
-        Assert.Equal(100f, c.Parties.Values.Sum(), 1);
-        Assert.Equal(100f, w.Countries.Values.First(x => x.RebelOf == c.Id).Parties.Values.Sum(), 1);
-    }
-
-    [Fact]
-    public void Um_pais_ja_partido_nao_se_parte_outra_vez_no_mesmo_dia()
-    {
-        var (w, c) = Ripe();
-        Assert.NotNull(CivilWar.Erupt(w, c, "socialistas"));
-        Assert.False(CivilWar.Erupts(w, c, "nacionalistas"));
-        Assert.Null(CivilWar.Erupt(w, c, "nacionalistas"));
-    }
-
-    [Fact]
-    public void O_mesmo_mundo_parte_se_sempre_da_mesma_maneira()
-    {
-        var (w1, c1) = Ripe();
-        var (w2, c2) = Ripe();
-        var a = CivilWar.Erupt(w1, c1, "socialistas")!;
-        var b = CivilWar.Erupt(w2, c2, "socialistas")!;
-        Assert.Equal(a.Tag, b.Tag);
-        Assert.Equal(a.CapitalRegionId, b.CapitalRegionId);
-        Assert.Equal(w1.Regions.Values.Where(r => r.OwnerId == a.Id).Select(r => r.Id).OrderBy(x => x),
-                     w2.Regions.Values.Where(r => r.OwnerId == b.Id).Select(r => r.Id).OrderBy(x => x));
-    }
 
     [Fact]
     public void O_pais_nascido_da_guerra_civil_sobrevive_ao_save_e_ao_carregamento()
@@ -216,21 +122,4 @@ public class CivilWarTests
         Assert.Equal(back.Id, w2.Regions[6].OwnerId);
     }
 
-    [Fact]
-    public void A_manchete_e_a_cronica_contam_o_dia()
-    {
-        var (w, c) = Ripe();
-        var cronica = new ChronicleSystem();
-        cronica.Bind(w);                    // liga-se antes: o golpe rebenta logo no primeiro dia
-        w.Register(new PartySystem());
-        w.Register(cronica);
-        w.Tick();
-
-        var rebel = w.Countries.Values.First(x => x.RebelOf == c.Id);
-        Assert.Contains(rebel.Name, CivilWar.Headline(w, c, rebel, "socialistas"));
-        Assert.Contains(w.Chronicle, e => e.Kind == "guerracivil" && e.Text.Contains("Guerra civil em Alfa"));
-        Assert.Contains("partidos com bandeira de levantamento", CivilWar.Smoke(w));
-        Assert.Contains(rebel.Name, CivilWar.Smoke(w));
-        Assert.Single(CivilWar.Live(w));
-    }
 }

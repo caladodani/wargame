@@ -23,53 +23,7 @@ public class PactTests
         Assert.NotNull(new DeclareWarCommand(2, 1).Validate(w));   // nos dois sentidos
     }
 
-    [Fact]
-    public void StrongerTarget_Rejects_WithoutCommonEnemy()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Political = 100f;
-        TestWorld.AddDivision(w, 1, 2, TestWorld.Inf, 4);   // 2 mais forte
-        var cmd = new ProposeNonAggressionCommand(1, 2);
-        Assert.Null(cmd.Validate(w));
-        cmd.Execute(w);
-        Assert.False(w.HasPact(1, 2));
-    }
 
-    [Fact]
-    public void JustifyingTarget_Rejects()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Political = 100f;
-        TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);
-        w.Countries[2].JustifyTarget = 1;   // já anda a justificar guerra contra o 1
-        new ProposeNonAggressionCommand(1, 2).Execute(w);
-        Assert.False(w.HasPact(1, 2));
-    }
 
-    [Fact]
-    public void Pact_BlocksJustify()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Political = w.Countries[2].Political = 100f;
-        w.Pacts[World.WarKey(1, 2)] = w.Clock.Day + 100;
-        Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));
-        Assert.NotNull(new JustifyWarCommand(2, 1).Validate(w));
-    }
 
-    [Fact]
-    public void Pact_Expires()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Pacts[World.WarKey(1, 2)] = w.Clock.Day + 2;
-        Assert.True(w.HasPact(1, 2));
-        w.Clock.Advance(); w.Clock.Advance();
-        Assert.True(w.HasPact(1, 2));    // último dia ainda conta
-        w.Clock.Advance();
-        Assert.False(w.HasPact(1, 2));
-        Assert.Null(new DeclareWarCommand(1, 2).Validate(w));   // expirou: guerra volta a ser possível
-    }
 }

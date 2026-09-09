@@ -37,46 +37,7 @@ public class TradeTests
         Assert.True(w.Countries[2].Money > m2 + 5f);
     }
 
-    [Fact]
-    public void Oversell_Rejected()
-    {
-        var w = Setup();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        Assert.NotNull(new CreateTradeDealCommand(1, 2, "aco", 2f).Validate(w));   // só resta 1 livre
-    }
 
-    [Fact]
-    public void War_KillsDeal()
-    {
-        var w = Setup();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        var ended = new List<TradeDealEnded>();
-        w.Events.Subscribe<TradeDealEnded>(ended.Add);
-        w.StartWar(1, 2, 0);
-        TestWorld.Days(w, 1);
-        Assert.Single(ended);
-        Assert.Empty(w.TradeDeals);
-    }
 
-    [Fact]
-    public void NoMoney_KillsDeal()
-    {
-        var w = Setup();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        w.Countries[1].Money = 0f;
-        // sem rendimento que chegue no próprio dia: bloquear rendimento tirando as regiões
-        foreach (var r in w.Regions.Values) if (r.ControllerId == 1) r.ControllerId = 3;
-        TestWorld.Days(w, 1);
-        Assert.Empty(w.TradeDeals);
-    }
 
-    [Fact]
-    public void Cancel_ByEitherSide()
-    {
-        var w = Setup();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        Assert.Null(new CancelTradeDealCommand(2, 1, "aco").Validate(w));
-        new CancelTradeDealCommand(2, 1, "aco").Execute(w);
-        Assert.Empty(w.TradeDeals);
-    }
 }

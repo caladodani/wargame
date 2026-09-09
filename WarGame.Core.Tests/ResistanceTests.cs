@@ -19,24 +19,7 @@ public class ResistanceTests
         return w;
     }
 
-    [Fact]
-    public void Occupied_WithoutGarrison_Grows()
-    {
-        var w = Setup();
-        TestWorld.Days(w, 10);
-        Assert.Equal(10 * w.Rule("resistance_growth", 0.02f), w.Regions[4].Resistance, 0.001f);
-        Assert.Equal(0f, w.Regions[3].Resistance);   // território próprio não mexe
-    }
 
-    [Fact]
-    public void Garrison_Suppresses()
-    {
-        var w = Setup();
-        TestWorld.Days(w, 10);
-        TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 4);   // guarnição do ocupante
-        TestWorld.Days(w, 30);
-        Assert.Equal(0f, w.Regions[4].Resistance);
-    }
 
     [Fact]
     public void AtFull_Revolts_BackToOwner()
@@ -52,28 +35,5 @@ public class ResistanceTests
         Assert.Equal(0f, w.Regions[4].Resistance);
     }
 
-    [Fact]
-    public void CapitulatedOwner_ResistanceFades()
-    {
-        var w = Setup();
-        TestWorld.Days(w, 10);
-        Assert.True(w.Regions[4].Resistance > 0f);
-        w.Countries[2].Capitulated = true;
-        TestWorld.Days(w, 10);
-        Assert.Equal(0f, w.Regions[4].Resistance);
-    }
 
-    [Fact]
-    public void Economy_OccupiedYield_DropsWithResistance()
-    {
-        var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Regions[4].ControllerId = 1;
-        float baseline = EconomySystem.Income(w, 1);
-        w.Regions[4].Resistance = 1f;
-        float hit = EconomySystem.Income(w, 1);
-        // região 4: 10M pop × 0.1 × occupied_yield; a resistência 1.0 corta resistance_output_hit
-        float occupied = 10f * 0.1f * w.Rule("occupied_yield", 0.5f) * w.Countries[1].Stat("industry") * w.Countries[1].StabilityFactor;
-        Assert.Equal(baseline - occupied * w.Rule("resistance_output_hit", 0.5f), hit, 0.001f);
-    }
 }

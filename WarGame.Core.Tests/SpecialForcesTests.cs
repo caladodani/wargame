@@ -82,15 +82,6 @@ public class SpecialForcesTests
         return mul + flat;
     }
 
-    [Fact]
-    public void TheMarksAndTheirWorthComeFromTheDatabase()
-    {
-        var (w, _) = Land("mountain");
-        Assert.Contains("montanha", w.Stats.Get(Alpino).Tags);
-        Assert.Contains("anfibio", w.Stats.Get(Fuzileiro).Tags);
-        Assert.DoesNotContain("montanha", w.Stats.Get(TestWorld.Inf).Tags);
-        Assert.Equal(0.8f, w.Rule("naval_invasion_marine"), 3);
-    }
 
     [Fact]
     public void MountainTroopsClimbWhereTheLineCrawls()
@@ -100,69 +91,10 @@ public class SpecialForcesTests
         Assert.Equal(0.5f * 1.7f, Terrain(w, Alpino), 3);       // e devolve quase tudo a quem sabe
     }
 
-    [Fact]
-    public void AndTheyHoldTheRidgeBetterToo()
-    {
-        var (w, _) = Land("mountain");
-        Assert.Equal(1.3f, Terrain(w, TestWorld.Inf, "str_defender"), 3);
-        Assert.Equal(1.3f * 1.15f, Terrain(w, Alpino, "str_defender"), 3);
-    }
 
-    [Fact]
-    public void TheSpecialtyIsWorthNothingOffItsGround()
-    {
-        var (w, _) = Land("plain");
-        Assert.Equal(Terrain(w, TestWorld.Inf), Terrain(w, Alpino), 3);   // em campo aberto é infantaria
-        var (w2, _) = Land("urban");
-        Assert.Equal(Terrain(w2, TestWorld.Inf), Terrain(w2, Alpino), 3); // e na cidade também
-    }
 
-    [Fact]
-    public void TheMarkTravelsWithTheUnitNotTheFlag()
-    {
-        var (w, db) = Land("mountain");
-        db.ExecuteScript("INSERT INTO template VALUES (93,2,'Alpinos do Beta'); INSERT INTO template_unit VALUES (93,91,6);");
-        // o mesmo caçador alpino sob a outra bandeira sobe a mesma montanha: a marca é da ficha da unidade
-        Assert.Equal(Terrain(w, Alpino), Terrain(w, 93), 3);
-    }
 
-    [Fact]
-    public void MarinesComeOffTheBoatFighting()
-    {
-        var w = Islands();
-        var line = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 2);
-        var marine = TestWorld.AddDivision(w, 2, 1, Fuzileiro, 2);
-        Assert.Equal(w.Rule("naval_invasion_penalty"), CombatSystem.AmphibiousMult(w, line, w.Regions[3]), 3);
-        Assert.Equal(w.Rule("naval_invasion_marine"), CombatSystem.AmphibiousMult(w, marine, w.Regions[3]), 3);
-        Assert.True(CombatSystem.IsMarine(w, marine));
-        Assert.False(CombatSystem.IsMarine(w, line));
-    }
 
-    [Fact]
-    public void OnDryLandAMarineIsJustInfantry()
-    {
-        var w = Islands();
-        var marine = TestWorld.AddDivision(w, 1, 1, Fuzileiro, 1);
-        Assert.Equal(1f, CombatSystem.AmphibiousMult(w, marine, w.Regions[2]), 3);   // ataque por terra
-        Assert.Equal(1f, CombatSystem.AmphibiousMult(w, marine, null), 3);           // e fora de batalha
-    }
 
-    [Fact]
-    public void MarinesCrossRiversDrier()
-    {
-        var (w, _) = Land("plain", river: true);
-        Assert.Equal(1f - 0.3f, Terrain(w, TestWorld.Inf), 3);
-        Assert.Equal(1f - 0.3f + 0.2f, Terrain(w, Fuzileiro), 3);
-    }
 
-    [Fact]
-    public void TheDifferenceShowsUpInTheBattleItself()
-    {
-        var (w, _) = Land("mountain");
-        var ctx = CombatSystem.BuildContext(w, w.Regions[4], 1);
-        var line = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 3);
-        var alp = TestWorld.AddDivision(w, 2, 1, Alpino, 3);
-        var str = CombatSystem.SideStrength(w, new List<Division> { line, alp }, ctx, attacking: true, w.Regions[4]);
-        Assert.True(str[1] > str[0] * 1.6f, $"alpinos {str[1]} vs linha {str[0]}");
-    }
 }

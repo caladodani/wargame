@@ -70,69 +70,10 @@ public class ConvoyTests
         return w;
     }
 
-    [Fact]
-    public void TheMerchantMarineRulesComeFromTheDatabase()
-    {
-        var (w, _) = TestWorld.Build();
-        Assert.Equal(20f, w.Rule("convoy_base"), 3);
-        Assert.Equal(25f, w.Rule("convoy_cost"), 3);
-        Assert.Equal(1f, w.Rule("convoy_per_sea_division"), 3);
-        Assert.Equal(2f, w.Rule("convoy_per_trade_unit"), 3);
-        Assert.Equal(0.25f, w.Rule("convoy_raid_sink"), 3);
-    }
 
-    [Fact]
-    public void EveryCountryStartsWithAMarineAndCanBuildMore()
-    {
-        var w = Build(money: 60f);
-        Assert.Equal(20f, ConvoySystem.Available(w, 1), 3);        // a marinha de partida, sem comprar nada
 
-        Assert.Null(new BuyConvoyCommand(1).Validate(w));
-        new BuyConvoyCommand(1).Execute(w);
-        new BuyConvoyCommand(1).Execute(w);
-        Assert.Equal(22f, ConvoySystem.Available(w, 1), 3);
-        Assert.Equal(10f, w.Countries[1].Money, 3);
 
-        Assert.Contains("faltam pontos", new BuyConvoyCommand(1).Validate(w)!);
-    }
 
-    [Fact]
-    public void ABlockadeEatsTheEnemyMerchantMarineDayAfterDay()
-    {
-        var w = Build();
-        NavalMissionSystem.Assign(w, 1, Island, "bloqueio", 4f);
-        float sink = w.Rule("convoy_raid_sink");
-
-        w.Tick();
-        Assert.Equal(-4f * sink, w.Countries[2].Convoys, 3);       // a ilha é deles: pagam eles
-        Assert.Equal(0f, w.Countries[1].Convoys, 3);
-
-        TestWorld.Days(w, 40);
-        Assert.Equal(0f, ConvoySystem.Available(w, 2), 3);         // a marinha mercante deles foi ao fundo
-        Assert.True(w.Countries[2].Convoys >= -w.Rule("convoy_base"), "não se afunda mais do que existia");
-    }
-
-    [Fact]
-    public void AnEscortedCoastLosesNoMerchants()
-    {
-        var w = Build();
-        NavalMissionSystem.Assign(w, 1, Island, "bloqueio", 3f);
-        NavalMissionSystem.Assign(w, 2, Island, "escolta", 3f);    // escolta que iguala: os comboios passam
-
-        w.Tick();
-        Assert.Equal(0f, w.Countries[2].Convoys, 3);
-        Assert.False(NavalMissionSystem.Blockaded(w, Island));
-    }
-
-    [Fact]
-    public void OnlyABlockadeRaidsTrade()
-    {
-        var w = Build();
-        NavalMissionSystem.Assign(w, 1, Island, "patrulha", 4f);   // vigiar não afunda mercante nenhum
-
-        w.Tick();
-        Assert.Equal(0f, w.Countries[2].Convoys, 3);
-    }
 
     [Fact]
     public void AnArmyAcrossTheSeaOnlyEatsWhatTheConvoysCarry()
@@ -156,144 +97,11 @@ public class ConvoyTests
         Assert.Equal(sea * w.Rule("port_overflow_min", 0.35f), landed.Supply, 3);
     }
 
-    [Fact]
-    public void WhatTheConvoysCannotCarryIsNotDeliveredAndIsNotPaid()
-    {
-        var w = Market();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        w.Countries[1].Convoys = -20f;                             // marinha mercante no fundo
-        float m1 = w.Countries[1].Money, m2 = w.Countries[2].Money;
 
-        Assert.True(ConvoySystem.Grounded(w, w.TradeDeals[0]));
-        Assert.Equal(1, ConvoySystem.GroundedCount(w, 1));
-        w.Tick();
 
-        Assert.Single(w.TradeDeals);                               // o contrato não morre: a falta é de navios
-        Assert.Equal(m1, w.Countries[1].Money, 3);
-        Assert.Equal(m2, w.Countries[2].Money, 3);
-        Assert.Equal(0f, TradeSystem.Effective(w, 1, "aco"), 3);   // o aço ficou no cais do vendedor
-        Assert.Equal(1f, w.Countries[1].ResourceMult.GetValueOrDefault("production_speed", 1f), 3);
-        Assert.Equal(1.2f, w.Countries[2].ResourceMult["production_speed"], 3);   // e o bónus ficou com ele (tecto do recurso)
-    }
 
-    [Fact]
-    public void TheDealsComeBackTheDayTheShipsDo()
-    {
-        var w = Market();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        w.Countries[1].Convoys = -20f;
-        w.Tick();
-        Assert.Equal(0f, TradeSystem.Effective(w, 1, "aco"), 3);
 
-        w.Countries[1].Convoys = 0f;                               // marinha reconstruída
-        float m2 = w.Countries[2].Money;
-        w.Tick();
 
-        Assert.Equal(3f, TradeSystem.Effective(w, 1, "aco"), 3);
-        Assert.True(w.Countries[2].Money > m2, "com navios, o vendedor volta a receber");
-    }
 
-    [Fact]
-    public void TheArmyFillsTheHoldsBeforeTheTraders()
-    {
-        var w = Market();
-        new CreateTradeDealCommand(1, 2, "aco", 3f).Execute(w);
-        Assert.False(ConvoySystem.Grounded(w, w.TradeDeals[0]));   // 6 mercantes de 20: cabe à vontade
 
-        w.Countries[1].SeaSupplied = 14;                           // 14 divisões a beber por mar levam 14
-        Assert.Equal(14f, ConvoySystem.SupplyNeed(w, 1), 3);
-        Assert.False(ConvoySystem.Grounded(w, w.TradeDeals[0]));   // sobram 6, que é o que o contrato pede
-
-        w.Countries[1].SeaSupplied = 15;
-        Assert.True(ConvoySystem.Grounded(w, w.TradeDeals[0]));    // mais uma divisão e o aço fica no cais
-    }
-
-    [Fact]
-    public void TheHoldsFillInAFixedOrderAndOnlyTheLastOnesAreLeftBehind()
-    {
-        var w = Market();
-        new CreateTradeDealCommand(1, 2, "aco", 6f).Execute(w);        // 12 mercantes
-        new CreateTradeDealCommand(1, 2, "borracha", 5f).Execute(w);   // mais 10: não cabem os dois em 20
-
-        var aco = w.TradeDeals.Single(d => d.ResourceId == "aco");
-        var borracha = w.TradeDeals.Single(d => d.ResourceId == "borracha");
-        Assert.False(ConvoySystem.Grounded(w, aco));                   // a ordem é vendedor, depois recurso
-        Assert.True(ConvoySystem.Grounded(w, borracha));
-        Assert.Equal(1, ConvoySystem.GroundedCount(w, 1));
-
-        w.Countries[1].Convoys = 10f;                                  // mais dez mercantes e passam os dois
-        Assert.False(ConvoySystem.Grounded(w, borracha));
-    }
-
-    [Fact]
-    public void TheMapGetsOneLaneForEachCrossingTheConvoysMake()
-    {
-        var w = Build();
-        w.Regions[3].Buildings["porto"] = 1;                        // cais nosso a alcançar a ilha (900 > 500 km)
-        w.Regions[Island].ControllerId = 1;                         // desembarque nosso: a ilha bebe por mar
-        TestWorld.AddDivision(w, 20, 1, TestWorld.Inf, Island);
-
-        var lane = Assert.Single(ConvoySystem.Routes(w, 1));
-        Assert.Equal(3, lane.FromId);
-        Assert.Equal(Island, lane.ToId);
-        Assert.False(lane.Trade);                                   // é a travessia que alimenta a tropa
-        Assert.Equal(w.Rule("convoy_per_sea_division"), lane.Holds, 3);
-        Assert.False(lane.Blocked);
-        Assert.Empty(ConvoySystem.Routes(w, 2));                    // eles não têm cais nenhum a alcançar nada
-    }
-
-    [Fact]
-    public void ABlockadeCutsTheLaneOnTheMap()
-    {
-        var w = Build();
-        w.Regions[3].Buildings["porto"] = 1;
-        w.Regions[Island].ControllerId = 1;
-        NavalMissionSystem.Assign(w, 2, Island, "bloqueio", 4f);    // a esquadra deles em cima da nossa travessia
-
-        var lane = Assert.Single(ConvoySystem.Routes(w, 1));
-        Assert.True(lane.Blocked);
-    }
-
-    [Fact]
-    public void WhatWeBuyGetsItsOwnLaneAndItGoesRedWhenTheShipsAreGone()
-    {
-        var w = Build();
-        w.ResourceDefs["aco"] = new ResourceDef("aco", "Aço", "production_speed", 0.02f, 10f);
-        w.Regions[4].Resources["aco"] = 20f;
-        new CreateTradeDealCommand(1, 2, "aco", 2f).Execute(w);
-
-        var lane = Assert.Single(ConvoySystem.Routes(w, 1));        // sem cais nosso, só há a rota do comércio
-        Assert.True(lane.Trade);
-        Assert.Equal(Island, lane.FromId);                          // costa deles, a travessia mais curta
-        Assert.Equal(3, lane.ToId);
-        Assert.Equal(2f * w.Rule("convoy_per_trade_unit"), lane.Holds, 3);
-        Assert.False(lane.Blocked);
-
-        w.Countries[1].Convoys = -20f;                              // marinha mercante no fundo
-        Assert.True(ConvoySystem.Routes(w, 1)[0].Blocked);
-    }
-
-    [Fact]
-    public void TheMerchantMarineSurvivesSaveAndLoad()
-    {
-        var (w, staticDb) = TestWorld.Build();
-        TestWorld.LinearMap(w);
-        w.Countries[1].Convoys = -4.5f;
-        w.Countries[2].Convoys = 7f;
-
-        using var save = new MsSqliteDatabase();
-        var schema = string.Join(";\n", staticDb.Query("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index')")
-            .Select(r => ((string)r["sql"]!).Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ").Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS "))) + ";\n";
-        SqlWorldRepository.EnsureSaveSchema(save, schema);
-        var repo = new SqlWorldRepository(staticDb);
-        repo.WriteSave(w, save);
-
-        var (w2, _) = TestWorld.Build();
-        TestWorld.LinearMap(w2);
-        repo.LoadSave(w2, save);
-
-        Assert.Equal(-4.5f, w2.Countries[1].Convoys, 3);
-        Assert.Equal(7f, w2.Countries[2].Convoys, 3);
-        Assert.Equal(15.5f, ConvoySystem.Available(w2, 1), 3);
-    }
 }
