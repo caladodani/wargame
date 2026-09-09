@@ -23,13 +23,19 @@ public static class MapModes
     public readonly record struct MapClass(string Id, string Name, string Color, string Glyph, string Note);
 
     /// <summary>Este modo pinta por classe (cor de tabela) em vez de escala?</summary>
-    public static bool ByClass(string metric) => metric is "terrain";
+    public static bool ByClass(string metric) => metric is "terrain" or "zone";
 
     /// <summary>A classe desta região neste modo, ou null quando não há resposta.</summary>
     public static MapClass? Of(World w, Region r, string metric) => metric switch
     {
         "terrain" => w.TerrainDefs.TryGetValue(r.Terrain, out var t)
             ? new MapClass(t.Id, t.Name, t.Color, t.Glyph, $"passo ×{t.MoveCost:0.00}")
+            : null,
+        // zonas estratégicas: a cor é da zona de céu (é nela que a aviação se bate) e a nota diz o mar a
+        // que aquela costa pertence — as duas divisões do mundo que o jogo passou a ter
+        "zone" => w.Zones.TryGetValue(r.ZoneId, out var z)
+            ? new MapClass(z.Id, z.Name, z.Color, z.Glyph,
+                           r.SeaZoneId.Length > 0 ? Zones.Name(w, r.SeaZoneId) : "sem mar")
             : null,
         _ => null,
     };
@@ -39,6 +45,18 @@ public static class MapModes
     public static List<MapClass> Key(World w, string metric)
     {
         var key = new List<MapClass>();
+        if (metric == "zone")
+        {
+            // são dezenas: mostram-se as maiores, que é o que cabe no ecrã de um telemóvel (map_key_max)
+            var count = new Dictionary<string, int>();
+            foreach (var r in w.Regions.Values)
+                if (r.ZoneId.Length > 0) count[r.ZoneId] = count.GetValueOrDefault(r.ZoneId) + 1;
+            foreach (var (id, n) in count.OrderByDescending(p => p.Value).ThenBy(p => p.Key)
+                                        .Take((int)w.Rule("map_key_max", 12f)))
+                if (w.Zones.TryGetValue(id, out var z))
+                    key.Add(new MapClass(z.Id, z.Name, z.Color, z.Glyph, $"{n} regiões"));
+            return key;
+        }
         if (metric != "terrain") return key;
         var used = new HashSet<string>(w.Regions.Values.Select(r => r.Terrain));
         foreach (var t in w.TerrainDefs.Values.Where(t => used.Contains(t.Id)).OrderBy(t => t.MoveCost).ThenBy(t => t.Id))

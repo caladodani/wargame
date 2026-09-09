@@ -259,7 +259,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c) && w.Techs.ContainsKey((string)r["tech_id"]!)) c.Techs.Add((string)r["tech_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
 
-        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat FROM region"))
+        foreach (var r in _static.Query("SELECT id,name,kind,color,glyph,sort FROM zone ORDER BY sort"))
+            w.Zones[(string)r["id"]!] = new ZoneDef((string)r["id"]!, (string)r["name"]!, (string)r["kind"]!,
+                (string)r["color"]!, (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,zone_id,sea_zone_id FROM region"))
         {
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
             w.Regions[id] = new Region
@@ -271,6 +274,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 CenterY = r["centroid_y"] is null ? 0f : Convert.ToSingle(r["centroid_y"]),
                 Coastal = Convert.ToInt32(r["coastal"]) == 1,
                 Lat = r["lat"] is null ? 0f : Convert.ToSingle(r["lat"]),
+                ZoneId = r["zone_id"] as string ?? "", SeaZoneId = r["sea_zone_id"] as string ?? "",
             };
         }
         foreach (var r in _static.Query("SELECT region_id,neighbour_id FROM region_neighbour"))

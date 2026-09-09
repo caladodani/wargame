@@ -39,6 +39,18 @@ CREATE TABLE IF NOT EXISTS terrain (
   move_cost REAL NOT NULL DEFAULT 1,         -- multiplicador de dias para entrar na região
   glyph TEXT NOT NULL DEFAULT ''             -- nome de um desenho do Glyph.cs: o chão vê-se, não se lê
 );
+-- Zonas estratégicas (HoI4: strategic regions e sea zones). Uma zona é um pedaço de mundo com nome, e é
+-- nela que a guerra do ar e a guerra do mar acontecem: as asas disputam o céu da zona inteira e as
+-- esquadras fecham o mar da zona inteira, não a província debaixo delas.
+--   kind = 'terra' (zona aérea, gerada pelo tools/import_map.py a partir da sub-região do Natural Earth,
+--          cortada em pedaços por longitude) | 'mar' (zona naval, semeada à mão no seed_world.sql com a
+--          caixa lat/lon do mar que lhe pertence — é por essa caixa que o import põe cada costa no seu mar)
+CREATE TABLE IF NOT EXISTS zone (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '', glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0,
+  lat_min REAL NOT NULL DEFAULT 0, lat_max REAL NOT NULL DEFAULT 0,   -- só as de mar: a caixa do mar
+  lon_min REAL NOT NULL DEFAULT 0, lon_max REAL NOT NULL DEFAULT 0
+);
 -- Constantes de jogo (economia, movimento, IA…). Nenhuma em código: World.Rules lê daqui.
 CREATE TABLE IF NOT EXISTS rule (key TEXT PRIMARY KEY, value REAL NOT NULL, note TEXT);
 CREATE TABLE IF NOT EXISTS country (
@@ -93,8 +105,10 @@ CREATE TABLE IF NOT EXISTS region (
   terrain TEXT NOT NULL REFERENCES terrain(id), river INTEGER NOT NULL DEFAULT 0,
   population INTEGER NOT NULL DEFAULT 0, infrastructure REAL NOT NULL DEFAULT 1,
   centroid_x REAL, centroid_y REAL, coastal INTEGER NOT NULL DEFAULT 0,
-  lat REAL NOT NULL DEFAULT 0                 -- latitude do centróide em graus (o centróide já vai projectado
+  lat REAL NOT NULL DEFAULT 0,                -- latitude do centróide em graus (o centróide já vai projectado
                                               -- em Robinson e não se desprojecta): é o frio da região (Weather)
+  zone_id TEXT NOT NULL DEFAULT '',           -- zona estratégica de terra (céu): tabela zone, kind='terra'
+  sea_zone_id TEXT NOT NULL DEFAULT ''        -- mar em frente a esta costa: tabela zone, kind='mar' ('' = interior)
 );
 CREATE TABLE IF NOT EXISTS region_polygon (   -- anéis exteriores, float32 x,y já projectados (Robinson, y para baixo)
   region_id INTEGER NOT NULL REFERENCES region(id), ring_index INTEGER NOT NULL, points BLOB NOT NULL,

@@ -1460,3 +1460,48 @@ INSERT INTO rule (key,value,note) VALUES
  ('tension_uneasy',40,'abaixo disto o mundo lê-se inquieto'),
  ('tension_grave',70,'abaixo disto o mundo lê-se à beira; acima, em chamas'),
  ('volunteer_min_tension',15,'tensão mundial para se poderem mandar voluntários');
+
+-- ---------------------------------------------------------------------------------------------------
+-- Zonas navais (tabela zone, kind='mar'). No HoI4 o mar não é a província ao lado: é uma zona com nome
+-- própria — o Golfo da Biscaia, o Mediterrâneo Ocidental, o Mar do Japão — e é nela que as esquadras se
+-- encontram, se afundam e fecham o comércio. Aqui o mar era "o mar em frente àquela costa": bloquear
+-- Lisboa não fechava o Porto, e duas esquadras no mesmo oceano nunca se viam.
+-- Cada zona traz a caixa de lat/lon do mar que lhe pertence; o tools/import_map.py põe cada costa na
+-- primeira caixa (por sort) que a apanha, e na mais próxima quando nenhuma a apanha. Mares pequenos
+-- primeiro, oceanos no fim: o Báltico ganha ao Atlântico onde os dois se sobrepõem.
+INSERT INTO zone (id,name,kind,color,glyph,sort,lat_min,lat_max,lon_min,lon_max) VALUES
+ ('mar_baltico','Mar Báltico','mar','#2f6f9f','onda',1,53,66,9,30),
+ ('mar_do_norte','Mar do Norte','mar','#2b6488','onda',2,50,62,-5,10),
+ ('mediterraneo_oeste','Mediterrâneo Ocidental','mar','#1f7fa8','onda',3,30,46,-6,15),
+ ('mediterraneo_leste','Mediterrâneo Oriental','mar','#2a8fae','onda',4,30,42,15,37),
+ ('mar_negro','Mar Negro','mar','#35566e','onda',5,40,48,27,42),
+ ('mar_vermelho','Mar Vermelho','mar','#a04a4a','onda',6,12,30,32,44),
+ ('golfo_persico','Golfo Pérsico','mar','#8a6a3a','onda',7,22,31,46,60),
+ ('golfo_do_mexico','Golfo do México','mar','#2f8f7f','onda',8,18,31,-98,-80),
+ ('mar_das_caraibas','Mar das Caraíbas','mar','#28a08a','onda',9,8,23,-88,-58),
+ ('mar_do_japao','Mar do Japão','mar','#3b5fa0','onda',10,34,52,128,145),
+ ('mar_da_china_oriental','Mar da China Oriental','mar','#3f7fb0','onda',11,24,34,116,131),
+ ('mar_da_china_meridional','Mar da China Meridional','mar','#2f86a8','onda',12,-2,24,103,122),
+ ('mar_das_filipinas','Mar das Filipinas','mar','#2b7a9a','onda',13,0,25,122,150),
+ ('golfo_de_bengala','Golfo de Bengala','mar','#3a86a0','onda',14,3,23,78,100),
+ ('mar_arabico','Mar Arábico','mar','#3f7f96','onda',15,-2,25,44,78),
+ ('mar_de_tasman','Mar de Tasman e Coral','mar','#2f7fa0','onda',16,-50,-2,140,180),
+ ('artico','Oceano Ártico','mar','#7fa8c8','gelo',17,66,90,-180,180),
+ ('antartico','Oceano Antártico','mar','#8fb0c8','gelo',18,-90,-55,-180,180),
+ ('atlantico_norte','Atlântico Norte','mar','#1f5f8f','onda',19,23,66,-80,2),
+ ('atlantico_sul','Atlântico Sul','mar','#24557f','onda',20,-55,23,-70,20),
+ ('indico','Oceano Índico','mar','#2f6f8f','onda',21,-55,3,20,120),
+ ('pacifico_oeste','Pacífico Ocidental','mar','#265f8f','onda',22,-2,66,120,180),
+ ('pacifico_leste','Pacífico Oriental','mar','#22597f','onda',23,0,66,-180,-95),
+ ('pacifico_sul','Pacífico Sul','mar','#1f5478','onda',24,-55,0,-180,-70);
+
+-- Zonas estratégicas: o que muda no jogo. A guerra do ar deixa de se fazer província a província —
+-- as asas destacadas disputam o céu da ZONA e o que ganham vale em todas as batalhas dela; a guerra do mar
+-- deixa de fechar uma costa de cada vez — a esquadra fecha a ZONA e com ela todos os cais que lá dão.
+-- Concentrar passa a ganhar frentes inteiras e espalhar passa a não ganhar nenhuma, que é a lição do HoI4.
+INSERT INTO rule (key,value,note) VALUES
+ ('air_zone_share',1,'quanto vale, no céu de uma região, uma asa destacada noutra região da mesma zona'),
+ ('sea_zone_share',1,'quanto vale, no mar de uma costa, um navio destacado noutra costa da mesma zona'),
+ ('map_key_max',12,'entradas máximas na legenda de um modo de mapa por classe');
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
+ ('zonas','Zonas','🗺','zone','','',9,'globo');

@@ -236,7 +236,9 @@ public partial class WarPanel : PanelContainer
         foreach (var m in w.AirMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
         {
             if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
-            float foe = w.AirMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Wings);
+            // o inimigo que conta é o da ZONA: é com esse que as nossas asas se batem hoje
+            float foe = w.AirMissions.Where(x => Zones.Air(w, x.RegionId) == Zones.Air(w, m.RegionId)
+                                                 && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Wings);
             int rid = m.RegionId;
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
@@ -245,6 +247,8 @@ public partial class WarPanel : PanelContainer
                 m.Name, FormationView.IsHome(w, pid, World.Air, m.Name), World.Air, def.Glyph, def.Name,
                 r.Name, m.Wings, foe, w.Clock.Day - m.SinceDay, def.Note), row));
         }
+
+        ZoneBoard(card, w, Zones.AirBoard(w, pid), "asas", "céu");
 
         // céus a que se pode mandar hoje: a frente inimiga e a nossa terra onde já se combate
         var skies = new List<int>();
@@ -280,6 +284,30 @@ public partial class WarPanel : PanelContainer
             card.AddChild(row);
         }
         _body.AddChild(box);
+    }
+
+    /// <summary>O quadro das zonas: uma linha por pedaço de mundo onde há asas (ou navios) e de quem é
+    /// aquele céu (ou aquele mar). É a leitura que faltava — antes o painel só sabia dizer província a
+    /// província, e a guerra do ar decide-se em zonas: quem tem 10 asas espalhadas por cinco zonas não
+    /// manda em nenhuma, e é isto que o mostra sem abrir ficha nenhuma.</summary>
+    private void ZoneBoard(Node card, World w, List<ZoneLine> lines, string unit, string what)
+    {
+        if (lines.Count == 0) return;
+        card.AddChild(Ui.Lbl($"Zonas com {unit} ({lines.Count}):", 15));
+        foreach (var l in lines.Take((int)w.Rule("map_key_max", 12f)))
+        {
+            var ink = l.Who == "deles" ? Ui.Danger : l.Who == "disputado" ? Ui.Accent : Ui.Text;
+            string tip = $"As {unit} de toda a zona contam neste {what}: uma missão destacada aqui vale "
+                         + "em todas as regiões da zona, e é aqui que se encontram as do inimigo.";
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            row.AddChild(Glyph.Make(l.Glyph, 16f, ink, tip));
+            var lbl = Ui.Lbl($"{l.Name}: {l.Mine:0.#} contra {l.Theirs:0.#} — {what} {l.Who}"
+                             + $"   ·   {l.Regions} regi{(l.Regions == 1 ? "ão" : "ões")}", 15);
+            lbl.TooltipText = tip;
+            lbl.AddThemeColorOverride("font_color", ink);
+            row.AddChild(lbl);
+            card.AddChild(row);
+        }
     }
 
     private void SendAir(int pid, int regionId, string missionId, float wings) => _game.RunWhenIdle(() =>
@@ -349,7 +377,9 @@ public partial class WarPanel : PanelContainer
         foreach (var m in w.NavalMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
         {
             if (!w.NavalMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
-            float foe = w.NavalMissions.Where(x => x.RegionId == m.RegionId && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Ships);
+            // o mesmo no mar: quem está na zona está à nossa frente, ainda que o cais seja outro
+            float foe = w.NavalMissions.Where(x => Zones.Sea(w, x.RegionId) == Zones.Sea(w, m.RegionId)
+                                                   && w.AreAtWar(pid, x.CountryId)).Sum(x => x.Ships);
             int rid = m.RegionId;
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
@@ -359,6 +389,8 @@ public partial class WarPanel : PanelContainer
                 r.Name, m.Ships, foe, w.Clock.Day - m.SinceDay, def.Note,
                 NavalMissionSystem.Blockaded(w, rid) ? "costa fechada" : ""), row));
         }
+
+        ZoneBoard(card, w, Zones.SeaBoard(w, pid), "navios", "mar");
 
         // mares a que se pode mandar hoje: a melhor costa deles ao nosso alcance e as nossas costas com porto
         var seas = new List<int>();

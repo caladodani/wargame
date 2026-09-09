@@ -49,6 +49,9 @@ public sealed class World
     public Dictionary<string, UnitStatDef> UnitStatDefs { get; } = new();
     /// <summary>O chão (tabela terrain): o nome que se lê, o preço da marcha e a chapa que o mostra.</summary>
     public Dictionary<string, TerrainDef> TerrainDefs { get; } = new();
+    /// <summary>Zonas estratégicas (tabela zone): as de terra são o céu que as asas disputam, as de mar são
+    /// o oceano que as esquadras fecham. Ver Zones.</summary>
+    public Dictionary<string, ZoneDef> Zones { get; } = new();
     /// <summary>As cidades do mundo, da maior para a menor (tabela city). Só o mapa as usa.</summary>
     public List<CityDef> Cities { get; } = new();
     /// <summary>Modos de mapa (tabela map_mode): o mapa político e as pinturas por conta (MapModes).</summary>

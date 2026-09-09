@@ -59,6 +59,13 @@ public static class GroundView
                         + $" abastecimento (tecto {(int)w.Rule("rail_max", 4f)}); a rede pára quando a conta dos"
                         + " saltos passa o alcance de quem a manda";
         box.AddChild(via);
+        // a zona estratégica: não muda o chão, muda quem manda no céu por cima dele — a aviação bate-se por
+        // zonas e não por províncias, e sem esta linha o jogador não sabia em que zona é que estava
+        var zone = Ui.Lbl(ZoneLine(w, r), 13);
+        zone.AddThemeColorOverride("font_color", Ui.TextDim);
+        zone.TooltipText = "as asas destacadas para qualquer região desta zona valem no céu desta; as esquadras"
+                         + " do mar desta zona fecham todos os cais que lá dão";
+        box.AddChild(zone);
         // a marcha: os dias que a coluna leva a entrar aqui, com a estrada e a estação de hoje
         var mover = w.Divisions.Values.FirstOrDefault(d => d.CountryId == countryId)
                  ?? w.Divisions.Values.FirstOrDefault();
@@ -111,6 +118,11 @@ public static class GroundView
         return l;
     }
 
+    /// <summary>A zona desta região em palavras: o céu a que pertence e, na costa, o mar.</summary>
+    public static string ZoneLine(World w, Region r) =>
+        $"zona do céu: {Zones.Name(w, Zones.Air(w, r.Id))}"
+        + (r.SeaZoneId.Length > 0 ? $"  ·  mar: {Zones.Name(w, r.SeaZoneId)}" : r.Coastal ? "  ·  costa sem mar próprio" : "");
+
     /// <summary>--smoke: o que a ficha do chão diz desta região, em texto.</summary>
     public static string Smoke(World w, Region r, int countryId)
     {
@@ -122,6 +134,6 @@ public static class GroundView
         string chapa = w.TerrainDefs.TryGetValue(r.Terrain, out var td) ? td.Glyph : "sem chapa";
         string via = r.Rail > 0 ? $", carril {r.Rail} (salto da rede {SupplySystem.StepCost(w, r):0.00})"
                                 : $", sem carril (salto da rede {SupplySystem.StepCost(w, r):0.00})";
-        return $"ficha do chão de {r.Name} (chapa {chapa}, {r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}{via}";
+        return $"ficha do chão de {r.Name} (chapa {chapa}, {r.Terrain}{(r.River ? "+rio" : "")}): só o terreno, assalto ×{lines[0].Attack:0.00} e defesa ×{lines[0].Defend:0.00}{extra}{via}, {ZoneLine(w, r)}";
     }
 }

@@ -38,6 +38,53 @@ FEATURE_TERRAIN = {
 TERRAIN_MIN_SHARE = {'mountain': 0.55, 'desert': 0.4, 'tundra': 0.4, 'plain': 0.25}
 PALETTE7 = ['#e6a0a0', '#a0c8e6', '#a0e6b4', '#e6dca0', '#c8a0e6', '#e6b4a0', '#a0e6e0']
 
+# Zonas estratégicas de terra (o céu): as sub-regiões do Natural Earth em português. É a divisão do mundo
+# que as Nações Unidas usam — real, com nome que se diz, e nenhuma dela copiada a jogo nenhum. Cada uma
+# corta-se depois em pedaços por longitude (--zone-size) para uma zona não valer meio continente.
+SUBREGION_PT = {
+    'Northern Europe': 'Europa do Norte', 'Western Europe': 'Europa Ocidental',
+    'Southern Europe': 'Europa do Sul', 'Eastern Europe': 'Europa de Leste',
+    'Northern Africa': 'África Setentrional', 'Western Africa': 'África Ocidental',
+    'Middle Africa': 'África Central', 'Eastern Africa': 'África Oriental',
+    'Southern Africa': 'África Austral',
+    'Western Asia': 'Médio Oriente', 'Central Asia': 'Ásia Central', 'Southern Asia': 'Ásia do Sul',
+    'Eastern Asia': 'Ásia Oriental', 'South-Eastern Asia': 'Sudeste Asiático',
+    'Northern America': 'América do Norte', 'Central America': 'América Central',
+    'Caribbean': 'Caraíbas', 'South America': 'América do Sul',
+    'Australia and New Zealand': 'Austrália e Nova Zelândia', 'Melanesia': 'Melanésia',
+    'Micronesia': 'Micronésia', 'Polynesia': 'Polinésia',
+    'Seven seas (open ocean)': 'Ilhas do alto mar', 'Antarctica': 'Antárctida',
+}
+# Sufixo de cada pedaço, da sub-região cortada de oeste para leste. Uma zona chama-se "Médio Oriente
+# Ocidental" e não "Médio Oriente 2": é nome de teatro de guerra, é o que se lê na chave do mapa.
+ZONE_PIECES = {
+    1: [''],
+    2: ['Ocidental', 'Oriental'],
+    3: ['Ocidental', 'Central', 'Oriental'],
+    4: ['Ocidental', 'Centro-Oeste', 'Centro-Leste', 'Oriental'],
+    5: ['Ocidental', 'Centro-Oeste', 'Central', 'Centro-Leste', 'Oriental'],
+    6: ['Extremo Oeste', 'Ocidental', 'Centro-Oeste', 'Centro-Leste', 'Oriental', 'Extremo Leste'],
+}
+# Uma sub-região que já se chama "Europa Ocidental" não pode dar "Europa Ocidental Ocidental", e "Europa
+# de Leste Oeste" não é melhor. Quando o nome de base já traz um rumo lá dentro, o pedaço passa a chamar-se
+# pela maior província que tem lá dentro — que é a convenção dos jogos do género: a zona tem nome de sítio.
+ZONE_RUMOS = ('Ocidental', 'Oriental', 'Central', 'Setentrional', 'Meridional', 'Norte', 'Sul', 'Leste', 'Oeste')
+
+
+def slug(s):
+    """'África Setentrional ocidental' → 'africa_setentrional_ocidental' (id de zona, sem acentos)."""
+    import unicodedata
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode()
+    return ''.join(ch if ch.isalnum() else '_' for ch in s.lower()).strip('_')
+
+
+def zone_color(i, n):
+    """Cor de zona: matizes espalhados pela roda, todos com a mesma luz — o mapa de zonas lê-se como um
+    mapa de zonas e não como um degradê de calor."""
+    import colorsys
+    r, g, b = colorsys.hsv_to_rgb((i * 0.61803398875) % 1.0, 0.45, 0.78 if i % 2 == 0 else 0.66)
+    return '#%02x%02x%02x' % (int(r * 255), int(g * 255), int(b * 255))
+
 
 def load(ne, name):
     with open(Path(ne) / f'{name}.geojson', encoding='utf-8') as f:
@@ -76,6 +123,7 @@ def main():
     ap.add_argument('--min-per-country', type=int, default=3, help='regiões mínimas por país (se o NE tiver admin-1 que chegue)')
     ap.add_argument('--world-width', type=float, default=8000.0, help='largura do mapa em unidades Godot')
     ap.add_argument('--sea-max-km', type=float, default=3200.0, help='alcance máximo de uma ligação marítima')
+    ap.add_argument('--zone-size', type=int, default=60, help='regiões por zona estratégica de terra (corte da sub-região)')
     ap.add_argument('--preview', default=str(HERE / 'data' / 'map_preview.png'))
     a = ap.parse_args()
     t0 = time.time()
@@ -281,11 +329,46 @@ def main():
                    (i, c, p.get('NAME_PT') or p.get('NAME') or c, PALETTE7[(p.get('MAPCOLOR7') or i) % 7],
                     p.get('NAME') or c, float(p.get('GDP_MD') or 0)))
 
+    # ---- 7b. zonas estratégicas: o céu por sub-região do NE cortada por longitude, o mar pela caixa da
+    # zona naval semeada (mares pequenos primeiro; quem não cai em caixa nenhuma vai para a mais perto).
+    by_sub = defaultdict(list)
+    for i, r in enumerate(regions):
+        by_sub[adm0.get(r['country'], {}).get('SUBREGION') or 'Seven seas (open ocean)'].append(i)
+    land_zone = {}
+    zone_rows, zi = [], 0
+    for sub in sorted(by_sub):
+        idxs = sorted(by_sub[sub], key=lambda i: lonlat[i][0])
+        pieces = max(1, math.ceil(len(idxs) / a.zone_size))
+        base = SUBREGION_PT.get(sub, sub)
+        for p in range(pieces):
+            chunk = idxs[round(p * len(idxs) / pieces):round((p + 1) * len(idxs) / pieces)]
+            if not chunk: continue
+            if pieces > 1 and (any(w in base for w in ZONE_RUMOS) or pieces not in ZONE_PIECES):
+                anchor = max(chunk, key=lambda i: regions[i]['area'])
+                name = f"{base}: {regions[anchor]['name']}"
+            else:
+                name = f'{base} {ZONE_PIECES[pieces][p]}'.strip()
+            zid = slug(name)
+            zone_rows.append((zid, name, 'terra', zone_color(zi, 0), 'asa', 100 + zi))
+            for i in chunk: land_zone[i] = zid
+            zi += 1
+    db.executemany('INSERT INTO zone(id,name,kind,color,glyph,sort) VALUES (?,?,?,?,?,?)', zone_rows)
+
+    boxes = db.execute('SELECT id,lat_min,lat_max,lon_min,lon_max FROM zone WHERE kind = ? ORDER BY sort', ('mar',)).fetchall()
+    def sea_zone(i):
+        lon, lat = lonlat[i]
+        for zid, la0, la1, lo0, lo1 in boxes:
+            if la0 <= lat <= la1 and lo0 <= lon <= lo1: return zid
+        return min(boxes, key=lambda b: ((lat - (b[1] + b[2]) / 2) ** 2 + (lon - (b[3] + b[4]) / 2) ** 2))[0] if boxes else ''
+    sea_of = {i: sea_zone(i) for i in range(len(regions)) if coastal[i]}
+    print(f'zonas: {len(zone_rows)} de terra ({len(by_sub)} sub-regiões), {len(boxes)} de mar '
+          f'({len(sea_of)} costas atribuídas) | {time.time() - t0:.0f}s')
+
     for rid, r in enumerate(regions, start=1):
         r['id'] = rid
-        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,zone_id,sea_zone_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
                    (rid, r['name'], country_ids[r['country']], r['terrain'], r['river'], r['pop'], 1.0, r['cx'], r['cy'],
-                    int(coastal[rid - 1]), r['lat']))
+                    int(coastal[rid - 1]), r['lat'], land_zone.get(rid - 1, ''), sea_of.get(rid - 1, '')))
         for k, ring in enumerate(r['rings']):
             blob = struct.pack(f'<{2 * len(ring)}f', *[v for pt in ring for v in pt])
             db.execute('INSERT INTO region_polygon(region_id,ring_index,points) VALUES (?,?,?)', (rid, k, blob))

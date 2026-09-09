@@ -48,22 +48,29 @@ public sealed class NavalMissionSystem : ISystem
         float loss = w.Rule("naval_battle_loss", 0.05f);
         if (loss <= 0f) return;
 
-        foreach (int region in w.NavalMissions.Select(m => m.RegionId).Distinct().OrderBy(x => x).ToList())
+        // O combate naval é da ZONA e não da costa: duas esquadras no mesmo mar encontram-se, ainda que
+        // tenham sido destacadas para cais diferentes. Era o buraco do mar: dava para bloquear um porto ao
+        // lado de uma esquadra inimiga e nunca a ver.
+        foreach (var zone in w.NavalMissions.Select(m => Zones.Sea(w, m.RegionId)).Distinct()
+                              .OrderBy(x => x, StringComparer.Ordinal).ToList())
         {
-            var here = w.NavalMissions.Where(m => m.RegionId == region).OrderBy(m => m.CountryId).ToList();
-            foreach (var a in here)
-                foreach (var b in here)
+            var sides = w.NavalMissions.Where(m => Zones.Sea(w, m.RegionId) == zone)
+                         .GroupBy(m => m.CountryId).OrderBy(g => g.Key)
+                         .Select(g => (Country: g.Key, Ships: g.Sum(m => m.Ships), Missions: g.OrderBy(m => m.RegionId).ToList()))
+                         .ToList();
+            foreach (var a in sides)
+                foreach (var b in sides)
                 {
-                    if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
-                    float aHad = a.Ships, bHad = b.Ships;
-                    float hit = MathF.Min(aHad, bHad) * loss;
+                    if (a.Country >= b.Country || !w.AreAtWar(a.Country, b.Country)) continue;
+                    float hit = MathF.Min(a.Ships, b.Ships) * loss;
                     // naval_losses < 1 é couraça e pontaria: leva-se menos aço ao fundo pelo mesmo combate
-                    float aLost = Sink(w, a, hit * Mult(w, a.CountryId));
-                    float bLost = Sink(w, b, hit * Mult(w, b.CountryId));
+                    float aLost = Sink(w, a.Missions, hit * Mult(w, a.Country));
+                    float bLost = Sink(w, b.Missions, hit * Mult(w, b.Country));
                     // levou a pior quem deixou lá a maior fatia da esquadra — e é essa que arrisca o almirante
-                    float aShare = Share(aLost, aHad), bShare = Share(bLost, bHad);
-                    w.Events.Publish(new SeaCombatEnded(region, a.CountryId, b.CountryId, aLost, aShare > bShare));
-                    w.Events.Publish(new SeaCombatEnded(region, b.CountryId, a.CountryId, bLost, bShare > aShare));
+                    float aShare = Share(aLost, a.Ships), bShare = Share(bLost, b.Ships);
+                    int ra = a.Missions[0].RegionId, rb = b.Missions[0].RegionId;
+                    w.Events.Publish(new SeaCombatEnded(ra, a.Country, b.Country, aLost, aShare > bShare));
+                    w.Events.Publish(new SeaCombatEnded(rb, b.Country, a.Country, bLost, bShare > aShare));
                 }
         }
         w.NavalMissions.RemoveAll(m => m.Ships <= 0.001f);
@@ -77,11 +84,16 @@ public sealed class NavalMissionSystem : ISystem
 
     /// <summary>Navios ao fundo: saem da missão e do pool nacional — não voltam. A marinha que os perdeu
     /// aprende com o combate: é assim que se pagam as escolas do mar.</summary>
-    private static float Sink(World w, NavalMission m, float ships)
+    private static float Sink(World w, List<NavalMission> missions, float ships)
     {
-        float gone = MathF.Min(m.Ships, ships);
-        m.Ships -= gone;
-        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return gone;
+        float pool = missions.Sum(m => m.Ships), gone = 0f;
+        if (pool <= 0f) return 0f;
+        foreach (var m in missions)
+        {
+            float take = MathF.Min(m.Ships, ships * m.Ships / pool);
+            m.Ships -= take; gone += take;
+        }
+        if (gone <= 0f || !w.Countries.TryGetValue(missions[0].CountryId, out var c)) return gone;
         c.Warships = MathF.Max(0f, c.Warships - gone);
         Learn(w, c, gone * w.Rule("navy_xp_per_loss", 3f));
         return gone;
@@ -171,9 +183,10 @@ public sealed class NavalMissionSystem : ISystem
     /// os mesmos comboios) que lá estão a fazê-la. A escola do mar de cada um pesa aqui: uma marinha de corso
     /// aperta mais o bloqueio com os mesmos navios, uma marinha de esquadra escolta melhor.</summary>
     private static float Weight(World w, int regionId, string effect, Func<int, bool> side) =>
-        w.NavalMissions.Where(m => m.RegionId == regionId && side(m.CountryId)
+        w.NavalMissions.Where(m => side(m.CountryId)
                                    && w.NavalMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == effect)
-            .Sum(m => m.Ships * w.NavalMissionDefs[m.MissionId].Value * School(w, m.CountryId, effect));
+            .Sum(m => m.Ships * w.NavalMissionDefs[m.MissionId].Value * School(w, m.CountryId, effect)
+                      * Zones.Reach(w, regionId, m.RegionId, true));
 
     /// <summary>Quanto a escola do mar deste país acrescenta a esta tarefa (1 = marinha sem escola).</summary>
     private static float School(World w, int countryId, string effect) =>

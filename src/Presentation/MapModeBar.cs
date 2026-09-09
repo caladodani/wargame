@@ -1,4 +1,5 @@
 using Godot;
+using WarGame.Core.Model;
 using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
@@ -128,8 +129,18 @@ public partial class MapModeBar : PanelContainer
     public string SmokeClasses()
     {
         var w = _game.World;
-        var cls = MapModes.All(w).FirstOrDefault(m => MapModes.ByClass(m.Metric));
-        if (cls is null) return "sem modo por classe";
+        var modes = MapModes.All(w).Where(m => MapModes.ByClass(m.Metric)).ToList();
+        if (modes.Count == 0) return "sem modo por classe";
+        string report = string.Join(" | ", modes.Select(Census));
+        _regions.SetMode(MapModes.Political); Refresh();
+        return report;
+    }
+
+    /// <summary>Um modo por classe, medido: a chave, quantas regiões cada classe tem e quantas ficaram
+    /// mesmo com a cor dela.</summary>
+    private string Census(MapModeDef cls)
+    {
+        var w = _game.World;
         _regions.SetMode(cls.Id); Refresh();
 
         var key = MapModes.Key(w, cls.Metric);
@@ -144,8 +155,7 @@ public partial class MapModeBar : PanelContainer
         var plates = Glyph.Count(_legend);
         string spread = string.Join(", ", key.Select(k => $"{k.Name} {census.GetValueOrDefault(k.Id)} ({k.Note})"));
 
-        _regions.SetMode(MapModes.Political); Refresh();
-        return $"{cls.Name} por classe: {key.Count} na chave ({spread}); {painted} de {w.Regions.Count}"
+        return $"{cls.Name} por classe: {key.Count} na chave de {census.Count} ({spread}); {painted} de {w.Regions.Count}"
              + $" regiões com a cor da sua classe; legenda com {chips} chapas de cor e {plates.Drawn} desenhos";
     }
 }

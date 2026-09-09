@@ -16,6 +16,11 @@ public sealed record UnitStatDef(string Key, string Name, string Note, int Sort,
 /// buscados à static.db por três painéis cada um por sua conta.</summary>
 public sealed record TerrainDef(string Id, string Name, float MoveCost, string Glyph, string Color = "");
 
+/// <summary>Uma zona estratégica (tabela zone): o pedaço de mundo com nome onde a guerra do ar e a do mar
+/// acontecem. Kind = "terra" (zona aérea, gerada do Natural Earth) ou "mar" (zona naval, semeada à mão com
+/// a caixa de lat/lon do mar). Nada disto se decide em código: uma zona nova é uma linha de SQL.</summary>
+public sealed record ZoneDef(string Id, string Name, string Kind, string Color, string Glyph, int Sort);
+
 /// <summary>Uma cidade do mapa (tabela city, do Natural Earth): nome, ponto já projectado, gente e se é
 /// capital de país. Não entra na simulação — quem tem contas é a região; a cidade é o que se lê no mapa.</summary>
 public sealed record CityDef(int Id, int RegionId, string Name, int Population, bool Capital, float X, float Y);
@@ -169,6 +174,12 @@ public sealed class Region
     /// <summary>Ligações marítimas (sea_link): região costeira → km da travessia. Vazio = interior.</summary>
     public Dictionary<int, float> SeaNeighbours { get; init; } = new();
     public bool Coastal { get; init; }
+    /// <summary>Zona estratégica de terra (tabela zone, kind='terra'): o céu desta região disputa-se ao
+    /// nível da zona, não da província. "" = mundo de teste sem zonas — cada região é o seu próprio céu.</summary>
+    public string ZoneId { get; init; } = "";
+    /// <summary>Mar em frente a esta costa (tabela zone, kind='mar'); "" no interior. O bloqueio, a escolta
+    /// e a patrulha valem para a zona inteira: fechar um mar fecha todos os cais que lá dão.</summary>
+    public string SeaZoneId { get; init; } = "";
     public List<int> DivisionIds { get; } = new();
     /// <summary>Depósitos de recursos (region_resource): resource id → unidades. Rende ao controlador.</summary>
     public Dictionary<string, float> Resources { get; init; } = new();

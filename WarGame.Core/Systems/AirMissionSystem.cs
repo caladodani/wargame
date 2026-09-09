@@ -62,23 +62,31 @@ public sealed class AirMissionSystem : ISystem
         float loss = w.Rule("air_dogfight_loss", 0.04f);
         if (loss <= 0f) return;
 
-        foreach (var region in w.AirMissions.Select(m => m.RegionId).Distinct().OrderBy(x => x).ToList())
+        // O combate aéreo é da ZONA e não da província: quem manda asas para o mesmo pedaço de mundo
+        // encontra-se, ainda que os alvos sejam duas províncias diferentes. Antes, duas aviações no mesmo
+        // teatro passavam a guerra inteira sem se cruzarem — e uma missão vizinha à batalha não corria
+        // risco nenhum. O que cada país tem na zona conta todo; o que perde reparte-se pelas missões dele.
+        foreach (var zone in w.AirMissions.Select(m => Zones.Air(w, m.RegionId)).Distinct()
+                              .OrderBy(x => x, StringComparer.Ordinal).ToList())
         {
-            var here = w.AirMissions.Where(m => m.RegionId == region).OrderBy(m => m.CountryId).ToList();
-            foreach (var a in here)
-                foreach (var b in here)
+            var sides = w.AirMissions.Where(m => Zones.Air(w, m.RegionId) == zone)
+                         .GroupBy(m => m.CountryId).OrderBy(g => g.Key)
+                         .Select(g => (Country: g.Key, Wings: g.Sum(m => m.Wings), Missions: g.OrderBy(m => m.RegionId).ToList()))
+                         .ToList();
+            foreach (var a in sides)
+                foreach (var b in sides)
                 {
-                    if (a.CountryId >= b.CountryId || !w.AreAtWar(a.CountryId, b.CountryId)) continue;
-                    float aHad = a.Wings, bHad = b.Wings;
-                    float hit = MathF.Min(aHad, bHad) * loss;
+                    if (a.Country >= b.Country || !w.AreAtWar(a.Country, b.Country)) continue;
+                    float hit = MathF.Min(a.Wings, b.Wings) * loss;
                     // cada lado leva o que a sua escola do ar lhe deixa levar: air_losses < 1 é caça melhor
-                    float aLost = Shoot(w, a, hit * Mult(w, a.CountryId));
-                    float bLost = Shoot(w, b, hit * Mult(w, b.CountryId));
+                    float aLost = Shoot(w, a.Missions, hit * Mult(w, a.Country));
+                    float bLost = Shoot(w, b.Missions, hit * Mult(w, b.Country));
                     // levou a pior quem deixou lá a maior fatia do que tinha: é a esquadrilha pequena
                     // mandada para um céu cheio, e é ela que arrisca o comandante
-                    float aShare = Share(aLost, aHad), bShare = Share(bLost, bHad);
-                    w.Events.Publish(new AirCombatEnded(region, a.CountryId, b.CountryId, aLost, aShare > bShare));
-                    w.Events.Publish(new AirCombatEnded(region, b.CountryId, a.CountryId, bLost, bShare > aShare));
+                    float aShare = Share(aLost, a.Wings), bShare = Share(bLost, b.Wings);
+                    int ra = a.Missions[0].RegionId, rb = b.Missions[0].RegionId;
+                    w.Events.Publish(new AirCombatEnded(ra, a.Country, b.Country, aLost, aShare > bShare));
+                    w.Events.Publish(new AirCombatEnded(rb, b.Country, a.Country, bLost, bShare > aShare));
                 }
         }
         w.AirMissions.RemoveAll(m => m.Wings <= 0.001f);
@@ -92,11 +100,16 @@ public sealed class AirMissionSystem : ISystem
 
     /// <summary>Aviões abatidos: saem da missão e do pool nacional — não voltam. O que a aviação aprende com
     /// isso fica: um combate aéreo ensina muito mais num dia do que um mês de patrulha em céu vazio.</summary>
-    private static float Shoot(World w, AirMission m, float wings)
+    private static float Shoot(World w, List<AirMission> missions, float wings)
     {
-        float gone = MathF.Min(m.Wings, wings);
-        m.Wings -= gone;
-        if (!w.Countries.TryGetValue(m.CountryId, out var c)) return gone;
+        float pool = missions.Sum(m => m.Wings), gone = 0f;
+        if (pool <= 0f) return 0f;
+        foreach (var m in missions)
+        {
+            float take = MathF.Min(m.Wings, wings * m.Wings / pool);
+            m.Wings -= take; gone += take;
+        }
+        if (gone <= 0f || !w.Countries.TryGetValue(missions[0].CountryId, out var c)) return gone;
         c.AirPower = MathF.Max(0f, c.AirPower - gone);
         Learn(w, c, gone * w.Rule("air_xp_per_loss", 3f));
         return gone;
@@ -175,17 +188,21 @@ public sealed class AirMissionSystem : ISystem
     /// valer o que a tabela diz — e só o que o céu de hoje as deixa valer (Weather.AirMult). É o que entra
     /// na balança do combate, ao lado do poder aéreo nacional.</summary>
     public static float Superiority(World w, int regionId, int countryId) =>
-        w.AirMissions.Where(m => m.CountryId == countryId && m.RegionId == regionId
-                                 && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == "superiority")
-            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value) * Sky(w, regionId);
+        Weight(w, regionId, countryId, "superiority") * Sky(w, regionId);
+
+    /// <summary>O peso de uma tarefa no céu de uma região: as asas que este país lá tem mais as que tem no
+    /// resto da ZONA (Zones.Reach). É a mudança de fundo — o céu ganha-se por zona, como no HoI4, e uma asa
+    /// destacada uma vez cobre a frente toda em vez de uma província só.</summary>
+    private static float Weight(World w, int regionId, int countryId, string effect) =>
+        w.AirMissions.Where(m => m.CountryId == countryId
+                                 && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == effect)
+            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value * Zones.Reach(w, regionId, m.RegionId, false));
 
     /// <summary>Bónus de apoio próximo à força de quem combate nesta região (tecto air_support_max). Debaixo
     /// de um nevão não há apoio próximo nenhum: os aviões não saem do chão.</summary>
     public static float Support(World w, int regionId, int countryId)
     {
-        float sum = w.AirMissions.Where(m => m.CountryId == countryId && m.RegionId == regionId
-                                             && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == "support")
-            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value) * Sky(w, regionId);
+        float sum = Weight(w, regionId, countryId, "support") * Sky(w, regionId);
         return MathF.Min(sum, w.Rule("air_support_max", 0.35f));
     }
 
