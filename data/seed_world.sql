@@ -884,7 +884,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('mark_prize_zoom',0.16,'zoom a partir do qual as chapas de ponto de vitória acendem'),
  ('mark_name_zoom',0.85,'zoom a partir do qual a chapa leva o nome da praça escrito ao lado'),
  ('mark_base_zoom',0.45,'zoom a partir do qual aparecem âncoras de porto e fortes'),
- ('mark_draw_max',600,'tecto de chapas desenhadas de uma vez (as de mais pontos primeiro)');
+ ('mark_draw_max',600,'tecto de chapas desenhadas de uma vez (as de mais pontos primeiro)'),
+ -- os contadores da guerra do ar e do mar (WarMarks/WarMapMarks): as asas por cima da província e as
+ -- esquadras ao largo da costa. Ao longe tiram-se do mapa, que a esta escala uma província é um pixel
+ ('war_mark_zoom',0.12,'zoom a partir do qual os contadores de asas e de esquadras se desenham'),
+ ('war_mark_max',200,'tecto de contadores de ar e mar desenhados de uma vez');
 
 -- A chapa de batalha (BattleOdds): no HoI4 uma batalha no mapa é um ponteiro com um número e uma cor —
 -- verde se o meu lado está a levar a melhor, amarelo se está renhida, vermelho se está a perder. O número

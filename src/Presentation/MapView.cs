@@ -28,6 +28,8 @@ public partial class MapView : Node2D
     public PocketOverlay Pockets => _pockets;
     /// <summary>As rotas das divisões escolhidas: para onde vai a tropa que o jogador tem em mãos.</summary>
     public RouteOverlay Routes => _routes;
+    /// <summary>Os contadores da guerra do ar e do mar: as asas por cima da terra e as esquadras ao largo.</summary>
+    public WarMapMarks WarMarks => _warMarks;
 
     private const float TapMaxDrag = 14f;      // arrasto acumulado (px) a partir do qual deixa de ser toque curto
     private const ulong LongPressMs = 450;     // dedo parado neste tempo = toque longo
@@ -41,6 +43,7 @@ public partial class MapView : Node2D
     private FrontOverlay _fronts = null!;
     private PocketOverlay _pockets = null!;
     private RouteOverlay _routes = null!;
+    private WarMapMarks _warMarks = null!;
     private readonly Dictionary<int, Vector2> _touches = new();
     private float _lastPinch, _dragDist;
     private bool _multi, _longFired;
@@ -60,6 +63,8 @@ public partial class MapView : Node2D
         _pockets = new PocketOverlay { Name = "Pockets" }; AddChild(_pockets); _pockets.Setup(game, _regions);
         _convoys = new ConvoyRoutes { Name = "Convoys" }; AddChild(_convoys); _convoys.Setup(game);
         _plans = new PlanOverlay { Name = "Plans" }; AddChild(_plans); _plans.Setup(game);
+        // os contadores do ar e do mar entram depois das rotas e antes das setas de plano: são unidades, não ordens
+        _warMarks = new WarMapMarks { Name = "WarMarks" }; AddChild(_warMarks); _warMarks.Setup(game);
         // e por cima de tudo a rota da tropa escolhida: é a ordem de agora, não um plano para daqui a um mês
         _routes = new RouteOverlay { Name = "Routes" }; AddChild(_routes); _routes.Setup(game);
         SetZoom(GetViewportRect().Size.X / 8400f);   // arranque: mapa inteiro (8000 un. de largura) visível
@@ -164,6 +169,7 @@ public partial class MapView : Node2D
         _convoys.SetZoom(z);
         _fronts.SetZoom(z);
         _routes.SetZoom(z);
+        _warMarks.SetZoom(z);
         EmitSignal(SignalName.ZoomChanged, z);
     }
 }
