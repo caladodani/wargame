@@ -75,6 +75,9 @@ public sealed record SeaCombatEnded(int RegionId, int CountryId, int EnemyCountr
 /// <summary>Aço ao fundo por obra do céu (missão de efeito 'naval'): aviões nossos afundaram navios de
 /// quem estava naquele mar. É a arma que a marinha não tinha de ter — e a razão de o porta-aviões existir.</summary>
 public sealed record AirNavalStrike(int RegionId, int CountryId, int TargetCountryId, float Ships) : IGameEvent;
+/// <summary>Submarinos ao fundo por obra de uma caça anti-submarina (Subs): a esquadra de caça viu o que
+/// andava por baixo daquele mar e foi buscá-lo. Só se afunda o que se vê — o resto continua lá em baixo.</summary>
+public sealed record SubsHunted(int RegionId, int CountryId, int TargetCountryId, float Ships) : IGameEvent;
 
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;

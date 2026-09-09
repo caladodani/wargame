@@ -1485,6 +1485,59 @@ public partial class Hud : CanvasLayer
              + $"«{AirMissionSystem.Block(w, pid, alvo.Id, strike.Id, 1f) ?? "aceite"}»";
     }
 
+    /// <summary>--smoke: a guerra submarina. Prova a única coisa que a mecânica tem para provar — que o que
+    /// se esconde não leva tiro, e que se vai lá buscar com sonar e não com peso. Põe-se um bando de
+    /// submarinos deles no nosso mar (sem busca nenhuma, ficam todos escondidos) e manda-se a caça: o
+    /// escondido cai, o que se vê passa a apanhável e a conta do dia diz quantos vão ao fundo.</summary>
+    private string SmokeSubs(int pid)
+    {
+        var w = _game.World;
+        if (w.ShipClasses.Values.FirstOrDefault(d => d.IsSub) is not ShipClassDef boat) return "sem submarino na tabela";
+        var dog = w.ShipClasses.Values.Where(d => d.IsHunter).OrderByDescending(d => d.Asw).ThenBy(d => d.Sort).FirstOrDefault();
+        string mid = Subs.MissionId(w);
+        if (dog is null || mid.Length == 0) return "sem caça anti-submarina na tabela";
+        var def = w.NavalMissionDefs[mid];
+        string folha = $"{boat.Name} esconde-se {boat.Stealth:0%}, {dog.Name} tem sonar {dog.Asw:0.#}, "
+                     + $"{def.Name.ToLowerInvariant()} afunda {w.Rule("asw_kill", 0.06f):0.##}/ponto ao dia";
+
+        var c = w.Countries[pid];
+        var foe = w.Countries.Values.Where(x => w.AreAtWar(pid, x.Id)).OrderBy(x => x.Id).FirstOrDefault();
+        var coast = w.Regions.Values.Where(r => r.ControllerId == pid && r.SeaNeighbours.Count > 0)
+                     .OrderBy(r => w.Km(r.Id, c.CapitalRegionId)).ThenBy(r => r.Id).FirstOrDefault();
+        if (foe is null || coast is null) return folha + "; sem costa nossa ou sem guerra para medir";
+
+        // o bando deles debaixo do nosso mar, posto à mão: o que se quer ver é a busca, não o estaleiro
+        string zone = Zones.Sea(w, coast.Id);
+        float pack = 6f;
+        var raid = new NavalMission
+        {
+            CountryId = foe.Id, RegionId = coast.Id, SinceDay = w.Clock.Day,
+            MissionId = w.NavalMissionDefs.Values.OrderBy(d => d.Sort).First().Id,
+            Name = w.NextFormationName(foe.Id, World.Sea, coast.Id),
+        };
+        raid.Squadron[boat.Id] = pack;
+        w.NavalMissions.Add(raid);
+        float before = Subs.HiddenShare(w, foe.Id, zone);
+
+        // e a nossa caça em cima deles: os cascos saem do porto pelo sonar (Navy.Value com efeito 'asw')
+        float hulls = 10f;
+        c.Ships[dog.Id] = c.Ships.GetValueOrDefault(dog.Id) + hulls;
+        // o cofre da prova já vai gasto de fragmentos anteriores e a estadia do dia tapava a verdadeira
+        // resposta da porta: paga-se a estadia só para a perguntar, e devolve-se o cofre como estava
+        float cofre = c.Money;
+        c.Money = MathF.Max(cofre, hulls * w.Rule("naval_mission_upkeep", 0.8f) + 1f);
+        string no = NavalMissionSystem.Block(w, pid, coast.Id, mid, hulls) ?? "aceite";
+        c.Money = cofre;
+        NavalMissionSystem.Assign(w, pid, coast.Id, mid, hulls);
+        var hunt = w.NavalMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == coast.Id);
+        float power = hunt is null ? 0f : hunt.Squadron.Sum(kv => kv.Value * Subs.Asw(w, kv.Key)) * def.Value;
+        float after = Subs.HiddenShare(w, foe.Id, zone), seen = Subs.Visible(w, foe.Id, zone);
+        return $"{folha}; {pack:0.#} submarinos deles no mar de {coast.Name} ({zone}): {before:P0} escondidos; "
+             + $"com {hulls:0.#} cascos nossos em {def.Name.ToLowerInvariant()} ({Navy.Describe(w, hunt?.Squadron ?? new())}, "
+             + $"sonar {power:0.#}): {after:P0} escondidos, {seen:0.#} à vista, "
+             + $"{MathF.Min(seen, power * w.Rule("asw_kill", 0.06f)):0.##} ao fundo hoje; destacar: «{no}»";
+    }
+
     /// <summary>--smoke: até onde a rede de abastecimento chega. Diz a regra, a divisão nossa mais afastada
     /// do depósito e quantas já vão com a linha fina — e, para o preço das estradas aparecer mesmo num
     /// mundo em paz, o que custaria atravessar as regiões à volta da capital se fossem terra tomada.</summary>
@@ -2692,6 +2745,7 @@ public partial class Hud : CanvasLayer
         string invasao = SmokeInvasion(pid);                              // operação anfíbia: marcar a praia, preparar e largar
         string campos = SmokeAirBases(pid);                               // o chão do céu: campos, camas e alcance em km reais
         string conves = SmokeCarriers(pid);                               // e o chão que flutua: porta-aviões e ataque naval
+        string mergulho = SmokeSubs(pid);                                 // guerra submarina: o que se esconde e quem o vai buscar
         string reach = SmokeSupplyReach(pid);                             // alcance da rede: até onde a linha aguenta sem afinar
         string stripes = _map.Regions.SmokeStripes(pid);                  // riscas de ocupação: a cor do dono por cima da do ocupante
         string rios = SmokeRivers();                                      // rios: a água desenhada no mapa e o que ela cobra a quem assalta
@@ -2707,7 +2761,7 @@ public partial class Hud : CanvasLayer
         string vitoria = SmokeVictory(pid);                               // pontos de vitória: o que cada praça vale e quanto do inimigo já é nosso
         string veterania = SmokeVeterancy(pid);                           // veterania: os degraus, quem está em cada um e os galões do mapa
         string rendicao = SmokeCapitulation(pid);                         // rendição: quanto falta a cada lado para cair, e por onde
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), zonas: {zonas}, marinha: {marinha}, aviação: {aviacao}, campos: {campos}, porta-aviões: {conves}, {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), invasão: {invasao}, {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, política: {politica}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), zonas: {zonas}, marinha: {marinha}, aviação: {aviacao}, campos: {campos}, porta-aviões: {conves}, submarinos: {mergulho}, {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), invasão: {invasao}, {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, política: {politica}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

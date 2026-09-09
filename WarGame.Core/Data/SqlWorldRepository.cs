@@ -135,13 +135,15 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck FROM ship_class ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw FROM ship_class ORDER BY sort"))
             w.ShipClasses[(string)r["id"]!] = new ShipClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["battle"]),
                 Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]), Convert.ToSingle(r["escort"]),
                 Convert.ToSingle(r["patrol"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
-                r["deck"] is null ? 0f : Convert.ToSingle(r["deck"]));
+                r["deck"] is null ? 0f : Convert.ToSingle(r["deck"]),
+                r["stealth"] is null ? 0f : Convert.ToSingle(r["stealth"]),
+                r["asw"] is null ? 0f : Convert.ToSingle(r["asw"]));
         foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck FROM plane_class ORDER BY sort"))
             w.PlaneClasses[(string)r["id"]!] = new PlaneClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["air"]),

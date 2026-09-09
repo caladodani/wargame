@@ -42,6 +42,7 @@ public sealed class NavalMissionSystem : ISystem
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id)) Navy.Classify(w, c);
 
         SeaBattle(w);
+        SubHunt(w);
         Ai(w);
     }
 
@@ -58,11 +59,16 @@ public sealed class NavalMissionSystem : ISystem
         foreach (var zone in w.NavalMissions.Select(m => Zones.Sea(w, m.RegionId)).Distinct()
                               .OrderBy(x => x, StringComparer.Ordinal).ToList())
         {
+            // o que está escondido por baixo do mar não está neste combate: não leva tiro e também não o
+            // dá — quem se esconde não está na linha (Subs). Sem submarinos nenhuns isto é null e a conta
+            // é a mesma de sempre, casco a casco.
+            var hide = Subs.Hide(w, w.NavalMissions.Where(m => Zones.Sea(w, m.RegionId) == zone).ToList());
             var sides = w.NavalMissions.Where(m => Zones.Sea(w, m.RegionId) == zone)
                          .GroupBy(m => m.CountryId).OrderBy(g => g.Key)
-                         .Select(g => (Country: g.Key, Ships: g.Sum(m => m.Ships),
-                                       Power: g.Sum(m => Navy.Power(w, m.Squadron)),
+                         .Select(g => (Country: g.Key, Ships: g.Sum(m => Shown(w, m, hide)),
+                                       Power: g.Sum(m => ShownPower(w, m, hide)),
                                        Missions: g.OrderBy(m => m.RegionId).ToList()))
+                         .Where(s => s.Ships > 0.0001f)
                          .ToList();
             foreach (var a in sides)
                 foreach (var b in sides)
@@ -77,8 +83,8 @@ public sealed class NavalMissionSystem : ISystem
                     float aAvg = a.Ships > 0f ? a.Power / a.Ships : 0f, bAvg = b.Ships > 0f ? b.Power / b.Ships : 0f;
                     float edge = aAvg <= 0f || bAvg <= 0f ? 1f : Math.Clamp(bAvg / aAvg, 1f / swing, swing);
                     // naval_losses < 1 é couraça e pontaria: leva-se menos aço ao fundo pelo mesmo combate
-                    float aLost = Sink(w, a.Missions, hit * Mult(w, a.Country) * edge);
-                    float bLost = Sink(w, b.Missions, hit * Mult(w, b.Country) / edge);
+                    float aLost = Sink(w, a.Missions, hit * Mult(w, a.Country) * edge, hide);
+                    float bLost = Sink(w, b.Missions, hit * Mult(w, b.Country) / edge, hide);
                     // levou a pior quem deixou lá a maior fatia da esquadra — e é essa que arrisca o almirante
                     float aShare = Share(aLost, a.Ships), bShare = Share(bLost, b.Ships);
                     int ra = a.Missions[0].RegionId, rb = b.Missions[0].RegionId;
@@ -99,21 +105,77 @@ public sealed class NavalMissionSystem : ISystem
     /// aprende com o combate: é assim que se pagam as escolas do mar. Público porque o aço já não vai ao
     /// fundo só por obra de outro navio: o ataque naval pelo ar (AirMissionSystem) afunda pela mesma conta,
     /// com a mesma escolta a levar os tiros primeiro.</summary>
-    public static float Sink(World w, List<NavalMission> missions, float ships)
+    public static float Sink(World w, List<NavalMission> missions, float ships,
+                             Dictionary<NavalMission, Dictionary<string, float>>? safe = null)
     {
-        float pool = missions.Sum(m => m.Ships), gone = 0f;
+        float pool = missions.Sum(m => Shown(w, m, safe)), gone = 0f;
         if (pool <= 0f) return 0f;
         if (!w.Countries.TryGetValue(missions[0].CountryId, out var c)) return 0f;
         foreach (var m in missions)
         {
+            float open = Shown(w, m, safe);
+            if (open <= 0f) continue;
             // a escolta leva os tiros primeiro (Navy.Sink) e o que se afundou sai também do pool nacional
-            var lost = Navy.Sink(w, m.Squadron, MathF.Min(m.Ships, ships * m.Ships / pool));
+            var lost = Navy.Sink(w, m.Squadron, MathF.Min(open, ships * open / pool), safe?.GetValueOrDefault(m));
             Navy.Lose(w, c, lost);
             gone += lost.Values.Sum();
         }
         if (gone <= 0f) return gone;
         Learn(w, c, gone * w.Rule("navy_xp_per_loss", 3f));
         return gone;
+    }
+
+    /// <summary>Cascos desta esquadra em que hoje se pode tocar: os que lá estão menos os que estão a salvo
+    /// (o submarino escondido, ou tudo o que não é submarino numa caça anti-submarina).</summary>
+    private static float Shown(World w, NavalMission m, Dictionary<NavalMission, Dictionary<string, float>>? safe) =>
+        MathF.Max(0f, m.Ships - (safe is not null && safe.TryGetValue(m, out var s) ? s.Values.Sum() : 0f));
+
+    /// <summary>Peso de combate do que desta esquadra está à vista: o que se esconde não dá tiro nenhum.</summary>
+    private static float ShownPower(World w, NavalMission m, Dictionary<NavalMission, Dictionary<string, float>>? safe)
+    {
+        float power = Navy.Power(w, m.Squadron);
+        if (safe is null || !safe.TryGetValue(m, out var s)) return power;
+        foreach (var (cls, n) in s) power -= n * Navy.Battle(w, cls);
+        return MathF.Max(0f, power);
+    }
+
+    /// <summary>Caça anti-submarina: as esquadras destacadas para ela vão buscar ao fundo o que virem por
+    /// baixo do mar. Só esta missão afunda submarinos — as outras vêem-nos (asw_passive) e mais nada; e só
+    /// se afunda o que se vê, por isso trazer poucos cascos a um mar cheio de submarinos é não apanhar
+    /// nenhum. É a resposta que faltava à guerra ao comércio: o bloqueio submarino já não era travável.</summary>
+    private static void SubHunt(World w)
+    {
+        float rate = w.Rule("asw_kill", 0.06f);
+        if (rate <= 0f || w.NavalMissions.Count == 0) return;
+
+        foreach (var m in w.NavalMissions.OrderBy(x => x.CountryId).ThenBy(x => x.RegionId).ToList())
+        {
+            if (!w.NavalMissionDefs.TryGetValue(m.MissionId, out var def) || def.Effect != "asw") continue;
+            float power = m.Squadron.Sum(kv => kv.Value * Subs.Asw(w, kv.Key)) * def.Value
+                          * School(w, m.CountryId, "patrol");
+            if (power <= 0.0001f) continue;
+
+            string zone = Zones.Sea(w, m.RegionId);
+            var prey = w.NavalMissions.Where(x => w.AreAtWar(m.CountryId, x.CountryId)
+                                                  && Zones.Sea(w, x.RegionId) == zone
+                                                  && Subs.Hulls(w, x.Squadron) > 0f)
+                        .GroupBy(x => x.CountryId).OrderBy(g => g.Key).ToList();
+            if (prey.Count == 0) continue;
+            float punch = power * rate / prey.Count;
+
+            foreach (var side in prey)
+            {
+                float seen = Subs.Visible(w, side.Key, zone);
+                if (seen <= 0.0001f) continue;                       // andam todos escondidos: não se apanha nada
+                var boats = side.OrderBy(x => x.RegionId).ToList();
+                var safe = boats.ToDictionary(x => x, x => Subs.Surfaced(w, x));
+                float sunk = Sink(w, boats, MathF.Min(punch, seen), safe);
+                if (sunk <= 0.0001f) continue;
+                w.Events.Publish(new SubsHunted(m.RegionId, m.CountryId, side.Key, sunk));
+                if (w.Countries.TryGetValue(m.CountryId, out var c)) Learn(w, c, sunk * w.Rule("navy_xp_per_loss", 3f));
+            }
+        }
+        w.NavalMissions.RemoveAll(m => m.Ships <= 0.001f);
     }
 
     /// <summary>Experiência naval, com o tecto da regra — é a moeda das escolas do mar.</summary>
@@ -131,8 +193,24 @@ public sealed class NavalMissionSystem : ISystem
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
         {
             if (c.IsPlayer || c.Capitulated || c.AtWarWith.Count == 0) continue;
+            float min = w.Rule("naval_mission_min_ships", 1f);
             float free = Free(w, c.Id) - reserve;
-            if (free < w.Rule("naval_mission_min_ships", 1f)) continue;
+            if (free < min) continue;
+
+            // primeiro o que morde em casa: se há aço deles escondido no nosso mar, uma fatia vai atrás dele
+            // — sem caça, o bloqueio submarino não tem resposta nenhuma e o comércio morre sozinho
+            string hunt = Subs.MissionId(w);
+            if (hunt.Length > 0 && Subs.Prey(w, c.Id) is int water)
+            {
+                float slice = MathF.Min(free, free * w.Rule("naval_ai_asw_share", 0.4f));
+                if (slice >= min && Block(w, c.Id, water, hunt, slice) is null)
+                {
+                    Assign(w, c.Id, water, hunt, slice);
+                    free = Free(w, c.Id) - reserve;
+                    if (free < min) continue;
+                }
+            }
+
             if (Target(w, c.Id) is not int coast) continue;
             Assign(w, c.Id, coast, "bloqueio", free);
         }

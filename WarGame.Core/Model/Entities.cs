@@ -502,10 +502,15 @@ public sealed record NavalMissionDef(string Id, string Name, string Icon, string
 /// tarefa naval. Nada disto está em código: são linhas da tabela.</summary>
 public sealed record ShipClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                   float Battle, float Screen, float Blockade, float Escort, float Patrol,
-                                  bool Basic, string Note, int Sort, string Glyph, float Deck = 0f)
+                                  bool Basic, string Note, int Sort, string Glyph, float Deck = 0f,
+                                  float Stealth = 0f, float Asw = 0f)
 {
     /// <summary>Casco que leva aviação ao mar: é campo de aviação a flutuar (AirBases.Decks).</summary>
     public bool IsCarrier => Deck > 0f;
+    /// <summary>Casco que anda escondido (submarino; Subs): o que não se vê não leva tiro.</summary>
+    public bool IsSub => Stealth > 0f;
+    /// <summary>Casco que caça o que anda por baixo do mar.</summary>
+    public bool IsHunter => Asw > 0f;
 }
 
 /// <summary>Um modelo de avião (tabela plane_class; Air). O céu do jogo era um número só: agora cada asa

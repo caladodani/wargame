@@ -382,7 +382,9 @@ CREATE TABLE IF NOT EXISTS ship_class (      -- classes de navio (Navy); estáti
   basic INTEGER NOT NULL DEFAULT 0,           -- 1 = a classe que o botão antigo de "comprar navio" compra
   note TEXT NOT NULL, sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
-  deck REAL NOT NULL DEFAULT 0);              -- asas que o casco leva ao mar (porta-aviões; AirBases.Decks)
+  deck REAL NOT NULL DEFAULT 0,               -- asas que o casco leva ao mar (porta-aviões; AirBases.Decks)
+  stealth REAL NOT NULL DEFAULT 0,            -- quanto o casco se esconde (submarino; Subs) — 0 = anda à vista
+  asw REAL NOT NULL DEFAULT 0);               -- caça anti-submarina: quanto este casco vê e afunda o que se esconde
 CREATE TABLE IF NOT EXISTS s_ship (           -- navios de um país por classe (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));

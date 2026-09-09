@@ -57,6 +57,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "pista",
         // o aço que o céu deita ao fundo: o torpedo com a esteira atrás
         "torpedo",
+        // a guerra submarina: o sonar a varrer o mar atrás do que se esconde por baixo dele
+        "sonar",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -618,6 +620,18 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Dot(0.10f, 0.50f, 0.035f);                                                     // esteira de bolhas
                 Dot(0.03f, 0.42f, 0.025f);
                 Dot(0.03f, 0.60f, 0.025f);
+                break;
+
+            // Sonar: o casco à esquerda a mandar três ondas para a frente e o contacto que elas encontraram
+            // do outro lado. É a chapa da caça anti-submarina — a única missão que vai buscar o que se
+            // esconde por baixo do mar.
+            case "sonar":
+                Poly(0.06f, 0.30f, 0.20f, 0.30f, 0.16f, 0.44f, 0.06f, 0.44f, 0.06f, 0.30f);    // o casco que ouve
+                Line(0.13f, 0.30f, 0.13f, 0.22f, 0.8f);                                        // mastro do sonar
+                foreach (float onda in new[] { 0.18f, 0.32f, 0.46f })
+                    Arc(0.13f, 0.50f, onda, -Mathf.Pi / 3.2f, Mathf.Pi / 3.2f, onda > 0.4f ? 0.7f : 1f);
+                Dot(0.80f, 0.66f, 0.06f);                                                      // o contacto lá em baixo
+                Line(0.06f, 0.88f, 0.94f, 0.88f, 0.7f);                                        // o fundo do mar
                 break;
 
             case "onda":

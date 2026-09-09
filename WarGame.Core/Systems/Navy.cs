@@ -19,12 +19,17 @@ namespace WarGame.Core.Systems;
 /// Estado derivado: não guarda nada, não entra no save e não é ISystem.</summary>
 public static class Navy
 {
-    /// <summary>Quanto vale um casco desta classe nesta tarefa ("blockade" | "escort" | "patrol").
+    /// <summary>Quanto vale um casco desta classe nesta tarefa ("blockade" | "escort" | "patrol" | "asw").
     /// Sem classe (ou classe que a tabela não conhece) vale 1: é o navio genérico de sempre.</summary>
     public static float Value(World w, string classId, string effect)
     {
         if (classId.Length == 0 || !w.ShipClasses.TryGetValue(classId, out var d)) return 1f;
-        return effect switch { "blockade" => d.Blockade, "escort" => d.Escort, "patrol" => d.Patrol, _ => 1f };
+        return effect switch
+        {
+            "blockade" => d.Blockade, "escort" => d.Escort, "patrol" => d.Patrol,
+            "asw" => d.Asw,          // à caça do que se esconde sai o casco com sonar, não o mais pesado
+            _ => 1f,
+        };
     }
 
     /// <summary>Peso no combate de esquadra (1 sem classe).</summary>
@@ -126,31 +131,42 @@ public static class Navy
 
     /// <summary>Afunda navios de uma esquadra: a escolta leva naval_screen_share das perdas por si — é para
     /// isso que ela lá está — e só o resto chega à linha. Uma esquadra sem escolta leva tudo na linha.
-    /// Devolve o que foi ao fundo, por classe, para o pool nacional pagar a mesma conta.</summary>
-    public static Dictionary<string, float> Sink(World w, Dictionary<string, float> squadron, float ships)
+    /// Devolve o que foi ao fundo, por classe, para o pool nacional pagar a mesma conta.
+    ///
+    /// `safe` são cascos em que hoje não se pode tocar, classe a classe: o submarino escondido no combate de
+    /// esquadra (Subs.Hidden) e, ao contrário, tudo o que NÃO é submarino numa caça anti-submarina
+    /// (Subs.Surfaced). Sem `safe` a conta é a de sempre, casco a casco.</summary>
+    public static Dictionary<string, float> Sink(World w, Dictionary<string, float> squadron, float ships,
+                                                 IReadOnlyDictionary<string, float>? safe = null)
     {
         var gone = new Dictionary<string, float>();
         if (ships <= 0f || squadron.Count == 0) return gone;
 
         float share = Math.Clamp(w.Rule("naval_screen_share", 0.75f), 0f, 1f);
-        float screens = squadron.Sum(kv => kv.Value * Screen(w, kv.Key));
-        float toScreen = screens > 0f ? MathF.Min(ships * share, squadron.Where(kv => Screen(w, kv.Key) > 0f).Sum(kv => kv.Value)) : 0f;
-        Spread(w, squadron, gone, toScreen, byScreen: true);
-        Spread(w, squadron, gone, ships - toScreen, byScreen: false);
+        float screens = squadron.Sum(kv => Open(kv.Value, safe, kv.Key) * Screen(w, kv.Key));
+        float toScreen = screens > 0f
+            ? MathF.Min(ships * share, squadron.Where(kv => Screen(w, kv.Key) > 0f).Sum(kv => Open(kv.Value, safe, kv.Key)))
+            : 0f;
+        Spread(w, squadron, gone, toScreen, byScreen: true, safe);
+        Spread(w, squadron, gone, ships - toScreen, byScreen: false, safe);
         foreach (var cls in squadron.Keys.ToList()) if (squadron[cls] <= 0.0001f) squadron.Remove(cls);
         return gone;
     }
 
+    /// <summary>Cascos desta classe em que hoje se pode tocar (os que estão, menos os que estão a salvo).</summary>
+    private static float Open(float have, IReadOnlyDictionary<string, float>? safe, string cls) =>
+        MathF.Max(0f, have - (safe?.GetValueOrDefault(cls) ?? 0f));
+
     /// <summary>Reparte perdas por uma parte da esquadra: pela couraça (a escolta) ou pelo que resta.</summary>
     private static void Spread(World w, Dictionary<string, float> squadron, Dictionary<string, float> gone,
-                               float ships, bool byScreen)
+                               float ships, bool byScreen, IReadOnlyDictionary<string, float>? safe = null)
     {
         if (ships <= 0.0001f) return;
         var weights = new Dictionary<string, float>();
         foreach (var (cls, n) in squadron)
         {
-            float scr = Screen(w, cls);
-            float weight = byScreen ? n * scr : n;
+            float open = Open(n, safe, cls), scr = Screen(w, cls);
+            float weight = byScreen ? open * scr : open;
             if (byScreen && scr <= 0f) continue;
             if (weight > 0f) weights[cls] = weight;
         }
@@ -158,13 +174,17 @@ public static class Navy
         if (total <= 0f)
         {   // não há escolta nenhuma para levar esta parte: cai toda na esquadra, seja ela qual for
             if (byScreen) return;
-            foreach (var cls in squadron.Keys.ToList()) weights[cls] = squadron[cls];
+            foreach (var cls in squadron.Keys.ToList())
+            {
+                float open = Open(squadron[cls], safe, cls);
+                if (open > 0f) weights[cls] = open;
+            }
             total = weights.Values.Sum();
             if (total <= 0f) return;
         }
         foreach (var (cls, weight) in weights.OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {
-            float take = MathF.Min(squadron.GetValueOrDefault(cls), ships * weight / total);
+            float take = MathF.Min(Open(squadron.GetValueOrDefault(cls), safe, cls), ships * weight / total);
             if (take <= 0f) continue;
             squadron[cls] = squadron.GetValueOrDefault(cls) - take;
             gone[cls] = gone.GetValueOrDefault(cls) + take;

@@ -552,8 +552,13 @@ public partial class WarPanel : PanelContainer
                 mix.AddChild(Ui.Lbl($"{Navy.Name(w, cls)} ×{n:0.#}", 14));
             }
             float deck = Navy.Decks(w, m.Squadron);
+            // os nossos submarinos naquele mar: o que está escondido não leva tiro nenhum, e é a única
+            // conta da esquadra que não se lê na composição
+            float boats = Subs.Hulls(w, m.Squadron);
+            float hid = boats * Subs.HiddenShare(w, pid, Zones.Sea(w, rid));
             mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Navy.Power(w, m.Squadron):0.#}"
-                                        + (deck > 0f ? $"   ·   convés para {deck:0.#} asas" : ""), 14)));
+                                        + (deck > 0f ? $"   ·   convés para {deck:0.#} asas" : "")
+                                        + (boats > 0.05f ? $"   ·   {hid:0.#} de {boats:0.#} submarinos escondidos" : ""), 14)));
             card.AddChild(mix);
         }
 
@@ -577,8 +582,23 @@ public partial class WarPanel : PanelContainer
         foreach (int rid in seas)
         {
             var r = w.Regions[rid];
-            card.AddChild(Ui.Lbl($"{(r.ControllerId == pid ? "Costa nossa" : "Costa deles")}: {r.Name}"
-                                 + (NavalMissionSystem.Blockaded(w, rid) ? "   ·   fechada por bloqueio" : ""), 15));
+            // aço deles por baixo daquele mar: é o que decide se vale a pena mandar a caça anti-submarina —
+            // sem esta linha, o submarino inimigo era invisível também para quem joga
+            string zone = Zones.Sea(w, rid);
+            float theirs = 0f, theirsHid = 0f;
+            foreach (var side in w.NavalMissions.Where(x => w.AreAtWar(pid, x.CountryId) && Zones.Sea(w, x.RegionId) == zone)
+                         .Select(x => x.CountryId).Distinct().OrderBy(x => x))
+            {
+                float pack = Subs.Pack(w, side, zone);
+                theirs += pack; theirsHid += pack * Subs.HiddenShare(w, side, zone);
+            }
+            var head = Ui.Lbl($"{(r.ControllerId == pid ? "Costa nossa" : "Costa deles")}: {r.Name}"
+                              + (NavalMissionSystem.Blockaded(w, rid) ? "   ·   fechada por bloqueio" : "")
+                              + (theirs > 0.05f ? $"   ·   🐋 {theirs:0.#} submarinos deles, {theirsHid:0.#} escondidos" : ""), 15);
+            if (theirs > 0.05f)
+                head.TooltipText = "Só a caça anti-submarina os afunda, e só afunda os que vê: quanto mais "
+                                   + "cascos com sonar lá estiverem, menos deles ficam escondidos.";
+            card.AddChild(head);
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             foreach (var def in w.NavalMissionDefs.Values.OrderBy(d => d.Sort))
             {
@@ -631,9 +651,13 @@ public partial class WarPanel : PanelContainer
             row.AddChild(Glyph.Make(d.Glyph, 18f, have > 0f ? Ui.Accent : Ui.TextDim, d.Note));
             var lbl = Ui.Lbl($"{d.Name} ({d.Role})   ·   {have:0.#} nossos, {port:0.#} no porto"
                              + $"   ·   combate {d.Battle:0.#}, couraça {d.Screen:0.#}"
-                             + (d.IsCarrier ? $", convés {d.Deck:0.#} asas" : ""), 15);
+                             + (d.IsCarrier ? $", convés {d.Deck:0.#} asas" : "")
+                             + (d.IsSub ? $", esconde-se {d.Stealth:0%}" : "")
+                             + (d.IsHunter ? $", sonar {d.Asw:0.#}" : ""), 15);
             lbl.TooltipText = d.Note + $"\nBloqueio ×{d.Blockade:0.#}, escolta ×{d.Escort:0.#}, patrulha ×{d.Patrol:0.#}."
-                            + (d.IsCarrier ? $"\nLeva {d.Deck:0.#} asas ao mar: campo de aviação a flutuar." : "");
+                            + (d.IsCarrier ? $"\nLeva {d.Deck:0.#} asas ao mar: campo de aviação a flutuar." : "")
+                            + (d.IsSub ? $"\nAnda escondido: {d.Stealth:0%} dele não leva tiro nenhum enquanto ninguém o vir." : "")
+                            + (d.IsHunter ? $"\nCaça o que se esconde: {d.Asw:0.#} de sonar, a peso inteiro numa caça anti-submarina." : "");
             row.AddChild(Ui.Grow(lbl));
             var buy = Ui.Btn($"{cost:0}", () => BuyShip(pid, cls), 110);
             buy.Disabled = me.Money < cost;

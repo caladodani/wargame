@@ -34,6 +34,8 @@ public class GlyphDataTests
         "submarino", "conves", "caca", "bombardeiro", "carga", "praia",
         // o aço que o céu deita ao fundo: o torpedo com a esteira atrás (missão de ataque naval)
         "torpedo",
+        // a guerra submarina: o sonar da caça anti-submarina
+        "sonar",
     };
 
     [Fact]

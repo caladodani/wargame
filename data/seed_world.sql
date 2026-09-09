@@ -944,14 +944,15 @@ INSERT INTO air_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
 -- Missões navais (tabela naval_mission; NavalMissionSystem): o que uma esquadra vai fazer ao mar de uma costa.
 CREATE TABLE IF NOT EXISTS naval_mission (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
-  effect TEXT NOT NULL,                      -- blockade | escort | patrol
+  effect TEXT NOT NULL,                      -- blockade | escort | patrol | asw
   value REAL NOT NULL,                       -- o que cada navio vale nesse papel
   note TEXT NOT NULL, sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
 INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
  ('bloqueio','Bloqueio naval','⚓','blockade',1,'Fecha o mar em frente àquela costa: enquanto lá estiver a esquadra, o cais não carrega nada e o abastecimento por mar não passa.',0,'ancora'),
  ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1,'escudo'),
- ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2,'luneta');
+ ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2,'luneta'),
+ ('caca_submarina','Caça anti-submarina','🎧','asw',1,'Varre aquele mar atrás do que se esconde por baixo dele: revela os submarinos deles e afunda os que vir. É a única missão que os apanha — no combate de esquadra o submarino escondido não leva tiro nenhum.',3,'sonar');
 
 -- Classes de navio (tabela ship_class; Navy). A marinha era um número: 10 navios eram 10 navios, fossem
 -- lanchas ou porta-aviões. Agora cada casco tem classe, e a classe decide o que aquele navio serve —
@@ -959,14 +960,18 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
 -- últimas colunas dizem quanto vale na tarefa. Um submarino aperta um bloqueio como nenhum outro e não
 -- protege ninguém; um contratorpedeiro escolta e leva a pancada; um porta-aviões ganha a batalha e não
 -- se guarda sozinho. Mudar a marinha do jogo é mudar estas linhas.
-INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck) VALUES
- ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta',0),
- ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco',0),
- ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo',0),
- ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda',0),
- ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si.',4,'submarino',0),
- ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas',0),
- ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'Campo de aviação a flutuar: leva o céu com ele e põe asas nossas sobre mar onde não há terra nossa nenhuma. Não se defende sozinho.',6,'conves',4);
+-- As duas últimas colunas são a guerra submarina (Subs): 'stealth' é quanto o casco se esconde — só o
+-- submarino se esconde, e o que está escondido não leva tiro nenhum no combate de esquadra nem do ar; 'asw'
+-- é quem o vê e o vai buscar ao fundo. Toda a esquadra vê alguma coisa (asw_passive), mas afundar pede a
+-- missão de caça anti-submarina. É por isto que o contratorpedeiro existe.
+INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw) VALUES
+ ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta',0,0,1.0),
+ ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco',0,0,0.8),
+ ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo',0,0,1.4),
+ ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda',0,0,2.2),
+ ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si. Anda escondido: quem não o vê não lhe acerta.',4,'submarino',0,0.85,0),
+ ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas',0,0,0.3),
+ ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'Campo de aviação a flutuar: leva o céu com ele e põe asas nossas sobre mar onde não há terra nossa nenhuma. Não se defende sozinho.',6,'conves',4,0,0.6);
 
 -- Modelos de avião (tabela plane_class; Air). O céu era um número: uma asa era uma asa, fosse ela de caças
 -- ou de transportes, e por isso a aviação não tinha decisão nenhuma — só quantidade. Agora cada asa tem
@@ -1106,6 +1111,13 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_screen_share',0.75,'fatia das perdas de um combate naval que a escolta (screen) leva por si'),
  ('naval_power_swing',1.5,'quanto a diferença de força de esquadra pode agravar as perdas de um lado'),
  ('navy_start_mix',0.35,'fatia da marinha de partida que nasce em classes de linha, o resto em escolta'),
+ -- Guerra submarina (Subs): o que se esconde não leva tiro. A esquadra toda vê alguma coisa (asw_passive),
+ -- mas quem afunda o que está por baixo do mar é a missão de caça anti-submarina — e um bando de submarinos
+ -- é mais difícil de cobrir do que um só (sub_hide multiplica pelo número de cascos escondidos).
+ ('sub_hide',3,'quanto cada submarino no mar dilui a busca: visto = busca ÷ (busca + sub_hide × submarinos)'),
+ ('asw_passive',0.25,'fatia da caça anti-submarina que uma esquadra em qualquer outra missão faz na mesma'),
+ ('asw_kill',0.06,'submarinos vistos ao fundo por dia e por ponto de caça anti-submarina destacada'),
+ ('naval_ai_asw_share',0.4,'fatia dos navios livres que a IA manda caçar submarinos quando os há no seu mar'),
  ('convoy_base',20,'marinha mercante de partida de cada país'),
  ('convoy_cost',25,'custo de um comboio mercante'),
  ('convoy_per_sea_division',1,'mercantes presos por cada divisão abastecida por mar'),

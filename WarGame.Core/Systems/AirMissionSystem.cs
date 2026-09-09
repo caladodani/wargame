@@ -112,7 +112,10 @@ public sealed class AirMissionSystem : ISystem
             foreach (var side in prey)
             {
                 float guard = 1f + Superiority(w, m.RegionId, side.Key) * shield;
-                float sunk = NavalMissionSystem.Sink(w, side.OrderBy(x => x.RegionId).ToList(), punch / guard);
+                // o que anda escondido por baixo do mar também não leva torpedo nenhum: o avião só afunda o
+                // que vê, e um submarino só se vai buscar com caça anti-submarina (Subs)
+                var fleet = side.OrderBy(x => x.RegionId).ToList();
+                float sunk = NavalMissionSystem.Sink(w, fleet, punch / guard, Subs.Hide(w, fleet));
                 if (sunk <= 0.0001f) continue;
                 w.Events.Publish(new AirNavalStrike(m.RegionId, m.CountryId, side.Key, sunk));
                 if (w.Countries.TryGetValue(m.CountryId, out var c)) Learn(w, c, sunk * w.Rule("air_xp_per_loss", 3f));
