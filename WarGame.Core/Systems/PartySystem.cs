@@ -28,7 +28,8 @@ public sealed class PartySystem : ISystem
     public static int Term(World w) => Math.Max(1, (int)MathF.Round(w.Rule("election_years", 4f) * 365f));
 
     /// <summary>O puxão de hoje neste partido, em pontos: a guerra, a instabilidade abaixo de 50 e o
-    /// desgaste de guerra, mais o regresso devagar à base. É o que a UI mostra por baixo da barra.</summary>
+    /// desgaste de guerra, mais o gabinete (os ministros dessa cor a fazer campanha de dentro do Estado) e
+    /// o regresso devagar à base. É o que a UI mostra por baixo da barra.</summary>
     public static float Drift(World w, Country c, PartyDef p)
     {
         float day = w.Rule("party_drift_day", 1f);
@@ -37,7 +38,7 @@ public sealed class PartySystem : ISystem
                    + c.WarExhaustion * p.DriftExhaustion;
         float now = c.Parties.GetValueOrDefault(p.Id);
         float settle = Math.Clamp(p.Base - now, -1f, 1f) * w.Rule("party_settle", 0.02f);
-        return pull * day + settle;
+        return pull * day + CabinetSystem.PartyPull(w, c, p.Id) + settle;
     }
 
     /// <summary>O partido da oposição que hoje está em condições de dar o golpe, ou null. Precisa de

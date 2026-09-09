@@ -13,6 +13,11 @@ namespace WarGame.Presentation;
 /// mais (World.CabinetTenure). Os que são do país levam o selo "⚜ nosso" e aparecem no cimo da lista de
 /// candidatos, separados dos que se contratam em qualquer lado.
 ///
+/// Desde 0.3.87 o ministro traz também a COR do partido dele: uma chapa com o glifo e o puxão diário que
+/// dá à opinião do país, e o aviso vermelho quando é gente da oposição sentada à mesa do governo. O
+/// cabeçalho conta o gabinete em política — quantos são do governo, quantos são rivais, e o que isso
+/// custa em estabilidade por dia (CabinetSystem.StabilityShift).
+///
 /// Só lê o World; nomear e demitir é de quem sabe despachar comandos.</summary>
 public static class CabinetView
 {
@@ -34,6 +39,19 @@ public static class CabinetView
         head.AddThemeColorOverride("font_color", Ui.Accent);
         headRow.AddChild(Ui.Grow(head));
         v.AddChild(headRow);
+
+        // a política do gabinete: quantos são do governo, quantos são rivais, e o que a mesa custa por dia
+        int rivals = CabinetSystem.Rivals(w, c), coloured = CabinetSystem.Ministers(w, c).Count();
+        float shift = CabinetSystem.StabilityShift(w, c);
+        if (coloured > 0)
+        {
+            var pol = Ui.Lbl($"política da mesa: {coloured - rivals} do governo, {rivals} da oposição"
+                             + $" · estabilidade {shift:+0.00;-0.00;0}/dia", 14);
+            pol.AddThemeColorOverride("font_color", rivals > 0 ? Ui.Danger : Ui.Good);
+            pol.TooltipText = "Cada ministro do partido do governo segura o país; cada um da oposição abana-o "
+                            + "e faz campanha de dentro do Estado (advisor_loyal_stability / advisor_rival_stability).";
+            v.AddChild(pol);
+        }
 
         float bonus = w.Rule("advisor_tenure_bonus", 0.5f);
         foreach (var slot in w.CabinetSlots)
@@ -59,6 +77,7 @@ public static class CabinetView
                 var who = Ui.Lbl(sat.Name, 17);
                 who.AddThemeColorOverride("font_color", Ui.Good);
                 title.AddChild(Ui.Grow(who));
+                if (Colour(w, c, sat) is Control chip) title.AddChild(chip);
                 if (sat.CountryTag is not null) title.AddChild(Seal(c));
                 string id = slot.Id;
                 title.AddChild(Ui.Btn("Demitir", () => onDismiss(id), 0, Ui.Kind.Danger));
@@ -101,12 +120,17 @@ public static class CabinetView
                 foreach (var a in men)
                 {
                     string id = a.Id;
+                    var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 6);
                     var b = Ui.Btn($"{a.Icon} {a.Name}   —   {Effects(a, 1f)}   ·   {a.Cost:0} pp + {a.Cost * w.Rule("advisor_wage_share", 0.01f):0.0}/dia",
                                    () => onAppoint(id), 0, group ? Ui.Kind.Primary : Ui.Kind.Normal);
                     b.Disabled = c.Money < a.Cost;
-                    b.TooltipText = b.Disabled ? $"faltam {a.Cost - c.Money:0} pontos de produção" : a.Note;
+                    b.TooltipText = b.Disabled ? $"faltam {a.Cost - c.Money:0} pontos de produção"
+                                  : a.Note + (Party(w, a) is PartyDef pd ? $"\n{Pull(c, a, pd)}" : "");
                     b.AddThemeFontSizeOverride("font_size", 14);
-                    v.AddChild(Ui.Grow(b));
+                    line.AddChild(Ui.Grow(b));
+                    // a cor política ao lado do preço: contratar é escolher para onde o país deriva
+                    if (Colour(w, c, a) is Control chip) line.AddChild(chip);
+                    v.AddChild(line);
                 }
             }
         }
@@ -132,6 +156,34 @@ public static class CabinetView
         face.AddThemeColorOverride("font_color", Ui.Accent);
         frame.AddChild(face);
         return frame;
+    }
+
+    /// <summary>O partido deste conselheiro, ou null quando é técnico (ou quando a tabela não conhece a
+    /// cor que ele traz — save antigo com partidos que já não existem).</summary>
+    public static PartyDef? Party(World w, AdvisorDef a) =>
+        string.IsNullOrEmpty(a.Party) ? null : w.PartyDefs.GetValueOrDefault(a.Party);
+
+    /// <summary>A frase do puxão: o que este homem faz à opinião do país por dia, e de que lado está.</summary>
+    private static string Pull(Country c, AdvisorDef a, PartyDef p) =>
+        $"{p.Name}: {a.Drift:+0.000;-0.000;0} pontos de opinião por dia"
+        + (p.Id == c.Party ? " · é do governo, segura a casa" : " · é da oposição, abana a casa");
+
+    /// <summary>Chapa da cor política: o glifo do partido, o puxão diário, e a moldura vermelha quando é
+    /// gente da oposição. Null para um técnico — quem não tem partido não leva chapa nenhuma.</summary>
+    private static Control? Colour(World w, Country c, AdvisorDef a)
+    {
+        if (Party(w, a) is not PartyDef p) return null;
+        bool rival = p.Id != c.Party;
+        var tint = PartyView.Of(p);
+        var chip = new PanelContainer();
+        chip.AddThemeStyleboxOverride("panel", Ui.Box(tint with { A = rival ? 0.28f : 0.16f }, 4));
+        var box = new HBoxContainer(); box.AddThemeConstantOverride("separation", 4); chip.AddChild(box);
+        box.AddChild(Glyph.Make(p.Glyph, 14, tint, p.Name));
+        var l = Ui.Lbl($"{(rival ? "⚑ " : "")}{a.Drift:+0.00;-0.00;0}", 13);
+        l.AddThemeColorOverride("font_color", rival ? Ui.Danger : tint);
+        box.AddChild(l);
+        chip.TooltipText = Pull(c, a, p);
+        return chip;
     }
 
     /// <summary>Selo do conselheiro que é do país e de mais nenhum.</summary>

@@ -377,9 +377,12 @@ public sealed record GeneralDef(string Id, string Name, string StatKey, float Mu
 public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sort, string Glyph = "");
 
 /// <summary>Conselheiro civil (tabelas advisor/advisor_effect): senta-se numa pasta, custa a nomeação e um
-/// salário por dia, e enquanto lá está multiplica os stats de Effects. CountryTag null = serve qualquer país.</summary>
+/// salário por dia, e enquanto lá está multiplica os stats de Effects. CountryTag null = serve qualquer país.
+/// Party é a cor política dele (null = técnico) e Drift os pontos de opinião por dia que ele puxa para esse
+/// partido enquanto estiver sentado — é por aqui que o gabinete mexe na rua e não só nos números.</summary>
 public sealed record AdvisorDef(string Id, string? CountryTag, string Slot, string Name, string Icon,
-                                float Cost, string Note, Dictionary<string, float> Effects);
+                                float Cost, string Note, Dictionary<string, float> Effects,
+                                string? Party = null, float Drift = 0f);
 
 /// <summary>Partido (tabela party): a opinião do país tem nome. Base é para onde a popularidade volta
 /// quando nada a puxa; DriftWar/DriftUnstable/DriftExhaustion são os pontos por dia que a guerra, a

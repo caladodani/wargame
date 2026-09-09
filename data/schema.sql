@@ -128,7 +128,12 @@ CREATE TABLE IF NOT EXISTS cabinet_slot (        -- pastas do gabinete: uma cade
 );
 CREATE TABLE IF NOT EXISTS advisor (             -- conselheiros; country_tag NULL = disponível a todos
   id TEXT PRIMARY KEY, country_tag TEXT, slot TEXT NOT NULL REFERENCES cabinet_slot(id),
-  name TEXT NOT NULL, icon TEXT NOT NULL, cost REAL NOT NULL, note TEXT
+  name TEXT NOT NULL, icon TEXT NOT NULL, cost REAL NOT NULL, note TEXT,
+  party TEXT,                                    -- a cor política do ministro (NULL = técnico sem partido);
+                                                 -- sem chave estrangeira de propósito: os conselheiros
+                                                 -- semeiam-se muito antes da tabela `party`
+
+  drift REAL NOT NULL DEFAULT 0                  -- pontos de opinião por dia que ele puxa para esse partido
 );
 CREATE TABLE IF NOT EXISTS advisor_effect (      -- o que o conselheiro multiplica nos stats do país
   advisor_id TEXT NOT NULL REFERENCES advisor(id), stat_key TEXT NOT NULL, mult REAL NOT NULL,

@@ -15,7 +15,15 @@ namespace WarGame.Core.Systems;
 /// Um conselheiro também ganha rodagem: quanto mais tempo serve, mais vale o que faz (World.CabinetTenure,
 /// regras advisor_tenure_days e advisor_tenure_bonus). Trocar de homem todos os meses é deitar isso fora.
 ///
-/// Este sistema só trata da folha de salários, da rodagem e das saídas; nomear e demitir é dos comandos.</summary>
+/// E desde 0.3.87 o ministro tem COR POLÍTICA (advisor.party/advisor.drift). Quem se senta não traz só os
+/// números da sua pasta — traz os cartazes do partido dele: todos os dias puxa a opinião do país para esse
+/// lado (PartySystem.Drift pergunta aqui por PartyPull) e mexe na estabilidade conforme seja gente do
+/// governo ou da oposição sentada à mesa dele. É o gabinete do HoI4: contratar um ideólogo é escolher para
+/// onde o país vai derivar, e um gabinete cheio de rivais é um golpe a preparar-se em casa. Os técnicos
+/// (party NULL) não puxam nada — são a escolha de quem quer os números e não quer mexer na rua.
+///
+/// Este sistema só trata da folha de salários, da rodagem, da política do gabinete e das saídas; nomear e
+/// demitir é dos comandos.</summary>
 public sealed class CabinetSystem : ISystem
 {
     public string Name => "Cabinet";
@@ -29,6 +37,8 @@ public sealed class CabinetSystem : ISystem
         {
             if (c.Cabinet.Count == 0) continue;
             World.ApplyCabinet(w, c);                 // a rodagem cresce com os dias de casa: recontar todos os dias
+            if (!c.Capitulated)                       // um país ocupado não tem governo próprio para lhe fazer frente
+                c.Stability = Math.Clamp(c.Stability + StabilityShift(w, c), 0f, 100f);
             float wages = Wages(w, c);
             c.Money -= wages;
             if (c.Money >= 0f) continue;
@@ -58,6 +68,32 @@ public sealed class CabinetSystem : ISystem
     {
         float share = MathF.Max(0f, w.Rule("advisor_wage_share", 0.01f));
         return c.Cabinet.Values.Sum(id => Wage(w, id, share));
+    }
+
+    /// <summary>Os ministros sentados que têm cor política (os técnicos ficam de fora).</summary>
+    public static IEnumerable<AdvisorDef> Ministers(World w, Country c) =>
+        c.Cabinet.Values.Select(id => w.AdvisorDefs.GetValueOrDefault(id))
+                        .OfType<AdvisorDef>()
+                        .Where(a => !string.IsNullOrEmpty(a.Party));
+
+    /// <summary>O puxão que o gabinete dá HOJE a este partido, em pontos de opinião por dia: soma do que
+    /// cada ministro dessa cor puxa, pela regra advisor_drift_day. Zero num gabinete de técnicos.</summary>
+    public static float PartyPull(World w, Country c, string partyId) =>
+        string.IsNullOrEmpty(partyId) ? 0f
+        : Ministers(w, c).Where(a => a.Party == partyId).Sum(a => a.Drift)
+          * w.Rule("advisor_drift_day", 1f);
+
+    /// <summary>Ministros da oposição sentados à mesa do governo: cada um é uma voz que manda no Estado
+    /// sem ser do partido que ganhou. É esta conta que o país paga em estabilidade.</summary>
+    public static int Rivals(World w, Country c) => Ministers(w, c).Count(a => a.Party != c.Party);
+
+    /// <summary>Estabilidade por dia que o gabinete dá ou tira: os do partido do governo seguram a casa,
+    /// os da oposição abanam-na. Um gabinete só de técnicos não mexe em nada.</summary>
+    public static float StabilityShift(World w, Country c)
+    {
+        int rivals = Rivals(w, c), loyal = Ministers(w, c).Count() - rivals;
+        return loyal * w.Rule("advisor_loyal_stability", 0.01f)
+             - rivals * w.Rule("advisor_rival_stability", 0.02f);
     }
 
     /// <summary>Conselheiros que este país pode nomear para uma pasta: os de toda a gente e os dele.</summary>

@@ -259,10 +259,11 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,sort,glyph FROM cabinet_slot ORDER BY sort"))
             w.CabinetSlots.Add(new CabinetSlotDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!));
-        foreach (var r in _static.Query("SELECT id,country_tag,slot,name,icon,cost,note FROM advisor ORDER BY id"))
+        foreach (var r in _static.Query("SELECT id,country_tag,slot,name,icon,cost,note,party,drift FROM advisor ORDER BY id"))
             w.AdvisorDefs[(string)r["id"]!] = new AdvisorDef((string)r["id"]!, r["country_tag"] as string,
                 (string)r["slot"]!, (string)r["name"]!, (string)r["icon"]!, Convert.ToSingle(r["cost"]),
-                r["note"] as string ?? "", new Dictionary<string, float>());
+                r["note"] as string ?? "", new Dictionary<string, float>(),
+                r["party"] as string, r["drift"] is null ? 0f : Convert.ToSingle(r["drift"]));
         foreach (var r in _static.Query("SELECT advisor_id,stat_key,mult FROM advisor_effect"))
             if (w.AdvisorDefs.TryGetValue((string)r["advisor_id"]!, out var ad))
                 ad.Effects[(string)r["stat_key"]!] = Convert.ToSingle(r["mult"]);

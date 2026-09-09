@@ -1489,15 +1489,22 @@ INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('seguranca','Seguran�
 INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('propaganda','Propaganda','📣',3,'megafone');
 INSERT INTO cabinet_slot (id,name,icon,sort,glyph) VALUES ('ciencia','Ciência','📚',4,'livro');
 
-INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note) VALUES
- ('adv_industrial',NULL,'economia','Capitão de indústria','🏭',150,'As fábricas dele rendem mais do que as do Estado.'),
- ('adv_planeador',NULL,'economia','Planeador de guerra','📐',130,'Encomendas despachadas antes do prazo.'),
- ('adv_espiao',NULL,'seguranca','Chefe dos serviços','🕵',140,'A retaguarda deixa de ser terra de ninguém.'),
- ('adv_marechal',NULL,'seguranca','Marechal do Estado','🎖',150,'Tropa descansada volta mais depressa à linha.'),
- ('adv_orador',NULL,'propaganda','Orador do regime','📣',120,'Os cartazes dele enchem os quartéis.'),
- ('adv_governador',NULL,'propaganda','Governador colonial','🏛',160,'Sabe governar terra que não é dele.'),
- ('adv_teorico',NULL,'ciencia','Teórico militar','📚',150,'Os laboratórios andam ao ritmo dele.'),
- ('adv_logistico',NULL,'ciencia','Mestre de logística','🚚',130,'Estradas melhores e encomendas mais rápidas.');
+-- `party`/`drift`: a cor política do ministro. Quem se senta no gabinete não traz só os números da sua
+-- pasta — traz os cartazes do partido dele, e todos os dias puxa a opinião do país para esse lado. Os
+-- técnicos (party NULL) não puxam nada: são a escolha de quem não quer mexer na rua.
+INSERT INTO advisor (id,country_tag,slot,name,icon,cost,note,party,drift) VALUES
+ ('adv_industrial',NULL,'economia','Capitão de indústria','🏭',150,'As fábricas dele rendem mais do que as do Estado.','liberais',0.030),
+ ('adv_planeador',NULL,'economia','Planeador de guerra','📐',130,'Encomendas despachadas antes do prazo.',NULL,0),
+ ('adv_sindicalista',NULL,'economia','Delegado sindical','✊',120,'Traz as fábricas para a mesa — e os operários para a rua.','socialistas',0.075),
+ ('adv_espiao',NULL,'seguranca','Chefe dos serviços','🕵',140,'A retaguarda deixa de ser terra de ninguém.','autoritarios',0.040),
+ ('adv_marechal',NULL,'seguranca','Marechal do Estado','🎖',150,'Tropa descansada volta mais depressa à linha.','nacionalistas',0.040),
+ ('adv_comissario',NULL,'seguranca','Comissário político','☭',135,'Vigia o quartel em nome do povo.','socialistas',0.060),
+ ('adv_orador',NULL,'propaganda','Orador do regime','📣',120,'Os cartazes dele enchem os quartéis.','nacionalistas',0.070),
+ ('adv_governador',NULL,'propaganda','Governador colonial','🏛',160,'Sabe governar terra que não é dele.','autoritarios',0.050),
+ ('adv_provedor',NULL,'propaganda','Provedor do cidadão','⚖',125,'Abre os livros do Estado a quem os quiser ler.','liberais',0.065),
+ ('adv_teorico',NULL,'ciencia','Teórico militar','📚',150,'Os laboratórios andam ao ritmo dele.',NULL,0),
+ ('adv_logistico',NULL,'ciencia','Mestre de logística','🚚',130,'Estradas melhores e encomendas mais rápidas.',NULL,0),
+ ('adv_reitor',NULL,'ciencia','Reitor da academia','🎓',140,'A universidade aberta paga-se em cabeças.','liberais',0.055);
 
 INSERT INTO advisor_effect VALUES ('adv_industrial','industry',1.10);
 INSERT INTO advisor_effect VALUES ('adv_planeador','production_speed',1.15);
@@ -1509,10 +1516,18 @@ INSERT INTO advisor_effect VALUES ('adv_governador','integration_speed',1.25);
 INSERT INTO advisor_effect VALUES ('adv_teorico','research_speed',1.20);
 INSERT INTO advisor_effect VALUES ('adv_logistico','move_speed',1.10);
 INSERT INTO advisor_effect VALUES ('adv_logistico','production_speed',1.05);
+INSERT INTO advisor_effect VALUES ('adv_sindicalista','conscription',1.12);
+INSERT INTO advisor_effect VALUES ('adv_comissario','counter_intel',1.15);
+INSERT INTO advisor_effect VALUES ('adv_comissario','org_regain',1.05);
+INSERT INTO advisor_effect VALUES ('adv_provedor','political_gain',1.15);
+INSERT INTO advisor_effect VALUES ('adv_reitor','research_speed',1.15);
 
 INSERT INTO rule VALUES ('advisor_wage_share', 0.01, 'salário diário de um conselheiro, em fracção do que custou nomeá-lo');
 INSERT INTO rule VALUES ('advisor_tenure_days', 365, 'dias de casa para um conselheiro estar rodado de todo');
 INSERT INTO rule VALUES ('advisor_tenure_bonus', 0.5, 'quanto o que ele faz vale a mais, rodado de todo (0.5 = mais metade)');
+INSERT INTO rule VALUES ('advisor_drift_day', 1, 'multiplicador do puxão diário que os ministros dão ao partido deles');
+INSERT INTO rule VALUES ('advisor_rival_stability', 0.02, 'estabilidade por dia que custa cada ministro de um partido que não é o do governo');
+INSERT INTO rule VALUES ('advisor_loyal_stability', 0.01, 'estabilidade por dia que dá cada ministro do partido do governo');
 INSERT INTO chronicle_kind (id,name,icon,weight,glyph) VALUES ('gabinete','Gabinete','🏛',2,'pasta');
 
 -- Comandantes contratáveis (tabela general; HireGeneralCommand/general_slots)

@@ -1210,6 +1210,35 @@ public partial class Hud : CanvasLayer
     /// que interessa: que a tensão TRANCA de verdade. Escolhe uma lei com min_tension, tenta aprová-la com
     /// o cofre político cheio, e diz se passou ou o que a barrou — se um dia a porta deixar de existir, esta
     /// linha diz "aberta" com o mundo em paz e o smoke denuncia-o.</summary>
+    /// <summary>--smoke da política do gabinete: quem tem cor à mesa, o que cada cor puxa por dia à opinião
+    /// do país, e o que a mesa custa (ou dá) em estabilidade. Prova que sentar um ministro deixou de ser só
+    /// comprar um multiplicador — a barra do partido dele TEM de andar mais depressa depois de o sentar, e
+    /// um rival TEM de tirar estabilidade. Se um dia a cor se perder na tabela, esta linha diz "gabinete de
+    /// técnicos" com ministros sentados e o smoke denuncia-o.</summary>
+    private string SmokeMinisters(int pid)
+    {
+        var w = _game.World;
+        var c = w.Countries[pid];
+        var coloured = CabinetSystem.Ministers(w, c).ToList();
+        if (coloured.Count == 0) return "gabinete de técnicos (ninguém à mesa faz campanha)";
+
+        // o teste que interessa: com o ministro sentado, a barra do partido dele anda mais depressa
+        var first = coloured[0];
+        var def = w.PartyDefs.GetValueOrDefault(first.Party!);
+        float com = def is null ? 0f : PartySystem.Drift(w, c, def);
+        string slot = c.Cabinet.First(kv => kv.Value == first.Id).Key;
+        c.Cabinet.Remove(slot);
+        float sem = def is null ? 0f : PartySystem.Drift(w, c, def);
+        c.Cabinet[slot] = first.Id;
+
+        int rivals = CabinetSystem.Rivals(w, c);
+        var cores = coloured.GroupBy(a => a.Party!)
+            .Select(g => $"{(w.PartyDefs.TryGetValue(g.Key, out var p) ? p.Name : g.Key)} {CabinetSystem.PartyPull(w, c, g.Key):+0.000}/dia");
+        return $"{coloured.Count} ministro{(coloured.Count == 1 ? "" : "s")} com cor ({string.Join(", ", cores)}), "
+             + $"{rivals} da oposição, estabilidade {CabinetSystem.StabilityShift(w, c):+0.00;-0.00;0}/dia, "
+             + $"{first.Name} vale {com - sem:+0.000;-0.000;0} de puxão ao partido dele";
+    }
+
     /// <summary>--smoke da opinião do país: as barras dos partidos com quem governa e o relógio das urnas,
     /// o empurrão da propaganda a mexer mesmo na barra, e o que o golpe está à espera para pegar. Prova
     /// que a política deixou de ser só poder político — o país tem opinião e o governo pode cair.</summary>
@@ -2948,16 +2977,25 @@ public partial class Hud : CanvasLayer
             spoils = $"{PeaceSpoils.Points(w, pid, loser.Id):0} pontos de espólio sobre {loser.Name}, "
                    + $"mesa de {seats.Count} vencedor{(seats.Count == 1 ? "" : "es")}, capital dele a {crown:0}";
         }
-        // gabinete civil: nomeia-se o conselheiro mais barato de cada pasta que o cofre pague, para o cartão
-        // do painel do País ter cadeiras ocupadas, folha de salários e chapas de candidatos
+        // gabinete civil: nomeia-se um conselheiro para cada pasta, para o cartão do painel do País ter
+        // cadeiras ocupadas, folha de salários e chapas de candidatos. A nomeação paga-se em PODER POLÍTICO
+        // e não no cofre de produção — a prova enchia o cofre errado e por isso o gabinete nunca se formava
+        // (dizia "gabinete por formar" desde que a nomeação passou a política, na 0.3.61). Enche-se o cofre
+        // político como se faz no empurrão da propaganda, e devolve-se o que lá estava no fim.
         string gov = "gabinete por formar";
+        float politicalWas = c.Political;
+        c.Political = MathF.Max(c.Political, 5000f);
         foreach (var slot in w.CabinetSlots)
         {
-            // primeiro o conselheiro próprio do país, que é o que se quer ver com o selo no cartão
-            var pool = CabinetSystem.Candidates(w, c, slot.Id).Where(a => a.Cost <= c.Money).ToList();
-            if ((pool.FirstOrDefault(a => a.CountryTag is not null) ?? pool.FirstOrDefault()) is AdvisorDef pick)
-                _game.Dispatch(new AppointAdvisorCommand(pid, pick.Id));
+            // primeiro o conselheiro próprio do país (é o que se quer ver com o selo no cartão) e, quando a
+            // pasta não tem nenhum, o que traz cor política — que é o que faz a prova dos ministros valer
+            var pool = CabinetSystem.Candidates(w, c, slot.Id).Where(a => a.Cost <= c.Political).ToList();
+            var pick = pool.FirstOrDefault(a => a.CountryTag is not null)
+                    ?? pool.FirstOrDefault(a => !string.IsNullOrEmpty(a.Party))
+                    ?? pool.FirstOrDefault();
+            if (pick is not null) _game.Dispatch(new AppointAdvisorCommand(pid, pick.Id));
         }
+        c.Political = politicalWas;
         if (c.Cabinet.Count > 0)
         {
             // --smoke: um ano de casa na primeira pasta, para a barra de rodagem ter o que mostrar
@@ -2966,7 +3004,8 @@ public partial class Hud : CanvasLayer
             World.ApplyCabinet(w, c);
             int nossos = c.Cabinet.Values.Count(id => w.AdvisorDefs[id].CountryTag is not null);
             gov = $"{c.Cabinet.Count} pasta{(c.Cabinet.Count == 1 ? "" : "s")} do gabinete ({string.Join(", ", c.Cabinet.Values.Select(id => w.AdvisorDefs[id].Name))}), "
-                + $"{nossos} de casa, folha de {CabinetSystem.Wages(w, c):0.0}/dia, rodagem de {World.CabinetTenure(w, c, first):P0} na pasta mais antiga";
+                + $"{nossos} de casa, folha de {CabinetSystem.Wages(w, c):0.0}/dia, rodagem de {World.CabinetTenure(w, c, first):P0} na pasta mais antiga, "
+                + SmokeMinisters(pid);
         }
         // leis nacionais: sobe-se um degrau na primeira escada que o cofre pague, para o cartão do painel do
         // País mostrar o degrau em vigor a mudar de sítio, e diz-se o que a lei de comércio deixa sair do país

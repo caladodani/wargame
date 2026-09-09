@@ -32,6 +32,13 @@ public static class PartyView
                  .Select(kv => (Def: w.PartyDefs[kv.Key], Popularity: kv.Value))
                  .OrderByDescending(x => x.Popularity).ThenBy(x => x.Def.Sort).ToList();
 
+    /// <summary>Os ministros desta cor sentados no gabinete, em texto: é quem está a puxar a barra.</summary>
+    private static string Ministers(World w, Country c, string partyId)
+    {
+        var names = CabinetSystem.Ministers(w, c).Where(a => a.Party == partyId).Select(a => a.Name).ToList();
+        return names.Count == 0 ? "ninguém" : string.Join(", ", names);
+    }
+
     /// <summary>Quantos dias faltam para as urnas (0 = não há relógio nenhum).</summary>
     public static int DaysToElection(World w, Country c) =>
         c.NextElection <= 0 ? 0 : Math.Max(0, c.NextElection - w.Clock.Day);
@@ -118,11 +125,22 @@ public static class PartyView
 
             // o puxão do dia: a seta que diz para onde a barra vai amanhã e porquê
             float dr = PartySystem.Drift(w, c, p);
+            float gab = CabinetSystem.PartyPull(w, c, p.Id);
             var arrow = Ui.Lbl(MathF.Abs(dr) < 0.005f ? "—" : (dr > 0 ? $"▲ {dr:0.00}" : $"▼ {MathF.Abs(dr):0.00}"), 14);
             arrow.AddThemeColorOverride("font_color", MathF.Abs(dr) < 0.005f ? Ui.TextDim : dr > 0 ? Ui.Good : Ui.Danger);
             arrow.TooltipText = $"pontos por dia: base {p.Base:0}, guerra {p.DriftWar:+0.000;-0.000;0}, "
-                              + $"instabilidade {p.DriftUnstable:+0.000;-0.000;0}, desgaste {p.DriftExhaustion:+0.000;-0.000;0}";
+                              + $"instabilidade {p.DriftUnstable:+0.000;-0.000;0}, desgaste {p.DriftExhaustion:+0.000;-0.000;0}"
+                              + $", gabinete {gab:+0.000;-0.000;0}";
             row.AddChild(arrow);
+
+            // a parcela do gabinete sai à vista: o ministro desta cor faz campanha de dentro do Estado
+            if (gab > 0.0005f)
+            {
+                var mesa = Ui.Lbl($"🏛 {gab:+0.00}", 13);
+                mesa.AddThemeColorOverride("font_color", Of(p));
+                mesa.TooltipText = $"{Ministers(w, c, p.Id)} na mesa do governo: {gab:+0.000} pontos por dia";
+                row.AddChild(mesa);
+            }
 
             if (mine && onPush is not null)
             {
