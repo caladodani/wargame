@@ -139,9 +139,20 @@ public partial class CountryPanel : PanelContainer
         for (int i = 0; i < Sections.Length; i++)
         {
             _tab = i;
-            for (int arm = 0; arm < World.Domains.Length; arm++) { _staffArm = arm; _lastKey = ""; Fill(); }
+            for (int arm = 0; arm < World.Domains.Length; arm++)
+            {
+                _staffArm = arm; _lastKey = ""; Fill();
+                Ui.Measure(this, $"País/{Sections[i]}");
+            }
+            // e as pastas das decisões, que só se vê uma de cada vez
+            if (Sections[i] == "Decisões")
+                for (int k = 0; k < DecisionsView.Categories(_game.World).Count; k++)
+                {
+                    _decCat = k; _lastKey = ""; Fill();
+                    Ui.Measure(this, $"País/Decisões/{k + 1}");
+                }
         }
-        _tab = 0; _staffArm = 0; _lastKey = "";
+        _tab = 0; _staffArm = 0; _decCat = 0; _lastKey = "";
         return Sections.Length;
     }
 
@@ -820,10 +831,16 @@ public partial class CountryPanel : PanelContainer
         _ => key,
     };
 
-    private void Line(string text, int size = 18) => _body.AddChild(Ui.Lbl(text, size));
+    /// <summary>Uma linha de texto no corpo do painel. EMBRULHA sempre: uma etiqueta sem autowrap é medida
+    /// pelo Godot com a largura do texto inteiro, e basta uma linha comprida ("Concluídas (9): …", que pedia
+    /// 1612) para esticar a coluna toda para lá da margem do telefone — e depois é o painel inteiro que fica
+    /// cortado à direita, o título e o botão Fechar incluídos, não só a linha comprida. Foi o que o
+    /// utilizador viu no telefone. O --smoke mede isto agora (Ui.Phone) e dá erro se voltar a acontecer.</summary>
+    private void Line(string text, int size = 18) => Wrap(text, size);
+
     private void Wrap(string text, int size)
     {
-        var l = Ui.Lbl(text, size); l.AutowrapMode = TextServer.AutowrapMode.Word; l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        var l = Ui.Lbl(text, size); l.AutowrapMode = TextServer.AutowrapMode.WordSmart; l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _body.AddChild(l);
     }
 }

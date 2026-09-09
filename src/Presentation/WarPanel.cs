@@ -1092,7 +1092,7 @@ public partial class WarPanel : PanelContainer
     /// mar, adidos, arquivo) correr sem ninguém tocar no ecrã. Devolve quantas abas desenhou.</summary>
     public int SmokeTabs()
     {
-        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); }
+        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); Ui.Measure(this, $"Guerra/{Sections[i]}"); }
         _tab = 0; _lastKey = "";
         return Sections.Length;
     }

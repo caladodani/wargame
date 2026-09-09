@@ -6,7 +6,7 @@ config/name="WarGame"
 config/icon="res://icon.png"
 ; Versão desta compilação. É o que a chapa da actualização compara com o manifesto do servidor
 ; (wargame.json ao lado do APK): sobe-se aqui E em export_presets.cfg quando se publica.
-config/version="0.3.77"
+config/version="0.3.78"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "C#", "Mobile")
 config/quit_on_go_back=false
@@ -15,6 +15,13 @@ config/quit_on_go_back=false
 Game="*res://src/Presentation/Game.cs"
 
 [display]
+
+; A tela de desenho. O jogo estica por canvas_items/expand a partir daqui: num telefone ao alto a escala é a
+; do lado apertado e a largura fica MESMO nestes 1152 (o que cresce é a altura). É a régua do Ui.Phone, e o
+; --smoke recusa qualquer painel que peça mais do que isto — foi assim que se apanhou o conteúdo a sair pela
+; direita do ecrã num S24 Ultra.
+window/size/viewport_width=1152
+window/size/viewport_height=648
 window/handheld/orientation=6
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"

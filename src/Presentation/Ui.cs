@@ -27,6 +27,107 @@ internal static class Ui
     /// <summary>Papel do botão: muda a cor, não o tamanho.</summary>
     public enum Kind { Normal, Primary, Danger }
 
+    /// <summary>A largura mais estreita que a tela do jogo alguma vez tem, em unidades de desenho.
+    ///
+    /// O jogo estica por "canvas_items/expand" a partir de 1152×648: num telefone ao alto (um S24 Ultra é
+    /// 1440×3120) a escala é a do lado mais apertado, e a tela fica com 1152 de largura e mais altura. Ao
+    /// baixo a largura só cresce. Logo: o que couber em 1152 cabe em todo o lado, e o que não couber sai
+    /// pela direita do ecrã do telefone — que foi exactamente o que se viu.
+    ///
+    /// Não é um palpite para desenhar contra: é a régua com que o --smoke mede os painéis. Quem escreve um
+    /// painel continua a deixar o texto embrulhar e as caixas crescerem; esta constante é só o juiz.</summary>
+    public const float Phone = 1152f;
+
+    /// <summary>Um controlo que não cabe: onde está, o que é e quanto pede a mais.</summary>
+    public readonly record struct TooWide(string Path, string What, float Wants);
+
+    /// <summary>Mede uma árvore de controlos contra uma largura e devolve quem não cabe.
+    ///
+    /// Só denuncia o culpado MAIS FUNDO: se uma linha é larga porque tem lá dentro uma etiqueta de 2000 px,
+    /// a culpa é da etiqueta e não da linha — senão o relatório vinha com a árvore toda e não se via nada.
+    /// Salta o que está dentro de um ScrollContainer que rola na horizontal (aí sair da vista é a intenção)
+    /// e o que está escondido, que ninguém vê.
+    ///
+    /// A medida é a largura MÍNIMA combinada, não a largura de agora: é ela que empurra o pai e que faz o
+    /// conteúdo passar a fronteira do ecrã, e é a única que se pode medir sem ecrã nenhum.</summary>
+    public static List<TooWide> Overflow(Control root, float width, string path = "")
+    {
+        var found = new List<TooWide>();
+        Walk(root, width, path.Length > 0 ? path : root.Name.ToString(), found);
+        return found;
+    }
+
+    private static bool Walk(Node n, float width, string path, List<TooWide> found)
+    {
+        if (n is Control c)
+        {
+            if (!c.Visible) return false;
+            if (c is ScrollContainer sc && sc.HorizontalScrollMode != ScrollContainer.ScrollMode.Disabled) return false;
+            float wants = c.GetCombinedMinimumSize().X;
+            if (wants <= width) return false;
+
+            bool blamed = false;
+            foreach (var kid in n.GetChildren()) blamed |= Walk(kid, width, $"{path}/{kid.Name}", found);
+            if (!blamed) found.Add(new TooWide(path, Describe(c), wants));
+            return true;
+        }
+        bool any = false;
+        foreach (var kid in n.GetChildren()) any |= Walk(kid, width, $"{path}/{kid.Name}", found);
+        return any;
+    }
+
+    /// <summary>O que o controlo é, com o texto que o faz crescer — é por ele que se percebe qual é a linha.</summary>
+    private static string Describe(Control c)
+    {
+        string text = c switch
+        {
+            Label l => l.Text,
+            Button b => b.Text,
+            RichTextLabel r => r.Text,
+            _ => "",
+        };
+        text = text.Replace('\n', ' ');
+        if (text.Length > 40) text = text[..40] + "…";
+        return text.Length > 0 ? $"{c.GetType().Name} \"{text}\"" : c.GetType().Name;
+    }
+
+    /// <summary>A régua ligada: enquanto não for nula, cada painel que passa pelas suas abas no --smoke
+    /// mede-se sozinho por Ui.Measure. Assim a prova cobre TODAS as secções e não só a que ficou aberta —
+    /// o que estava a passar a margem estava na aba da Ciência, não na de entrada.</summary>
+    public static List<TooWide>? Watch;
+
+    /// <summary>O painel mais largo que a régua viu e quanto pediu. Cabendo tudo, é isto que diz quanta
+    /// folga sobra até à margem — um painel a 1140 cabe hoje e parte-se com a próxima linha de texto.</summary>
+    public static (string Path, float Wants) Widest;
+
+    /// <summary>Mede este painel se a régua estiver ligada. Fora do --smoke não faz nada.</summary>
+    public static void Measure(Control c, string path)
+    {
+        if (Watch is null) return;
+        Watch.AddRange(Overflow(c, Phone, path));
+        float wants = Body(c);
+        if (wants > Widest.Wants) Widest = (path, wants);
+    }
+
+    /// <summary>A largura que uma árvore de controlos pede, ignorando quem rola na horizontal.</summary>
+    private static float Body(Node n)
+    {
+        if (n is ScrollContainer sc && sc.HorizontalScrollMode != ScrollContainer.ScrollMode.Disabled) return 0f;
+        float wants = n is Control c && c.Visible ? c.GetCombinedMinimumSize().X : 0f;
+        foreach (var kid in n.GetChildren()) wants = MathF.Max(wants, Body(kid));
+        return wants;
+    }
+
+    /// <summary>O relatório do --smoke: quantos não cabem e os três piores. Cabe tudo → "cabe tudo".</summary>
+    public static string OverflowReport(Control root, float width, string path = "")
+    {
+        var bad = Overflow(root, width, path);
+        if (bad.Count == 0) return "cabe tudo";
+        var worst = bad.OrderByDescending(b => b.Wants).Take(3)
+                       .Select(b => $"{b.Path} {b.What} pede {b.Wants:0}");
+        return $"{bad.Count} a passar a margem: {string.Join(" | ", worst)}";
+    }
+
     public static Label Lbl(string text, int size = Font)
     {
         var l = new Label { Text = text };

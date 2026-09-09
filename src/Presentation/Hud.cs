@@ -1219,6 +1219,33 @@ public partial class Hud : CanvasLayer
              + $"{plates} chapas no cartão";
     }
 
+    /// <summary>O que o --smoke apanhou a passar a margem do telefone, painel a painel.</summary>
+    private readonly List<Ui.TooWide> _fit = new();
+
+    /// <summary>Mede um painel aberto contra a largura do telefone (Ui.Phone) e guarda quem não coube.
+    /// Chama-se com o painel CHEIO e ainda aberto — depois de Close() já não há nada para medir.</summary>
+    private void Fit(Control panel, string name) => Ui.Measure(panel, name);
+
+    /// <summary>--smoke: o conteúdo cabe no ecrã? O jogo desenha numa tela de 1152 de largura no telefone
+    /// mais estreito que suporta (um S24 Ultra ao alto), e o que pede mais do que isso sai pela direita —
+    /// texto cortado a meio, chapas de "Activar" fora da vista. Isto mede cada painel que o smoke encheu e
+    /// GRITA (erro) se alguma coisa não couber: a partir daqui um painel largo de mais não passa o portão.</summary>
+    private string SmokeFits()
+    {
+        Fit(_top, "Barra de topo");
+        Fit(_modeBar, "Modos de mapa");
+        Ui.Watch = null;                                    // a régua desliga-se: fora do smoke ninguém mede nada
+        if (_fit.Count == 0)
+            return $"cabe tudo em {Ui.Phone:0} de largura (o mais largo é {Ui.Widest.Path} com {Ui.Widest.Wants:0}, "
+                 + $"folga de {Ui.Phone - Ui.Widest.Wants:0})";
+
+        var worst = _fit.OrderByDescending(b => b.Wants).Take(4)
+                        .Select(b => $"{b.Path} {b.What} pede {b.Wants:0}");
+        string report = $"{_fit.Count} controlos a passar a margem de {Ui.Phone:0}: {string.Join(" | ", worst)}";
+        GD.PushError($"conteúdo fora do ecrã do telefone — {report}");
+        return report;
+    }
+
     /// <summary>--smoke: o quadro das decisões. Conta o que a tabela traz e quantas o país tem hoje ao
     /// alcance, desenha os cartões de TODAS as categorias (as fechadas incluídas — é lá que mora o motivo)
     /// e depois prova o ciclo a sério: assina uma, mede o multiplicador a mexer, e se for missão diz a meta
@@ -2416,6 +2443,7 @@ public partial class Hud : CanvasLayer
     {
         var w = _game.World;
         if (_game.PlayerId is not int pid || !w.Countries.TryGetValue(pid, out var c) || !w.Regions.TryGetValue(c.CapitalRegionId, out var cap)) return;
+        Ui.Watch = _fit;          // liga a régua do ecrã: cada aba de painel que o smoke encher mede-se sozinha
         OnRegionTapped(cap.Id);   // toque simples: rodapé pintado, capital marcada na ArmySelect (tem divisões)
         GD.Print($"smoke: {cap.DivisionIds.Count} divisões na capital, {cap.Neighbours.Count} vizinhos, "
                + $"{_map.Regions.FrontierLines()} tiras de fronteira");
@@ -2427,9 +2455,9 @@ public partial class Hud : CanvasLayer
             new PrisonerSystem().Tick(w);                              // põe-nos a trabalhar já neste dia
         }
         _production.Open();
-        _warPanel.Open(); _warPanel.SmokeDeal(); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
-        _armyPanel.Open(); _armyPanel.Smoke(); _armyPanel.Close();     // painel Exércitos: grupo criado, frente atribuída e dissolvido
-        _end.Show(CampaignReport.Ongoing); _end.Close();               // ecrã de fim de campanha, com o relatório todo
+        _warPanel.Open(); _warPanel.SmokeDeal(); Fit(_warPanel, "Guerra"); _warPanel.Close();   // painel Guerra e mesa de negociação enchem sem rebentar
+        _armyPanel.Open(); _armyPanel.Smoke(); Fit(_armyPanel, "Exércitos"); _armyPanel.Close();  // painel Exércitos: grupo criado, frente atribuída e dissolvido
+        _end.Show(CampaignReport.Ongoing); Fit(_end, "Fim"); _end.Close();   // ecrã de fim de campanha, com o relatório todo
         int world = _worldPanel.Smoke();                               // painel Mundo: tabela de potências desenhada
         int worldTabs = _worldPanel.SmokeTabs();                       // e as abas de metal, secção a secção
         // uma divisão nossa condecorada e com nome próprio, para a folha de serviço ter cartões a desenhar
@@ -2498,14 +2526,14 @@ public partial class Hud : CanvasLayer
         int served = _countryPanel.Smoke(pid);                          // painel País: folha de serviço com os cartões
         string combatSheet = DivisionView.SmokeSheet(w, pid);           // os números com que a tropa bate, na ficha da divisão
         int landTabs = _countryPanel.SmokeTabs();                       // e as quatro abas de metal, secção a secção
-        int chartDay = _countryPanel.SmokeChart(); _countryPanel.Close();  // e o gráfico na nota de potência, com mira
+        int chartDay = _countryPanel.SmokeChart(); Fit(_countryPanel, "País"); _countryPanel.Close();  // e o gráfico na nota de potência, com mira
         // --smoke: ao dia 6 a campanha ainda não tem história nenhuma, e uma crónica vazia não desenha
         // chapa nenhuma. Escreve-se uma linha de cada género que pese o bastante para entrar, e assim o
         // carril e os filtros têm mesmo de desenhar as chapas todas que a tabela pede.
         foreach (var kind in w.ChronicleKinds.Values.OrderBy(k => k.Id))
             ChronicleSystem.Write(w, kind.Id, $"{kind.Name}: linha de prova do --smoke.", pid);
         int cron = _journal.Smoke();                                    // painel Crónica: linha do tempo e filtros
-        var cronPlates = Glyph.Count(_journal); _journal.Close();       // e as chapas dos géneros, na marca e nos filtros
+        var cronPlates = Glyph.Count(_journal); Fit(_journal, "Crónica"); _journal.Close();       // e as chapas dos géneros, na marca e nos filtros
         // vitrine do medalheiro: uma divisão do país leva a folha de serviço a sério, para as chapas terem
         // quem as traga, e a vitrine monta-se à parte só para se contarem as fitas (no --smoke o QueueFree
         // não chega a correr: fecha-se com Free)
@@ -2574,7 +2602,7 @@ public partial class Hud : CanvasLayer
         _region.Open(busyLand.Id);
         _region.Open(rich.Id);
         _region.Open(hard.Id);
-        _region.Open(cap.Id);
+        _region.Open(cap.Id); Fit(_region, "Região");
         // campos cheios dos dois lados, para a mesa da troca ter números, veredicto e botão
         int swap = 0;
         if (w.Countries.Values.FirstOrDefault(x => x.Id != pid && w.AreAtWar(pid, x.Id)) is Country prey)
@@ -2628,20 +2656,21 @@ public partial class Hud : CanvasLayer
         techTree.Free();                                                 // órfão: nunca entrou na árvore de cena
         // folha de comparação: nós contra o vizinho, pelas três abas
         int rival = smokeFoe != 0 ? smokeFoe : w.Countries.Values.FirstOrDefault(x => x.Id != pid)?.Id ?? pid;
-        int cmp = _compare.Smoke(rival); _compare.Close();
+        int cmp = _compare.Smoke(rival); Fit(_compare, "Comparação"); _compare.Close();
         var ind = Industry.Of(w, pid);                                   // fábricas: os mostradores e a bancada
         _production.Open();
         string queue = _production.Smoke();                              // fila de produção: chapas arrastáveis
         string plan = PlanView.Smoke(w, c);                              // porque é que a encomenda da frente demora
         string carros = _production.SmokeTank();                         // prancheta dos carros: casco, ranhuras, peças e a marca assinada
+        Fit(_production, "Produção");
         _production.Close();
         string armazem = SmokeWarehouse(pid);                            // armazém: as prateleiras, a reposição e o caixote do mapa
         string carris = SmokeRails(pid);                                 // rede: os carris do mapa e os depósitos que a levam atrás da ofensiva
         int modes = _modeBar.Smoke();                                    // modos de mapa: pinta o mundo por cada conta e volta ao político
         var modePlates = Glyph.Count(_modeBar);                          // e as chapas da fita, desenhadas em vez de emoji
         string classes = _modeBar.SmokeClasses();                        // e o modo que pinta por classe: cor de tabela e chave desenhada
-        string fight = _battle.Smoke(cap.Id);                               // ecrã de batalha: os dois lados, linha e reserva
-        int tree = _focusTree.Smoke();                                   // árvore de focos: grelha, traços e ramos rivais
+        string fight = _battle.Smoke(cap.Id); Fit(_battle, "Batalha");                               // ecrã de batalha: os dois lados, linha e reserva
+        int tree = _focusTree.Smoke(); Fit(_focusTree, "Focos");                                   // árvore de focos: grelha, traços e ramos rivais
         int plans = SmokePlans();                                        // planos de batalha: setas desenhadas no mapa
         // escolas de guerra: dá-se experiência à mão e aprende-se o primeiro degrau da escola de casa, para a
         // coluna de latão ficar com um degrau aceso e a árvore provar que fecha as escolas comuns
@@ -2649,7 +2678,7 @@ public partial class Hud : CanvasLayer
         if (w.Branches(c).FirstOrDefault(b => b.CountryTag == c.Tag) is DoctrineBranch homeSchool
             && w.DoctrineSteps(c, homeSchool.Id).FirstOrDefault() is ArmyDoctrine homeStep)
             _game.Dispatch(new AdoptDoctrineCommand(pid, homeStep.Id));
-        string schools = _doctrines.Smoke();                              // escolas de guerra: ramos e degraus da árvore
+        string schools = _doctrines.Smoke(); Fit(_doctrines, "Escolas");                              // escolas de guerra: ramos e degraus da árvore
         // as três medalhas da barra de cima, uma por arma: o que está no bolso e o que isso já dá para comprar
         string medals = string.Join(" · ", new[] { (World.Land, "🎖"), (World.Air, "✈"), (World.Sea, "🚢") }
             .Select(medal => $"{medal.Item2} {World.Xp(c, medal.Item1):0}"
@@ -2885,7 +2914,8 @@ public partial class Hud : CanvasLayer
         string vitoria = SmokeVictory(pid);                               // pontos de vitória: o que cada praça vale e quanto do inimigo já é nosso
         string veterania = SmokeVeterancy(pid);                           // veterania: os degraus, quem está em cada um e os galões do mapa
         string rendicao = SmokeCapitulation(pid);                         // rendição: quanto falta a cada lado para cair, e por onde
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda; árvore de {techTotal} degraus, {techArmy} de terra, {techDone} feitos), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), zonas: {zonas}, marinha: {marinha}, aviação: {aviacao}, campos: {campos}, porta-aviões: {conves}, submarinos: {mergulho}, oficina: {oficina}, estaleiro: {estaleiro}, carros: {carros}, guerra no mapa: {guerraMapa}, {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), invasão: {invasao}, {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, política: {politica}, partidos: {partidos}, decisões: {decisoes}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
+        string cabe = SmokeFits();                                       // e a régua do ecrã: nada pode passar a margem do telefone
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda; árvore de {techTotal} degraus, {techArmy} de terra, {techDone} feitos), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), zonas: {zonas}, marinha: {marinha}, aviação: {aviacao}, campos: {campos}, porta-aviões: {conves}, submarinos: {mergulho}, oficina: {oficina}, estaleiro: {estaleiro}, carros: {carros}, guerra no mapa: {guerraMapa}, {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), invasão: {invasao}, {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, política: {politica}, partidos: {partidos}, decisões: {decisoes}, cabe no ecrã: {cabe}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));
@@ -2924,8 +2954,8 @@ public partial class Hud : CanvasLayer
             _multiSel.Clear();
         }
         else GD.Print("smoke: duplo toque sobre tropas por provar — sem duas regiões nossas ligadas");
-        string menu = _menu.Smoke();                        // menu de jogo: secções, botões e filas de chapas medidas
-        int saves = _slots.Smoke();                          // e as fichas dos jogos guardados
+        string menu = _menu.Smoke(); Fit(_menu, "Menu");                        // menu de jogo: secções, botões e filas de chapas medidas
+        int saves = _slots.Smoke(); Fit(_slots, "Jogos guardados");                          // e as fichas dos jogos guardados
         GD.Print($"smoke: menu de jogo com {menu}, dificuldade {(_game.World.Difficulty ?? "por escolher")}, "
                + $"{saves} fichas de jogo guardado (slot {_game.Slot} em curso)");
     }

@@ -48,7 +48,7 @@ public partial class WorldPanel : PanelContainer
     public int SmokeTabs()
     {
         Visible = true;
-        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); }
+        for (int i = 0; i < Sections.Length; i++) { _tab = i; _lastKey = ""; Fill(); Ui.Measure(this, $"Mundo/{Sections[i]}"); }
         _tab = 0; _lastKey = ""; Visible = false;
         return Sections.Length;
     }
