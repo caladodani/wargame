@@ -49,6 +49,7 @@ public partial class Game : Node
     private int _gen;                                   // sobe em BuildWorld: fins de tick do mundo antigo são ignorados
     private readonly Queue<Action> _pending = new();    // corre na main thread quando o tick acaba, antes de TickCompleted
     private int _lastSaveDay;
+    private string? _saveFail;                 // a última queixa do save, para o automático não a repetir
     private bool _smoke;
     private const int SmokeDays = 6;   // dias que a prova corre a partir do dia em que entrou
     private int _smokeUntil;
@@ -196,10 +197,17 @@ public partial class Game : Node
         return SqlWorldRepository.SchemaFromSqliteMaster(_static);
     }
 
-    /// <summary>Escreve o save. Se um tick estiver a correr, espera pela Task — o World fica coerente.</summary>
-    public void Save()
+    /// <summary>Escreve o save. Se um tick estiver a correr, espera pela Task — o World fica coerente.
+    ///
+    /// O dia da gravação marca-se ANTES de escrever, e não depois: se a escrita rebentar, o `_lastSaveDay`
+    /// ficava para trás e o autosave tentava outra vez no tick seguinte, e no seguinte, e no seguinte — um
+    /// erro tornava-se um erro por segundo. Falhar uma vez é falhar uma vez; volta a tentar-se daqui a
+    /// `AutoSaveDays` dias, ou quando o jogador carregar em Guardar. A queixa repetida também se cala: o
+    /// automático só avisa quando o erro MUDA, o botão avisa sempre — quem carregou quer resposta.</summary>
+    public void Save(bool auto = false)
     {
         if (World is null) return;
+        _lastSaveDay = World.Clock.Day;
         try
         {
             WaitTick();
@@ -207,9 +215,14 @@ public partial class Game : Node
             if (_save is null) { EmitSignal(SignalName.CommandFailed, "Não foi possível guardar"); return; }
             try { WorldRepo.WriteSave(World, _save); }
             catch { try { _save.Execute("ROLLBACK"); } catch { /* sem transacção aberta */ } throw; }
-            _lastSaveDay = World.Clock.Day;
+            _saveFail = null;
         }
-        catch (Exception ex) { GD.PushError("Save: " + ex); EmitSignal(SignalName.CommandFailed, "Erro ao guardar: " + ex.Message); }
+        catch (Exception ex)
+        {
+            GD.PushError("Save: " + ex);
+            if (!auto || _saveFail != ex.Message) EmitSignal(SignalName.CommandFailed, "Erro ao guardar: " + ex.Message);
+            _saveFail = ex.Message;
+        }
     }
 
     /// <summary>Apaga o save, reconstrói o mundo e recarrega a cena (MapView/Hud/RegionRenderer refazem-se no _Ready).</summary>
@@ -321,7 +334,7 @@ public partial class Game : Node
             EmitSignal(SignalName.CommandFailed, "Erro na simulação — jogo em pausa");
         }
         while (_pending.Count > 0) Safe(_pending.Dequeue());
-        if (World.Clock.Day - _lastSaveDay >= AutoSaveDays) Save();
+        if (World.Clock.Day - _lastSaveDay >= AutoSaveDays) Save(auto: true);
         EmitSignal(SignalName.TickCompleted, World.Clock.Day);
         if (_smoke && World.Clock.Day >= _smokeUntil) { GD.Print($"smoke: dia {World.Clock.Day} guardado, a sair"); QuitSafely(); }
     }

@@ -31,8 +31,12 @@ public static class Rivers
         && (ra.Neighbours.Contains(b) || rb.Neighbours.Contains(a));
 
     /// <summary>As vizinhas com quem esta região partilha margem — o traço por onde a água se desenha.
-    /// Vazio para quem não tem rio; a orla de terra toda para a região de rio que não tem vizinha de rio
-    /// nenhuma, que é como se diz "a água está aqui algures" sem a inventar num sítio errado.</summary>
+    /// Vazio para quem não tem rio.
+    ///
+    /// A região de rio que não tem vizinha de rio nenhuma (uma ilha fluvial, um recorte da simplificação)
+    /// mostrava a água em toda a sua orla de terra: uma província inteira contornada a azul, que no ecrã lê
+    /// como uma mancha gorda e não como um rio. Passa a mostrar UMA margem só — a que dá para o mar, que é
+    /// para onde a água corre, e na falta dela a de id menor, para o mapa sair sempre igual.</summary>
     public static List<int> Banks(World w, Region r)
     {
         var banks = new List<int>();
@@ -40,7 +44,15 @@ public static class Rivers
         foreach (int n in r.Neighbours)
             if (w.Regions.TryGetValue(n, out var o) && o.River) banks.Add(n);
         if (banks.Count > 0) return banks;
-        foreach (int n in r.Neighbours) if (w.Regions.ContainsKey(n)) banks.Add(n);
+        int lone = -1; bool loneToSea = false;
+        foreach (int n in r.Neighbours)
+        {
+            if (!w.Regions.TryGetValue(n, out var o)) continue;
+            bool toSea = o.SeaNeighbours.Count > 0;
+            bool better = lone < 0 || (toSea && !loneToSea) || (toSea == loneToSea && n < lone);
+            if (better) { lone = n; loneToSea = toSea; }
+        }
+        if (lone >= 0) banks.Add(lone);
         return banks;
     }
 

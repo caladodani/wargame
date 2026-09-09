@@ -67,4 +67,49 @@ public class SaveSchemaTests
         Assert.Contains(7, w2.Regions[2].DivisionIds);
         Assert.Equal(TestWorld.Armor, w2.Countries[1].Queue.Single().TemplateId);
     }
+
+    /// <summary>O bug que o dono apanhou: "não está a dar para guardar, o autosave está a dar erro
+    /// constantemente". As linhas do save saem de listas em memória e vão para tabelas de chave composta;
+    /// bastava uma segunda esquadra no mesmo mar para o INSERT rebentar em UNIQUE, a transacção morrer a
+    /// meio e o jogo nunca mais guardar. Guardar tem de aguentar a lista suja — e a última linha ganha.</summary>
+    [Fact]
+    public void Uma_lista_com_a_mesma_chave_duas_vezes_nao_parte_a_gravacao()
+    {
+        var (w, staticDb) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        string mid = w.NavalMissionDefs.Values.OrderBy(d => d.Sort).First().Id;
+        w.NavalMissions.Add(new NavalMission { CountryId = 1, RegionId = 2, MissionId = mid, SinceDay = 1, Ships = 3f });
+        w.NavalMissions.Add(new NavalMission { CountryId = 1, RegionId = 2, MissionId = mid, SinceDay = 1, Ships = 5f });
+
+        using var save = new MsSqliteDatabase();
+        SqlWorldRepository.EnsureSaveSchema(save, SchemaFromStatic(staticDb));
+        var repo = new SqlWorldRepository(staticDb);
+        repo.WriteSave(w, save);                     // antes: UNIQUE constraint failed e save perdido
+
+        var (w2, _) = TestWorld.Build();
+        TestWorld.LinearMap(w2);
+        repo.LoadSave(w2, save);
+        Assert.Equal(5f, w2.NavalMissions.Single(m => m.CountryId == 1 && m.RegionId == 2).Ships);
+    }
+
+    /// <summary>E o save tem de aguentar ser escrito duas vezes seguidas na mesma ligação: é o que o
+    /// autosave faz de 30 em 30 dias, e é aí que uma transacção mal fechada aparecia.</summary>
+    [Fact]
+    public void Guardar_duas_vezes_seguidas_deixa_o_save_inteiro()
+    {
+        var (w, staticDb) = TestWorld.Build();
+        TestWorld.LinearMap(w);
+        using var save = new MsSqliteDatabase();
+        SqlWorldRepository.EnsureSaveSchema(save, SchemaFromStatic(staticDb));
+        var repo = new SqlWorldRepository(staticDb);
+
+        repo.WriteSave(w, save);
+        for (int i = 0; i < 4; i++) w.Clock.Advance();
+        repo.WriteSave(w, save);
+
+        var (w2, _) = TestWorld.Build();
+        TestWorld.LinearMap(w2);
+        repo.LoadSave(w2, save);
+        Assert.Equal(4, w2.Clock.Day);
+    }
 }

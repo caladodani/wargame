@@ -1673,14 +1673,20 @@ public partial class Hud : CanvasLayer
         // o bando deles debaixo do nosso mar, posto à mão: o que se quer ver é a busca, não o estaleiro
         string zone = Zones.Sea(w, coast.Id);
         float pack = 6f;
-        var raid = new NavalMission
+        // uma esquadra por (país, mar): a tabela do save tem essa chave, e uma segunda linha igual partia a
+        // gravação para sempre. Se já lá está uma, reforça-se essa em vez de acrescentar outra.
+        var raid = w.NavalMissions.FirstOrDefault(m => m.CountryId == foe.Id && m.RegionId == coast.Id);
+        if (raid is null)
         {
-            CountryId = foe.Id, RegionId = coast.Id, SinceDay = w.Clock.Day,
-            MissionId = w.NavalMissionDefs.Values.OrderBy(d => d.Sort).First().Id,
-            Name = w.NextFormationName(foe.Id, World.Sea, coast.Id),
-        };
-        raid.Squadron[boat.Id] = pack;
-        w.NavalMissions.Add(raid);
+            raid = new NavalMission
+            {
+                CountryId = foe.Id, RegionId = coast.Id, SinceDay = w.Clock.Day,
+                MissionId = w.NavalMissionDefs.Values.OrderBy(d => d.Sort).First().Id,
+                Name = w.NextFormationName(foe.Id, World.Sea, coast.Id),
+            };
+            w.NavalMissions.Add(raid);
+        }
+        raid.Squadron[boat.Id] = raid.Squadron.GetValueOrDefault(boat.Id) + pack;
         float before = Subs.HiddenShare(w, foe.Id, zone);
 
         // e a nossa caça em cima deles: os cascos saem do porto pelo sonar (Navy.Value com efeito 'asw')

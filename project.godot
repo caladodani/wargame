@@ -6,7 +6,7 @@ config/name="WarGame"
 config/icon="res://icon.png"
 ; Versão desta compilação. É o que a chapa da actualização compara com o manifesto do servidor
 ; (wargame.json ao lado do APK): sobe-se aqui E em export_presets.cfg quando se publica.
-config/version="0.3.81"
+config/version="0.3.82"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "C#", "Mobile")
 config/quit_on_go_back=false

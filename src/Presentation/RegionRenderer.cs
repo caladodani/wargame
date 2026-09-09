@@ -415,11 +415,22 @@ public partial class RegionRenderer : Node2D
     /// <summary>Azul de rio: mais escuro e mais fechado do que o mar, para se distinguir da água grande e
     /// não se confundir com a linha branca da fronteira que lhe passa por cima.</summary>
     private static readonly Color RiverColor = new(0.24f, 0.46f, 0.74f, 0.9f);
-    private const float RiverWidth = 3.4f;
 
-    private static Line2D River(Vector2[] pts) => new()
+    /// <summary>Largura do traço de água em unidades do mundo, e o travão que a segura ao aproximar.
+    ///
+    /// A largura de uma Line2D é do MUNDO: ao aproximar, o mesmo traço abre no ecrã na proporção do zoom, e
+    /// o rio passava de fio a rio gordo — no HoI4 o rio é sempre um fio, esteja o mapa onde estiver. Os
+    /// realces já travavam assim (`_markerScale`); a água não travava nada. Agora trava: a partir do zoom 1
+    /// a largura encolhe com o zoom até ao piso, e o traço fica com espessura quase constante no ecrã.</summary>
+    private const float RiverWidth = 2.2f;
+    private const float RiverBrakeFloor = 0.3f;
+
+    /// <summary>A largura da água neste zoom: a de raiz até 1, travada daí para cima.</summary>
+    private float RiverStroke => RiverWidth * Mathf.Clamp(_markerScale, RiverBrakeFloor, 1f);
+
+    private Line2D River(Vector2[] pts) => new()
     {
-        Points = pts, Width = RiverWidth, DefaultColor = RiverColor,
+        Points = pts, Width = RiverStroke, DefaultColor = RiverColor,
         JointMode = Line2D.LineJointMode.Round, BeginCapMode = Line2D.LineCapMode.Round, EndCapMode = Line2D.LineCapMode.Round,
     };
 
@@ -497,7 +508,7 @@ public partial class RegionRenderer : Node2D
     {
         int rivers = _game.World.Regions.Values.Count(r => r.River);
         return $"{_riverBanks} de {rivers} regiões de rio com margem desenhada ({_riverStrips} traços de água,"
-             + $" {RiverWidth:0.0} de largura)";
+             + $" {RiverStroke:0.00} de largura de {RiverWidth:0.0} travada até {RiverWidth * RiverBrakeFloor:0.00})";
     }
 
     /// <summary>A água está a ser mostrada no zoom de agora? Abaixo de RiverZoom o mapa é político e a água
@@ -802,6 +813,8 @@ public partial class RegionRenderer : Node2D
         bool on = zoom >= CounterZoom;
         _counterRoot.Visible = on;
         _riverRoot.Visible = zoom >= RiverZoom;   // a água acende antes dos contadores: é chão, não tropa
+        if (_riverRoot.Visible)                   // e o rio fica fio: a largura encolhe com o zoom, como os realces
+            foreach (var c in _riverRoot.GetChildren()) if (c is Line2D water) water.Width = RiverStroke;
         ApplyLayers();                            // o chão desenhado e os carris: modo de mapa primeiro, zoom como chão
         _cityRoot.Visible = zoom >= CityZoom;         // e os nomes de terra com as capitais
         if (_cityRoot.Visible) _cityRoot.SetZoom(zoom);

@@ -1010,6 +1010,19 @@ public sealed class SqlWorldRepository : IWorldRepository
         }
     }
 
+    /// <summary>Escreve o mundo no save: uma transacção, apaga tudo o que é do save e volta a pôr.
+    ///
+    /// As linhas do save saem de LISTAS em memória (`NavalMissions`, `Offers`, `SpyOps`, ...) e vão para
+    /// tabelas com chave composta (país+região, por exemplo). Basta um sistema pôr na lista uma segunda
+    /// entrada com a mesma chave — coisa que nenhuma lista impede — para o INSERT rebentar com
+    /// "UNIQUE constraint failed", a transacção morrer a meio e o jogo passar a não conseguir guardar NUNCA
+    /// MAIS: cada tick tentava outra vez e dava o mesmo erro. Por isso as linhas do save entram com
+    /// `INSERT OR REPLACE`: o duplicado passa a ser a última versão da mesma linha em vez de um save
+    /// perdido. Guardar tem de ser a coisa mais difícil de partir do jogo inteiro.
+    ///
+    /// `save_meta`, `template` e `template_unit` ficam com o INSERT seco de propósito: as chaves delas vêm
+    /// de dicionários (não podem repetir) e a `template` tem filhos com chave estrangeira, que o REPLACE
+    /// apagaria por baixo.</summary>
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
@@ -1019,142 +1032,142 @@ public sealed class SqlWorldRepository : IWorldRepository
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
         if (w.Difficulty is string diff) save.Execute("INSERT INTO save_meta VALUES ('difficulty',?)", diff);
         foreach (var (eventId, optionId) in w.NewsChoices)
-            save.Execute("INSERT INTO s_news_choice VALUES (?,?)", eventId, optionId);
+            save.Execute("INSERT OR REPLACE INTO s_news_choice VALUES (?,?)", eventId, optionId);
         foreach (var (eventId, hit) in w.NewsFired)
-            save.Execute("INSERT INTO s_news_fired (event_id,day,country_id) VALUES (?,?,?)", eventId, hit.Day, hit.CountryId);
+            save.Execute("INSERT OR REPLACE INTO s_news_fired (event_id,day,country_id) VALUES (?,?,?)", eventId, hit.Day, hit.CountryId);
         foreach (var c in w.Countries.Values)
             foreach (var g in c.Generals)
-                save.Execute("INSERT INTO s_general (country_id,general,xp,wound_until,wound_kind) VALUES (?,?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_general (country_id,general,xp,wound_until,wound_kind) VALUES (?,?,?,?,?)",
                     c.Id, g, c.GeneralXp.GetValueOrDefault(g), c.GeneralWound.GetValueOrDefault(g),
                     c.GeneralWoundKind.GetValueOrDefault(g, ""));
         foreach (var c in w.Countries.Values)
             foreach (var (slot, advisor) in c.Cabinet)
-                save.Execute("INSERT INTO s_cabinet (country_id,slot,advisor,since_day) VALUES (?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_cabinet (country_id,slot,advisor,since_day) VALUES (?,?,?,?)",
                     c.Id, slot, advisor, c.CabinetSince.GetValueOrDefault(slot));
         foreach (var c in w.Countries.Values)
             foreach (var (party, pop) in c.Parties)
-                save.Execute("INSERT INTO s_country_party (country_id,party,popularity,ruling,next_election_day) VALUES (?,?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_country_party (country_id,party,popularity,ruling,next_election_day) VALUES (?,?,?,?,?)",
                     c.Id, party, pop, party == c.Party ? 1 : 0, party == c.Party ? c.NextElection : 0);
         foreach (var c in w.Countries.Values)
             foreach (var (from, men) in c.Prisoners)
-                save.Execute("INSERT INTO s_prisoner (country_id,from_country_id,men) VALUES (?,?,?)", c.Id, from, men);
+                save.Execute("INSERT OR REPLACE INTO s_prisoner (country_id,from_country_id,men) VALUES (?,?,?)", c.Id, from, men);
         foreach (var c in w.Countries.Values)
             if (c.ExileHostId is int exileHost)
-                save.Execute("INSERT INTO s_exile (country_id,host_id,since_day,legitimacy) VALUES (?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_exile (country_id,host_id,since_day,legitimacy) VALUES (?,?,?,?)",
                     c.Id, exileHost, c.ExileDay ?? 0, c.ExileLegitimacy);
         foreach (var c in w.Countries.Values)
             foreach (var (did, cd) in c.DecisionCooldownUntil)
             {
                 var act = w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == did);
-                save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until,mission_until,goal_base) "
+                save.Execute("INSERT OR REPLACE INTO s_decision (country_id,decision,until_day,cooldown_until,mission_until,goal_base) "
                            + "VALUES (?,?,?,?,?,?)",
                     c.Id, did, act?.UntilDay ?? -1, cd, act?.MissionUntil ?? -1, act?.GoalBase ?? 0f);
             }
         foreach (var h in w.History)
-            save.Execute("INSERT INTO s_history (day,country_id,money,divisions,regions,power) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_history (day,country_id,money,divisions,regions,power) VALUES (?,?,?,?,?,?)",
                 h.Day, h.CountryId, h.Money, h.Divisions, h.Regions, h.Power);
         for (int i = 0; i < w.Chronicle.Count; i++)
         {
             var e = w.Chronicle[i];
-            save.Execute("INSERT INTO s_chronicle (ord,day,kind,text,country_id,region_id) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_chronicle (ord,day,kind,text,country_id,region_id) VALUES (?,?,?,?,?,?)",
                 i, e.Day, e.Kind, e.Text, e.CountryId, e.RegionId);
         }
         foreach (var d in w.TradeDeals)
-            save.Execute("INSERT INTO s_trade_deal (buyer_id,seller_id,resource,units,price_per_unit,until_day) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_trade_deal (buyer_id,seller_id,resource,units,price_per_unit,until_day) VALUES (?,?,?,?,?,?)",
                 d.BuyerId, d.SellerId, d.ResourceId, d.Units, d.PricePerUnit, d.UntilDay);
         foreach (var l in w.LendLeases)
-            save.Execute("INSERT INTO s_lend_lease (from_id,to_id,share,since_day,sent_total) VALUES (?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_lend_lease (from_id,to_id,share,since_day,sent_total) VALUES (?,?,?,?,?)",
                 l.FromId, l.ToId, l.Share, l.SinceDay, l.SentTotal);
         foreach (var o in w.ActiveSpyOps)
-            save.Execute("INSERT INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_spy_op (country_id,target_id,op_id,days_left,region_id) VALUES (?,?,?,?,?)",
                 o.CountryId, o.TargetCountryId, o.OpId, o.DaysLeft, o.RegionId);
         foreach (var o in w.Offers)
-            save.Execute("INSERT INTO s_offer (from_id,to_id,kind,men,region_id,day,expires_day) VALUES (?,?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_offer (from_id,to_id,kind,men,region_id,day,expires_day) VALUES (?,?,?,?,?,?,?)",
                 o.FromId, o.ToId, o.Kind, o.Men, o.RegionId, o.Day, o.ExpiresDay);
         foreach (var ((ia, ib), until) in w.Intel)
-            if (until >= w.Clock.Day) save.Execute("INSERT INTO s_intel VALUES (?,?,?)", ia, ib, until);
+            if (until >= w.Clock.Day) save.Execute("INSERT OR REPLACE INTO s_intel VALUES (?,?,?)", ia, ib, until);
         foreach (var ((pa, pb), until) in w.Pacts)
-            if (until >= w.Clock.Day) save.Execute("INSERT INTO s_pact VALUES (?,?,?)", pa, pb, until);
+            if (until >= w.Clock.Day) save.Execute("INSERT OR REPLACE INTO s_pact VALUES (?,?,?)", pa, pb, until);
         foreach (var m in w.AirMissions)
         {
-            save.Execute("INSERT INTO s_air_mission (country_id,region_id,mission_id,wings,since_day,name) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_air_mission (country_id,region_id,mission_id,wings,since_day,name) VALUES (?,?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Wings, m.SinceDay, m.Name);
             foreach (var (cls, n) in m.Squadron.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
-                    save.Execute("INSERT INTO s_air_mission_plane (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_air_mission_plane (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
                         m.CountryId, m.RegionId, cls, n);
         }
         // Da oficina guarda-se a ESCOLHA e não os números: assim uma peça reafinada na tabela vale logo em
         // todos os desenhos que a levam, em vez de os saves ficarem presos aos números do dia em que os fez.
         foreach (var d in w.PlaneDesigns.OrderBy(x => x.Id))
         {
-            save.Execute("INSERT INTO s_plane_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_plane_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
                 d.Id, d.CountryId, d.Name, d.Chassis);
             for (int i = 0; i < d.Modules.Count; i++)
                 if (d.Modules[i].Length > 0)
-                    save.Execute("INSERT INTO s_plane_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_plane_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
                         d.Id, i, d.Modules[i]);
         }
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
             foreach (var (cls, n) in c.Planes.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
-                    save.Execute("INSERT INTO s_plane (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
+                    save.Execute("INSERT OR REPLACE INTO s_plane (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
         // Do estaleiro guarda-se a ESCOLHA e não os números, como na oficina de aviões.
         foreach (var d in w.ShipDesigns.OrderBy(x => x.Id))
         {
-            save.Execute("INSERT INTO s_ship_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_ship_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
                 d.Id, d.CountryId, d.Name, d.Chassis);
             for (int i = 0; i < d.Modules.Count; i++)
                 if (d.Modules[i].Length > 0)
-                    save.Execute("INSERT INTO s_ship_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_ship_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
                         d.Id, i, d.Modules[i]);
         }
         // Da prancheta dos carros também: a escolha, nunca a marca que dela sai — assim uma peça reafinada
         // na tabela revaloriza todos os carros que a levam, tal e qual como no avião e no navio.
         foreach (var d in w.TankDesigns.OrderBy(x => x.Id))
         {
-            save.Execute("INSERT INTO s_tank_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_tank_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
                 d.Id, d.CountryId, d.Name, d.Chassis);
             for (int i = 0; i < d.Modules.Count; i++)
                 if (d.Modules[i].Length > 0)
-                    save.Execute("INSERT INTO s_tank_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_tank_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
                         d.Id, i, d.Modules[i]);
         }
         foreach (var m in w.NavalMissions)
         {
-            save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day,name) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day,name) VALUES (?,?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay, m.Name);
             foreach (var (cls, n) in m.Squadron.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
-                    save.Execute("INSERT INTO s_naval_mission_ship (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_naval_mission_ship (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
                         m.CountryId, m.RegionId, cls, n);
         }
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
             foreach (var (cls, n) in c.Ships.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
-                    save.Execute("INSERT INTO s_ship (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
+                    save.Execute("INSERT OR REPLACE INTO s_ship (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
         foreach (var inv in w.NavalInvasions)
         {
-            save.Execute("INSERT INTO s_naval_invasion (country_id,target_id,from_id,prep,since_day,name) VALUES (?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_naval_invasion (country_id,target_id,from_id,prep,since_day,name) VALUES (?,?,?,?,?,?)",
                 inv.CountryId, inv.TargetId, inv.FromId, inv.Prep, inv.SinceDay, inv.Name);
             foreach (int id in inv.DivisionIds)
-                save.Execute("INSERT INTO s_naval_invasion_division (country_id,target_id,division_id) VALUES (?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_naval_invasion_division (country_id,target_id,division_id) VALUES (?,?,?)",
                     inv.CountryId, inv.TargetId, id);
         }
         foreach (var o in w.Occupations)
-            save.Execute("INSERT INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
                 o.CountryId, o.TargetId, o.PolicyId, o.SinceDay);
         foreach (var a in w.Attaches.Values)
-            save.Execute("INSERT INTO s_attache (country_id,host_id,since_day,learned) VALUES (?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_attache (country_id,host_id,since_day,learned) VALUES (?,?,?,?)",
                 a.CountryId, a.HostId, a.SinceDay, a.Learned);
         foreach (var id in w.CustomFactionIds)
         {
             var f = w.Factions[id];
-            save.Execute("INSERT INTO s_faction VALUES (?,?,?)", f.Id, f.Name, f.Description);
+            save.Execute("INSERT OR REPLACE INTO s_faction VALUES (?,?,?)", f.Id, f.Name, f.Description);
         }
         foreach (var f in w.Factions.Values)
             foreach (var m in f.Members)
-                save.Execute("INSERT INTO s_faction_member VALUES (?,?)", f.Id, m);
+                save.Execute("INSERT OR REPLACE INTO s_faction_member VALUES (?,?)", f.Id, m);
         foreach (var id in w.CustomTemplateIds)
         {
             var t = w.Units.GetTemplate(id);
@@ -1167,29 +1180,29 @@ public sealed class SqlWorldRepository : IWorldRepository
             // quem nasceu de uma guerra civil grava a identidade: sem esta linha o save reabria sem ele e a
             // terra, a tropa e a guerra dele ficavam órfãs
             if (c.RebelOf != 0)
-                save.Execute("INSERT INTO s_rebel (id,parent_id,tag,name,party,colour,capital_region_id,born_day) VALUES (?,?,?,?,?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_rebel (id,parent_id,tag,name,party,colour,capital_region_id,born_day) VALUES (?,?,?,?,?,?,?,?)",
                     c.Id, c.RebelOf, c.Tag, c.Name, c.Party, c.Colour, c.CapitalRegionId, c.BornDay);
             // países sem estado nenhum não gastam linha; o lugar na tabela mundial não os obriga a ter uma
             // (o PowerRankingSystem refá-la em power_rank_days), mas o do jogador vai sempre com o save
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f || c.Convoys != 0f || c.LastDefeatDay >= 0 || c.IsSubject || c.RebelOf != 0)
-                save.Execute("INSERT INTO s_country (id,is_player,money,political,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_country (id,is_player,money,political,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     c.Id, c.IsPlayer ? 1 : 0, c.Money, c.Political, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Warships, c.Convoys, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp, c.AirXp, c.NavyXp, c.DefeatStreak, c.LastDefeatDay, c.LastDefeatRegion, c.Fuel, c.OverlordId, c.Autonomy);
             // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a
             // primeira, para um save novo ainda abrir num binário anterior às ranhuras
             foreach (var (techId, progress) in c.Research)
-                save.Execute("INSERT INTO s_research (country_id,tech_id,progress) VALUES (?,?,?)", c.Id, techId, progress);
-            foreach (var t in c.Techs) save.Execute("INSERT INTO s_country_tech VALUES (?,?)", c.Id, t);
-            foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
-            foreach (var f in c.FocusesDone) save.Execute("INSERT INTO s_focus VALUES (?,?)", c.Id, f);
-            foreach (var d in c.Doctrines) save.Execute("INSERT INTO s_army_doctrine VALUES (?,?)", c.Id, d);
-            foreach (var o in c.Queue) save.Execute("INSERT INTO s_production_queue (country_id,template_id,progress,repeat_order,factories,efficiency,delivered,unit_type_id,mark) VALUES (?,?,?,?,?,?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0, o.Factories, o.Efficiency, o.Delivered, o.UnitTypeId, o.Mark);
+                save.Execute("INSERT OR REPLACE INTO s_research (country_id,tech_id,progress) VALUES (?,?,?)", c.Id, techId, progress);
+            foreach (var t in c.Techs) save.Execute("INSERT OR REPLACE INTO s_country_tech VALUES (?,?)", c.Id, t);
+            foreach (var (grp, lawId) in c.Laws) save.Execute("INSERT OR REPLACE INTO s_country_law VALUES (?,?,?)", c.Id, grp, lawId);
+            foreach (var f in c.FocusesDone) save.Execute("INSERT OR REPLACE INTO s_focus VALUES (?,?)", c.Id, f);
+            foreach (var d in c.Doctrines) save.Execute("INSERT OR REPLACE INTO s_army_doctrine VALUES (?,?)", c.Id, d);
+            foreach (var o in c.Queue) save.Execute("INSERT OR REPLACE INTO s_production_queue (country_id,template_id,progress,repeat_order,factories,efficiency,delivered,unit_type_id,mark) VALUES (?,?,?,?,?,?,?,?,?)", c.Id, o.TemplateId, o.Progress, o.Repeat ? 1 : 0, o.Factories, o.Efficiency, o.Delivered, o.UnitTypeId, o.Mark);
             foreach (var (type, qty) in c.Stock)
-                if (qty > 1e-4f) save.Execute("INSERT INTO s_stock (country_id,unit_type_id,qty,mark) VALUES (?,?,?,?)", c.Id, type, qty, c.StockedMark(type));
+                if (qty > 1e-4f) save.Execute("INSERT OR REPLACE INTO s_stock (country_id,unit_type_id,qty,mark) VALUES (?,?,?,?)", c.Id, type, qty, c.StockedMark(type));
             foreach (var e in c.AtWarWith)
                 if (c.Id < e)
                 {
                     var info = w.Wars.GetValueOrDefault(World.WarKey(c.Id, e));
-                    save.Execute("INSERT INTO s_war (a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    save.Execute("INSERT OR REPLACE INTO s_war (a,b,since_day,last_progress_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
                         c.Id, e, info?.StartDay ?? w.Clock.Day, info?.LastProgressDay ?? w.Clock.Day,
                         info?.SideA.RegionsTaken ?? 0, info?.SideB.RegionsTaken ?? 0,
                         info?.SideA.DivisionsLost ?? 0, info?.SideB.DivisionsLost ?? 0,
@@ -1199,46 +1212,46 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var (key, war) in w.Wars)
             foreach (var (side, owner) in new[] { (war.SideA, war.A), (war.SideB, war.B) })
                 foreach (int regionId in side.Goals)
-                    save.Execute("INSERT INTO s_war_goal (a,b,country_id,region_id) VALUES (?,?,?,?)", key.A, key.B, owner, regionId);
+                    save.Execute("INSERT OR REPLACE INTO s_war_goal (a,b,country_id,region_id) VALUES (?,?,?,?)", key.A, key.B, owner, regionId);
         foreach (var rec in w.WarHistory)   // pela ordem da lista (mais recente primeiro); o load lê por id e mantém-na
-            save.Execute("INSERT INTO s_war_history (a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_war_history (a,b,start_day,end_day,a_regions,b_regions,a_losses,b_losses,a_battles,b_battles) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 rec.A, rec.B, rec.StartDay, rec.EndDay, rec.ARegions, rec.BRegions, rec.ALosses, rec.BLosses, rec.ABattles, rec.BBattles);
         foreach (var r in w.Regions.Values)
         {
             if (r.ControllerId != r.OwnerId || r.Infrastructure != 1f || r.OwnerId != r.InitialOwnerId || r.Building || r.Fort > 0 || r.FortBuilding || r.Resistance > 0f || r.Project is not null || r.Integration > 0f
                 || r.Rail != r.BaseRail || r.RailBuilding)
-                save.Execute("INSERT INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration,rail,rail_building,rail_progress,project_owner) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                save.Execute("INSERT OR REPLACE INTO s_region (id,controller_id,infrastructure,owner_id,building,build_progress,fort,fort_building,fort_progress,resistance,project,project_progress,integration,rail,rail_building,rail_progress,project_owner) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     r.Id, r.ControllerId, r.Infrastructure, r.OwnerId == r.InitialOwnerId ? null : r.OwnerId, r.Building ? 1 : 0, r.BuildProgress,
                     r.Fort, r.FortBuilding ? 1 : 0, r.FortProgress, r.Resistance, r.Project, r.ProjectProgress, r.Integration,
                     r.Rail, r.RailBuilding ? 1 : 0, r.RailProgress, r.ProjectOwner);
             foreach (var (bid, lvl) in r.Buildings)
-                if (lvl > 0) save.Execute("INSERT INTO s_region_building (region_id,building,level) VALUES (?,?,?)", r.Id, bid, lvl);
+                if (lvl > 0) save.Execute("INSERT OR REPLACE INTO s_region_building (region_id,building,level) VALUES (?,?,?)", r.Id, bid, lvl);
         }
         foreach (var d in w.Divisions.Values)
         {
             // colunas nomeadas: a tabela cresce por migração e um INSERT posicional partia-se à coluna seguinte
-            save.Execute("INSERT INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy,seaborne)"
+            save.Execute("INSERT OR REPLACE INTO s_division (id,country_id,template_id,region_id,target_region_id,hp,org,supply,move_progress,path,name,xp,auto_advance,battles,captures,honour,honour_name,entrench,pocket_days,volunteer_from,drop_target,drop_days,redeploy,seaborne)"
                 + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", d.Id, d.CountryId, d.TemplateId, d.RegionId, d.TargetRegionId,
                 d.Hp, d.Org, d.Supply, d.MoveProgress, d.Path.Count == 0 ? null : string.Join(',', d.Path), d.Name, d.Xp, d.AutoAdvance ? 1 : 0,
                 d.Battles, d.Captures, d.Honour, d.HonourName, d.Entrench, d.PocketDays, d.VolunteerFrom, d.DropTargetId, d.DropDays, d.Redeploying ? 1 : 0, d.Seaborne ? 1 : 0);
             foreach (var medal in d.Medals)
-                save.Execute("INSERT INTO s_division_medal VALUES (?,?)", d.Id, medal);
-            if (d.Kit < 1f || d.Mark > 0f) save.Execute("INSERT INTO s_division_kit (division_id,kit,mark) VALUES (?,?,?)", d.Id, d.Kit, d.Mark);
+                save.Execute("INSERT OR REPLACE INTO s_division_medal VALUES (?,?)", d.Id, medal);
+            if (d.Kit < 1f || d.Mark > 0f) save.Execute("INSERT OR REPLACE INTO s_division_kit (division_id,kit,mark) VALUES (?,?,?)", d.Id, d.Kit, d.Mark);
         }
         foreach (var g in w.ArmyGroups.Values)
         {
-            save.Execute("INSERT INTO s_army_group (id,country_id,name,front_country_id,front_region_id,advancing,stance,general,planning) VALUES (?,?,?,?,?,?,?,?,?)",
+            save.Execute("INSERT OR REPLACE INTO s_army_group (id,country_id,name,front_country_id,front_region_id,advancing,stance,general,planning) VALUES (?,?,?,?,?,?,?,?,?)",
                 g.Id, g.CountryId, g.Name, g.FrontCountryId, g.FrontRegionId, g.Advancing ? 1 : 0, (int)g.Stance, g.GeneralId, g.Planning);
             foreach (int id in g.Divisions)
-                save.Execute("INSERT INTO s_army_group_member (group_id,division_id) VALUES (?,?)", g.Id, id);
+                save.Execute("INSERT OR REPLACE INTO s_army_group_member (group_id,division_id) VALUES (?,?)", g.Id, id);
         }
         foreach (var b in w.ActiveBattles)
         {
             // uma batalha por região no schema: se dois países atacam a mesma região só a primeira persiste
             if (save.Query("SELECT 1 FROM s_battle WHERE region_id=?", b.RegionId).Count > 0) continue;
-            save.Execute("INSERT INTO s_battle VALUES (?,?,?)", b.RegionId, b.AttackerCountryId, b.Days);
-            foreach (var a in b.Attackers) save.Execute("INSERT INTO s_battle_division VALUES (?,?,'att')", b.RegionId, a);
-            foreach (var d in b.Defenders) save.Execute("INSERT INTO s_battle_division VALUES (?,?,'def')", b.RegionId, d);
+            save.Execute("INSERT OR REPLACE INTO s_battle VALUES (?,?,?)", b.RegionId, b.AttackerCountryId, b.Days);
+            foreach (var a in b.Attackers) save.Execute("INSERT OR REPLACE INTO s_battle_division VALUES (?,?,'att')", b.RegionId, a);
+            foreach (var d in b.Defenders) save.Execute("INSERT OR REPLACE INTO s_battle_division VALUES (?,?,'def')", b.RegionId, d);
         }
         save.Commit();
     }

@@ -46,8 +46,29 @@ public sealed class GdSqliteDatabase : IDatabase
         return (int)_db.Get("last_insert_rowid");
     }
 
-    public void BeginTransaction() => _db.Call("query", "BEGIN");
-    public void Commit() => _db.Call("query", "COMMIT");
+    /// <summary>Abre a transacção. O BEGIN falha quando ficou uma transacção aberta de uma escrita que
+    /// rebentou a meio ("cannot start a transaction within a transaction") — e como aqui ninguém olhava para
+    /// a resposta, o save ficava tolhido em silêncio a partir daí. Desfaz-se a velha e tenta-se de novo;
+    /// se ainda assim não abre, é erro a sério e vai à superfície.</summary>
+    public void BeginTransaction()
+    {
+        if ((bool)_db.Call("query", "BEGIN")) return;
+        _db.Call("query", "ROLLBACK");
+        if (!(bool)_db.Call("query", "BEGIN"))
+            throw new InvalidOperationException("BEGIN: " + (string)_db.Get("error_message"));
+    }
+
+    /// <summary>Fecha a transacção. Um COMMIT que falhava passava despercebido e deixava a transacção
+    /// aberta: o save seguinte rebentava logo no BEGIN e o jogo dizia erro a cada tick. Grita-se, e limpa-se
+    /// o que ficou aberto para que a próxima tentativa comece do zero.</summary>
+    public void Commit()
+    {
+        if ((bool)_db.Call("query", "COMMIT")) return;
+        string err = (string)_db.Get("error_message");
+        _db.Call("query", "ROLLBACK");
+        throw new InvalidOperationException("COMMIT: " + err);
+    }
+
     public void Dispose() => _db.Call("close_db");
 
     private static GC.Array ToVariantArray(object?[] args)
