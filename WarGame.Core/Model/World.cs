@@ -118,6 +118,8 @@ public sealed class World
     public Dictionary<string, PartyDef> PartyDefs { get; } = new();
     /// <summary>Fotografia inicial da opinião (tabela country_party): tag → partido → (popularidade, governa).</summary>
     public Dictionary<string, List<(string Party, float Popularity, bool Ruling)>> StartParties { get; } = new();
+    /// <summary>As razões por que um país gosta ou desgosta de outro (tabela opinion_source; Relations).</summary>
+    public Dictionary<string, OpinionSourceDef> OpinionSources { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
@@ -350,6 +352,10 @@ public sealed class World
         float need = Rule("volunteer_min_tension", 15f);
         if (need > 0f && WarGame.Core.Systems.WorldTension.Of(this) < need)
             return $"o mundo ainda está calmo demais (tensão {WarGame.Core.Systems.WorldTension.Of(this):0} de {need:0})";
+        // e o anfitrião tem de nos querer lá: tropa estrangeira num país que nos detesta não entra
+        float welcome = Rule("volunteer_min_opinion", -40f);
+        float feel = WarGame.Core.Systems.Relations.Opinion(this, hostId, countryId);
+        if (feel < welcome) return $"{h.Name} não nos quer lá ({WarGame.Core.Systems.Relations.Word(this, feel)}, {feel:0})";
         int cap = WarGame.Core.Systems.VolunteerSystem.Cap(this, countryId);
         if (cap == 0) return $"o exército não chega para emprestar (mínimo {Rule("volunteer_min_army", 5f):0} divisões)";
         int away = WarGame.Core.Systems.VolunteerSystem.Away(this, countryId);
@@ -699,6 +705,12 @@ public sealed class World
     {
         if (!Countries.TryGetValue(countryId, out var c) || c.Capitulated || f.Members.Contains(countryId)) return false;
         foreach (var m in f.Members) if (AreAtWar(countryId, m)) return false;
+        // uma aliança não se assina com quem nos detesta, nem que o inimigo seja o mesmo: basta um membro
+        // com a opinião no fundo para a porta ficar fechada (Relations)
+        float floor = Rule("faction_min_opinion", -25f);
+        foreach (var m in f.Members)
+            if (WarGame.Core.Systems.Relations.Opinion(this, m, countryId) < floor
+             || WarGame.Core.Systems.Relations.Opinion(this, countryId, m) < floor) return false;
         foreach (var e in c.AtWarWith)
             foreach (var m in f.Members)
                 if (AreAtWar(m, e)) return true;

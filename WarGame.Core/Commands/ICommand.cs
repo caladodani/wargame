@@ -1012,7 +1012,10 @@ public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountr
         int myDivs = w.Divisions.Values.Count(d => d.CountryId == CountryId);
         int theirDivs = w.Divisions.Values.Count(d => d.CountryId == TargetCountryId);
         bool commonEnemy = t.AtWarWith.Any(c.AtWarWith.Contains);
-        bool accepts = t.JustifyTarget != CountryId && (theirDivs < myDivs || commonEnemy);
+        // e, por cima do medo e do inimigo comum, o que eles sentem por nós: um governo que nos detesta não
+        // assina papel nenhum connosco, seja qual for a aritmética das divisões (Relations)
+        bool hate = Relations.Opinion(w, TargetCountryId, CountryId) < w.Rule("nap_min_opinion", -35f);
+        bool accepts = t.JustifyTarget != CountryId && !hate && (theirDivs < myDivs || commonEnemy);
         if (!accepts) { w.Events.Publish(new PactRejected(CountryId, TargetCountryId)); return; }
         int until = w.Clock.Day + (int)w.Rule("nap_days", 180f);
         w.Pacts[World.WarKey(CountryId, TargetCountryId)] = until;

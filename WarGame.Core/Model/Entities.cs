@@ -363,7 +363,12 @@ public sealed record AdvisorDef(string Id, string? CountryTag, string Slot, stri
 /// eleições — só se sai de lá por golpe. StatKey/StatMult é o que o país ganha enquanto ele governa.</summary>
 public sealed record PartyDef(string Id, string Name, string Note, float Base, bool Elections,
                               string? StatKey, float StatMult, float DriftWar, float DriftUnstable,
-                              float DriftExhaustion, string Glyph, int Sort);
+                              float DriftExhaustion, string Glyph, int Sort, float Axis = 0f);
+
+/// <summary>Uma razão por que um país gosta ou desgosta de outro (tabela opinion_source). O peso traz o
+/// sinal — negativo é desgosto — e o C# (Relations) só diz quantas vezes é que a razão conta neste par.
+/// Acrescentar uma razão é uma linha de SQL mais o caso que a mede.</summary>
+public sealed record OpinionSourceDef(string Id, string Name, float Weight, string Glyph, string Note, int Sort);
 
 /// <summary>Patamar de potência mundial (tabela power_tier): a partir de MinShare da potência total do
 /// mundo, um país é chamado assim. Puro rótulo — quem faz a conta é o PowerIndex.</summary>

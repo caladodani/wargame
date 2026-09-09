@@ -76,6 +76,20 @@ public static class MapModes
         var raw = new Dictionary<int, float>();
         if (metric is "owner" or "" || ByClass(metric)) return raw;   // pintam por classe: não há escala nenhuma
 
+        // A diplomacia responde por PAÍS e não por província: pergunta-se uma vez a cada governo e
+        // espalha-se pela terra dele. Perguntar província a província seria refazer a conta das relações
+        // milhares de vezes por cada olhada ao mapa.
+        if (metric == "opinion")
+        {
+            var board = Relations.Board(w, viewerId);
+            foreach (var r in w.Regions.Values)
+                if (r.OwnerId != viewerId && board.TryGetValue(r.OwnerId, out var op)) raw[r.Id] = op;
+            if (raw.Count == 0) return raw;
+            float cap = Relations.Cap(w);                 // escala fixa: o meio do mapa é sempre o zero
+            foreach (var id in raw.Keys.ToList()) raw[id] = Math.Clamp((raw[id] + cap) / (2f * cap), 0f, 1f);
+            return raw;
+        }
+
         foreach (var r in w.Regions.Values)
             if (Value(w, viewerId, r, metric) is float v) raw[r.Id] = v;
         if (raw.Count == 0) return raw;
@@ -106,6 +120,10 @@ public static class MapModes
         // Pontos de vitória: o que a região vale na conta da guerra. Terra que não chega a grau nenhum não
         // tem resposta — o mapa fica com as praças acesas e o resto apagado, que é como se lê uma frente.
         "victory" => VictoryPoints.Of(w, r) is int vp && vp > 0 ? vp : null,
+        // Diplomacia: o que o dono desta terra sente por nós. A nossa própria terra não tem resposta — não
+        // se tem opinião sobre si próprio — e é isso que deixa o nosso país apagado no meio do mapa.
+        "opinion" => viewerId > 0 && r.OwnerId != viewerId && w.Countries.ContainsKey(r.OwnerId)
+            ? Relations.Opinion(w, r.OwnerId, viewerId) : null,
         _ => null,
     };
 
@@ -122,6 +140,7 @@ public static class MapModes
                 "weather" => "sem tempo carregado",
                 "subject" => "país livre",
                 "victory" => "não conta pontos de vitória",
+                "opinion" => "terra nossa: não temos opinião sobre nós",
                 _ => "",
             };
         // {v*100:0}% em vez de {v:P0}: o formato P depende da cultura do sistema (o padrão invariant, o que
@@ -132,6 +151,8 @@ public static class MapModes
             "weather" => Weather.Line(w, r),
             "subject" => w.Countries.TryGetValue(r.OwnerId, out var owner) ? Subjects.Line(w, owner) : "",
             "victory" => VictoryPoints.Line(w, r),
+            "opinion" => w.Countries.TryGetValue(r.OwnerId, out var them)
+                ? $"{them.Name}: {Relations.Word(w, v)} ({v:+0;-0})" : "",
             "supply" => $"abastecimento {v * 100:0}%",
             "resistance" => $"resistência {v * 100:0}%",
             "industry" => $"indústria {v:0.00} (edifícios + infra)",

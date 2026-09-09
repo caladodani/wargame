@@ -339,6 +339,9 @@ CREATE TABLE IF NOT EXISTS party (            -- partidos: a opinião do país (
   drift_war REAL NOT NULL DEFAULT 0,          -- puxão por dia em guerra
   drift_unstable REAL NOT NULL DEFAULT 0,     -- puxão por dia com a estabilidade em baixo
   drift_exhaustion REAL NOT NULL DEFAULT 0,   -- puxão por dia por ponto de desgaste de guerra
+  axis REAL NOT NULL DEFAULT 0,               -- onde este partido está no eixo político (-1 a 1): é a
+                                              -- distância entre dois eixos que diz se dois governos se
+                                              -- reconhecem ou se se detestam (Relations)
   glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS country_party (    -- fotografia inicial: quem manda e com quanto
   -- sem chave estrangeira para country(tag) de propósito: esta fotografia semeia-se antes de haver

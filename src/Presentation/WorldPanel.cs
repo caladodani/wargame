@@ -9,7 +9,7 @@ namespace WarGame.Presentation;
 public partial class WorldPanel : PanelContainer
 {
     /// <summary>Secções do painel, uma por aba de metal (as mesmas que antes eram um rolo só).</summary>
-    private static readonly string[] Sections = { "Potências", "Guerras", "Espionagem", "Facções", "Exílio" };
+    private static readonly string[] Sections = { "Potências", "Guerras", "Diplomacia", "Espionagem", "Facções", "Exílio" };
 
     private Game _game = null!;
     private CountryPanel _countryPanel = null!;
@@ -80,7 +80,7 @@ public partial class WorldPanel : PanelContainer
             Ui.Clear(_tabs);
             _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             Ui.Clear(_body);
-            bool tPower = _tab == 0, tWars = _tab == 1, tSpy = _tab == 2, tFactions = _tab == 3, tExile = _tab == 4;
+            bool tPower = _tab == 0, tWars = _tab == 1, tDiplo = _tab == 2, tSpy = _tab == 3, tFactions = _tab == 4, tExile = _tab == 5;
 
             var divs = new Dictionary<int, int>();
             foreach (var d in w.Divisions.Values) divs[d.CountryId] = divs.GetValueOrDefault(d.CountryId) + 1;
@@ -127,6 +127,32 @@ public partial class WorldPanel : PanelContainer
                              .OrderByDescending(x => _game.PlayerId is int me && x.Involves(me))
                              .ThenBy(x => x.StartDay))
                     _body.AddChild(WarLedgerView.Card(w, info, _game.PlayerId));
+            }
+
+            if (tDiplo)
+            {
+                // O caderno da diplomacia: quem gosta e quem desgosta de nós, e — por baixo de cada um — as
+                // razões que fazem o número. Sem jogador escolhido não há de quem ter opinião.
+                if (_game.PlayerId is not int me2) Line("Sem país escolhido: a diplomacia não tem de quem falar");
+                else
+                {
+                    Header("Como o mundo nos vê");
+                    var rank = Relations.Ranked(w, me2);
+                    if (rank.Count == 0) Line("Estamos sozinhos no mundo");
+                    // as pontas é que contam: os melhores amigos e os piores inimigos. O meio morno fica de
+                    // fora — num mundo de dezenas de países ninguém rola oitenta cartões indiferentes.
+                    const int Ends = 8;
+                    for (int i = 0; i < rank.Count; i++)
+                    {
+                        if (i >= Ends && i < rank.Count - Ends)
+                        {
+                            if (i == Ends) Line($"… {rank.Count - 2 * Ends} países indiferentes no meio …", 15);
+                            continue;
+                        }
+                        _body.AddChild(Opinion(w, me2, rank[i].Other, rank[i].Opinion));
+                    }
+                }
+                return;
             }
 
             if (tSpy && _game.PlayerId is int pid)
@@ -208,6 +234,61 @@ public partial class WorldPanel : PanelContainer
                         + (ready ? " · pronto a voltar quando a capital for libertada" : ""), 14);
         note.AddThemeColorOverride("font_color", Ui.TextDim);
         v.AddChild(note);
+        return card;
+    }
+
+    /// <summary>Cartão da opinião de um país sobre nós: bandeira, nome, a palavra ("hostil") e o número, a
+    /// barra com o zero ao meio, e por baixo as razões que fazem a conta — cada uma com a sua chapa e o seu
+    /// sinal. É a mesma promessa da folha dos números do país: o total É a soma do que está escrito.</summary>
+    private Control Opinion(World w, int meId, Country other, float op)
+    {
+        var colour = op >= Relations.Cap(w) * 0.25f ? Ui.Good
+                   : op > -Relations.Cap(w) * 0.25f ? Ui.Accent : Ui.Danger;
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(Ui.Surface with { A = 0.75f }, 8));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 3); card.AddChild(v);
+
+        var top = new HBoxContainer(); top.AddThemeConstantOverride("separation", 8); v.AddChild(top);
+        var fl = Flags.Rect(22); fl.Texture = Flags.Of(other.Tag); fl.Visible = fl.Texture is not null;
+        top.AddChild(fl);
+        int id = other.Id;
+        var btn = Ui.Btn(other.Name, () => { Close(); _countryPanel.Open(id); }, 0);
+        btn.Alignment = HorizontalAlignment.Left;
+        top.AddChild(Ui.Grow(btn));
+        var word = Ui.Lbl(Relations.Word(w, op), 15); word.AddThemeColorOverride("font_color", Ui.TextDim);
+        top.AddChild(word);
+        var num = Ui.Lbl($"{op:+0;-0}", 18); num.AddThemeColorOverride("font_color", colour);
+        top.AddChild(num);
+
+        // barra com o zero ao meio: metade cheia é indiferença, encostada à direita é aliado de facto
+        v.AddChild(Ui.Bar(Math.Clamp((op + Relations.Cap(w)) / (2f * Relations.Cap(w)), 0f, 1f), colour, 0f));
+
+        var lines = Relations.Lines(w, other.Id, meId).OrderByDescending(l => MathF.Abs(l.Value)).ToList();
+        if (lines.Count == 0)
+        {
+            var none = Ui.Lbl("nada entre nós: nem tratado, nem fronteira, nem mágoa", 14);
+            none.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(none);
+        }
+        else
+        {
+            var why = new HBoxContainer(); why.AddThemeConstantOverride("separation", 10); v.AddChild(why);
+            foreach (var l in lines.Take(5))
+            {
+                var one = new HBoxContainer(); one.AddThemeConstantOverride("separation", 3); why.AddChild(one);
+                one.AddChild(Glyph.Make(l.Glyph, 14, l.Value >= 0f ? Ui.Good : Ui.Danger));
+                var txt = Ui.Lbl($"{l.Name} {l.Value:+0;-0}", 14);
+                txt.AddThemeColorOverride("font_color", Ui.TextDim);
+                one.AddChild(txt);
+            }
+            if (lines.Count > 5)
+            {
+                var more = Ui.Lbl($"+{lines.Count - 5}", 14);
+                more.AddThemeColorOverride("font_color", Ui.TextDim);
+                why.AddChild(more);
+            }
+        }
+        card.TooltipText = string.Join("\n", lines.Select(l => $"{l.Name}: {l.Value:+0.0;-0.0}"));
         return card;
     }
 

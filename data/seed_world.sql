@@ -1902,15 +1902,19 @@ INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph,layers) VALUES
 -- cada partido puxa por dia conforme o que se passa (guerra, instabilidade, desgaste), volta devagar
 -- à sua base quando nada o puxa, e a soma anda sempre nos 100. Quem governa dá o seu multiplicador
 -- ao país; quem faz eleições tem relógio; quem as não faz governa até alguém dar o golpe.
-INSERT INTO party (id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,glyph,sort) VALUES
+-- O `axis` é a morada do partido no eixo político (-1 a 1). Não muda nada no país que governa: serve
+-- para fora, na conta das relações (Relations) — dois governos perto no eixo reconhecem-se, dois nas
+-- pontas opostas não se cumprimentam. Os liberais ficam no meio de propósito (é com eles que toda a
+-- gente ainda fala), socialistas à esquerda, nacionalistas à direita e autoritários no extremo.
+INSERT INTO party (id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,axis,glyph,sort) VALUES
  ('liberais','Liberais','A casa das leis e do comércio. Governa com as fábricas a render, mas a guerra come-lhe o chão.',
-  40,1,'industry',1.05,-0.030,-0.040,-0.020,'balanca',1),
+  40,1,'industry',1.05,-0.030,-0.040,-0.020,0.00,'balanca',1),
  ('nacionalistas','Nacionalistas','A bandeira primeiro. Cada dia de guerra é um cartaz que lhes enche a sala.',
-  25,1,'attack',1.05,0.035,0.010,0.005,'bandeira',2),
+  25,1,'attack',1.05,0.035,0.010,0.005,0.55,'bandeira',2),
  ('socialistas','Socialistas','A fábrica é de quem lá trabalha. Crescem quando as casas passam mal.',
-  20,1,'conscription',1.10,0.000,0.030,0.020,'punho',3),
+  20,1,'conscription',1.10,0.000,0.030,0.020,-0.70,'punho',3),
  ('autoritarios','Autoritários','Ordem sem urnas. Governa quem manda na polícia — e enquanto mandar não há eleições.',
-  15,0,'counter_intel',1.25,0.010,0.025,0.010,'capacete',4);
+  15,0,'counter_intel',1.25,0.010,0.025,0.010,1.00,'capacete',4);
 
 INSERT INTO rule (key,value,note) VALUES
  ('party_drift_day',1,'multiplicador global do puxão diário das popularidades'),
@@ -2032,3 +2036,43 @@ INSERT INTO rule (key,value,note) VALUES
  ('civil_war_rebel_stability',45,'estabilidade com que o país rebelde nasce'),
  ('civil_war_rebel_political',0,'poder político com que o país rebelde nasce'),
  ('civil_war_purge',25,'pontos de popularidade que o partido levantado perde na parte que fica ao governo');
+
+-- ===== A opinião entre países: o que um governo sente por outro (Relations) =====
+-- O mundo tinha tensão mundial (um número só, igual para toda a gente) e nenhuma relação bilateral: a
+-- Rússia e a NATO estavam exactamente tão longe uma da outra como Portugal e Espanha. No HoI4 cada par de
+-- países tem uma opinião, e é ela que abre e fecha portas — quem assina um pacto, quem entra numa aliança,
+-- quem recebe voluntários, e a quem a IA vai bater. Aqui a opinião não se guarda: refaz-se do estado do
+-- mundo, razão a razão, como a folha dos números do país (StatLedger) refaz cada característica.
+-- A conta é DIRIGIDA: o que A sente por B não é o que B sente por A (quem recebe o material é que fica
+-- agradecido). Cada linha destas é uma razão com nome, chapa e peso; o C# só diz QUANTAS vezes ela conta.
+CREATE TABLE IF NOT EXISTS opinion_source (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  weight REAL NOT NULL,                       -- quanto vale, com sinal (negativo = desgosto)
+  glyph TEXT NOT NULL DEFAULT '', note TEXT, sort INTEGER NOT NULL DEFAULT 0);
+
+INSERT INTO opinion_source (id,name,weight,glyph,note,sort) VALUES
+ ('guerra','Estamos em guerra',-70,'espadas','o que pesa mais do que tudo o resto junto',1),
+ ('ideologia','Ideologia',30,'balanca','o eixo de um governo contra o eixo do outro: +30 igual, -30 nas pontas opostas',2),
+ ('faccao','Mesma aliança',35,'escudo','assinar a mesma defesa colectiva vale mais do que qualquer simpatia',3),
+ ('inimigo_comum','Inimigo comum',18,'espadas','quem se bate com quem nos bate',4),
+ ('pacto','Pacto de não-agressão',15,'pomba','papel assinado a dizer que não nos mordemos',5),
+ ('vassalagem','Vassalagem',25,'corrente','entre suserano e vassalo há sempre casa comum, goste ele ou não',6),
+ ('emprestimo','Material emprestado',20,'caixa','quem recebe todos os dias é que fica agradecido',7),
+ ('comercio','Comércio',6,'barril','por acordo em vigor, até ao tecto opinion_trade_max',8),
+ ('voluntarios','Voluntários',12,'gente','sangue nosso a morrer na guerra deles',9),
+ ('justificacao','Está a justificar guerra contra nós',-45,'alvo','a papelada do pretexto vê-se de fora',10),
+ ('espionagem','Espiões apanhados',-25,'luneta','operação deles a correr contra nós',11),
+ ('terra_ocupada','Terra nossa ocupada',-40,'bandeira','pela fatia das nossas províncias que a tropa deles pisa',12),
+ ('vizinhanca','Vizinhos',-8,'estrada','fronteira comum: o atrito de quem se vê da janela',13),
+ ('ameaca','Exército maior do que o nosso',-20,'caveira','o medo do que o vizinho tem em pé',14);
+
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph,layers) VALUES
+ ('diplomacia','Diplomacia','🤝','opinion','inimigo','aliado',10,'aperto','');
+
+INSERT INTO rule (key,value,note) VALUES
+ ('opinion_cap',100,'tecto da opinião entre dois países, para cima e para baixo'),
+ ('opinion_trade_max',3,'acordos de comércio que ainda contam para a opinião'),
+ ('nap_min_opinion',-35,'abaixo desta opinião ninguém assina um pacto de não-agressão connosco'),
+ ('faction_min_opinion',-25,'abaixo desta opinião uma aliança recusa-nos mesmo com inimigo comum'),
+ ('volunteer_min_opinion',-40,'abaixo desta opinião não se aceitam voluntários nossos'),
+ ('ai_war_friend_opinion',45,'acima desta opinião a IA não escolhe esse país como alvo de guerra');

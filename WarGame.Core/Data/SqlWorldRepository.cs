@@ -267,12 +267,16 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (w.AdvisorDefs.TryGetValue((string)r["advisor_id"]!, out var ad))
                 ad.Effects[(string)r["stat_key"]!] = Convert.ToSingle(r["mult"]);
         w.PartyDefs.Clear();
-        foreach (var r in _static.Query("SELECT id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,glyph,sort FROM party ORDER BY sort,id"))
+        foreach (var r in _static.Query("SELECT id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,axis,glyph,sort FROM party ORDER BY sort,id"))
             w.PartyDefs[(string)r["id"]!] = new PartyDef((string)r["id"]!, (string)r["name"]!,
                 r["note"] as string ?? "", Convert.ToSingle(r["base"]), Convert.ToInt32(r["elections"]) != 0,
                 r["stat_key"] as string, Convert.ToSingle(r["stat_mult"]), Convert.ToSingle(r["drift_war"]),
                 Convert.ToSingle(r["drift_unstable"]), Convert.ToSingle(r["drift_exhaustion"]),
-                (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+                (string)r["glyph"]!, Convert.ToInt32(r["sort"]), Convert.ToSingle(r["axis"]));
+        w.OpinionSources.Clear();
+        foreach (var r in _static.Query("SELECT id,name,weight,glyph,note,sort FROM opinion_source ORDER BY sort,id"))
+            w.OpinionSources[(string)r["id"]!] = new OpinionSourceDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToSingle(r["weight"]), (string)r["glyph"]!, r["note"] as string ?? "", Convert.ToInt32(r["sort"]));
         w.StartParties.Clear();
         foreach (var r in _static.Query("SELECT country_tag,party,popularity,ruling FROM country_party"))
         {
