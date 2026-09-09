@@ -28,6 +28,12 @@ public class GlyphDataTests
         "campo", "arvore", "cidade", "montanha", "duna", "gelo",
         // o chão do céu: a pista com as marcas de cabeceira e a manga de vento (campo de aviação)
         "pista",
+        // o céu: a tempestade do tempo local e as tácticas de combate
+        "raio", "gancho", "brecha", "muro", "mola",
+        // as classes: os cascos e os modelos de avião, que também se vêem por chapa e não por emoji
+        "submarino", "conves", "caca", "bombardeiro", "carga", "praia",
+        // o aço que o céu deita ao fundo: o torpedo com a esteira atrás (missão de ataque naval)
+        "torpedo",
     };
 
     [Fact]
@@ -65,6 +71,21 @@ public class GlyphDataTests
                            .Concat(w.MapModeDefs.Values.Select(m => m.Glyph))
                            .Concat(w.AirMissionDefs.Values.Select(m => m.Glyph))
                            .Concat(w.NavalMissionDefs.Values.Select(m => m.Glyph)))
+            Assert.Contains(g, Desenhados);
+    }
+
+    /// <summary>As classes de casco e de avião: cada linha de ship_class e plane_class pede uma chapa que
+    /// alguém desenha. Vêem-se nas fichas do estaleiro e do hangar, uma por modelo, e ficavam caladas — a
+    /// chapa que não existe sai como roda dentada e não como erro. O porta-aviões trouxe a coluna glyph ao
+    /// ship_class e é por isso que esta rede se estende agora ao mar.</summary>
+    [Fact]
+    public void Cascos_e_avioes_pedem_chapas_que_existem()
+    {
+        var w = FactionTests.BuildReal();
+        Assert.NotEmpty(w.ShipClasses);
+        Assert.NotEmpty(w.PlaneClasses);
+        foreach (var g in w.ShipClasses.Values.Select(s => s.Glyph)
+                           .Concat(w.PlaneClasses.Values.Select(p => p.Glyph)))
             Assert.Contains(g, Desenhados);
     }
 

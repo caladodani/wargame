@@ -96,8 +96,10 @@ public sealed class NavalMissionSystem : ISystem
     private static float Share(float lost, float had) => had <= 0f ? 0f : lost / had;
 
     /// <summary>Navios ao fundo: saem da missão e do pool nacional — não voltam. A marinha que os perdeu
-    /// aprende com o combate: é assim que se pagam as escolas do mar.</summary>
-    private static float Sink(World w, List<NavalMission> missions, float ships)
+    /// aprende com o combate: é assim que se pagam as escolas do mar. Público porque o aço já não vai ao
+    /// fundo só por obra de outro navio: o ataque naval pelo ar (AirMissionSystem) afunda pela mesma conta,
+    /// com a mesma escolta a levar os tiros primeiro.</summary>
+    public static float Sink(World w, List<NavalMission> missions, float ships)
     {
         float pool = missions.Sum(m => m.Ships), gone = 0f;
         if (pool <= 0f) return 0f;

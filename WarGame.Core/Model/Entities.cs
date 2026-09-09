@@ -502,7 +502,11 @@ public sealed record NavalMissionDef(string Id, string Name, string Icon, string
 /// tarefa naval. Nada disto está em código: são linhas da tabela.</summary>
 public sealed record ShipClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                   float Battle, float Screen, float Blockade, float Escort, float Patrol,
-                                  bool Basic, string Note, int Sort, string Glyph);
+                                  bool Basic, string Note, int Sort, string Glyph, float Deck = 0f)
+{
+    /// <summary>Casco que leva aviação ao mar: é campo de aviação a flutuar (AirBases.Decks).</summary>
+    public bool IsCarrier => Deck > 0f;
+}
 
 /// <summary>Um modelo de avião (tabela plane_class; Air). O céu do jogo era um número só: agora cada asa
 /// tem modelo e o modelo decide para que serve. Air é o que ele vale num combate aéreo — e é também o que
@@ -510,7 +514,8 @@ public sealed record ShipClassDef(string Id, string Name, string Icon, string Ro
 /// Transport é quanto rende em cada tarefa. Nada disto está em código: são linhas da tabela.</summary>
 public sealed record PlaneClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                    float Air, float Superiority, float Support, float Bombing, float Transport,
-                                   bool Basic, string Note, int Sort, string Glyph, float RangeKm = 0f);
+                                   bool Basic, string Note, int Sort, string Glyph, float RangeKm = 0f,
+                                   float Naval = 0f, bool Deck = false);
 
 /// <summary>Uma geração de material (tabela equipment_mark; Marks). O armazém tinha uma espingarda só: um
 /// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de

@@ -343,7 +343,9 @@ CREATE TABLE IF NOT EXISTS plane_class (      -- modelos de avião (Air); estát
   basic INTEGER NOT NULL DEFAULT 0,           -- 1 = o modelo que o botão antigo de "comprar esquadrão" compra
   note TEXT NOT NULL, sort INTEGER NOT NULL,
   glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
-  range_km REAL NOT NULL DEFAULT 0);          -- alcance a partir do campo (AirBases); 0 = regra air_range_default
+  range_km REAL NOT NULL DEFAULT 0,           -- alcance a partir do campo (AirBases); 0 = regra air_range_default
+  naval REAL NOT NULL DEFAULT 0,              -- quanto vale a afundar navios (missão de efeito 'naval')
+  deck INTEGER NOT NULL DEFAULT 0);           -- 1 = cabe num porta-aviões (asa embarcada; AirBases.Decks)
 CREATE TABLE IF NOT EXISTS s_plane (          -- aviões de um país por modelo (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));
@@ -379,7 +381,8 @@ CREATE TABLE IF NOT EXISTS ship_class (      -- classes de navio (Navy); estáti
   blockade REAL NOT NULL, escort REAL NOT NULL, patrol REAL NOT NULL,   -- valor em cada tarefa naval
   basic INTEGER NOT NULL DEFAULT 0,           -- 1 = a classe que o botão antigo de "comprar navio" compra
   note TEXT NOT NULL, sort INTEGER NOT NULL,
-  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+  glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
+  deck REAL NOT NULL DEFAULT 0);              -- asas que o casco leva ao mar (porta-aviões; AirBases.Decks)
 CREATE TABLE IF NOT EXISTS s_ship (           -- navios de um país por classe (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));

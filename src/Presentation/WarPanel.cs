@@ -242,8 +242,9 @@ public partial class WarPanel : PanelContainer
             return;
         }
 
-        // onde é que estas asas dormem (AirBases): a conta faz-se uma vez e serve as fichas todas
-        var beds = AirBases.Beds(w, pid);
+        // onde é que estas asas dormem (AirBases): a conta faz-se uma vez e serve as fichas todas. O `left`
+        // separa terra de convés na mesma província — o quadro dos campos precisa dos dois em separado
+        var beds = AirBases.Beds(w, pid, out var left);
 
         foreach (var m in w.AirMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
         {
@@ -291,13 +292,15 @@ public partial class WarPanel : PanelContainer
             card.AddChild(bed);
         }
 
-        Airfields(card, w, pid, beds);
+        Airfields(card, w, pid, beds, left);
         ZoneBoard(card, w, Zones.AirBoard(w, pid), "asas", "céu");
         Hangar(card, w, pid);
 
         // céus a que se pode mandar hoje: a frente inimiga e a nossa terra onde já se combate
         var skies = new List<int>();
         if (AirMissionSystem.Front(w, pid) is int front) skies.Add(front);
+        // e o mar onde há aço deles: sem isto o ataque naval não tinha botão nenhum — o céu só via terra
+        if (AirMissionSystem.NavalTarget(w, pid) is int port && !skies.Contains(port)) skies.Add(port);
         foreach (var b in w.ActiveBattles)
             if (skies.Count < 3 && !skies.Contains(b.RegionId)
                 && w.Regions.TryGetValue(b.RegionId, out var br) && br.ControllerId == pid) skies.Add(b.RegionId);
@@ -338,7 +341,8 @@ public partial class WarPanel : PanelContainer
     /// sítio nenhum — as asas apareciam em qualquer céu do mundo desde que a província fizesse fronteira com
     /// terra nossa. Agora uma asa dorme num campo, e é este quadro que diz quantas cabem, onde e até onde
     /// chegam. É também o que explica a recusa por baixo dos botões de destacar.</summary>
-    private void Airfields(Node card, World w, int pid, Dictionary<AirMission, List<(int RegionId, float Wings)>> beds)
+    private void Airfields(Node card, World w, int pid, Dictionary<AirMission, List<(int RegionId, float Wings)>> beds,
+                           Dictionary<(int Region, bool Carrier), float> left)
     {
         var used = new Dictionary<int, float>();
         foreach (var (_, mine) in beds)
@@ -347,6 +351,7 @@ public partial class WarPanel : PanelContainer
         var fields = w.Regions.Values.Where(r => r.ControllerId == pid && AirBases.Level(w, r) > 0)
                       .OrderByDescending(r => AirBases.Level(w, r)).ThenBy(r => r.Id).ToList();
         card.AddChild(Ui.Lbl($"Chão do céu: {AirBases.Short(w, pid)}", 15));
+        Carriers(card, w, pid, left);
         if (fields.Count == 0)
         {
             var none = Ui.Lbl($"Sem campos: cada província nossa assenta {w.Rule("air_base_free", 4f):0.#} asas em pista "
@@ -365,6 +370,32 @@ public partial class WarPanel : PanelContainer
             row.AddChild(Ui.Grow(Ui.Lbl($"{r.Name}: campo nível {lvl}   ·   {taken:0.#}/{slots:0} asas"
                                       + $"   ·   +{AirBases.Extra(w, r):0} km de alcance", 15)));
             if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
+            card.AddChild(row);
+        }
+    }
+
+    /// <summary>Os campos que flutuam: uma linha por mar onde temos porta-aviões destacados. O convés é
+    /// campo de aviação a andar — recebe só os aviões que lá cabem (plane_class.deck) e deixa-os levantar
+    /// com o alcance curto de bordo, porque quem vai perto é o casco. É por aqui que a aviação chega a mar
+    /// onde não há terra nossa nenhuma, e é a razão de haver porta-aviões.</summary>
+    private void Carriers(Node card, World w, int pid, Dictionary<(int Region, bool Carrier), float> left)
+    {
+        var decks = AirBases.Decks(w, pid);
+        if (decks.Count == 0) return;
+        float bordo = w.Rule("air_carrier_range", 600f);
+        foreach (var (rid, slots) in decks.OrderBy(kv => kv.Key))
+        {
+            if (!w.Regions.TryGetValue(rid, out var r)) continue;
+            float taken = slots - MathF.Max(0f, left.TryGetValue((rid, true), out var v) ? v : slots);
+            int id = rid;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            row.AddChild(Glyph.Make("conves", 16f, taken >= slots - 0.05f ? Ui.Accent : Ui.Text, "Convés no mar"));
+            var lbl = Ui.Lbl($"{r.Name}: conveses no mar   ·   {taken:0.#}/{slots:0.#} asas"
+                             + $"   ·   alcance de bordo {bordo:0} km", 15);
+            lbl.TooltipText = "Um porta-aviões destacado leva o campo com ele. Só assenta aviões que caibam "
+                            + "num convés, e do mar levantam com o alcance de bordo — não com o do avião.";
+            row.AddChild(Ui.Grow(lbl));
+            if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(id), 90));
             card.AddChild(row);
         }
     }
@@ -520,7 +551,9 @@ public partial class WarPanel : PanelContainer
                 mix.AddChild(Glyph.Make(Navy.Glyph(w, cls), 15f, Ui.TextDim, Navy.Name(w, cls)));
                 mix.AddChild(Ui.Lbl($"{Navy.Name(w, cls)} ×{n:0.#}", 14));
             }
-            mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Navy.Power(w, m.Squadron):0.#}", 14)));
+            float deck = Navy.Decks(w, m.Squadron);
+            mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Navy.Power(w, m.Squadron):0.#}"
+                                        + (deck > 0f ? $"   ·   convés para {deck:0.#} asas" : ""), 14)));
             card.AddChild(mix);
         }
 
@@ -597,8 +630,10 @@ public partial class WarPanel : PanelContainer
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             row.AddChild(Glyph.Make(d.Glyph, 18f, have > 0f ? Ui.Accent : Ui.TextDim, d.Note));
             var lbl = Ui.Lbl($"{d.Name} ({d.Role})   ·   {have:0.#} nossos, {port:0.#} no porto"
-                             + $"   ·   combate {d.Battle:0.#}, couraça {d.Screen:0.#}", 15);
-            lbl.TooltipText = d.Note + $"\nBloqueio ×{d.Blockade:0.#}, escolta ×{d.Escort:0.#}, patrulha ×{d.Patrol:0.#}.";
+                             + $"   ·   combate {d.Battle:0.#}, couraça {d.Screen:0.#}"
+                             + (d.IsCarrier ? $", convés {d.Deck:0.#} asas" : ""), 15);
+            lbl.TooltipText = d.Note + $"\nBloqueio ×{d.Blockade:0.#}, escolta ×{d.Escort:0.#}, patrulha ×{d.Patrol:0.#}."
+                            + (d.IsCarrier ? $"\nLeva {d.Deck:0.#} asas ao mar: campo de aviação a flutuar." : "");
             row.AddChild(Ui.Grow(lbl));
             var buy = Ui.Btn($"{cost:0}", () => BuyShip(pid, cls), 110);
             buy.Disabled = me.Money < cost;

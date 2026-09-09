@@ -72,6 +72,9 @@ public sealed record AirCombatEnded(int RegionId, int CountryId, int EnemyCountr
 /// mãos inimigas, a frente afastou-se ou nunca houve cama para tanta gente. Voltam ao pool no mesmo dia.</summary>
 public sealed record AirWingsGrounded(int RegionId, int CountryId, float Wings) : IGameEvent;
 public sealed record SeaCombatEnded(int RegionId, int CountryId, int EnemyCountryId, float Lost, bool Worse) : IGameEvent;
+/// <summary>Aço ao fundo por obra do céu (missão de efeito 'naval'): aviões nossos afundaram navios de
+/// quem estava naquele mar. É a arma que a marinha não tinha de ter — e a razão de o porta-aviões existir.</summary>
+public sealed record AirNavalStrike(int RegionId, int CountryId, int TargetCountryId, float Ships) : IGameEvent;
 
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
 public sealed record GeneralWounded(int CountryId, string GeneralId, string KindId, int Days) : IGameEvent;

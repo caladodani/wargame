@@ -22,6 +22,11 @@ namespace WarGame.Core.Systems;
 /// camas ao alcance daquele céu. As camas dão-se por ordem de missão e sempre do campo mais perto para o
 /// mais longe: a conta é a mesma em todas as máquinas.
 ///
+/// E há campos que flutuam: o PORTA-AVIÕES (ship_class.deck) é um campo de aviação a andar pelo mar. As
+/// asas que ele leva têm de caber num convés (plane_class.deck: o caça de superioridade é grande de mais)
+/// e levantam com o alcance curto de `air_carrier_range` — é o casco que vai perto, não o avião. É por
+/// aqui que a aviação chega a mar onde não há terra nossa nenhuma, e é a razão de haver porta-aviões.
+///
 /// O que isto muda no jogo: massar aviação sobre uma frente longe de casa passa a ser uma obra a fazer
 /// antes da guerra, e não uma decisão de um segundo. É a razão de existir o campo de aviação.
 ///
@@ -84,27 +89,90 @@ public static class AirBases
         return list;
     }
 
+    /// <summary>Conveses deste país por mar onde tem esquadra: as asas que os porta-aviões destacados
+    /// assentam ali. Um casco só conta enquanto estiver no mar — chamado ao porto, leva o campo com ele.</summary>
+    public static Dictionary<int, float> Decks(World w, int countryId)
+    {
+        var decks = new Dictionary<int, float>();
+        foreach (var m in w.NavalMissions)
+        {
+            if (m.CountryId != countryId) continue;
+            float slots = Navy.Decks(w, m.Squadron);
+            if (slots > 0f) decks[m.RegionId] = decks.GetValueOrDefault(m.RegionId) + slots;
+        }
+        return decks;
+    }
+
+    /// <summary>Uma cama à espera: onde é (região), quantas asas assenta, até onde as deixa chegar e se é
+    /// convés (que só recebe aviões de convés). Terra e mar contam-se no mesmo saco porque para a asa a
+    /// pergunta é a mesma: cabe-me aqui e chego lá?</summary>
+    public readonly record struct Berth(Region Field, float Slots, float Reach, bool Carrier);
+
+    /// <summary>Camas deste país para um céu, do mais perto para o mais longe (o convés fica atrás da terra
+    /// quando empatam, que a terra é mais segura). O <paramref name="reach"/> é o raio dos aviões que vão
+    /// levantar: em terra soma-se-lhe a pista comprida, no convés trava-o o alcance curto de bordo.</summary>
+    public static List<Berth> Berths(World w, int countryId, int targetId, float reach)
+    {
+        float sea = w.Rule("air_carrier_range", 600f);
+        var decks = Decks(w, countryId);
+        var list = new List<Berth>();
+        foreach (var r in w.Regions.Values)
+        {
+            if (r.ControllerId == countryId) list.Add(new Berth(r, Slots(w, r), reach + Extra(w, r), false));
+            if (decks.TryGetValue(r.Id, out var deck) && deck > 0f)
+                list.Add(new Berth(r, deck, MathF.Min(reach, sea), true));
+        }
+        list.Sort((a, b) =>
+        {
+            int c = w.Km(a.Field.Id, targetId).CompareTo(w.Km(b.Field.Id, targetId));
+            if (c != 0) return c;
+            c = a.Carrier.CompareTo(b.Carrier);
+            return c != 0 ? c : a.Field.Id.CompareTo(b.Field.Id);
+        });
+        return list;
+    }
+
+    /// <summary>Asas desta composição que cabem num convés (plane_class.deck). O avião sem modelo não cabe:
+    /// um convés não é uma pista, e a marinha antiga não tinha porta-aviões nenhum para o receber.</summary>
+    public static float DeckWings(World w, IReadOnlyDictionary<string, float> squadron)
+    {
+        float sum = 0f;
+        foreach (var (cls, n) in squadron)
+            if (n > 0f && cls.Length > 0 && w.PlaneClasses.TryGetValue(cls, out var d) && d.Deck) sum += n;
+        return sum;
+    }
+
     /// <summary>Quem dorme onde: para cada missão deste país, os campos que a assentam e quantas asas
     /// ficam em cada um. As missões servem-se por ordem de província e cada uma enche do campo mais perto
     /// para o mais longe — as que não arranjam cama ficam em terra (o resto do dicionário fica curto).</summary>
-    public static Dictionary<AirMission, List<(int RegionId, float Wings)>> Beds(World w, int countryId)
+    public static Dictionary<AirMission, List<(int RegionId, float Wings)>> Beds(World w, int countryId) =>
+        Beds(w, countryId, out _);
+
+    /// <summary>O mesmo, e ainda o que sobrou de cada campo (chave: região e se é convés). Um campo sem
+    /// entrada é um campo onde ninguém dormiu — vale a lotação inteira.</summary>
+    public static Dictionary<AirMission, List<(int RegionId, float Wings)>> Beds(
+        World w, int countryId, out Dictionary<(int Region, bool Carrier), float> left)
     {
         var beds = new Dictionary<AirMission, List<(int, float)>>();
-        var left = new Dictionary<int, float>();                       // camas que cada província ainda tem
+        left = new Dictionary<(int Region, bool Carrier), float>();      // camas que cada campo ainda tem
         foreach (var m in w.AirMissions.Where(x => x.CountryId == countryId).OrderBy(x => x.RegionId).ToList())
         {
             var mine = new List<(int, float)>();
-            float need = m.Wings, reach = Range(w, m.Squadron);
-            foreach (var f in Fields(w, countryId, m.RegionId))
+            float need = m.Wings, reach = Range(w, m.Squadron), deckLeft = DeckWings(w, m.Squadron);
+            foreach (var b in Berths(w, countryId, m.RegionId, reach))
             {
                 if (need <= 0.0001f) break;
-                if (w.Km(f.Id, m.RegionId) > reach + Extra(w, f)) continue;     // longe de mais para esta asa
-                float room = left.TryGetValue(f.Id, out var v) ? v : Slots(w, f);
-                if (room <= 0.0001f) { left[f.Id] = 0f; continue; }
-                float take = MathF.Min(room, need);
-                left[f.Id] = room - take;
+                if (w.Km(b.Field.Id, m.RegionId) > b.Reach) continue;           // longe de mais para esta asa
+                var key = (b.Field.Id, b.Carrier);
+                float room = left.TryGetValue(key, out var v) ? v : b.Slots;
+                // no convés só assenta quem cabe num convés: o resto da asa fica à espera de terra
+                float want = b.Carrier ? MathF.Min(need, deckLeft) : need;
+                if (room <= 0.0001f || want <= 0.0001f) { left[key] = MathF.Max(0f, room); continue; }
+                float take = MathF.Min(room, want);
+                left[key] = room - take;
                 need -= take;
-                mine.Add((f.Id, take));
+                deckLeft = MathF.Min(deckLeft - (b.Carrier ? take : 0f), need);
+                mine.Add((b.Field.Id, take));
             }
             beds[m] = mine;
         }
@@ -126,36 +194,44 @@ public static class AirBases
         return mine.OrderByDescending(b => b.Wings).ThenBy(b => b.RegionId).First().RegionId;
     }
 
-    /// <summary>Camas livres deste país para um céu, contando só os campos que lá chegam com este raio.
-    /// É o que o painel mostra por baixo do botão e o que a IA não pode ultrapassar.</summary>
-    public static float Room(World w, int countryId, int targetId, float reach)
+    /// <summary>Camas livres deste país para um céu, contando só os campos que lá chegam com este raio. O
+    /// <paramref name="deckWings"/> trava o que os conveses podem prometer: de nada vale um porta-aviões
+    /// vazio de camas se os aviões que iam levantar não cabem lá. É o que o painel mostra por baixo do
+    /// botão e o que a IA não pode ultrapassar.</summary>
+    public static float Room(World w, int countryId, int targetId, float reach, float deckWings = float.MaxValue)
     {
-        var used = new Dictionary<int, float>();
-        foreach (var (_, mine) in Beds(w, countryId))
-            foreach (var (rid, n) in mine) used[rid] = used.GetValueOrDefault(rid) + n;
-        float free = 0f;
-        foreach (var f in Fields(w, countryId, targetId))
-            if (w.Km(f.Id, targetId) <= reach + Extra(w, f))
-                free += MathF.Max(0f, Slots(w, f) - used.GetValueOrDefault(f.Id));
+        Beds(w, countryId, out var left);
+        float free = 0f, deck = deckWings;
+        foreach (var b in Berths(w, countryId, targetId, reach))
+        {
+            if (w.Km(b.Field.Id, targetId) > b.Reach) continue;
+            var key = (b.Field.Id, b.Carrier);
+            float room = MathF.Max(0f, left.TryGetValue(key, out var v) ? v : b.Slots);
+            if (b.Carrier) { room = MathF.Min(room, deck); deck -= room; }
+            free += room;
+        }
         return free;
     }
 
-    /// <summary>Há campo nosso que chegue a este céu com este raio? (a pista comprida conta: um campo mais
-    /// longe pode cobrir o que o campo ao lado não cobre).</summary>
+    /// <summary>Há campo nosso que chegue a este céu com este raio? (a pista comprida conta, e o convés
+    /// também: um porta-aviões destacado põe asas em mar onde não há terra nossa nenhuma).</summary>
     public static bool Covers(World w, int countryId, int targetId, float reach) =>
-        Fields(w, countryId, targetId).Any(f => w.Km(f.Id, targetId) <= reach + Extra(w, f));
+        Berths(w, countryId, targetId, reach).Any(b => w.Km(b.Field.Id, targetId) <= b.Reach);
 
-    /// <summary>Camas livres para o que este país costuma mandar a esta tarefa (o raio dos aviões que
-    /// levantariam hoje). É a conta que o comando faz antes de deixar destacar mais asas.</summary>
-    public static float Room(World w, int countryId, int targetId, string effect, float wings) =>
-        Room(w, countryId, targetId, Range(w, Air.Pick(w, countryId, effect, wings)));
+    /// <summary>Camas livres para o que este país costuma mandar a esta tarefa (o raio e o feitio dos
+    /// aviões que levantariam hoje). É a conta que o comando faz antes de deixar destacar mais asas.</summary>
+    public static float Room(World w, int countryId, int targetId, string effect, float wings)
+    {
+        var take = Air.Pick(w, countryId, effect, wings);
+        return Room(w, countryId, targetId, Range(w, take), DeckWings(w, take));
+    }
 
     /// <summary>Campo mais perto deste céu que ainda tem cama, e a que distância fica — para explicar a
     /// recusa por palavras: "o campo mais perto fica a 3 200 km e a asa só chega a 1 300".</summary>
     public static (Region? Field, float Km) Nearest(World w, int countryId, int targetId)
     {
-        var fields = Fields(w, countryId, targetId);
-        return fields.Count == 0 ? (null, float.MaxValue) : (fields[0], w.Km(fields[0].Id, targetId));
+        var berths = Berths(w, countryId, targetId, 0f);   // o raio não conta para saber qual é o mais perto
+        return berths.Count == 0 ? (null, float.MaxValue) : (berths[0].Field, w.Km(berths[0].Field.Id, targetId));
     }
 
     /// <summary>O chão do céu deste país numa linha: campos levantados, camas ocupadas e a asa que ficou em
@@ -166,8 +242,12 @@ public static class AirBases
         float seated = beds.Sum(b => b.Value.Sum(x => x.Wings));
         float flying = w.AirMissions.Where(m => m.CountryId == countryId).Sum(m => m.Wings);
         int fields = w.Regions.Values.Count(r => r.ControllerId == countryId && Level(w, r) > 0);
-        float slots = w.Regions.Values.Where(r => r.ControllerId == countryId).Sum(r => Slots(w, r));
+        var decks = Decks(w, countryId);
+        float slots = w.Regions.Values.Where(r => r.ControllerId == countryId).Sum(r => Slots(w, r))
+                    + decks.Values.Sum();
+        string mar = decks.Count == 0 ? ""
+                   : $", {decks.Count} mar{(decks.Count == 1 ? "" : "es")} com convés ({decks.Values.Sum():0.#} camas a flutuar)";
         string terra = flying - seated > 0.05f ? $", {flying - seated:0.#} asas em terra por falta de campo" : "";
-        return $"{fields} campo{(fields == 1 ? "" : "s")} de aviação, {seated:0.#}/{slots:0} camas ocupadas{terra}";
+        return $"{fields} campo{(fields == 1 ? "" : "s")} de aviação{mar}, {seated:0.#}/{slots:0} camas ocupadas{terra}";
     }
 }

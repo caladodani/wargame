@@ -36,6 +36,20 @@ public static class Navy
     public static float Screen(World w, string classId) =>
         classId.Length > 0 && w.ShipClasses.TryGetValue(classId, out var d) ? d.Screen : 1f;
 
+    /// <summary>Asas que este casco leva ao mar (0 = não é porta-aviões). O convés é campo de aviação a
+    /// flutuar: é por aqui que a aviação chega a mar onde não há terra nossa nenhuma (AirBases.Decks).
+    /// Um casco sem classe não leva nada — a marinha antiga não tinha porta-aviões nenhum.</summary>
+    public static float Deck(World w, string classId) =>
+        classId.Length > 0 && w.ShipClasses.TryGetValue(classId, out var d) ? d.Deck : 0f;
+
+    /// <summary>Conveses de uma esquadra: as asas que aquele conjunto de cascos assenta ao todo.</summary>
+    public static float Decks(World w, IReadOnlyDictionary<string, float> squadron)
+    {
+        float slots = 0f;
+        foreach (var (cls, n) in squadron) slots += n * Deck(w, cls);
+        return slots;
+    }
+
     /// <summary>Estadia diária deste casco, em multiplicadores de naval_mission_upkeep.</summary>
     public static float Upkeep(World w, string classId) =>
         classId.Length > 0 && w.ShipClasses.TryGetValue(classId, out var d) ? d.Upkeep : 1f;

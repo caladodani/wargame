@@ -135,19 +135,22 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph FROM ship_class ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck FROM ship_class ORDER BY sort"))
             w.ShipClasses[(string)r["id"]!] = new ShipClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["battle"]),
                 Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]), Convert.ToSingle(r["escort"]),
                 Convert.ToSingle(r["patrol"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
-                Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km FROM plane_class ORDER BY sort"))
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
+                r["deck"] is null ? 0f : Convert.ToSingle(r["deck"]));
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck FROM plane_class ORDER BY sort"))
             w.PlaneClasses[(string)r["id"]!] = new PlaneClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["air"]),
                 Convert.ToSingle(r["superiority"]), Convert.ToSingle(r["support"]), Convert.ToSingle(r["bombing"]),
                 Convert.ToSingle(r["transport"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
-                r["range_km"] is null ? 0f : Convert.ToSingle(r["range_km"]));
+                r["range_km"] is null ? 0f : Convert.ToSingle(r["range_km"]),
+                r["naval"] is null ? 0f : Convert.ToSingle(r["naval"]),
+                r["deck"] is not null && Convert.ToInt32(r["deck"]) != 0);
         foreach (var r in _static.Query("SELECT id,unit_type_id,mark,name,tech_id,cost,power,wear,note,glyph FROM equipment_mark ORDER BY unit_type_id, mark"))
             w.EquipmentMarks[(string)r["id"]!] = new EquipmentMarkDef((string)r["id"]!, Convert.ToInt32(r["unit_type_id"]),
                 Convert.ToInt32(r["mark"]), (string)r["name"]!, (string)r["tech_id"]!, Convert.ToSingle(r["cost"]),

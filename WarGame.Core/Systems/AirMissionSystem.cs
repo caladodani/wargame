@@ -46,6 +46,7 @@ public sealed class AirMissionSystem : ISystem
 
         Ground(w);
         Dogfight(w);
+        NavalStrike(w);
 
         // 2. bombardeamento: cada asa arranca infraestrutura ao controlador da região, até ao chão
         foreach (var m in w.AirMissions.OrderBy(x => x.CountryId).ThenBy(x => x.RegionId).ToList())
@@ -81,6 +82,43 @@ public sealed class AirMissionSystem : ISystem
                 w.Events.Publish(new AirWingsGrounded(m.RegionId, cid, grounded));
             }
         }
+    }
+
+    /// <summary>Ataque naval: as asas caem sobre a esquadra deles naquele mar. É a arma que faltava ao céu —
+    /// até aqui a aviação não afundava um único navio, e uma potência sem marinha não tinha maneira nenhuma
+    /// de disputar o mar. Agora um bombardeiro torpedeiro vale aço, e o porta-aviões existe para levar
+    /// esses aviões a mar onde não há terra nossa (AirBases: o convés é campo de aviação a flutuar).
+    ///
+    /// Quem tem o céu por cima da esquadra defende-a: a superioridade aérea de quem lá está no mar trava o
+    /// ataque (air_naval_shield), que é a razão de se mandarem caças com os torpedeiros. O aço afunda-se
+    /// pela mesma conta do combate naval — a escolta leva os tiros primeiro (Navy.Sink).</summary>
+    private static void NavalStrike(World w)
+    {
+        float rate = w.Rule("air_naval_strike", 1f), shield = w.Rule("air_naval_shield", 1.2f);
+        if (rate <= 0f || w.NavalMissions.Count == 0 || w.AirMissions.Count == 0) return;
+
+        foreach (var m in w.AirMissions.OrderBy(x => x.CountryId).ThenBy(x => x.RegionId).ToList())
+        {
+            if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || def.Effect != "naval") continue;
+            if (!w.Regions.TryGetValue(m.RegionId, out var sky)) continue;
+            string zone = Zones.Sea(w, m.RegionId);
+            // o que estiver na ZONA está ao alcance dos aviões, como no combate aéreo e no naval
+            var prey = w.NavalMissions.Where(x => w.AreAtWar(m.CountryId, x.CountryId) && Zones.Sea(w, x.RegionId) == zone)
+                        .GroupBy(x => x.CountryId).OrderBy(g => g.Key).ToList();
+            if (prey.Count == 0) continue;
+            float punch = Rendered(w, m, "naval") * def.Value * Weather.AirMult(w, sky) * rate / prey.Count;
+            if (punch <= 0.0001f) continue;
+
+            foreach (var side in prey)
+            {
+                float guard = 1f + Superiority(w, m.RegionId, side.Key) * shield;
+                float sunk = NavalMissionSystem.Sink(w, side.OrderBy(x => x.RegionId).ToList(), punch / guard);
+                if (sunk <= 0.0001f) continue;
+                w.Events.Publish(new AirNavalStrike(m.RegionId, m.CountryId, side.Key, sunk));
+                if (w.Countries.TryGetValue(m.CountryId, out var c)) Learn(w, c, sunk * w.Rule("air_xp_per_loss", 3f));
+            }
+        }
+        w.NavalMissions.RemoveAll(x => x.Ships <= 0.001f);
     }
 
     /// <summary>Céu disputado: onde há asas de dois países em guerra, os dois perdem aviões à conta do lado
@@ -184,17 +222,51 @@ public sealed class AirMissionSystem : ISystem
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
         {
             if (c.IsPlayer || c.Capitulated || c.AtWarWith.Count == 0) continue;
+            float min = w.Rule("air_mission_min_wings", 1f);
             float free = Free(w, c.Id) - reserve;
-            if (free < w.Rule("air_mission_min_wings", 1f)) continue;
+            if (free < min) continue;
+            // primeiro o mar: se há esquadra deles num mar que o nosso céu alcança, uma fatia das asas vai
+            // ao aço em vez de ir à frente. É a única maneira de quem não tem marinha disputar o mar.
+            float naval = free * w.Rule("air_ai_naval_share", 0.35f);
+            if (naval >= min && w.AirMissionDefs.TryGetValue("ataque_naval", out var sea)
+                && NavalTarget(w, c.Id) is int port)
+            {
+                naval = MathF.Min(naval, AirBases.Room(w, c.Id, port, sea.Effect, naval));
+                if (naval >= min && Block(w, c.Id, port, "ataque_naval", naval) is null)
+                {
+                    Assign(w, c.Id, port, "ataque_naval", naval);
+                    free = Free(w, c.Id) - reserve;
+                    if (free < min) continue;
+                }
+            }
             if (Front(w, c.Id) is not int target) continue;
             if (!w.AirMissionDefs.TryGetValue("superioridade", out var def)) continue;
             // não se manda para o ar o que não tem onde dormir: a IA destaca até à cama que os campos dela
             // ao alcance daquele céu ainda têm (AirBases). O resto fica em casa até haver campo. A cama
             // conta-se com o raio dos aviões que levantariam — daí o efeito da missão e não o nome dela.
             free = MathF.Min(free, AirBases.Room(w, c.Id, target, def.Effect, free));
-            if (free < w.Rule("air_mission_min_wings", 1f)) continue;
+            if (free < min) continue;
             Assign(w, c.Id, target, "superioridade", free);
         }
+    }
+
+    /// <summary>Costa cujo mar leva mais aço deles: é o alvo do ataque naval. Vale a nossa própria costa —
+    /// a esquadra que nos bloqueia está no nosso mar — e vale a costa de quem está em guerra connosco.
+    /// Empates pelo id, para o mundo não depender de sementes.</summary>
+    public static int? NavalTarget(World w, int countryId)
+    {
+        int? best = null; float most = 0.001f;
+        foreach (var r in w.Regions.Values.OrderBy(x => x.Id))
+        {
+            if (!r.Coastal) continue;
+            if (r.ControllerId != countryId && !w.AreAtWar(countryId, r.ControllerId)) continue;
+            string zone = Zones.Sea(w, r.Id);
+            float ships = 0f;
+            foreach (var m in w.NavalMissions)
+                if (w.AreAtWar(countryId, m.CountryId) && Zones.Sea(w, m.RegionId) == zone) ships += m.Ships;
+            if (ships > most) { most = ships; best = r.Id; }
+        }
+        return best;
     }
 
     /// <summary>Região inimiga da frente deste país: a que faz fronteira com terra nossa e tem mais tropa
@@ -318,18 +390,23 @@ public sealed class AirMissionSystem : ISystem
         if (wings > Free(w, countryId) + 0.001f) return $"só há {Free(w, countryId):0.#} asas em casa";
         bool mine = r.ControllerId == countryId;
         if (def.Effect == "bombing" && mine) return "não se bombardeia a própria casa";
+        // o ataque naval é a excepção que se manda sobre a nossa própria costa: a esquadra deles que nos
+        // bloqueia está no NOSSO mar, e é lá que se lhe cai em cima. Só pede que haja mar por baixo.
+        if (def.Effect == "naval" && !r.Coastal) return "aquilo não tem mar";
         if (!mine && !w.AreAtWar(countryId, r.ControllerId)) return "não estamos em guerra com quem lá manda";
         // alcance e cama: a asa dorme num campo nosso e só chega ao céu que couber no raio dela (AirBases).
         // Era aqui que estava a maior mentira do jogo — bastava fazer fronteira e a força aérea inteira
         // aparecia em qualquer céu do mundo, sem campo, sem lotação e sem distância.
-        float reach = AirBases.Range(w, Air.Pick(w, countryId, def.Effect, wings));
+        var take = Air.Pick(w, countryId, def.Effect, wings);
+        float reach = AirBases.Range(w, take);
         if (!AirBases.Covers(w, countryId, regionId, reach))
         {
             var (near, km) = AirBases.Nearest(w, countryId, regionId);
             return near is null ? "não há terra nossa de onde levantar"
                  : $"fora do alcance: o campo mais perto é {near.Name}, a {km:0} km, e estes aviões chegam a {reach + AirBases.Extra(w, near):0} km";
         }
-        float room = AirBases.Room(w, countryId, regionId, reach);
+        // só as asas embarcáveis dormem num convés, e por isso a lotação depende da esquadrilha escolhida
+        float room = AirBases.Room(w, countryId, regionId, reach, AirBases.DeckWings(w, take));
         if (wings > room + 0.001f)
             return room < 0.05f ? "os campos ao alcance estão cheios" : $"só há cama para {room:0.#} asas nos campos ao alcance";
         if (c.Money < wings * w.Rule("air_mission_upkeep", 0.6f)) return "cofre curto para a estadia do dia";

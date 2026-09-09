@@ -55,6 +55,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "praia",
         // o chão do céu: a pista com as marcas de cabeceira e a manga de vento
         "pista",
+        // o aço que o céu deita ao fundo: o torpedo com a esteira atrás
+        "torpedo",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -603,6 +605,19 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Line(0.45f, 0.46f, 0.55f, 0.46f, 0.8f);
                 Line(0.80f, 0.20f, 0.80f, 0.86f);                                              // mastro
                 Poly(0.80f, 0.24f, 0.96f, 0.30f, 0.96f, 0.40f, 0.80f, 0.40f);                  // manga de vento
+                break;
+
+            // Torpedo a correr para a direita: o corpo com a ogiva à frente, as barbatanas atrás e a esteira
+            // de bolhas que deixa no rasto. É a chapa do ataque naval — o céu a deitar aço ao fundo.
+            case "torpedo":
+                Poly(0.26f, 0.40f, 0.68f, 0.40f, 0.68f, 0.60f, 0.26f, 0.60f, 0.26f, 0.40f);   // corpo
+                Poly(0.68f, 0.40f, 0.84f, 0.50f, 0.68f, 0.60f);                                // ogiva
+                Poly(0.26f, 0.40f, 0.16f, 0.30f, 0.16f, 0.70f, 0.26f, 0.60f);                  // barbatanas
+                Line(0.36f, 0.40f, 0.36f, 0.60f, 0.7f);                                        // cintas do casco
+                Line(0.52f, 0.40f, 0.52f, 0.60f, 0.7f);
+                Dot(0.10f, 0.50f, 0.035f);                                                     // esteira de bolhas
+                Dot(0.03f, 0.42f, 0.025f);
+                Dot(0.03f, 0.60f, 0.025f);
                 break;
 
             case "onda":

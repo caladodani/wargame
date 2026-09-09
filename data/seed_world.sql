@@ -938,7 +938,8 @@ CREATE TABLE IF NOT EXISTS air_mission (
 INSERT INTO air_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
  ('superioridade','Superioridade aérea','🛩','superiority',1,'Varre o céu da região: cada asa pesa na balança aérea do combate que lá se der.',0,'asa'),
  ('apoio','Apoio próximo','💥','support',0.03,'Bate no chão ao lado da nossa tropa: cada asa soma força a quem ali combate.',1,'bomba'),
- ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2,'alvo');
+ ('bombardeamento','Bombardeamento','🎯','bombing',0.015,'Deita abaixo a infraestrutura de quem manda na região, dia após dia.',2,'alvo'),
+ ('ataque_naval','Ataque naval','🌊','naval',0.05,'Cai sobre a esquadra deles naquele mar: um avião afunda aço que a nossa marinha nem tinha de ir buscar.',3,'torpedo');
 
 -- Missões navais (tabela naval_mission; NavalMissionSystem): o que uma esquadra vai fazer ao mar de uma costa.
 CREATE TABLE IF NOT EXISTS naval_mission (
@@ -958,14 +959,14 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
 -- últimas colunas dizem quanto vale na tarefa. Um submarino aperta um bloqueio como nenhum outro e não
 -- protege ninguém; um contratorpedeiro escolta e leva a pancada; um porta-aviões ganha a batalha e não
 -- se guarda sozinho. Mudar a marinha do jogo é mudar estas linhas.
-INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph) VALUES
- ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta'),
- ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco'),
- ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo'),
- ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda'),
- ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si.',4,'submarino'),
- ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas'),
- ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'O mar inteiro à volta dele: decide a batalha e a vigia, e não se defende sozinho.',6,'conves');
+INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck) VALUES
+ ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta',0),
+ ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco',0),
+ ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo',0),
+ ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda',0),
+ ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si.',4,'submarino',0),
+ ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas',0),
+ ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'Campo de aviação a flutuar: leva o céu com ele e põe asas nossas sobre mar onde não há terra nossa nenhuma. Não se defende sozinho.',6,'conves',4);
 
 -- Modelos de avião (tabela plane_class; Air). O céu era um número: uma asa era uma asa, fosse ela de caças
 -- ou de transportes, e por isso a aviação não tinha decisão nenhuma — só quantidade. Agora cada asa tem
@@ -974,16 +975,16 @@ INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,esc
 -- quanto rende em cada tarefa. Um caça varre o céu e não deita nada abaixo; um bombardeiro estratégico
 -- arrasa infraestrutura e não se defende de nada; um transporte não faz guerra nenhuma e é o único que
 -- larga pára-quedistas. Mudar a aviação do jogo é mudar estas linhas.
-INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km) VALUES
- ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone',900),
- ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre.',1,'asa',800),
- ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca',1300),
- ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha.',3,'espadas',1700),
- ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba',1500),
- ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada.',5,'obus',900),
- ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte.',6,'bombardeiro',2400),
- ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo',5200),
- ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga',2600);
+INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km,naval,deck) VALUES
+ ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone',900,0.2,1),
+ ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre. Pequeno que chegue para levantar de um convés.',1,'asa',800,0.15,1),
+ ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca',1300,0.35,1),
+ ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha — mas é grande de mais para um convés.',3,'espadas',1700,0.2,0),
+ ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba',1500,0.8,1),
+ ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada, e do convés é ele que vai ao navio.',5,'obus',900,1.6,1),
+ ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte. Sobre o mar leva o torpedo mais pesado que há.',6,'bombardeiro',2400,2.4,0),
+ ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo',5200,0.9,0),
+ ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga',2600,0,0);
 
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
@@ -1090,6 +1091,12 @@ INSERT INTO rule (key,value,note) VALUES
  -- asas —, mas quem quer massa de aviação sobre uma frente longe de casa tem de levantar campos.
  ('air_base_free',4,'asas que uma província nossa assenta sem campo de aviação (pista improvisada)'),
  ('air_range_default',2000,'alcance em km de uma asa sem modelo (saves antigos e mundos de teste)'),
+ -- O céu por cima do mar: o porta-aviões é campo de aviação a flutuar (ship_class.deck) e a asa embarcada
+ -- leva a guerra aérea a mar onde não há terra nossa. O ataque naval é a arma nova: aviões a afundar aço.
+ ('air_naval_strike',1,'navios ao fundo por dia e por ponto de valor naval das asas em ataque naval'),
+ ('air_naval_shield',1.2,'quanto a superioridade aérea de quem lá está no mar trava o ataque naval'),
+ ('air_carrier_range',600,'alcance em km de uma asa que levanta de um convés (o casco é que vai perto)'),
+ ('air_ai_naval_share',0.35,'fatia das asas livres que a IA manda ao aço deles quando há esquadra no mar ao alcance'),
  ('naval_ship_cost',90,'custo de um navio de guerra'),
  ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),

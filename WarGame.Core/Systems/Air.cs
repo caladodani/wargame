@@ -31,7 +31,7 @@ public static class Air
         return effect switch
         {
             "superiority" => d.Superiority, "support" => d.Support,
-            "bombing" => d.Bombing, "transport" => d.Transport, _ => 1f,
+            "bombing" => d.Bombing, "transport" => d.Transport, "naval" => d.Naval, _ => 1f,
         };
     }
 
