@@ -45,7 +45,7 @@ public class NationalAdvisorTests
     {
         var w = FactionTests.BuildReal();
         var esp = ByTag(w, "ESP");
-        esp.Money = 1000f;
+        esp.Money = esp.Political = 1000f;
         Assert.NotNull(new AppointAdvisorCommand(esp.Id, "PRT_adv_estaleiros").Validate(w));
         Assert.Null(new AppointAdvisorCommand(esp.Id, "ESP_adv_ferrol").Validate(w));
     }
@@ -64,7 +64,7 @@ public class NationalAdvisorTests
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
         var c = w.Countries[1];
-        c.Money = 1000f;
+        c.Money = c.Political = 1000f;
         new AppointAdvisorCommand(1, "adv_industrial").Execute(w);
         Assert.Equal(0f, World.CabinetTenure(w, c, "economia"), 3);
         Assert.Equal(1.10f, c.Stat("industry"), 3);
@@ -76,7 +76,7 @@ public class NationalAdvisorTests
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
         var c = w.Countries[1];
-        c.Money = 1e6f;
+        c.Money = c.Political = 1e6f;
         w.Register(new CabinetSystem());
         new AppointAdvisorCommand(1, "adv_industrial").Execute(w);
 
@@ -95,7 +95,7 @@ public class NationalAdvisorTests
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
         var c = w.Countries[1];
-        c.Money = 1e6f;
+        c.Money = c.Political = 1e6f;
         w.Register(new CabinetSystem());
         new AppointAdvisorCommand(1, "adv_industrial").Execute(w);
         TestWorld.Days(w, 365);

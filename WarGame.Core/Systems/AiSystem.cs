@@ -270,12 +270,12 @@ public sealed class AiSystem : ISystem
     }
 
     /// <summary>Em guerra, segura as outras fronteiras: propõe não-agressão a um vizinho neutro
-    /// por tick (sem guerra, facção ou pacto connosco) enquanto houver dinheiro acima de
+    /// por tick (sem guerra, facção ou pacto connosco) enquanto houver poder político acima de
     /// ai_nap_reserve. O alvo decide pela lógica do comando; o jogador nunca é alvo (sem UI de oferta).</summary>
     private static void Naps(World w, Country c, List<Region>? myRegions, Dictionary<int, List<Division>> divsByCountry)
     {
         if (c.AtWarWith.Count == 0 || myRegions is null) return;
-        if (c.Money < w.Rule("nap_cost", 20f) + w.Rule("ai_nap_reserve", 100f)) return;
+        if (c.Political < w.Rule("nap_cost", 20f) + w.Rule("ai_nap_reserve", 100f)) return;
         var seen = new HashSet<int>();
         foreach (var r in myRegions)
             foreach (var n in r.Neighbours)
@@ -373,7 +373,7 @@ public sealed class AiSystem : ISystem
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 
-    /// <summary>Em guerra e com dinheiro acima de ai_law_escalate_money, sobe um degrau de lei
+    /// <summary>Em guerra e com poder político acima de ai_law_escalate_money, sobe um degrau de lei
     /// (o próximo sort do grupo). Em paz não mexe — voltar atrás não compensa o custo.</summary>
     /// <summary>Preenche o estado-maior enquanto sobrar dinheiro acima de ai_general_reserve: em guerra
     /// procura primeiro ataque/defesa, em paz o mais barato. Um comandante por ronda.
@@ -398,7 +398,7 @@ public sealed class AiSystem : ISystem
 
     private static void Laws(World w, Country c)
     {
-        if (c.AtWarWith.Count == 0 || c.Money < w.Rule("ai_law_escalate_money", 120f)) return;
+        if (c.AtWarWith.Count == 0 || c.Political < w.Rule("ai_law_escalate_money", 120f)) return;
         foreach (var grp in w.LawGroups(c))
         {
             var cur = w.ActiveLaw(c, grp);

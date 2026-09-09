@@ -74,7 +74,7 @@ public class NationalLawTests
     {
         var w = FactionTests.BuildReal();
         var esp = ByTag(w, "ESP");
-        esp.Money = 9999f;
+        esp.Political = 9999f;
         Assert.Equal("essa lei é de outro país", new ChangeLawCommand(esp.Id, "PRT_law_acores").Validate(w));
         // e a sua, essa passa
         Assert.Null(new ChangeLawCommand(esp.Id, "ESP_law_centralizacao").Validate(w));
@@ -85,7 +85,7 @@ public class NationalLawTests
     {
         var w = FactionTests.BuildReal();
         var prt = ByTag(w, "PRT");
-        prt.Money = 9999f;
+        prt.Political = 9999f;
         float before = prt.Stat("defense", 1f);
 
         var cmd = new ChangeLawCommand(prt.Id, "PRT_law_acores");
@@ -93,7 +93,7 @@ public class NationalLawTests
         cmd.Execute(w);
 
         Assert.Equal("PRT_law_acores", w.ActiveLaw(prt, "PRT_mar")!.Id);
-        Assert.Equal(9999f - w.Rule("law_change_cost", 30f), prt.Money, 2);
+        Assert.Equal(9999f - w.Rule("law_change_cost", 30f), prt.Political, 2);
         Assert.True(prt.Stat("defense", 1f) > before, "a base atlântica tem de valer defesa");
     }
 
@@ -103,7 +103,7 @@ public class NationalLawTests
         var w = FactionTests.BuildReal();
         var rus = ByTag(w, "RUS");
         var ukr = ByTag(w, "UKR");
-        rus.Money = 9999f;
+        rus.Political = 9999f;
         rus.AtWarWith.Add(ukr.Id);
         ukr.AtWarWith.Add(rus.Id);
         w.Register(new AiSystem());

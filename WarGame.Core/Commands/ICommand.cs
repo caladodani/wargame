@@ -187,22 +187,32 @@ public sealed record DeclareWarCommand(int CountryId, int TargetCountryId) : ICo
 
 /// <summary>Começa a justificar um objectivo de guerra (HoI4): war_justify_days depois o
 /// DiplomacySystem declara a guerra sozinho. Um alvo de cada vez; trocar recomeça do zero.</summary>
+/// <summary>Abre uma justificação de guerra. Custa poder político (justify_cost) — o pretexto fabrica-se
+/// nas câmaras e não nas fábricas — e contra quem não faz fronteira connosco só passa com o mundo já
+/// inquieto (justify_far_tension): em pleno sossego ninguém manda um exército para o outro hemisfério.</summary>
 public sealed record JustifyWarCommand(int CountryId, int TargetCountryId) : ICommand
 {
     public string? Validate(World w)
     {
         if (CountryId == TargetCountryId) return "Não podes justificar contra ti próprio";
+        if (!w.Countries.TryGetValue(CountryId, out var me) || me.Capitulated) return "País inexistente";
         if (!w.Countries.TryGetValue(TargetCountryId, out var t)) return "País inexistente";
         if (t.Capitulated) return "Já capitulou";
         if (w.SameFaction(CountryId, TargetCountryId)) return "Aliados na mesma facção";
         if (w.HasPact(CountryId, TargetCountryId)) return "Pacto de não-agressão em vigor";
-        if (w.Countries[CountryId].AtWarWith.Contains(TargetCountryId)) return "Já em guerra";
-        if (w.Countries[CountryId].JustifyTarget == TargetCountryId) return "Já a justificar";
+        if (me.AtWarWith.Contains(TargetCountryId)) return "Já em guerra";
+        if (me.JustifyTarget == TargetCountryId) return "Já a justificar";
+        float cost = w.Rule("justify_cost", 25f);
+        if (me.Political < cost) return $"falta poder político ({cost:0})";
+        float far = w.Rule("justify_far_tension", 25f);
+        if (far > 0f && WorldTension.Of(w) < far && !w.SharesBorder(CountryId, TargetCountryId))
+            return $"longe demais para o mundo aceitar (tensão {WorldTension.Of(w):0} de {far:0})";
         return null;
     }
     public void Execute(World w)
     {
         var c = w.Countries[CountryId];
+        c.Political -= w.Rule("justify_cost", 25f);
         c.JustifyTarget = TargetCountryId; c.JustifyProgress = 0f;
         w.Events.Publish(new Events.WarJustifyStarted(CountryId, TargetCountryId));
     }
@@ -608,7 +618,8 @@ public sealed record BuildInfrastructureCommand(int CountryId, int RegionId) : I
     }
 }
 
-/// <summary>Mudar a lei activa do grupo dela (custa law_change_cost pontos de produção).</summary>
+/// <summary>Mudar a lei activa do grupo dela. Paga-se com poder político — uma lei não se compra com
+/// fábricas — e as leis que mexem fundo na vida da gente só passam com o mundo já inquieto (min_tension).</summary>
 public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
 {
     public string? Validate(World w)
@@ -617,7 +628,9 @@ public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
         if (!w.Laws.TryGetValue(LawId, out var law)) return "lei desconhecida";
         if (!World.LawIsFor(law, c)) return "essa lei é de outro país";
         if (w.ActiveLaw(c, law.Group)?.Id == LawId) return "já é a lei activa";
-        if (c.Money < w.Rule("law_change_cost", 30f)) return $"faltam pontos de produção ({w.Rule("law_change_cost", 30f):0})";
+        if (law.MinTension > 0f && WorldTension.Of(w) < law.MinTension)
+            return $"o país não aprova isto em tempo de paz (tensão {WorldTension.Of(w):0} de {law.MinTension:0})";
+        if (c.Political < w.Rule("law_change_cost", 30f)) return $"falta poder político ({w.Rule("law_change_cost", 30f):0})";
         return null;
     }
 
@@ -625,7 +638,7 @@ public sealed record ChangeLawCommand(int CountryId, string LawId) : ICommand
     {
         var c = w.Countries[CountryId];
         var law = w.Laws[LawId];
-        c.Money -= w.Rule("law_change_cost", 30f);
+        c.Political -= w.Rule("law_change_cost", 30f);
         c.Laws[law.Group] = LawId;
         w.ApplyTechs(c);
         w.Events.Publish(new LawChanged(CountryId, LawId));
@@ -977,14 +990,14 @@ public sealed record ProposeNonAggressionCommand(int CountryId, int TargetCountr
         if (w.AreAtWar(CountryId, TargetCountryId)) return "estão em guerra — propõe paz";
         if (w.SameFaction(CountryId, TargetCountryId)) return "aliados de facção não precisam de pacto";
         if (w.HasPact(CountryId, TargetCountryId)) return "já há pacto em vigor";
-        if (c.Money < w.Rule("nap_cost", 20f)) return $"faltam pontos de produção ({w.Rule("nap_cost", 20f):0})";
+        if (c.Political < w.Rule("nap_cost", 20f)) return $"falta poder político ({w.Rule("nap_cost", 20f):0})";
         return null;
     }
 
     public void Execute(World w)
     {
         var c = w.Countries[CountryId]; var t = w.Countries[TargetCountryId];
-        c.Money -= w.Rule("nap_cost", 20f);
+        c.Political -= w.Rule("nap_cost", 20f);
         int myDivs = w.Divisions.Values.Count(d => d.CountryId == CountryId);
         int theirDivs = w.Divisions.Values.Count(d => d.CountryId == TargetCountryId);
         bool commonEnemy = t.AtWarWith.Any(c.AtWarWith.Contains);
@@ -1388,14 +1401,14 @@ public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) :
         if (w.ActiveDecisions.Any(a => a.CountryId == CountryId && a.DecisionId == DecisionId)) return "já está activa";
         if (c.DecisionCooldownUntil.TryGetValue(DecisionId, out var until) && until > w.Clock.Day)
             return $"em espera até ao dia {until}";
-        if (c.Money < def.Cost) return "pontos de produção insuficientes";
+        if (c.Political < def.Cost) return "poder político insuficiente";
         return null;
     }
 
     public void Execute(World w)
     {
         var c = w.Countries[CountryId]; var def = w.DecisionDefs[DecisionId];
-        c.Money -= def.Cost;
+        c.Political -= def.Cost;
         w.ActiveDecisions.Add(new ActiveDecision { CountryId = CountryId, DecisionId = DecisionId, UntilDay = w.Clock.Day + def.Days });
         c.DecisionCooldownUntil[DecisionId] = w.Clock.Day + def.Days + def.Cooldown;
         DecisionSystem.Recompute(w);
@@ -1594,7 +1607,7 @@ public sealed record AppointAdvisorCommand(int CountryId, string AdvisorId) : IC
         if (!w.AdvisorDefs.TryGetValue(AdvisorId, out var def)) return "conselheiro desconhecido";
         if (def.CountryTag is string tag && tag != c.Tag) return "não serve este país";
         if (c.Cabinet.GetValueOrDefault(def.Slot) == AdvisorId) return "já está no gabinete";
-        if (c.Money < def.Cost) return $"faltam {def.Cost - c.Money:0} pontos de produção";
+        if (c.Political < def.Cost) return $"faltam {def.Cost - c.Political:0} de poder político";
         return null;
     }
 
@@ -1602,7 +1615,7 @@ public sealed record AppointAdvisorCommand(int CountryId, string AdvisorId) : IC
     {
         var c = w.Countries[CountryId];
         var def = w.AdvisorDefs[AdvisorId];
-        c.Money -= def.Cost;
+        c.Political -= def.Cost;
         c.Cabinet[def.Slot] = AdvisorId;
         c.CabinetSince[def.Slot] = w.Clock.Day;
         World.ApplyCabinet(w, c);

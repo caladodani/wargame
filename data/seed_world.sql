@@ -250,10 +250,10 @@ INSERT INTO rule (key,value,note) VALUES
  ('infra_min',0.3,'chão da infraestrutura'),
  ('ai_build_reserve',150,'a IA só inicia obras com dinheiro acima disto');
 
--- Leis nacionais (law + law_effect; uma activa por grupo, mudança custa law_change_cost).
+-- Leis nacionais (law + law_effect; uma activa por grupo, mudança custa law_change_cost em poder político).
 INSERT INTO rule (key,value,note) VALUES
- ('law_change_cost',30,'pontos de produção por mudança de lei'),
- ('ai_law_escalate_money',120,'a IA em guerra sobe de lei com dinheiro acima disto');
+ ('law_change_cost',30,'poder político por mudança de lei'),
+ ('ai_law_escalate_money',60,'a IA em guerra sobe de lei com poder político acima disto');
 -- Cabeçalho de cada escada (law_group): o nome e a chapa do cartão vêm daqui e não do código do painel.
 INSERT INTO law_group (id,name,icon,sort) VALUES
  ('conscription','Conscrição','🎖',0),
@@ -262,14 +262,16 @@ INSERT INTO law_group (id,name,icon,sort) VALUES
  ('security','Segurança','🕵',3),
  ('occupation','Ocupação','🏴',4),
  ('doctrine','Doutrina','⚔',5);
-INSERT INTO law (id,grp,name,description,sort,is_default) VALUES
- ('consc_volunteer','conscription','Exército voluntário','Só voluntários: sem penalizações.',0,1),
- ('consc_limited','conscription','Conscrição limitada','Serviço militar parcial.',1,0),
- ('consc_extensive','conscription','Conscrição alargada','Grande parte da população em idade militar é chamada.',2,0),
- ('consc_service','conscription','Serviço obrigatório total','Mobilização em massa: a economia ressente-se.',3,0),
- ('econ_civilian','economy','Economia civil','Produção civil normal.',0,1),
- ('econ_partial','economy','Mobilização parcial','Parte da indústria vira produção militar.',1,0),
- ('econ_war','economy','Economia de guerra','Tudo para o esforço de guerra.',2,0);
+-- min_tension: mobilizar um país inteiro em pleno sossego não passa em câmara nenhuma. Quanto mais fundo
+-- o degrau mexe na vida da gente, mais o mundo tem de estar a arder para ele ser aprovado (HoI4).
+INSERT INTO law (id,grp,name,description,sort,is_default,min_tension) VALUES
+ ('consc_volunteer','conscription','Exército voluntário','Só voluntários: sem penalizações.',0,1,0),
+ ('consc_limited','conscription','Conscrição limitada','Serviço militar parcial.',1,0,0),
+ ('consc_extensive','conscription','Conscrição alargada','Grande parte da população em idade militar é chamada.',2,0,25),
+ ('consc_service','conscription','Serviço obrigatório total','Mobilização em massa: a economia ressente-se.',3,0,50),
+ ('econ_civilian','economy','Economia civil','Produção civil normal.',0,1,0),
+ ('econ_partial','economy','Mobilização parcial','Parte da indústria vira produção militar.',1,0,15),
+ ('econ_war','economy','Economia de guerra','Tudo para o esforço de guerra.',2,0,40);
 INSERT INTO law_effect (law_id,stat_key,value) VALUES
  ('consc_limited','conscription',1.25),('consc_limited','industry',0.98),
  ('consc_extensive','conscription',1.6),('consc_extensive','industry',0.95),('consc_extensive','org_regain',0.97),
@@ -544,7 +546,7 @@ INSERT INTO rule (key,value,note) VALUES
 
 -- Reserva de dinheiro abaixo da qual a IA não propõe pactos de não-agressão.
 INSERT INTO rule (key,value,note) VALUES
- ('ai_nap_reserve',100,'em guerra, a IA propõe NAP a vizinhos neutros se tiver dinheiro acima disto');
+ ('ai_nap_reserve',30,'em guerra, a IA propõe NAP a vizinhos neutros se tiver poder político acima disto');
 
 -- Gráficos de evolução (HistorySystem)
 INSERT INTO rule VALUES ('history_sample_days', 7, 'dias entre amostras dos gráficos');
@@ -1434,3 +1436,27 @@ INSERT INTO rule (key,value,note) VALUES
  ('design_role_wall',1.35,'defesa a dividir por rotura a partir da qual a divisão se lê como de linha'),
  ('design_pierce_floor',5,'perfuração abaixo da qual a prancheta avisa que não fura blindagem nenhuma'),
  ('design_speed_floor',3,'mobilidade abaixo da qual a prancheta avisa que a divisão é lenta');
+
+
+-- ===== Poder político e tensão mundial (PoliticsSystem + WorldTension) =====
+-- A segunda moeda do país. Até 0.3.60 uma lei, um conselheiro, um pacto e uma decisão saíam do mesmo bolso
+-- que as divisões: um país rico comprava o gabinete inteiro no primeiro mês. O poder político é escasso de
+-- propósito, ganha-se por dia e nunca se converte em aço — é o que torna a política uma escolha.
+INSERT INTO rule (key,value,note) VALUES
+ ('political_base',2,'poder político de base por dia'),
+ ('political_max',1500,'tecto do poder político acumulado'),
+ ('political_stability_weight',1,'peso do desvio da estabilidade (50 = neutro) no ganho diário'),
+ ('political_war_bonus',0.5,'fracção da base a mais enquanto o país está em guerra'),
+ ('justify_cost',25,'poder político para abrir uma justificação de guerra'),
+ ('justify_far_tension',25,'tensão mundial para justificar contra quem não faz fronteira connosco');
+-- Tensão mundial: o termómetro do mundo, 0..100. Sobe com o que assusta os povos e é a porta das coisas
+-- que em tempo de paz não se fazem — mandar voluntários, mobilizar de vez, atacar do outro lado do mapa.
+INSERT INTO rule (key,value,note) VALUES
+ ('tension_per_war',6,'pontos de tensão por guerra a decorrer'),
+ ('tension_power_weight',2,'quanto o tamanho dos beligerantes multiplica a parcela da guerra'),
+ ('tension_per_capitulation',8,'pontos por país que capitulou'),
+ ('tension_per_justify',2,'pontos por justificação de guerra a decorrer'),
+ ('tension_calm',15,'abaixo disto o mundo lê-se em paz'),
+ ('tension_uneasy',40,'abaixo disto o mundo lê-se inquieto'),
+ ('tension_grave',70,'abaixo disto o mundo lê-se à beira; acima, em chamas'),
+ ('volunteer_min_tension',15,'tensão mundial para se poderem mandar voluntários');

@@ -218,6 +218,24 @@ public sealed class World
     /// <summary>Pactos de não-agressão: (a,b) com a&lt;b → último dia em vigor. Bloqueia DeclareWar.</summary>
     public Dictionary<(int A, int B), int> Pacts { get; } = new();
     public bool HasPact(int a, int b) => Pacts.TryGetValue(WarKey(a, b), out var until) && until >= Clock.Day;
+
+    /// <summary>Tocam-se? Terra com terra, ou mar curto — senão uma ilha não fazia fronteira com ninguém e
+    /// ficava para sempre sem vizinhos. É a pergunta que separa a guerra ao lado da guerra do outro lado do
+    /// mundo: a primeira faz-se com um pretexto, a segunda precisa que o mundo já esteja em brasa.</summary>
+    public bool SharesBorder(int a, int b)
+    {
+        if (a == b) return false;
+        float reach = Rule("vision_sea_km", 250f);
+        foreach (var r in Regions.Values)
+        {
+            if (r.ControllerId != a) continue;
+            foreach (int n in r.Neighbours)
+                if (Regions.TryGetValue(n, out var o) && o.ControllerId == b) return true;
+            foreach (var (n, km) in r.SeaNeighbours)
+                if (km <= reach && Regions.TryGetValue(n, out var o) && o.ControllerId == b) return true;
+        }
+        return false;
+    }
     /// <summary>Adidos militares destacados: quem manda → missão. Um por país (AttacheSystem).</summary>
     public Dictionary<int, Attache> Attaches { get; } = new();
 
@@ -262,6 +280,11 @@ public sealed class World
         if (countryId == hostId) return "para a nossa guerra não se mandam voluntários";
         if (AreAtWar(countryId, hostId)) return $"estamos em guerra com {h.Name}";
         if (!AtWar(hostId)) return $"{h.Name} não está em guerra";
+        // o mundo tem de estar já bastante mexido para uma opinião pública aceitar tropa nossa numa guerra
+        // que não é nossa — é a porta que a tensão mundial abre (HoI4)
+        float need = Rule("volunteer_min_tension", 15f);
+        if (need > 0f && WarGame.Core.Systems.WorldTension.Of(this) < need)
+            return $"o mundo ainda está calmo demais (tensão {WarGame.Core.Systems.WorldTension.Of(this):0} de {need:0})";
         int cap = WarGame.Core.Systems.VolunteerSystem.Cap(this, countryId);
         if (cap == 0) return $"o exército não chega para emprestar (mínimo {Rule("volunteer_min_army", 5f):0} divisões)";
         int away = WarGame.Core.Systems.VolunteerSystem.Away(this, countryId);

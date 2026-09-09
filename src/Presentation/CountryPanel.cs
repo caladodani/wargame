@@ -330,7 +330,7 @@ public partial class CountryPanel : PanelContainer
                     {
                         var row = new HBoxContainer(); _body.AddChild(row);
                         row.AddChild(Ui.Grow(Ui.Lbl($"{def.Name} — {eff} por {def.Days} dias", 16)));
-                        row.AddChild(Ui.Btn($"Activar ({def.Cost:0})", () => Faction(new ActivateDecisionCommand(c.Id, def.Id)), 160));
+                        row.AddChild(Ui.Btn($"Activar ({def.Cost:0} pp)", () => Faction(new ActivateDecisionCommand(c.Id, def.Id)), 160));
                     }
                 }
             }

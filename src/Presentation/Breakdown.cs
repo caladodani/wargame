@@ -68,6 +68,53 @@ public static class Breakdown
         return t;
     }
 
+    /// <summary>O poder político: quanto se tem, o que entra por dia e de onde vem cada parcela — e o que
+    /// isto dá para comprar hoje. Um número político sem preços ao lado não diz nada a ninguém: o que o
+    /// jogador quer saber ao pousar o dedo é se já chega para a lei que anda a namorar.</summary>
+    public static string Political(World w, Country p)
+    {
+        string t = $"Poder político: {p.Political:0.0} de um tecto de {w.Rule("political_max", 1500f):0}.";
+        t += "\nÉ a moeda da política — leis, gabinete, decisões, pactos e pretextos de guerra. Nunca se troca por aço.";
+        t += "\nDe onde vem o dia de hoje:";
+        foreach (var part in PoliticsSystem.Parts(w, p.Id))
+            t += $"\n· {part.Label}: {Sign(part.Points)}/dia";
+        t += $"\n· soma: {Sign(PoliticsSystem.Gain(w, p.Id))}/dia";
+        t += $"\nPreços: mudar de lei {w.Rule("law_change_cost", 30f):0}"
+           + $", justificar guerra {w.Rule("justify_cost", 25f):0}"
+           + $", pacto de não-agressão {w.Rule("nap_cost", 20f):0}.";
+        if (p.Political >= w.Rule("political_max", 1500f) - 1f) t += "\nEstá no tecto: o que entra hoje perde-se.";
+        return t;
+    }
+
+    /// <summary>A tensão mundial: o termómetro do mundo e quem o está a aquecer, parcela a parcela, mais as
+    /// portas que ela abre. É o número que explica por que é que uma coisa que ontem era impensável hoje
+    /// passa em câmara — e sem as parcelas seria o oráculo mais opaco da barra.</summary>
+    public static string Tension(World w)
+    {
+        float t = WorldTension.Of(w);
+        var parts = WorldTension.Parts(w);
+        string s = $"Tensão mundial: {t:0} de 100 — {WorldTension.Mood(w)}.";
+        if (parts.Count == 0) s += "\nO mundo está quieto: ninguém em guerra, ninguém a cair, ninguém a arranjar pretexto.";
+        else
+        {
+            s += "\nQuem a está a puxar:";
+            foreach (var part in parts.Take(6)) s += $"\n· {part.Label}: +{part.Points:0.0}";
+            if (parts.Count > 6) s += $"\n· e mais {parts.Count - 6} razões";
+        }
+        s += "\nO que ela abre:";
+        s += Door(w, "voluntários para guerras alheias", "volunteer_min_tension", 15f, t);
+        s += Door(w, "justificar guerra a quem está longe", "justify_far_tension", 25f, t);
+        foreach (var law in w.Laws.Values.Where(l => l.MinTension > 0f).OrderBy(l => l.MinTension).ThenBy(l => l.Id).Take(4))
+            s += $"\n· {law.Name}: {(t >= law.MinTension ? "aberto" : $"fechado (falta chegar a {law.MinTension:0})")}";
+        return s;
+    }
+
+    private static string Door(World w, string what, string key, float fallback, float now)
+    {
+        float need = w.Rule(key, fallback);
+        return $"\n· {what}: {(now >= need ? "aberto" : $"fechado (falta chegar a {need:0})")}";
+    }
+
     /// <summary>Os homens: o que entra por dia, de que população vem e onde está o tecto. Um bolso cheio
     /// deita fora o que entra, e isso é o que ninguém percebia a olhar para o número parado.</summary>
     public static string Men(World w, Country p, in Parts s)

@@ -23,6 +23,9 @@ public partial class Hud : CanvasLayer
     private Label _fuel = null!, _fuelNote = null!;
     private Label _xp = null!, _xpNote = null!, _airXp = null!, _airXpNote = null!, _seaXp = null!, _seaXpNote = null!;
     private Label _pocket = null!, _pocketNote = null!;
+    // Poder político e tensão mundial: a moeda da política e o termómetro do mundo (PoliticsSystem/WorldTension).
+    private Label _pp = null!, _ppNote = null!, _tension = null!, _tensionNote = null!;
+    private PanelContainer _ppPlate = null!, _tensionPlate = null!;
     private PanelContainer _fuelPlate = null!;
     private PanelContainer _yardPlate = null!, _xpPlate = null!, _airXpPlate = null!, _seaXpPlate = null!, _pocketPlate = null!;
     // Os mostradores que sempre estiveram à vista também se guardam agora: cada um leva um tooltip com as
@@ -280,6 +283,17 @@ public partial class Hud : CanvasLayer
         // de nada) e por isso passam pelo Glyph.Asked como extras, para o contador do smoke as ver.
         plates.AddChild(_moneyPlate = Ui.Counter(Glyph.Make("cofre", 19, Ui.Accent), out _money, out _moneyNote));
         plates.AddChild(_menPlate = Ui.Counter(Glyph.Make("gente", 19, Ui.Text), out _men, out _menNote));
+        // Poder político ao lado do cofre: são as duas moedas do país e lêem-se juntas. Uma paga aço, a
+        // outra paga leis, gabinete, pactos e pretextos — e nunca se trocam uma pela outra, que é
+        // precisamente o que faz da política uma escolha e não uma compra.
+        _ppPlate = Ui.Click(Ui.Counter(Glyph.Make("coluna", 19, Ui.Accent), out _pp, out _ppNote),
+                            OpenCountry, "poder político: leis, gabinete e decisões");
+        plates.AddChild(_ppPlate);
+        // Tensão mundial: o termómetro do mundo. Não é nosso — é de toda a gente — mas é ele que abre e
+        // fecha as portas do que se pode fazer hoje, e por isso vive na barra como o resto.
+        _tensionPlate = Ui.Click(Ui.Counter(Glyph.Make("globo", 19, Ui.Text), out _tension, out _tensionNote),
+                                 OpenWorld, "tensão mundial");
+        plates.AddChild(_tensionPlate);
         plates.AddChild(_divsPlate = Ui.Counter(Glyph.Make("espadas", 19, Ui.Danger.Lightened(0.25f)), out _divs, out _divsNote));
         // Indústria: quantas fábricas estão ao serviço e quantas há. Sem isto o jogador só descobria o
         // tecto da economia quando uma obra ou uma encomenda era recusada.
@@ -1058,6 +1072,7 @@ public partial class Hud : CanvasLayer
             _men.Text = FmtMen(p.Manpower);
             _menNote.Text = "recrutas";
             _moneyPlate.TooltipText = Breakdown.Money(p, parts);
+            Politics(w, p);
             _menPlate.TooltipText = Breakdown.Men(w, p, parts);
             _divs.Text = w.Divisions.Values.Count(d => d.CountryId == pid).ToString();
             _divsNote.Text = p.Queue.Count > 0 ? $"fila {p.Queue.Count}" : "divisões";
@@ -1101,7 +1116,7 @@ public partial class Hud : CanvasLayer
             bool atWar = p.AtWarWith.Count > 0;
             _accent.Color = atWar ? Ui.Danger : _map.Regions.CountryColor(pid);
         }
-        else { _fuelPlate.Visible = false; _pocketPlate.Visible = false; _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
+        else { _ppPlate.Visible = false; _tensionPlate.Visible = false; _fuelPlate.Visible = false; _pocketPlate.Visible = false; _airXpPlate.Visible = false; _seaXpPlate.Visible = false; _country.Text = ""; _money.Text = "—"; _moneyNote.Text = ""; _men.Text = "—"; _menNote.Text = ""; _divs.Text = "—"; _divsNote.Text = ""; _civ.Text = "—"; _civNote.Text = ""; _mil.Text = "—"; _milNote.Text = ""; _yardPlate.Visible = false; _xpPlate.Visible = false; _hint.Visible = true; _playerFlag.Visible = false; _playerFlag.Texture = null; _accent.Color = Ui.SurfaceHi; }
     }
 
     /// <summary>--smoke: o combustível medido onde ele se vê e onde ele dói. O depósito e o saldo do dia
@@ -1154,6 +1169,48 @@ public partial class Hud : CanvasLayer
              + $" ({able} em condições de mandar hoje), {bite}";
     }
 
+    /// <summary>--smoke: as duas moedas e o termómetro. Diz o poder político que temos e o que ele rende
+    /// por dia com as parcelas todas, diz a tensão do mundo e quem a está a puxar, e depois prova a coisa
+    /// que interessa: que a tensão TRANCA de verdade. Escolhe uma lei com min_tension, tenta aprová-la com
+    /// o cofre político cheio, e diz se passou ou o que a barrou — se um dia a porta deixar de existir, esta
+    /// linha diz "aberta" com o mundo em paz e o smoke denuncia-o.</summary>
+    private string SmokePolitics(int pid)
+    {
+        var w = _game.World;
+        var c = w.Countries[pid];
+        float t = WorldTension.Of(w);
+        var parts = WorldTension.Parts(w);
+        var mine = PoliticsSystem.Parts(w, pid);
+
+        // o cofre político do dia 73 não paga nada: o smoke adianta-o, como faz com o cofre de produção
+        float before = c.Political;
+        c.Political = MathF.Max(c.Political, w.Rule("law_change_cost", 30f) + w.Rule("justify_cost", 25f));
+
+        var locked = w.Laws.Values.Where(l => l.MinTension > 0f && World.LawIsFor(l, c))
+                          .OrderBy(l => l.MinTension).ThenBy(l => l.Id).FirstOrDefault();
+        string gate = locked is null ? "nenhuma lei pede tensão"
+            : new ChangeLawCommand(pid, locked.Id).Validate(w) is string why
+                ? $"\"{locked.Name}\" barrada: {why}"
+                : $"\"{locked.Name}\" já passa (tensão {locked.MinTension:0} alcançada)";
+
+        // e a porta do longe: justificar guerra a quem não faz fronteira connosco
+        var far = w.Countries.Values.FirstOrDefault(o => o.Id != pid && !o.Capitulated
+                                                     && !w.AreAtWar(pid, o.Id) && !w.SharesBorder(pid, o.Id));
+        string reach = far is null ? "sem alvo distante"
+            : new JustifyWarCommand(pid, far.Id).Validate(w) is string no
+                ? $"guerra a {far.Tag} barrada: {no}"
+                : $"guerra a {far.Tag} ao nosso alcance";
+        c.Political = before;
+
+        int laws = w.Laws.Values.Count(l => l.MinTension > 0f);
+        return $"{c.Political:0} de poder político (+{PoliticsSystem.Gain(w, pid):0.0}/dia em {mine.Count} parcela{(mine.Count == 1 ? "" : "s")}"
+             + $": {string.Join(", ", mine.Select(x => $"{x.Label} {(x.Points < 0 ? "" : "+")}{x.Points:0.0}"))})"
+             + $", tensão mundial {t:0}/100 — {WorldTension.Mood(w)} ({parts.Count} parcela{(parts.Count == 1 ? "" : "s")}"
+             + (parts.Count > 0 ? $", a maior: {parts[0].Label} +{parts[0].Points:0.0}" : "") + ")"
+             + $", {laws} lei{(laws == 1 ? "" : "s")} presa{(laws == 1 ? "" : "s")} à tensão, {gate}, {reach}"
+             + $", volta ao cofre: lei {w.Rule("law_change_cost", 30f):0} pp, pacto {w.Rule("nap_cost", 20f):0} pp, pretexto {w.Rule("justify_cost", 25f):0} pp";
+    }
+
     /// <summary>--smoke: os governos no exílio. Conta o mundo e não só a nossa casa, porque um exílio é
     /// coisa que quase sempre acontece a outros: quantos governos andam fora, com que legitimidade média e
     /// quantos deles já podiam voltar hoje. Num mundo em paz isto dá tudo zero — e é por isso que se mede
@@ -1179,6 +1236,27 @@ public partial class Hud : CanvasLayer
         return $"{exiled.Count} governo{(exiled.Count == 1 ? "" : "s")} fora de casa"
              + $" (legitimidade média {legit:P0}, {back} em condições de voltar hoje), {dead} capitulado{(dead == 1 ? "" : "s")} sem governo,"
              + $" {asylum} de {standing.Count} países com asilo se caírem hoje; acolhemos {hosted}, devolveríamos {owed} regiões";
+    }
+
+    /// <summary>As duas chapas da política: o que temos de poder político (e o que ele rende por dia) e a
+    /// que temperatura está o mundo. A tensão pinta-se: em paz é texto normal, à beira é âmbar, em chamas
+    /// é vermelho — o jogador tem de ver o mundo aquecer sem ir ler número nenhum.</summary>
+    private void Politics(World w, Country p)
+    {
+        _ppPlate.Visible = _tensionPlate.Visible = true;
+        float gain = PoliticsSystem.Gain(w, p.Id);
+        _pp.Text = $"{p.Political:0}";
+        _pp.AddThemeColorOverride("font_color", gain <= 0f ? Ui.Danger : Ui.Text);
+        _ppNote.Text = $"{(gain < 0 ? "" : "+")}{gain:0.0}/dia";
+        _ppPlate.TooltipText = Breakdown.Political(w, p);
+
+        float t = WorldTension.Of(w);
+        _tension.Text = $"{t:0}";
+        _tension.AddThemeColorOverride("font_color",
+            t >= w.Rule("tension_grave", 70f) ? Ui.Danger
+            : t >= w.Rule("tension_uneasy", 40f) ? Ui.Accent : Ui.Text);
+        _tensionNote.Text = WorldTension.Mood(w);
+        _tensionPlate.TooltipText = Breakdown.Tension(w);
     }
 
     /// <summary>O barril da barra: quanto combustível está no depósito, o saldo do dia e — quando o dia não
@@ -2426,6 +2504,7 @@ public partial class Hud : CanvasLayer
         string fuel = SmokeFuel(pid);                                     // combustível: depósito, mostrador e o que a seca custa
         string volunteers = SmokeVolunteers(pid);                         // voluntários: quantos lá fora, no mundo, e o que custa ir
         string exile = SmokeExile(pid);                                      // governos no exílio: os do mundo, não só o nosso
+        string politica = SmokePolitics(pid);                             // poder político e tensão mundial: as duas moedas e o termómetro
         string jump = SmokeParadrop(pid);                                 // salto de pára-quedas: quem salta, para onde e a que custo
         string reach = SmokeSupplyReach(pid);                             // alcance da rede: até onde a linha aguenta sem afinar
         string stripes = _map.Regions.SmokeStripes(pid);                  // riscas de ocupação: a cor do dono por cima da do ocupante
@@ -2442,7 +2521,7 @@ public partial class Hud : CanvasLayer
         string vitoria = SmokeVictory(pid);                               // pontos de vitória: o que cada praça vale e quanto do inimigo já é nosso
         string veterania = SmokeVeterancy(pid);                           // veterania: os degraus, quem está em cada um e os galões do mapa
         string rendicao = SmokeCapitulation(pid);                         // rendição: quanto falta a cada lado para cair, e por onde
-        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
+        GD.Print($"smoke: painéis abertos na capital {cap.Name}, {world} linhas no painel Mundo em {worldTabs} abas, {served} na folha de serviço ({combatSheet}), medalheiro {caseWho} com {ribbons} fitas em {plates} chapas ({decorated} divis{(decorated == 1 ? "ão" : "ões")} condecorada{(decorated == 1 ? "" : "s")}), estação {w.Season?.Name ?? "nenhuma"}, {cron} na crónica ({cronPlates.Drawn} chapas desenhadas das quais {cronPlates.FellBack} na roda), {hurt} na enfermaria em {hurtArms} arma{(hurtArms == 1 ? "" : "s")} (gravidades por arma: {wounds}), estado-maior de {c.Generals.Count} em {staffArms} por arma (de casa: {ourGeneral}; postos {staffRanks}; quadro de {rungs} degraus, {ownArms} escada{(ownArms == 1 ? "" : "s")} de casa), {PrisonerView.Short(pris)} prisioneiros, cais para {c.PortCapacity:0} divisões, {sab} alvo{(sab == 1 ? "" : "s")} de sabotagem, retaguarda da capital {CounterIntelSystem.Chance(w, pid, cap):P0}/dia, troca de {PrisonerView.Short(swap)} prisioneiros, {posted} proposta{(posted == 1 ? "" : "s")} do inimigo, cedência de {ceded}, potência ao dia {chartDay}, {fogged} regiões no nevoeiro ({fogWhy}), {alarms} alarme{(alarms == 1 ? "" : "s")} na faixa, investigação em {busy}/{labs} ranhuras ({techCards} fichas em {techBranches} ramos, {techHome} de casa, {techPlates.Drawn} chapas desenhadas das quais {techPlates.FellBack} na roda), folha de comparação com {cmp} linhas, fábricas {ind.CivilBusy}/{ind.Civil} civis e {ind.MilitaryBusy}/{ind.Military} militares, {modes} modos de mapa (agora {_map.Regions.Mode}, {modePlates.Drawn} chapas desenhadas das quais {modePlates.FellBack} na roda; {classes}), ecrã de batalha: {fight}, {tree} focos na árvore, {plans} seta{(plans == 1 ? "" : "s")} de plano no mapa, rota da tropa escolhida: {route}, escolas de guerra: {schools}, medalhas na barra: {medals}, adido {attache} ({hosts} anfitri{(hosts == 1 ? "ão" : "ões")} possíve{(hosts == 1 ? "l" : "is")}), fita de velocidade em {speed} (andamentos {string.Join("/", Game.SpeedPace.Skip(1))}), interface {screen}, actualização: {update}, {counters} contadores no mapa (trincheira média {dug:0.0}), fundo do mapa: {_map.Regions.BackdropReport()}, riscas: {stripes}, rios: {rios}, chão: {chao}, cidades: {cidades}, chapas: {chapas}, acontecimentos: {eventos}, tropas especiais: {special}, redespacho: {rail}, tempo: {tempo}, tácticas: {tacticas}, vassalagem: {vassalos}, vitória: {vitoria}, veterania: {veterania}, rendição: {rendicao}, tratado de {trade}, {_frames} painéis com moldura de metal ({PanelGrain.Report(this)}), guerra aérea: {air} ({w.AirMissions.Count} miss{(w.AirMissions.Count == 1 ? "ão" : "ões")} no mundo, ficha de {wingName}), guerra naval: {sea} ({w.NavalMissions.Count} esquadra{(w.NavalMissions.Count == 1 ? "" : "s")} no mundo, ficha de {fleetName}; fundo de {homePool} nomes), {names} nomes de país curvados no mapa ({glyphs} letras), comboios: {convoy} ({ConvoySystem.Available(w, pid):0} mercantes, {ConvoySystem.SupplyNeed(w, pid) + ConvoySystem.TradeNeed(w, pid):0} ocupados, {ConvoySystem.GroundedCount(w, pid)} parados), {metalTabs} abas de metal no painel da Guerra, ocupação: {occ}, {lanes.Lanes} rota{(lanes.Lanes == 1 ? "" : "s")} de comboio no mapa ({lanes.Cut} cortada{(lanes.Cut == 1 ? "" : "s")}), painel do País em {landTabs} abas, {spoils}, {gov}, {laws}, {queue}, {plan}, armazém: {armazem}, carris: {carris}, klaxon: {klaxon}, som: {sound}, {theatres.Count} teatro{(theatres.Count == 1 ? "" : "s")} de operações ({line.Edges} contactos na linha da frente cosidos em {line.Strands} fio{(line.Strands == 1 ? "" : "s")}, {line.Holes} troço{(line.Holes == 1 ? "" : "s")} sem tropa, guarnição {(theatres.Count == 0 ? 0f : theatres.Average(t => t.Coverage)):P0}), barra de topo: {bar}, {groundSheet}, {yieldSheet}, {stateSheet}, {nationSheet}, {warSheet}, política: {politica}, cerco: {pocket}, alcance: {reach}, combustível: {fuel}, voluntários: {volunteers}, exílio: {exile}, salto: {jump}, material: {lend}, rodapé: {footer}, construir: {build}, {obra}, {picker}, {sheet}, {MetalButton.Report(this)}, {Skin.Report(this, Ui.Theme())}, {_tips.Smoke()}");
         // uma região minha com divisões, para o toque longo ter o que marcar
         var withDivs = w.Regions.Values.FirstOrDefault(r => r.ControllerId == pid
             && r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid));

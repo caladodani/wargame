@@ -16,7 +16,7 @@ public class DecisionTests
         TestWorld.LinearMap(w);
         w.DecisionDefs["mob"] = new DecisionDef("mob", "Mobilização", 30f, 3, 5, "industry", 1.15f);
         w.Register(new DecisionSystem());
-        w.Countries[1].Money = 100f;
+        w.Countries[1].Political = 100f;
         return w;
     }
 
@@ -27,7 +27,7 @@ public class DecisionTests
         float before = w.Countries[1].Stat("industry");
         var cmd = new ActivateDecisionCommand(1, "mob");
         Assert.Null(cmd.Validate(w)); cmd.Execute(w);
-        Assert.Equal(70f, w.Countries[1].Money, 0.01f);
+        Assert.Equal(70f, w.Countries[1].Political, 0.01f);
         Assert.Equal(before * 1.15f, w.Countries[1].Stat("industry"), 0.01f);
         Assert.NotNull(new ActivateDecisionCommand(1, "mob").Validate(w));   // já activa
     }
@@ -55,7 +55,7 @@ public class DecisionTests
     {
         var w = Setup();
         Assert.NotNull(new ActivateDecisionCommand(1, "nada").Validate(w));
-        w.Countries[1].Money = 5f;
+        w.Countries[1].Political = 5f;
         Assert.NotNull(new ActivateDecisionCommand(1, "mob").Validate(w));
     }
 }

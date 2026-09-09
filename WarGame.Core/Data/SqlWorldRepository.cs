@@ -68,10 +68,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             if (!w.NewsOptionEffects.TryGetValue(oid, out var olist)) w.NewsOptionEffects[oid] = olist = new();
             olist.Add(((string)r["stat_key"]!, Convert.ToSingle(r["value"])));
         }
-        foreach (var r in _static.Query("SELECT id,grp,name,description,sort,is_default,country_tag FROM law ORDER BY grp,sort"))
+        foreach (var r in _static.Query("SELECT id,grp,name,description,sort,is_default,min_tension,country_tag FROM law ORDER BY grp,sort"))
             w.Laws[(string)r["id"]!] = new Law((string)r["id"]!, (string)r["grp"]!, (string)r["name"]!,
                 r["description"] as string ?? "", Convert.ToInt32(r["sort"]), Convert.ToInt32(r["is_default"]) == 1,
-                r["country_tag"] as string);
+                r["country_tag"] as string, r["min_tension"] is null ? 0f : Convert.ToSingle(r["min_tension"]));
         foreach (var r in _static.Query("SELECT id,name,icon,sort,country_tag FROM law_group ORDER BY sort,id"))
             w.LawGroupDefs[(string)r["id"]!] = new LawGroupDef((string)r["id"]!, (string)r["name"]!,
                 r["icon"] as string ?? "", Convert.ToInt32(r["sort"]), r["country_tag"] as string);
@@ -395,6 +395,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_region", "rail_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_region", "project_owner", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "war_exhaustion", "REAL NOT NULL DEFAULT 0"),
+        ("s_country", "political", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "xp", "REAL NOT NULL DEFAULT 0"),
         ("s_division", "auto_advance", "INTEGER NOT NULL DEFAULT 0"),
         ("s_country", "air_power", "REAL NOT NULL DEFAULT 0"),
@@ -473,7 +474,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var r in factionMembers)
                 if (w.Factions.TryGetValue((string)r["faction_id"]!, out var f)) f.Members.Add(Convert.ToInt32(r["country_id"]));
         }
-        foreach (var r in save.Query("SELECT id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy FROM s_country"))
+        foreach (var r in save.Query("SELECT id,is_player,money,political,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy FROM s_country"))
         {
             var c = w.Countries[Convert.ToInt32(r["id"])];
             c.IsPlayer = Convert.ToInt32(r["is_player"]) == 1; c.Money = Convert.ToSingle(r["money"]);
@@ -487,6 +488,7 @@ public sealed class SqlWorldRepository : IWorldRepository
             c.JustifyTarget = r["justify_target"] is null ? null : Convert.ToInt32(r["justify_target"]);
             if (r["justify_progress"] is not null) c.JustifyProgress = Convert.ToSingle(r["justify_progress"]);
             if (r["war_exhaustion"] is not null) c.WarExhaustion = Convert.ToSingle(r["war_exhaustion"]);
+            if (r["political"] is not null) c.Political = Convert.ToSingle(r["political"]);
             if (r["air_power"] is not null) c.AirPower = Convert.ToSingle(r["air_power"]);
             if (r["warships"] is not null) c.Warships = Convert.ToSingle(r["warships"]);
             if (r["convoys"] is not null) c.Convoys = Convert.ToSingle(r["convoys"]);
@@ -822,8 +824,8 @@ public sealed class SqlWorldRepository : IWorldRepository
             // países sem estado nenhum não gastam linha; o lugar na tabela mundial não os obriga a ter uma
             // (o PowerRankingSystem refá-la em power_rank_days), mas o do jogador vai sempre com o save
             if (c.IsPlayer || c.Money != 0f || c.ResearchTech is not null || c.Capitulated || c.CurrentFocus is not null || c.JustifyTarget is not null || c.ArmyXp > 0f || c.Convoys != 0f || c.LastDefeatDay >= 0 || c.IsSubject)
-                save.Execute("INSERT INTO s_country (id,is_player,money,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Warships, c.Convoys, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp, c.AirXp, c.NavyXp, c.DefeatStreak, c.LastDefeatDay, c.LastDefeatRegion, c.Fuel, c.OverlordId, c.Autonomy);
+                save.Execute("INSERT INTO s_country (id,is_player,money,political,research_tech,research_progress,capitulated,capitulated_day,manpower,focus,focus_progress,stability,justify_target,justify_progress,war_exhaustion,air_power,warships,convoys,nukes,power_rank,power_rank_prev,army_xp,air_xp,navy_xp,defeat_streak,last_defeat_day,last_defeat_region,fuel,overlord,autonomy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    c.Id, c.IsPlayer ? 1 : 0, c.Money, c.Political, c.ResearchTech, c.ResearchProgress, c.Capitulated ? 1 : 0, c.CapitulatedDay, c.Manpower, c.CurrentFocus, c.FocusProgress, c.Stability, c.JustifyTarget, c.JustifyProgress, c.WarExhaustion, c.AirPower, c.Warships, c.Convoys, c.Nukes, c.PowerRank, c.PowerRankPrev, c.ArmyXp, c.AirXp, c.NavyXp, c.DefeatStreak, c.LastDefeatDay, c.LastDefeatRegion, c.Fuel, c.OverlordId, c.Autonomy);
             // as ranhuras vão todas para a tabela própria; as colunas antigas de s_country guardam a
             // primeira, para um save novo ainda abrir num binário anterior às ranhuras
             foreach (var (techId, progress) in c.Research)

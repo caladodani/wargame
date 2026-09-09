@@ -1,6 +1,7 @@
 using Godot;
 using WarGame.Core.Commands;
 using WarGame.Core.Model;
+using WarGame.Core.Systems;
 
 namespace WarGame.Presentation;
 
@@ -8,6 +9,11 @@ namespace WarGame.Presentation;
 /// em vigor numa linha e, por baixo, uma fila de linhas iguais com um botão "Mudar" cada uma — não se via
 /// que as leis de um grupo são degraus da mesma escada, nem para que lado é que se sobe, nem o que se ganha
 /// e o que se perde ao subir.
+///
+/// Subir custa poder político e não pontos de produção — uma lei não se compra com fábricas — e os degraus
+/// que mexem fundo na vida da gente só se destrancam com o mundo já inquieto (law.min_tension): esses
+/// aparecem com cadeado e a tensão que lhes falta, em vez de um botão que ninguém percebia por que é que
+/// estava apagado.
 ///
 /// Agora cada grupo é um cartão com a sua escada: um degrau por lei, ordenado do país desmobilizado para o
 /// país em pé de guerra, com a fila de lâmpadas a dizer a que altura fica, o degrau em vigor aceso em latão
@@ -110,10 +116,20 @@ public static class LawsView
                 seal.AddThemeColorOverride("font_color", Ui.Accent);
                 row.AddChild(seal);
             }
+            else if (l.MinTension > 0f && WorldTension.Of(w) < l.MinTension)
+            {
+                // trancada pelo mundo, e não pelo cofre: um país em sossego não vota a mobilização geral.
+                // Isto mostra-se a toda a gente e não só a quem joga — é a peça que explica por que é que
+                // meia escada está fora de alcance no dia 1 e passa a estar ao alcance quando o mundo arde.
+                var lockChip = Ui.Lbl($"🔒 tensão {l.MinTension:0}", 14);
+                lockChip.AddThemeColorOverride("font_color", Ui.TextDim);
+                lockChip.TooltipText = $"o mundo está a {WorldTension.Of(w):0} de 100 e esta lei só passa a partir de {l.MinTension:0}";
+                row.AddChild(lockChip);
+            }
             else if (mine)
             {
                 string lid = l.Id;
-                var b = Ui.Btn($"Subir ({cost:0})", () => onChange(lid), 150,
+                var b = Ui.Btn($"Subir ({cost:0} pp)", () => onChange(lid), 150,
                                l.Sort > (active?.Sort ?? 0) ? Ui.Kind.Primary : Ui.Kind.Normal);
                 string? why = new ChangeLawCommand(c.Id, lid).Validate(w);
                 b.Disabled = why is not null;

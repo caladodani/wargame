@@ -23,7 +23,7 @@ public class DoctrineTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        var c = w.Countries[1]; c.Money = 100f;
+        var c = w.Countries[1]; c.Political = 100f;
         var cmd = new ChangeLawCommand(1, "doc_ofensiva");
         Assert.Null(cmd.Validate(w));
         cmd.Execute(w);
@@ -39,7 +39,7 @@ public class DoctrineTests
             var (w, _) = TestWorld.Build();
             TestWorld.LinearMap(w);
             w.StartWar(1, 2);
-            if (defensive) { w.Countries[2].Money = 100f; new ChangeLawCommand(2, "doc_defensiva").Execute(w); }
+            if (defensive) { w.Countries[2].Political = 100f; new ChangeLawCommand(2, "doc_defensiva").Execute(w); }
             w.Register(new CombatSystem());
             var att = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 3);
             var def = TestWorld.AddDivision(w, 2, 2, TestWorld.Inf2, 4);

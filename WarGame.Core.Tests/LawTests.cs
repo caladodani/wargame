@@ -14,26 +14,28 @@ public class LawTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        var c = w.Countries[1]; c.Money = 100f;
+        var c = w.Countries[1]; c.Political = 100f; c.Money = 100f;   // o cofre está cheio de propósito
         w.ApplyTechs(c);
         Assert.Equal("consc_volunteer", w.ActiveLaw(c, "conscription")!.Id);
         float baseConsc = c.Stat("conscription");
 
         Assert.NotNull(new ChangeLawCommand(1, "consc_volunteer").Validate(w));   // já activa
-        var cmd = new ChangeLawCommand(1, "consc_service");
+        var cmd = new ChangeLawCommand(1, "consc_limited");                        // degrau sem exigência de tensão
         Assert.Null(cmd.Validate(w));
         cmd.Execute(w);
-        Assert.Equal(100f - w.Rule("law_change_cost", 30f), c.Money, 0.01f);
-        Assert.Equal(baseConsc * 2.5f, c.Stat("conscription"), 0.01f);
-        Assert.Equal(0.90f, c.Stat("industry"), 0.001f);   // penalização da lei (sem outras fontes)
+        Assert.Equal(100f - w.Rule("law_change_cost", 30f), c.Political, 0.01f);
+        Assert.Equal(100f, c.Money, 0.01f);                // o cofre de produção nem se mexeu
+        Assert.Equal(baseConsc * 1.25f, c.Stat("conscription"), 0.01f);
+        Assert.Equal(0.98f, c.Stat("industry"), 0.001f);   // penalização da lei (sem outras fontes)
     }
 
     [Fact]
-    public void Change_NeedsMoney()
+    public void Change_NeedsPoliticalPower()
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        w.Countries[1].Money = 0f;
+        w.Countries[1].Money = 1e6f;      // o cofre cheio não compra lei nenhuma…
+        w.Countries[1].Political = 0f;    // …e o bolso político vazio tranca-a
         Assert.NotNull(new ChangeLawCommand(1, "consc_limited").Validate(w));
     }
 
@@ -43,7 +45,9 @@ public class LawTests
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
         w.Register(new AiSystem());
-        var c = w.Countries[2]; c.Money = 500f;
+        // poder político para legislar e cofre com que a IA se ocupe: um país sem divisões e sem
+        // dinheiro nenhum é saltado no início da ronda e nunca chega às leis
+        var c = w.Countries[2]; c.Political = 500f; c.Money = 500f;
         var groups = w.Laws.Values.Select(l => l.Group).Distinct().ToList();
         int before = groups.Sum(g => w.ActiveLaw(c, g)!.Sort);
         w.StartWar(1, 2);
@@ -56,7 +60,7 @@ public class LawTests
     {
         var (w, staticDb) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        w.Countries[1].Money = 100f;
+        w.Countries[1].Political = 100f;
         new ChangeLawCommand(1, "econ_war").Validate(w);
         w.Countries[1].Laws["economy"] = "econ_war";
 

@@ -13,6 +13,7 @@ public class DiplomacyTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
+        w.Countries[1].Political = 100f;   // o pretexto fabrica-se com poder político (0.3.61)
         var declared = new List<WarDeclared>();
         w.Events.Subscribe<WarDeclared>(declared.Add);
         Assert.Null(new JustifyWarCommand(1, 2).Validate(w));
@@ -31,6 +32,7 @@ public class DiplomacyTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
+        w.Countries[1].Political = 100f;   // o pretexto fabrica-se com poder político (0.3.61)
         new JustifyWarCommand(1, 2).Execute(w);
         w.Countries[2].Capitulated = true;
         new DiplomacySystem().Tick(w);
@@ -43,6 +45,7 @@ public class DiplomacyTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
+        w.Countries[1].Political = 100f;   // o pretexto fabrica-se com poder político (0.3.61)
         Assert.NotNull(new JustifyWarCommand(1, 1).Validate(w));
         new JustifyWarCommand(1, 2).Execute(w);
         Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));   // já a justificar

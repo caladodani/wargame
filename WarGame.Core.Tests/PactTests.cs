@@ -12,13 +12,13 @@ public class PactTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        var c = w.Countries[1]; c.Money = 100f;
+        var c = w.Countries[1]; c.Political = 100f;
         TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);   // 1 é mais forte (2 sem divisões)
         var cmd = new ProposeNonAggressionCommand(1, 2);
         Assert.Null(cmd.Validate(w));
         cmd.Execute(w);
         Assert.True(w.HasPact(1, 2));
-        Assert.Equal(100f - w.Rule("nap_cost", 20f), c.Money, 0.01f);
+        Assert.Equal(100f - w.Rule("nap_cost", 20f), c.Political, 0.01f);
         Assert.NotNull(new DeclareWarCommand(1, 2).Validate(w));   // bloqueado
         Assert.NotNull(new DeclareWarCommand(2, 1).Validate(w));   // nos dois sentidos
     }
@@ -28,7 +28,7 @@ public class PactTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        w.Countries[1].Money = 100f;
+        w.Countries[1].Political = 100f;
         TestWorld.AddDivision(w, 1, 2, TestWorld.Inf, 4);   // 2 mais forte
         var cmd = new ProposeNonAggressionCommand(1, 2);
         Assert.Null(cmd.Validate(w));
@@ -41,7 +41,7 @@ public class PactTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
-        w.Countries[1].Money = 100f;
+        w.Countries[1].Political = 100f;
         TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);
         w.Countries[2].JustifyTarget = 1;   // já anda a justificar guerra contra o 1
         new ProposeNonAggressionCommand(1, 2).Execute(w);
@@ -53,6 +53,7 @@ public class PactTests
     {
         var (w, _) = TestWorld.Build();
         TestWorld.LinearMap(w);
+        w.Countries[1].Political = w.Countries[2].Political = 100f;
         w.Pacts[World.WarKey(1, 2)] = w.Clock.Day + 100;
         Assert.NotNull(new JustifyWarCommand(1, 2).Validate(w));
         Assert.NotNull(new JustifyWarCommand(2, 1).Validate(w));

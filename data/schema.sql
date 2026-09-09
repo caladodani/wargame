@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS event_def (
 CREATE TABLE IF NOT EXISTS save_meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS s_country (
   id INTEGER PRIMARY KEY, is_player INTEGER NOT NULL DEFAULT 0, money REAL NOT NULL DEFAULT 0,
+  political REAL NOT NULL DEFAULT 0,   -- poder político (PoliticsSystem): a moeda da política
   stability REAL NOT NULL DEFAULT 50, research_tech TEXT, research_progress REAL NOT NULL DEFAULT 0,
   capitulated INTEGER NOT NULL DEFAULT 0, capitulated_day INTEGER,
   manpower REAL NOT NULL DEFAULT -1,  -- -1 = por inicializar (ManpowerSystem)
@@ -248,6 +249,7 @@ CREATE TABLE IF NOT EXISTS law (              -- leis nacionais (grupos: conscri
   id TEXT PRIMARY KEY, grp TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
   sort INTEGER NOT NULL DEFAULT 0,            -- maior = mais mobilizada (a IA escala em guerra)
   is_default INTEGER NOT NULL DEFAULT 0,
+  min_tension REAL NOT NULL DEFAULT 0,        -- tensão mundial mínima para a lei se poder aprovar (HoI4)
   country_tag TEXT REFERENCES country(tag));  -- NULL = de toda a gente; com tag, só esse país a tem
 CREATE TABLE IF NOT EXISTS law_group (        -- cabeçalho de cada escada de leis (nome e chapa do cartão)
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '',

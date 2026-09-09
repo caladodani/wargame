@@ -106,6 +106,7 @@ public partial class Game : Node
         World.Register(new LendLeaseSystem());    // logo a seguir ao rendimento: empresta-se o dia que se acabou de ganhar
         World.Register(new CabinetSystem());      // depois do rendimento: os salários do gabinete saem do dia
         World.Register(new StabilitySystem());
+        World.Register(new PoliticsSystem());     // depois da estabilidade: o poder político do dia sai do governo que hoje se aguenta em pé
         World.Register(new ManpowerSystem());
         World.Register(new SubjectSystem());      // depois do rendimento e dos homens: o tributo é uma fatia do dia que o vassalo acabou de ganhar
         World.Register(new ProductionSystem());

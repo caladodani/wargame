@@ -45,7 +45,7 @@ public sealed record NewsOption(string Id, string EventId, string Title, int Sor
 /// <summary>Lei nacional (tabela law). CountryTag null = lei de toda a gente; com tag, só esse país a tem
 /// na escada — é assim que cada país ganha a sua questão nacional sem a emprestar aos vizinhos.</summary>
 public sealed record Law(string Id, string Group, string Name, string Description, int Sort, bool IsDefault,
-                         string? CountryTag = null);
+                         string? CountryTag = null, float MinTension = 0f);
 
 /// <summary>Cabeçalho de um grupo de leis (tabela law_group): como se chama a escada e que chapa leva. O
 /// painel deixou de saber os nomes de cor — vêm da base de dados como tudo o resto.</summary>
@@ -567,6 +567,10 @@ public sealed class Country
         set { if (ResearchTech is string t) Research[t] = value; }
     }
     public float Money { get; set; }               // pontos de produção acumulados (EconomySystem +, ProductionSystem −)
+    /// <summary>Poder político (PoliticsSystem +): a moeda da política, que nunca se converte em aço.
+    /// Paga leis, gabinete, decisões, pactos e justificações de guerra — as coisas que no HoI4 não se
+    /// compram com fábricas. Tecto na regra political_max; o que não se gasta perde-se.</summary>
+    public float Political { get; set; }
     public float Manpower { get; set; } = -1f;     // pool de homens (ManpowerSystem); -1 = por inicializar
     public float Stability { get; set; } = 50f;    // 0..100 (StabilitySystem); 50 = neutro
     public float PortCapacity { get; set; }        // divisões que os nossos cais aguentam (SupplySystem, derivado)

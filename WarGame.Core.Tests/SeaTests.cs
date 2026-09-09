@@ -71,10 +71,11 @@ public class SeaTests
     [Fact]
     public void AiWarGoal_TargetsAcrossSea()
     {
-        var w = Islands();
+        var w = Islands(km: 200f);   // estreito à vista (vision_sea_km): faz fronteira para justificar
         w.Rules["ai_war_chance"] = 1f; w.Rules["ai_war_min_day"] = 0; w.Rules["ai_war_ratio"] = 1f;
         w.Rules["war_justify_days"] = 2f;
         w.Countries[1].Stats["aggression"] = 1f;
+        w.Countries[1].Political = 200f;   // o pretexto paga-se com poder político
         for (int i = 0; i < 3; i++) TestWorld.AddDivision(w, 10 + i, 1, TestWorld.Inf, 2);
         w.Register(new DiplomacySystem()); w.Register(new AiSystem());
         int period = Math.Max(1, (int)w.Rule("ai_period_days", 3));

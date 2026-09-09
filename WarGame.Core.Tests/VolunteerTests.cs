@@ -23,7 +23,25 @@ public class VolunteerTests
         w.StartWar(2, 3);
         for (int i = 1; i <= army; i++) TestWorld.AddDivision(w, i, 1, TestWorld.Inf, 1);
         w.Register(new VolunteerSystem());
+        // a porta da tensão mundial tem teste próprio (OMundoCalmoNaoDeixaMandarVoluntarios); aqui mede-se
+        // o que os voluntários fazem depois de a porta estar aberta, e um mundo de seis regiões nunca
+        // aquece o bastante para a abrir sozinho
+        w.Rules["volunteer_min_tension"] = 0f;
         return w;
+    }
+
+    [Fact]
+    public void OMundoCalmoNaoDeixaMandarVoluntarios()
+    {
+        var w = Setup();
+        w.Rules["volunteer_min_tension"] = 90f;                   // um mundo que só arde no fim
+        var no = new SendVolunteersCommand(1, 2, 1).Validate(w);
+        Assert.NotNull(no);
+        Assert.Contains("calmo", no);
+        Assert.DoesNotContain(w.Divisions.Values, d => d.IsVolunteer);
+
+        w.Rules["volunteer_min_tension"] = 0f;                    // e com o mundo já mexido a porta abre
+        Assert.Null(new SendVolunteersCommand(1, 2, 1).Validate(w));
     }
 
     [Fact]

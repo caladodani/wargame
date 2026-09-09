@@ -100,6 +100,9 @@ public partial class WorldPanel : PanelContainer
             _best = standings.Count > 0 ? standings[0].Score : 1f;
             if (tPower)
             {
+                // O termómetro do mundo antes da tabela: é o número que decide o que hoje se pode fazer, e
+                // sem ele a lista de potências é uma fotografia sem legenda.
+                _body.AddChild(TensionCard(w));
                 Header("Potências mundiais");
                 int shown = 0;
                 foreach (var st in standings)
@@ -261,4 +264,46 @@ public partial class WorldPanel : PanelContainer
 
     private void Header(string text) { var l = Ui.Lbl(text, 20); l.Modulate = new Color(1f, 0.85f, 0.4f); _body.AddChild(l); }
     private void Line(string text, int size = 18) => _body.AddChild(Ui.Lbl(text, size));
+
+    /// <summary>O cartão da tensão mundial: o número grande, a barra a encher, o humor do mundo em palavras
+    /// e as três ou quatro parcelas que mais a estão a puxar. É a leitura que faltava ao painel do mundo —
+    /// via-se quem era forte, não se via a que temperatura estava tudo aquilo.</summary>
+    private static PanelContainer TensionCard(World w)
+    {
+        float t = WorldTension.Of(w);
+        var parts = WorldTension.Parts(w);
+        var colour = t >= w.Rule("tension_grave", 70f) ? Ui.Danger
+                   : t >= w.Rule("tension_uneasy", 40f) ? Ui.Accent : Ui.Good;
+
+        var card = new PanelContainer();
+        card.AddThemeStyleboxOverride("panel", Ui.Box(new Color(0.12f, 0.13f, 0.18f, 0.94f), 10));
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); card.AddChild(v);
+
+        var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 8); v.AddChild(head);
+        head.AddChild(Glyph.Make("globo", 22, colour));
+        var title = Ui.Lbl("Tensão mundial", 18); title.AddThemeColorOverride("font_color", Ui.Accent);
+        head.AddChild(Ui.Grow(title));
+        var num = Ui.Lbl($"{t:0} / 100", 20); num.AddThemeColorOverride("font_color", colour);
+        head.AddChild(num);
+
+        var bar = new HBoxContainer(); bar.AddThemeConstantOverride("separation", 8); v.AddChild(bar);
+        bar.AddChild(Ui.Bar(t / 100f, colour, 220f));
+        var mood = Ui.Lbl(WorldTension.Mood(w), 15); mood.AddThemeColorOverride("font_color", Ui.TextDim);
+        bar.AddChild(mood);
+
+        if (parts.Count == 0)
+        {
+            var quiet = Ui.Lbl("Ninguém em guerra, ninguém a cair, ninguém a arranjar pretexto.", 14);
+            quiet.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(quiet);
+        }
+        else foreach (var part in parts.Take(4))
+        {
+            var line = Ui.Lbl($"· {part.Label}: +{part.Points:0.0}", 14);
+            line.AddThemeColorOverride("font_color", Ui.TextDim);
+            v.AddChild(line);
+        }
+        card.TooltipText = Breakdown.Tension(w);
+        return card;
+    }
 }

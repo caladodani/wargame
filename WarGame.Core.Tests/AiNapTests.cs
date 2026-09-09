@@ -17,7 +17,7 @@ public class AiNapTests
         foreach (int i in new[] { 3, 4 }) { w.Regions[i].OwnerId = w.Regions[i].ControllerId = 3; }
         foreach (int i in new[] { 5, 6 }) { w.Regions[i].OwnerId = w.Regions[i].ControllerId = 2; }
         w.Countries[1].AtWarWith.Add(2); w.Countries[2].AtWarWith.Add(1);
-        w.Countries[1].Money = 500;
+        w.Countries[1].Political = 500;
         TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 1);
         TestWorld.AddDivision(w, 2, 1, TestWorld.Inf, 2);   // 2 divisões minhas > 0 do vizinho 3
         w.Register(new AiSystem());
@@ -36,7 +36,7 @@ public class AiNapTests
     public void PoorCountry_DoesNotPropose()
     {
         var w = Setup();
-        w.Countries[1].Money = 50;   // < nap_cost + ai_nap_reserve
+        w.Countries[1].Political = 40;   // < nap_cost + ai_nap_reserve
         TestWorld.Days(w, 1);
         Assert.False(w.HasPact(1, 3));
     }
