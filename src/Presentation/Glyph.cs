@@ -53,6 +53,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "caca", "bombardeiro", "carga",
         // a operação anfíbia: a barcaça com a rampa em baixo sobre a areia
         "praia",
+        // o chão do céu: a pista com as marcas de cabeceira e a manga de vento
+        "pista",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -589,6 +591,18 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Dot(0.60f, 0.44f, 0.055f); Dot(0.78f, 0.50f, 0.055f);                          // quem sai por ela
                 Arc(0.16f, 0.82f, 0.10f, Mathf.Pi, Mathf.Tau);                                 // água por baixo
                 Arc(0.04f, 0.82f, 0.10f, 0f, Mathf.Pi);
+                break;
+
+            // Campo de aviação visto de cima: a pista em perspectiva, as marcas de cabeceira que qualquer
+            // piloto reconhece e a manga de vento ao lado. É o chão do céu — a obra que assenta as asas.
+            case "pista":
+                Poly(0.30f, 0.86f, 0.44f, 0.22f, 0.60f, 0.22f, 0.60f, 0.86f, 0.30f, 0.86f);   // a pista a fugir
+                Line(0.36f, 0.78f, 0.55f, 0.78f, 0.8f);                                        // cabeceira
+                Line(0.38f, 0.70f, 0.55f, 0.70f, 0.8f);
+                Line(0.41f, 0.60f, 0.55f, 0.60f, 0.8f);
+                Line(0.45f, 0.46f, 0.55f, 0.46f, 0.8f);
+                Line(0.80f, 0.20f, 0.80f, 0.86f);                                              // mastro
+                Poly(0.80f, 0.24f, 0.96f, 0.30f, 0.96f, 0.40f, 0.80f, 0.40f);                  // manga de vento
                 break;
 
             case "onda":

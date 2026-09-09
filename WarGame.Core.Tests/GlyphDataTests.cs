@@ -26,6 +26,8 @@ public class GlyphDataTests
         "cofre", "barril",
         // o chão: um desenho por terreno
         "campo", "arvore", "cidade", "montanha", "duna", "gelo",
+        // o chão do céu: a pista com as marcas de cabeceira e a manga de vento (campo de aviação)
+        "pista",
     };
 
     [Fact]

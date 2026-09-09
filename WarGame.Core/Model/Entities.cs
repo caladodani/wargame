@@ -170,6 +170,10 @@ public sealed class Region
     /// <summary>Latitude do centróide em graus (tabela region): positiva a norte, negativa a sul. O CenterY
     /// vai projectado em Robinson e não se desprojecta — quem quer saber o frio desta terra vem aqui (Weather).</summary>
     public float Lat { get; init; }
+    /// <summary>Longitude do centróide em graus (tabela region). Com a latitude dá a distância REAL entre
+    /// duas províncias (World.Km) — que é o que a aviação precisa de saber: no mapa projectado a Sibéria é
+    /// larga e o equador é estreito, e um alcance medido em unidades de ecrã seria mentira.</summary>
+    public float Lon { get; init; }
     public List<int> Neighbours { get; init; } = new();
     /// <summary>Ligações marítimas (sea_link): região costeira → km da travessia. Vazio = interior.</summary>
     public Dictionary<int, float> SeaNeighbours { get; init; } = new();
@@ -264,11 +268,15 @@ public sealed record MapModeDef(string Id, string Name, string Icon, string Metr
 /// <param name="Icon">Desenho do edifício na lista do Construir (coluna building.icon). Vem da tabela e não
 /// do código pela mesma razão que o resto: um edifício novo é uma linha de SQL, não uma linha de C#.</param>
 public sealed record BuildingDef(string Id, string Name, float Cost, float Days, string StatKey, float PerLevel, int MaxLevel,
-    bool Coastal = false, float SupplyRange = 0f, float HubRange = 0f, string Yard = "", string Icon = "", string Glyph = "")
+    bool Coastal = false, float SupplyRange = 0f, float HubRange = 0f, string Yard = "", string Icon = "", string Glyph = "",
+    float AirSlots = 0f, float AirRange = 0f)
 {
     /// <summary>Depósito: irradia rede à sua volta. É o que o distingue de uma fábrica — e o que lhe dá o
     /// direito de se levantar em terra tomada, que nenhuma outra obra tem.</summary>
     public bool IsHub => HubRange > 0f;
+
+    /// <summary>Campo de aviação: assenta asas e alarga o alcance delas (AirBases). É o chão do céu.</summary>
+    public bool IsAirfield => AirSlots > 0f;
 }
 
 /// <summary>Ramo da árvore de investigação (tabela tech_branch). O id é o texto que está em tech.branch; o
@@ -502,7 +510,7 @@ public sealed record ShipClassDef(string Id, string Name, string Icon, string Ro
 /// Transport é quanto rende em cada tarefa. Nada disto está em código: são linhas da tabela.</summary>
 public sealed record PlaneClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                    float Air, float Superiority, float Support, float Bombing, float Transport,
-                                   bool Basic, string Note, int Sort, string Glyph);
+                                   bool Basic, string Note, int Sort, string Glyph, float RangeKm = 0f);
 
 /// <summary>Uma geração de material (tabela equipment_mark; Marks). O armazém tinha uma espingarda só: um
 /// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de

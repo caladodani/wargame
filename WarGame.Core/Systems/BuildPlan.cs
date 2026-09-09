@@ -69,6 +69,8 @@ public static class BuildPlan
         if (d.SupplyRange > 0f) bits.Add($"leva abastecimento a {d.SupplyRange:0} km por nível");
         if (d.IsHub) bits.Add($"nasce aqui uma cabeça de rede que abastece {d.HubRange:0.#} saltos à volta por nível"
                             + " — e é a única obra que se levanta em terra tomada ao inimigo");
+        if (d.IsAirfield) bits.Add($"assenta {d.AirSlots:0.#} asas por nível"
+                                 + (d.AirRange > 0f ? $" e alarga o alcance delas em {d.AirRange:0} km" : ""));
         if (d.Coastal) bits.Add("só se constrói em região de costa");
         bits.Add($"até ao nível {d.MaxLevel}");
         return string.Join("; ", bits);

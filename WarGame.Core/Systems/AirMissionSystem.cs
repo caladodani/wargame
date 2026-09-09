@@ -44,6 +44,7 @@ public sealed class AirMissionSystem : ISystem
         // asas sem modelo (aviação de partida, save antigo) passam pelo hangar e ganham modelo
         foreach (var c in w.Countries.Values.OrderBy(x => x.Id)) Air.Classify(w, c);
 
+        Ground(w);
         Dogfight(w);
 
         // 2. bombardeamento: cada asa arranca infraestrutura ao controlador da região, até ao chão
@@ -60,6 +61,26 @@ public sealed class AirMissionSystem : ISystem
         }
 
         Ai(w);
+    }
+
+    /// <summary>As camas do dia (AirBases): uma asa só levanta se tiver campo nosso ao alcance daquele céu.
+    /// O que não tem cama volta ao pool no mesmo dia — é o que acontece quando o campo cai em mãos inimigas,
+    /// quando a frente se afasta para lá do raio dos aviões ou quando se quis pôr no ar mais gente do que a
+    /// terra à volta aguenta. Não se perde nenhum avião: fica em casa.</summary>
+    private static void Ground(World w)
+    {
+        foreach (int cid in w.AirMissions.Select(m => m.CountryId).Distinct().OrderBy(x => x).ToList())
+        {
+            var beds = AirBases.Beds(w, cid);
+            foreach (var (m, mine) in beds.OrderBy(p => p.Key.RegionId).ToList())
+            {
+                float seated = mine.Sum(b => b.Wings), grounded = m.Wings - seated;
+                if (grounded <= 0.001f) continue;
+                m.Wings = seated;                       // o excedente volta ao pool: Free() volta a contá-lo
+                if (m.Wings <= 0.001f) w.AirMissions.Remove(m);
+                w.Events.Publish(new AirWingsGrounded(m.RegionId, cid, grounded));
+            }
+        }
     }
 
     /// <summary>Céu disputado: onde há asas de dois países em guerra, os dois perdem aviões à conta do lado
@@ -166,6 +187,12 @@ public sealed class AirMissionSystem : ISystem
             float free = Free(w, c.Id) - reserve;
             if (free < w.Rule("air_mission_min_wings", 1f)) continue;
             if (Front(w, c.Id) is not int target) continue;
+            if (!w.AirMissionDefs.TryGetValue("superioridade", out var def)) continue;
+            // não se manda para o ar o que não tem onde dormir: a IA destaca até à cama que os campos dela
+            // ao alcance daquele céu ainda têm (AirBases). O resto fica em casa até haver campo. A cama
+            // conta-se com o raio dos aviões que levantariam — daí o efeito da missão e não o nome dela.
+            free = MathF.Min(free, AirBases.Room(w, c.Id, target, def.Effect, free));
+            if (free < w.Rule("air_mission_min_wings", 1f)) continue;
             Assign(w, c.Id, target, "superioridade", free);
         }
     }
@@ -292,9 +319,19 @@ public sealed class AirMissionSystem : ISystem
         bool mine = r.ControllerId == countryId;
         if (def.Effect == "bombing" && mine) return "não se bombardeia a própria casa";
         if (!mine && !w.AreAtWar(countryId, r.ControllerId)) return "não estamos em guerra com quem lá manda";
-        // alcance: o céu tem de estar à vista de terra nossa
-        if (!mine && !r.Neighbours.Any(n => w.Regions.TryGetValue(n, out var nb) && nb.ControllerId == countryId))
-            return "fora do alcance dos nossos campos";
+        // alcance e cama: a asa dorme num campo nosso e só chega ao céu que couber no raio dela (AirBases).
+        // Era aqui que estava a maior mentira do jogo — bastava fazer fronteira e a força aérea inteira
+        // aparecia em qualquer céu do mundo, sem campo, sem lotação e sem distância.
+        float reach = AirBases.Range(w, Air.Pick(w, countryId, def.Effect, wings));
+        if (!AirBases.Covers(w, countryId, regionId, reach))
+        {
+            var (near, km) = AirBases.Nearest(w, countryId, regionId);
+            return near is null ? "não há terra nossa de onde levantar"
+                 : $"fora do alcance: o campo mais perto é {near.Name}, a {km:0} km, e estes aviões chegam a {reach + AirBases.Extra(w, near):0} km";
+        }
+        float room = AirBases.Room(w, countryId, regionId, reach);
+        if (wings > room + 0.001f)
+            return room < 0.05f ? "os campos ao alcance estão cheios" : $"só há cama para {room:0.#} asas nos campos ao alcance";
         if (c.Money < wings * w.Rule("air_mission_upkeep", 0.6f)) return "cofre curto para a estadia do dia";
         return null;
     }

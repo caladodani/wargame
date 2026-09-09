@@ -545,6 +545,24 @@ public sealed class World
     public bool IsSeaHop(int fromId, int toId) =>
         Regions.TryGetValue(fromId, out var f) && f.SeaNeighbours.ContainsKey(toId) && !f.Neighbours.Contains(toId);
 
+    /// <summary>Distância a direito entre duas províncias, em km reais (grande círculo pela lat/lon dos
+    /// centróides). Não é a distância no mapa: o Robinson estica a Sibéria e encolhe o equador, e um
+    /// alcance de aviação medido em unidades de ecrã seria mentira em metade do mundo. Num mundo de teste
+    /// (lat/lon a zero) dá zero — tudo à mão, como sempre foi.</summary>
+    public static float Km(Region a, Region b)
+    {
+        const float R = 6371f, D = MathF.PI / 180f;
+        float la1 = a.Lat * D, la2 = b.Lat * D;
+        float dLa = la2 - la1, dLo = (b.Lon - a.Lon) * D;
+        float h = MathF.Sin(dLa / 2f) * MathF.Sin(dLa / 2f)
+                + MathF.Cos(la1) * MathF.Cos(la2) * MathF.Sin(dLo / 2f) * MathF.Sin(dLo / 2f);
+        return 2f * R * MathF.Asin(MathF.Min(1f, MathF.Sqrt(MathF.Max(0f, h))));
+    }
+
+    /// <summary>Distância a direito entre duas províncias por id (float.MaxValue se alguma não existe).</summary>
+    public float Km(int a, int b) =>
+        Regions.TryGetValue(a, out var ra) && Regions.TryGetValue(b, out var rb) ? Km(ra, rb) : float.MaxValue;
+
     /// <summary>Facções de que `countryId` é membro (0, 1 ou várias).</summary>
     public IEnumerable<Faction> FactionsOf(int countryId) => Factions.Values.Where(f => f.Members.Contains(countryId));
     /// <summary>Há alguma facção com ambos como membros (HoI4: aliados na mesma aliança nunca se declaram guerra).</summary>

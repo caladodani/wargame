@@ -100,13 +100,15 @@ public sealed class SqlWorldRepository : IWorldRepository
                 (string)r["stat_key"]!, Convert.ToSingle(r["per_unit"]), Convert.ToSingle(r["cap"]),
                 r["fuel_per_unit"] is null ? 0f : Convert.ToSingle(r["fuel_per_unit"]),
                 r["glyph"] as string ?? "caixa");
-        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph FROM building"))
+        foreach (var r in _static.Query("SELECT id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph,air_slots,air_range FROM building"))
             w.BuildingDefs[(string)r["id"]!] = new BuildingDef((string)r["id"]!, (string)r["name"]!,
                 Convert.ToSingle(r["cost"]), Convert.ToSingle(r["days"]), (string)r["stat_key"]!,
                 Convert.ToSingle(r["per_level"]), Convert.ToInt32(r["max_level"]),
                 Convert.ToInt32(r["coastal"]) != 0, Convert.ToSingle(r["supply_range"]),
                 Convert.ToSingle(r["hub_range"]), (string)r["yard"]!,
-                (string)r["icon"]!, (string)r["glyph"]!);
+                (string)r["icon"]!, (string)r["glyph"]!,
+                r["air_slots"] is null ? 0f : Convert.ToSingle(r["air_slots"]),
+                r["air_range"] is null ? 0f : Convert.ToSingle(r["air_range"]));
         foreach (var r in _static.Query("SELECT key,name,note,sort,glyph,digits,percent,shown FROM unit_stat_def ORDER BY sort"))
             w.UnitStatDefs[(string)r["key"]!] = new UnitStatDef((string)r["key"]!, (string)r["name"]!,
                 (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
@@ -139,12 +141,13 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]), Convert.ToSingle(r["escort"]),
                 Convert.ToSingle(r["patrol"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph FROM plane_class ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km FROM plane_class ORDER BY sort"))
             w.PlaneClasses[(string)r["id"]!] = new PlaneClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["air"]),
                 Convert.ToSingle(r["superiority"]), Convert.ToSingle(r["support"]), Convert.ToSingle(r["bombing"]),
                 Convert.ToSingle(r["transport"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
-                Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
+                r["range_km"] is null ? 0f : Convert.ToSingle(r["range_km"]));
         foreach (var r in _static.Query("SELECT id,unit_type_id,mark,name,tech_id,cost,power,wear,note,glyph FROM equipment_mark ORDER BY unit_type_id, mark"))
             w.EquipmentMarks[(string)r["id"]!] = new EquipmentMarkDef((string)r["id"]!, Convert.ToInt32(r["unit_type_id"]),
                 Convert.ToInt32(r["mark"]), (string)r["name"]!, (string)r["tech_id"]!, Convert.ToSingle(r["cost"]),
@@ -278,7 +281,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,kind,color,glyph,sort FROM zone ORDER BY sort"))
             w.Zones[(string)r["id"]!] = new ZoneDef((string)r["id"]!, (string)r["name"]!, (string)r["kind"]!,
                 (string)r["color"]!, (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,zone_id,sea_zone_id FROM region"))
+        foreach (var r in _static.Query("SELECT id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,lon,zone_id,sea_zone_id FROM region"))
         {
             int id = Convert.ToInt32(r["id"]), owner = Convert.ToInt32(r["owner_id"]);
             w.Regions[id] = new Region
@@ -290,6 +293,7 @@ public sealed class SqlWorldRepository : IWorldRepository
                 CenterY = r["centroid_y"] is null ? 0f : Convert.ToSingle(r["centroid_y"]),
                 Coastal = Convert.ToInt32(r["coastal"]) == 1,
                 Lat = r["lat"] is null ? 0f : Convert.ToSingle(r["lat"]),
+                Lon = r["lon"] is null ? 0f : Convert.ToSingle(r["lon"]),
                 ZoneId = r["zone_id"] as string ?? "", SeaZoneId = r["sea_zone_id"] as string ?? "",
             };
         }

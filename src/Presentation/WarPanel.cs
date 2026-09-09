@@ -210,7 +210,8 @@ public partial class WarPanel : PanelContainer
             .OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"{kv.Key}{kv.Value:0.#}")) + ":"
         + string.Join("-", w.AirMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
             .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Wings:0.0}"))
-        + ":" + (AirMissionSystem.Front(w, pid)?.ToString() ?? "-");
+        + ":" + (AirMissionSystem.Front(w, pid)?.ToString() ?? "-")
+        + ":" + AirBases.Short(w, pid);
 
     /// <summary>Guerra aérea: os esquadrões deixaram de ser um número no cofre e passaram a estar num sítio.
     /// A secção mostra o pool (em casa / no ar / o que custa por dia), as missões destacadas com o céu que
@@ -241,6 +242,9 @@ public partial class WarPanel : PanelContainer
             return;
         }
 
+        // onde é que estas asas dormem (AirBases): a conta faz-se uma vez e serve as fichas todas
+        var beds = AirBases.Beds(w, pid);
+
         foreach (var m in w.AirMissions.Where(x => x.CountryId == pid).OrderBy(x => x.RegionId).ToList())
         {
             if (!w.AirMissionDefs.TryGetValue(m.MissionId, out var def) || !w.Regions.TryGetValue(m.RegionId, out var r)) continue;
@@ -265,8 +269,29 @@ public partial class WarPanel : PanelContainer
             }
             mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Air.Power(w, m.Squadron):0.#}", 14)));
             card.AddChild(mix);
+
+            // de onde é que esta asa levanta: sem isto o céu não tinha chão nenhum e a distância não contava
+            var home = beds.TryGetValue(m, out var mine) && mine.Count > 0
+                     ? mine.OrderByDescending(b => b.Wings).ThenBy(b => b.RegionId).First() : ((int, float)?)null;
+            float reach = AirBases.Range(w, m.Squadron);
+            var bed = new HBoxContainer(); bed.AddThemeConstantOverride("separation", 6);
+            bed.AddChild(Glyph.Make("pista", 15f, home is null ? Ui.Danger : Ui.TextDim, "Campo de onde esta asa levanta"));
+            string where = "sem campo ao alcance: fica em terra";
+            if (home is { } h && w.Regions.TryGetValue(h.Item1, out var hr))
+            {
+                int lv = AirBases.Level(w, hr);
+                where = $"dorme em {hr.Name} ({(lv > 0 ? $"campo nível {lv}" : "pista improvisada")}), "
+                      + $"a {w.Km(hr.Id, m.RegionId):0} km   ·   alcance {reach + AirBases.Extra(w, hr):0} km";
+            }
+            var bedLbl = Ui.Lbl(where, 14);
+            bedLbl.TooltipText = "Uma asa dorme num campo nosso e só chega ao céu que couber no raio dela. "
+                               + "Campo de aviação (menu Construir) assenta mais asas e alarga o raio.";
+            if (home is null) bedLbl.AddThemeColorOverride("font_color", Ui.Danger);
+            bed.AddChild(bedLbl);
+            card.AddChild(bed);
         }
 
+        Airfields(card, w, pid, beds);
         ZoneBoard(card, w, Zones.AirBoard(w, pid), "asas", "céu");
         Hangar(card, w, pid);
 
@@ -283,12 +308,15 @@ public partial class WarPanel : PanelContainer
             return;
         }
 
-        float lot = MathF.Max(w.Rule("air_mission_min_wings", 1f), MathF.Floor(free));
         foreach (int rid in skies)
         {
             var r = w.Regions[rid];
+            // o lote é o que cabe: asas em casa, mas nunca mais do que as camas dos campos que lá chegam
+            float room = AirBases.Room(w, pid, rid, "superioridade", free);
+            float lot = MathF.Max(w.Rule("air_mission_min_wings", 1f), MathF.Floor(MathF.Min(free, room)));
             card.AddChild(Ui.Lbl($"{(r.ControllerId == pid ? "Céu nosso" : "Céu deles")}: {r.Name}"
-                                 + (r.ControllerId == pid ? "" : $"   ·   infra {r.Infrastructure:0.00}"), 15));
+                                 + (r.ControllerId == pid ? "" : $"   ·   infra {r.Infrastructure:0.00}")
+                                 + $"   ·   cama para {room:0.#} asas", 15));
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
             foreach (var def in w.AirMissionDefs.Values.OrderBy(d => d.Sort))
             {
@@ -304,6 +332,41 @@ public partial class WarPanel : PanelContainer
             card.AddChild(row);
         }
         _body.AddChild(box);
+    }
+
+    /// <summary>Os campos de aviação: as camas que o país tem e onde estão. Até aqui a aviação não vivia em
+    /// sítio nenhum — as asas apareciam em qualquer céu do mundo desde que a província fizesse fronteira com
+    /// terra nossa. Agora uma asa dorme num campo, e é este quadro que diz quantas cabem, onde e até onde
+    /// chegam. É também o que explica a recusa por baixo dos botões de destacar.</summary>
+    private void Airfields(Node card, World w, int pid, Dictionary<AirMission, List<(int RegionId, float Wings)>> beds)
+    {
+        var used = new Dictionary<int, float>();
+        foreach (var (_, mine) in beds)
+            foreach (var (rid, n) in mine) used[rid] = used.GetValueOrDefault(rid) + n;
+
+        var fields = w.Regions.Values.Where(r => r.ControllerId == pid && AirBases.Level(w, r) > 0)
+                      .OrderByDescending(r => AirBases.Level(w, r)).ThenBy(r => r.Id).ToList();
+        card.AddChild(Ui.Lbl($"Chão do céu: {AirBases.Short(w, pid)}", 15));
+        if (fields.Count == 0)
+        {
+            var none = Ui.Lbl($"Sem campos: cada província nossa assenta {w.Rule("air_base_free", 4f):0.#} asas em pista "
+                            + "improvisada, e mais nada. Um campo de aviação (menu Construir) é o que deixa massar "
+                            + "aviação longe de casa.", 15);
+            none.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            card.AddChild(none);
+            return;
+        }
+        foreach (var r in fields.Take((int)w.Rule("map_key_max", 12f)))
+        {
+            int rid = r.Id, lvl = AirBases.Level(w, r);
+            float slots = AirBases.Slots(w, r), taken = used.GetValueOrDefault(rid);
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            row.AddChild(Glyph.Make("pista", 16f, taken >= slots - 0.05f ? Ui.Accent : Ui.Text, "Campo de aviação"));
+            row.AddChild(Ui.Grow(Ui.Lbl($"{r.Name}: campo nível {lvl}   ·   {taken:0.#}/{slots:0} asas"
+                                      + $"   ·   +{AirBases.Extra(w, r):0} km de alcance", 15)));
+            if (OnShowRegion is not null) row.AddChild(Ui.Btn("Ver", () => Show(rid), 90));
+            card.AddChild(row);
+        }
     }
 
     /// <summary>O quadro das zonas: uma linha por pedaço de mundo onde há asas (ou navios) e de quem é

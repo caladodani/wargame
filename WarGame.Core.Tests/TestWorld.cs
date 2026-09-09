@@ -37,8 +37,22 @@ public static class TestWorld
         // quer tácticas chama TestWorld.Tactic(w).
         foreach (var kv in w.TacticDefs) Plans[kv.Key] = kv.Value;
         w.TacticDefs.Clear();
+        // E pela mesma razão com camas à vontade nos campos de aviação: os países destes testes têm três
+        // províncias e aviações de cem asas, e a lotação a sério (AirBases, air_base_free por província)
+        // mandava metade delas para casa a meio de um teste de baixas ou de doutrina. Quem quer campos
+        // chama TestWorld.Fields(w), que devolve a lotação da tabela.
+        Beds = w.Rule("air_base_free");
+        w.Rules["air_base_free"] = 10_000f;
         return (w, db);
     }
+
+    /// <summary>A lotação de partida dos campos, guardada na primeira construção — é valor de tabela, não
+    /// estado de mundo nenhum.</summary>
+    private static float Beds;
+
+    /// <summary>Devolve a lotação a sério dos campos de aviação ao mundo de teste (o Build abre-a de par em
+    /// par). É o que um teste de campos de aviação chama antes de contar camas.</summary>
+    public static void Fields(World w) => w.Rules["air_base_free"] = Beds;
 
     /// <summary>Os céus da tabela weather, guardados na primeira construção. São registos imutáveis e iguais
     /// em todas as construções — o que se guarda aqui é a tabela, não o estado de um mundo.</summary>
@@ -67,15 +81,23 @@ public static class TestWorld
     }
 
     /// <summary>Mapa em linha 1-2-…-n. Regiões 1..split são do país 1 (capital 1), o resto do país 2 (capital n).
-    /// População 10M por região (→ 1 ponto/dia com points_per_million=0.1).</summary>
-    public static void LinearMap(World w, int n = 6, int split = 3, string terrain = "plain", int population = 10_000_000)
+    /// População 10M por região (→ 1 ponto/dia com points_per_million=0.1).
+    ///
+    /// O <paramref name="lonStep"/> é a geografia da linha: graus de longitude entre vizinhas, e portanto a
+    /// distância a sério entre elas (um grau ≈ 111 km no equador). Por omissão vale dois graus — uma linha
+    /// de seis províncias dá um país de mil e cem quilómetros, que qualquer avião atravessa. Quem quer pôr
+    /// céus fora do alcance da aviação (AirBases mede em km) estica-a.</summary>
+    public static void LinearMap(World w, int n = 6, int split = 3, string terrain = "plain", int population = 10_000_000, float lonStep = 2f)
     {
         w.Countries[1] = new Country { Id = 1, Tag = "A", Name = "Alfa", CapitalRegionId = 1, Manpower = 1e9f };
         w.Countries[2] = new Country { Id = 2, Tag = "B", Name = "Beta", CapitalRegionId = n, Manpower = 1e9f };
         for (int i = 1; i <= n; i++)
         {
             int owner = i <= split ? 1 : 2;
-            var r = new Region { Id = i, Name = "R" + i, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner, Terrain = terrain, Population = population, CenterX = i * 100, CenterY = 0 };
+            // O mapa de teste ganhou geografia a sério: sem lon todas as regiões ficavam à distância zero
+            // umas das outras e o alcance da aviação (AirBases, medido em km reais pela lat/lon) não podia
+            // dizer que não a nada — nem sim a coisa nenhuma com sentido.
+            var r = new Region { Id = i, Name = "R" + i, OwnerId = owner, InitialOwnerId = owner, ControllerId = owner, Terrain = terrain, Population = population, CenterX = i * 100, CenterY = 0, Lon = i * lonStep };
             if (i > 1) r.Neighbours.Add(i - 1);
             if (i < n) r.Neighbours.Add(i + 1);
             w.Regions[i] = r;

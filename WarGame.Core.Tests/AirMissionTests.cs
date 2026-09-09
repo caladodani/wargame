@@ -10,10 +10,10 @@ namespace WarGame.Core.Tests;
 /// outras no céu disputado e pesam na batalha que se dá por baixo delas.</summary>
 public class AirMissionTests
 {
-    private static World Build(float wings = 10f, float money = 500f)
+    private static World Build(float wings = 10f, float money = 500f, float lonStep = 2f)
     {
         var (w, _) = TestWorld.Build();
-        TestWorld.LinearMap(w);
+        TestWorld.LinearMap(w, lonStep: lonStep);
         w.StartWar(1, 2);
         // os dois países de mão humana: a IA aérea tem um teste só para ela e não anda a engrossar estes
         foreach (var c in w.Countries.Values) { c.AirPower = wings; c.Money = money; c.IsPlayer = true; }
@@ -70,7 +70,10 @@ public class AirMissionTests
     [Fact]
     public void TheSkyHasToBeReachableAndTheEnemyHasToBeTheEnemy()
     {
-        var w = Build();
+        // linha esticada a oito graus por província (~890 km): a região 4 fica a um salto dos nossos campos e
+        // a 6 a três, longe do que uma asa sem modelo aguenta (air_range_default). É a distância a decidir,
+        // e não a fronteira: antes bastava fazer beira a terra nossa para a aviação aparecer em qualquer céu
+        var w = Build(lonStep: 8f);
         Assert.Null(new AssignAirMissionCommand(1, 4, "superioridade", 2f).Validate(w));   // vizinha da nossa 3
         Assert.Contains("fora do alcance", new AssignAirMissionCommand(1, 6, "superioridade", 2f).Validate(w)!);
         Assert.Contains("poucas asas", new AssignAirMissionCommand(1, 4, "superioridade", 0.5f).Validate(w)!);

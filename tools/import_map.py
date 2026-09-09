@@ -291,6 +291,7 @@ def main():
     simp_tol = 0.08  # graus
     for r in regions:
         r['lat'] = r['geom'].centroid.y   # antes de projectar: o Robinson não se desprojecta, e o frio é por latitude
+        r['lon'] = r['geom'].centroid.x   # com a latitude dá a distância real entre províncias (World.Km): o alcance da aviação
         g = r['geom'].simplify(simp_tol, preserve_topology=True)
         g = clean(transform(proj, g))
         r['rings'] = to_rings(g, min_area=(0.15 * scale * 111_000) ** 2 * 1.2)  # ilhas < ~30 km² descartadas
@@ -366,9 +367,9 @@ def main():
 
     for rid, r in enumerate(regions, start=1):
         r['id'] = rid
-        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,zone_id,sea_zone_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        db.execute('INSERT INTO region(id,name,owner_id,terrain,river,population,infrastructure,centroid_x,centroid_y,coastal,lat,lon,zone_id,sea_zone_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                    (rid, r['name'], country_ids[r['country']], r['terrain'], r['river'], r['pop'], 1.0, r['cx'], r['cy'],
-                    int(coastal[rid - 1]), r['lat'], land_zone.get(rid - 1, ''), sea_of.get(rid - 1, '')))
+                    int(coastal[rid - 1]), r['lat'], r['lon'], land_zone.get(rid - 1, ''), sea_of.get(rid - 1, '')))
         for k, ring in enumerate(r['rings']):
             blob = struct.pack(f'<{2 * len(ring)}f', *[v for pt in ring for v in pt])
             db.execute('INSERT INTO region_polygon(region_id,ring_index,points) VALUES (?,?,?)', (rid, k, blob))

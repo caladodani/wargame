@@ -785,16 +785,23 @@ CREATE TABLE IF NOT EXISTS building (
   hub_range REAL NOT NULL DEFAULT 0,         -- saltos de rede que um depósito irradia, por nível (SupplySystem)
   yard TEXT NOT NULL DEFAULT '',             -- fila de fábricas que abre (Industry): civil | militar | naval
   icon TEXT NOT NULL DEFAULT '',             -- emoji de recurso: só se não houver chapa desenhada
-  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
-INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph) VALUES
- ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,0,'civil','🏭','fabrica'),
- ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,0,'','🔬','frasco'),
- ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,0,'militar','🛠','bigorna'),
- ('porto','Porto',35,20,'port_capacity',0,2,1,900,0,'naval','⚓','ancora'),
+  glyph TEXT NOT NULL DEFAULT '',            -- nome de um desenho do Glyph.cs — é este que se vê
+  air_slots REAL NOT NULL DEFAULT 0,         -- asas que o campo assenta, por nível (AirBases)
+  air_range REAL NOT NULL DEFAULT 0);        -- km que a pista acrescenta ao alcance da asa, por nível
+INSERT INTO building (id,name,cost,days,stat_key,per_level,max_level,coastal,supply_range,hub_range,yard,icon,glyph,air_slots,air_range) VALUES
+ ('fabrica','Fábrica',40,25,'industry',0.05,5,0,0,0,'civil','🏭','fabrica',0,0),
+ ('laboratorio','Laboratório',50,30,'research_speed',0.06,3,0,0,0,'','🔬','frasco',0,0),
+ ('arsenal','Arsenal',45,25,'production_speed',0.05,4,0,0,0,'militar','🛠','bigorna',0,0),
+ ('porto','Porto',35,20,'port_capacity',0,2,1,900,0,'naval','⚓','ancora',0,0),
  -- O depósito de abastecimento: a peça que faltava à logística. Ao contrário de tudo o resto, constrói-se
  -- em terra que se controla mesmo sem ser nossa — é assim que uma ofensiva leva a rede atrás de si, como
  -- no HoI4 se leva o supply hub para o território conquistado.
- ('deposito','Depósito',30,18,'supply',0,3,0,0,3,'','📦','caixa');
+ ('deposito','Depósito',30,18,'supply',0,3,0,0,3,'','📦','caixa',0,0),
+ -- O campo de aviação: o chão que faltava ao céu. Uma asa não vive no ar — dorme num campo, e é o campo
+ -- que diz quantas cabem e até onde chegam. Sem ele uma província nossa ainda aguenta umas asas em pista
+ -- improvisada (air_base_free), que é como se voou até aqui; com ele assentam-se seis por nível e a pista
+ -- comprida deixa levantar com depósitos cheios (mais alcance). É a razão de haver obra no interior.
+ ('aerodromo','Campo de aviação',34,20,'',0,3,0,0,0,'','🛬','pista',6,300);
 
 -- Ramos da árvore de investigação: a chapa de cada um deixou de ser um switch em C# e passou a ser uma
 -- linha. `glyph` é o nome de um desenho nosso (Glyph.cs) — não é emoji: um emoji num jogo de guerra sai
@@ -967,16 +974,16 @@ INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,esc
 -- quanto rende em cada tarefa. Um caça varre o céu e não deita nada abaixo; um bombardeiro estratégico
 -- arrasa infraestrutura e não se defende de nada; um transporte não faz guerra nenhuma e é o único que
 -- larga pára-quedistas. Mudar a aviação do jogo é mudar estas linhas.
-INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph) VALUES
- ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone'),
- ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre.',1,'asa'),
- ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca'),
- ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha.',3,'espadas'),
- ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba'),
- ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada.',5,'obus'),
- ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte.',6,'bombardeiro'),
- ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo'),
- ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga');
+INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph,range_km) VALUES
+ ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone',900),
+ ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre.',1,'asa',800),
+ ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca',1300),
+ ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha.',3,'espadas',1700),
+ ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba',1500),
+ ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada.',5,'obus',900),
+ ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte.',6,'bombardeiro',2400),
+ ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo',5200),
+ ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga',2600);
 
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
@@ -1078,6 +1085,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_loss_focus',0.7,'quanto as perdas do céu se concentram em quem não sabe lutar nele (0 = todos por igual)'),
  ('air_start_mix',0.45,'fatia da aviação de partida que nasce em modelos de caça, o resto reparte-se pelo ataque'),
  ('air_power_swing',1.6,'quanto a diferença de qualidade média de aviões pode agravar as perdas de um lado'),
+ -- O chão do céu (AirBases): uma asa dorme num campo e é o campo que diz quantas cabem e até onde chegam.
+ -- A pista improvisada é a aviação de sempre — sem obra nenhuma cada província nossa ainda assenta umas
+ -- asas —, mas quem quer massa de aviação sobre uma frente longe de casa tem de levantar campos.
+ ('air_base_free',4,'asas que uma província nossa assenta sem campo de aviação (pista improvisada)'),
+ ('air_range_default',2000,'alcance em km de uma asa sem modelo (saves antigos e mundos de teste)'),
  ('naval_ship_cost',90,'custo de um navio de guerra'),
  ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),

@@ -124,6 +124,8 @@ CREATE TABLE IF NOT EXISTS region (
   centroid_x REAL, centroid_y REAL, coastal INTEGER NOT NULL DEFAULT 0,
   lat REAL NOT NULL DEFAULT 0,                -- latitude do centróide em graus (o centróide já vai projectado
                                               -- em Robinson e não se desprojecta): é o frio da região (Weather)
+  lon REAL NOT NULL DEFAULT 0,                -- longitude do centróide em graus: com a latitude dá a distância
+                                              -- REAL entre duas províncias (World.Km) — o alcance da aviação
   zone_id TEXT NOT NULL DEFAULT '',           -- zona estratégica de terra (céu): tabela zone, kind='terra'
   sea_zone_id TEXT NOT NULL DEFAULT ''        -- mar em frente a esta costa: tabela zone, kind='mar' ('' = interior)
 );
@@ -340,7 +342,8 @@ CREATE TABLE IF NOT EXISTS plane_class (      -- modelos de avião (Air); estát
   superiority REAL NOT NULL, support REAL NOT NULL, bombing REAL NOT NULL, transport REAL NOT NULL,
   basic INTEGER NOT NULL DEFAULT 0,           -- 1 = o modelo que o botão antigo de "comprar esquadrão" compra
   note TEXT NOT NULL, sort INTEGER NOT NULL,
-  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+  glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
+  range_km REAL NOT NULL DEFAULT 0);          -- alcance a partir do campo (AirBases); 0 = regra air_range_default
 CREATE TABLE IF NOT EXISTS s_plane (          -- aviões de um país por modelo (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));

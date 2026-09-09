@@ -68,6 +68,9 @@ public sealed record OfferExpired(int FromId, int ToId, string Kind) : IGameEven
 /// Existem para o comando do ar e do mar poder cair como cai o de terra: sem eles, o CommandCasualtySystem
 /// só sabia de batalhas em terra e um almirante nunca corria risco nenhum.</summary>
 public sealed record AirCombatEnded(int RegionId, int CountryId, int EnemyCountryId, float Lost, bool Worse) : IGameEvent;
+/// <summary>Asas que não levantaram: ficaram sem campo ao alcance daquele céu (AirBases) — o campo caiu em
+/// mãos inimigas, a frente afastou-se ou nunca houve cama para tanta gente. Voltam ao pool no mesmo dia.</summary>
+public sealed record AirWingsGrounded(int RegionId, int CountryId, float Wings) : IGameEvent;
 public sealed record SeaCombatEnded(int RegionId, int CountryId, int EnemyCountryId, float Lost, bool Worse) : IGameEvent;
 
 /// <summary>Baixas no comando (CommandCasualtySystem): o comandante caiu na batalha daquela região.</summary>
