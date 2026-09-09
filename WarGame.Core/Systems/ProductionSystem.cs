@@ -47,7 +47,7 @@ public sealed class ProductionSystem : ISystem
         foreach (var o in c.Queue)
         {
             if (c.Money <= 0f || free <= 0) break;
-            float cost = w.OrderCost(o);
+            float cost = w.OrderCost(o, c);
             if (o.Progress >= cost - 1e-3f) continue;      // pronta: espera homens, não linha
             int mine = Math.Clamp(o.Factories, 1, free);
             free -= mine;
@@ -81,7 +81,7 @@ public sealed class ProductionSystem : ISystem
         for (int i = 0; i < c.Queue.Count;)
         {
             var o = c.Queue[i];
-            float cost = w.OrderCost(o);
+            float cost = w.OrderCost(o, c);
             if (o.Progress < cost - 1e-3f) { i++; continue; }
             // linha de material: não sai divisão nenhuma da fábrica, saem conjuntos para o armazém, e a
             // linha continua onde está — é uma torneira, não uma encomenda

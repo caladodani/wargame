@@ -268,6 +268,16 @@ public sealed class World
     /// <summary>Navios desenhados em jogo (save s_ship_design): grava-se a escolha, nunca os números.</summary>
     public List<ShipDesign> ShipDesigns { get; } = new();
 
+    /// <summary>A prancheta dos carros (tabelas tank_chassis/tank_slot/tank_module; TankShop): os cascos que
+    /// se levam à prancheta, as ranhuras de cada um e as peças que lá cabem.</summary>
+    public Dictionary<string, TankChassisDef> TankChassis { get; } = new();
+    public Dictionary<string, TankSlotDef> TankSlotDefs { get; } = new();
+    public Dictionary<string, TankModuleDef> TankModules { get; } = new();
+
+    /// <summary>Carros desenhados em jogo (save s_tank_design): grava-se a escolha, nunca os números — o que
+    /// eles valem entra em EquipmentMarks como a marca seguinte daquele tipo de material.</summary>
+    public List<TankDesign> TankDesigns { get; } = new();
+
     /// <summary>Modelos de avião (tabela plane_class; Air): o que cada asa serve no céu. Os desenhados na
     /// oficina entram aqui com id "des:N" — a partir daí são modelos como os outros para todo o jogo.</summary>
     public Dictionary<string, PlaneClassDef> PlaneClasses { get; } = new();
@@ -678,10 +688,12 @@ public sealed class World
     /// <summary>O que uma encomenda custa à fábrica: a divisão inteira, ou um conjunto de material do tipo
     /// que a linha fabrica. A conta é a mesma para os dois feitios — é por isso que uma divisão de nove
     /// batalhões custa exactamente o mesmo que os nove conjuntos que a voltam a armar de novo.</summary>
-    public float OrderCost(ProductionOrder o)
+    /// <param name="c">O dono da fila, quando se sabe: um carro desenhado na prancheta é uma marca só dele,
+    /// e sem isto a conta cairia na última linha da tabela e o carro de casa sairia ao preço do vizinho.</param>
+    public float OrderCost(ProductionOrder o, Country? c = null)
     {
         // material melhor custa mais a fazer: a marca da linha multiplica o preço do conjunto (Marks)
-        try { return o.IsKit ? Units.GetUnitType(o.UnitTypeId).Cost * Marks.Cost(this, o.UnitTypeId, o.Mark)
+        try { return o.IsKit ? Units.GetUnitType(o.UnitTypeId).Cost * Marks.Cost(this, o.UnitTypeId, o.Mark, c)
                              : TemplateCost(o.TemplateId); }
         catch { return 0f; }
     }

@@ -162,6 +162,8 @@ public sealed record AirWingBought(int CountryId, int Total) : IGameEvent;
 public sealed record PlaneDesigned(int CountryId, int DesignId, bool Edited) : IGameEvent;
 /// <summary>Um navio saiu do estaleiro (ShipShop): desenho novo, ou o mesmo redesenhado.</summary>
 public sealed record ShipDesigned(int CountryId, int DesignId, bool Edited) : IGameEvent;
+/// <summary>Um carro saiu da prancheta (TankShop): a geração de material seguinte, feita em casa.</summary>
+public sealed record TankDesigned(int CountryId, int DesignId, bool Edited) : IGameEvent;
 public sealed record BattleRetreat(int RegionId, int CountryId, int Divisions) : IGameEvent;
 public sealed record FocusCompleted(int CountryId, string FocusId) : IGameEvent;
 public sealed record WarJustifyStarted(int CountryId, int TargetCountryId) : IGameEvent;

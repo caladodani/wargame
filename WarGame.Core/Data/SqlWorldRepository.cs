@@ -182,6 +182,20 @@ public sealed class SqlWorldRepository : IWorldRepository
             w.EquipmentMarks[(string)r["id"]!] = new EquipmentMarkDef((string)r["id"]!, Convert.ToInt32(r["unit_type_id"]),
                 Convert.ToInt32(r["mark"]), (string)r["name"]!, (string)r["tech_id"]!, Convert.ToSingle(r["cost"]),
                 Convert.ToSingle(r["power"]), Convert.ToSingle(r["wear"]), (string)r["note"]!, (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,unit_type_id,cost,power,wear,tech_id,note,sort,glyph,slots FROM tank_chassis ORDER BY sort"))
+            w.TankChassis[(string)r["id"]!] = new TankChassisDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToInt32(r["unit_type_id"]), Convert.ToSingle(r["cost"]), Convert.ToSingle(r["power"]),
+                Convert.ToSingle(r["wear"]), (string)r["tech_id"]!, (string)r["note"]!,
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!, r["slots"] as string ?? "");
+        foreach (var r in _static.Query("SELECT id,name,required,note,sort,glyph FROM tank_slot ORDER BY sort"))
+            w.TankSlotDefs[(string)r["id"]!] = new TankSlotDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToInt32(r["required"]) != 0, (string)r["note"]!, Convert.ToInt32(r["sort"]),
+                (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,slot,cost,power,wear,tech_id,note,sort,glyph FROM tank_module ORDER BY sort"))
+            w.TankModules[(string)r["id"]!] = new TankModuleDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["slot"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["power"]),
+                Convert.ToSingle(r["wear"]), (string)r["tech_id"]!, (string)r["note"]!,
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort,glyph FROM occupation_policy ORDER BY sort"))
             w.OccupationPolicyDefs[(string)r["id"]!] = new OccupationPolicyDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToSingle(r["resistance_mult"]), Convert.ToSingle(r["yield_mult"]),
@@ -712,6 +726,25 @@ public sealed class SqlWorldRepository : IWorldRepository
             }
             ShipShop.Register(w, design);
         }
+        // A prancheta dos carros: o desenho tem de voltar a ser MARCA antes de se lerem as linhas de produção
+        // e as divisões, senão a fábrica acordava afinada numa geração que ainda não existe.
+        foreach (var r in save.Query("SELECT id,country_id,name,chassis FROM s_tank_design ORDER BY id"))
+        {
+            int tid = Convert.ToInt32(r["id"]);
+            var design = new TankDesign
+            {
+                Id = tid, CountryId = Convert.ToInt32(r["country_id"]),
+                Name = (string)r["name"]!, Chassis = (string)r["chassis"]!,
+            };
+            var slots = TankShop.Slots(w, design.Chassis);
+            design.Modules = Enumerable.Repeat("", slots.Count).ToList();
+            foreach (var m in save.Query("SELECT slot_index,module_id FROM s_tank_design_module WHERE design_id=? ORDER BY slot_index", tid))
+            {
+                int at = Convert.ToInt32(m["slot_index"]);
+                if (at >= 0 && at < design.Modules.Count) design.Modules[at] = (string)m["module_id"]!;
+            }
+            TankShop.Register(w, design);
+        }
         // as classes vêm depois do total: um save velho não tem estas linhas e fica com cascos sem classe,
         // que é exactamente o que aquele save era
         foreach (var r in save.Query("SELECT country_id,class_id,count FROM s_ship"))
@@ -889,7 +922,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_tank_design", "s_tank_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -975,6 +1008,17 @@ public sealed class SqlWorldRepository : IWorldRepository
             for (int i = 0; i < d.Modules.Count; i++)
                 if (d.Modules[i].Length > 0)
                     save.Execute("INSERT INTO s_ship_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                        d.Id, i, d.Modules[i]);
+        }
+        // Da prancheta dos carros também: a escolha, nunca a marca que dela sai — assim uma peça reafinada
+        // na tabela revaloriza todos os carros que a levam, tal e qual como no avião e no navio.
+        foreach (var d in w.TankDesigns.OrderBy(x => x.Id))
+        {
+            save.Execute("INSERT INTO s_tank_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+                d.Id, d.CountryId, d.Name, d.Chassis);
+            for (int i = 0; i < d.Modules.Count; i++)
+                if (d.Modules[i].Length > 0)
+                    save.Execute("INSERT INTO s_tank_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
                         d.Id, i, d.Modules[i]);
         }
         foreach (var m in w.NavalMissions)

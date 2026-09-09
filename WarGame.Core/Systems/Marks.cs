@@ -22,26 +22,29 @@ namespace WarGame.Core.Systems;
 /// da prateleira, a da divisão e a da linha) vive nas entidades que já existiam.</summary>
 public static class Marks
 {
-    /// <summary>As marcas de um tipo de material, da primeira geração para a última.</summary>
-    public static List<EquipmentMarkDef> All(World w, int unitTypeId) =>
-        w.EquipmentMarks.Values.Where(m => m.UnitTypeId == unitTypeId)
-                        .OrderBy(m => m.Mark).ThenBy(m => m.Id, StringComparer.Ordinal).ToList();
+    /// <summary>As marcas de um tipo de material, da primeira geração para a última. Sem país são só as da
+    /// tabela — as de toda a gente; com país juntam-se-lhe os carros que ELE desenhou na prancheta
+    /// (TankShop), que são a geração seguinte e que mais ninguém sabe fazer.</summary>
+    public static List<EquipmentMarkDef> All(World w, int unitTypeId, Country? c = null) =>
+        w.EquipmentMarks.Values
+         .Where(m => m.UnitTypeId == unitTypeId && (m.OwnerId == 0 || (c is not null && m.OwnerId == c.Id)))
+         .OrderBy(m => m.Mark).ThenBy(m => m.Id, StringComparer.Ordinal).ToList();
 
     /// <summary>A melhor marca deste tipo que o país já tem aberta: a última cuja tecnologia ele investigou
     /// (marca sem tecnologia é de origem e está sempre aberta). Zero num mundo sem tabela de marcas.</summary>
     public static float Open(World w, Country c, int unitTypeId)
     {
         float best = 0f;
-        foreach (var m in All(w, unitTypeId))
+        foreach (var m in All(w, unitTypeId, c))
             if (m.TechId.Length == 0 || c.Techs.Contains(m.TechId)) best = MathF.Max(best, m.Mark);
         return best;
     }
 
     /// <summary>Um número da tabela lido a uma marca com casas decimais: interpola entre a geração de baixo
     /// e a de cima. Fora da tabela (ou num mundo sem marcas) vale 1 — é o jogo de sempre.</summary>
-    public static float Value(World w, int unitTypeId, float mark, string field)
+    public static float Value(World w, int unitTypeId, float mark, string field, Country? c = null)
     {
-        var list = All(w, unitTypeId);
+        var list = All(w, unitTypeId, c);
         if (list.Count == 0) return 1f;
         if (mark <= list[0].Mark) return Field(list[0], field);
         var last = list[^1];
@@ -58,45 +61,54 @@ public static class Marks
         return Field(last, field);
     }
 
+    /// <summary>O país de uma divisão, para as contas dela lerem também o carro que a casa desenhou. Null
+    /// num mundo de prova sem países — e aí só contam as marcas da tabela, como sempre.</summary>
+    private static Country? Owner(World w, Division d) =>
+        w.Countries.TryGetValue(d.CountryId, out var c) ? c : null;
+
     private static float Field(EquipmentMarkDef d, string field) => field switch
     {
         "cost" => d.Cost, "power" => d.Power, "wear" => d.Wear, _ => 1f,
     };
 
     /// <summary>O que custa fabricar um conjunto desta marca, em multiplicadores do preço de origem.</summary>
-    public static float Cost(World w, int unitTypeId, float mark) => Value(w, unitTypeId, mark, "cost");
+    public static float Cost(World w, int unitTypeId, float mark, Country? c = null) =>
+        Value(w, unitTypeId, mark, "cost", c);
 
     /// <summary>O que este material vale em combate.</summary>
-    public static float Power(World w, int unitTypeId, float mark) => Value(w, unitTypeId, mark, "power");
+    public static float Power(World w, int unitTypeId, float mark, Country? c = null) =>
+        Value(w, unitTypeId, mark, "power", c);
 
     /// <summary>Quanto se gasta este material: abaixo de 1 é equipamento que aguenta mais guerra.</summary>
-    public static float Wear(World w, int unitTypeId, float mark) => Value(w, unitTypeId, mark, "wear");
+    public static float Wear(World w, int unitTypeId, float mark, Country? c = null) =>
+        Value(w, unitTypeId, mark, "wear", c);
 
     /// <summary>O nome que se lê de uma marca ("Fuzil modular"), pela geração inteira mais próxima abaixo.
     /// Vazio num mundo sem marcas nenhumas.</summary>
-    public static string Name(World w, int unitTypeId, float mark)
+    public static string Name(World w, int unitTypeId, float mark, Country? c = null)
     {
-        var d = At(w, unitTypeId, mark);
+        var d = At(w, unitTypeId, mark, c);
         return d is null ? "" : d.Name;
     }
 
     /// <summary>A chapa de uma marca.</summary>
-    public static string Glyph(World w, int unitTypeId, float mark) => At(w, unitTypeId, mark)?.Glyph ?? "caixa";
+    public static string Glyph(World w, int unitTypeId, float mark, Country? c = null) =>
+        At(w, unitTypeId, mark, c)?.Glyph ?? "caixa";
 
     /// <summary>A linha da tabela em que uma marca com casas decimais está pousada (a geração de baixo).</summary>
-    public static EquipmentMarkDef? At(World w, int unitTypeId, float mark)
+    public static EquipmentMarkDef? At(World w, int unitTypeId, float mark, Country? c = null)
     {
         EquipmentMarkDef? found = null;
-        foreach (var m in All(w, unitTypeId))
+        foreach (var m in All(w, unitTypeId, c))
             if (m.Mark <= mark + 0.0001f || found is null) found = m;
         return found;
     }
 
     /// <summary>A marca em palavras: "Fuzil modular (Mk III)". É o que a ficha da divisão e a prateleira do
     /// armazém escrevem, e o que a prova headless lê.</summary>
-    public static string Describe(World w, int unitTypeId, float mark)
+    public static string Describe(World w, int unitTypeId, float mark, Country? c = null)
     {
-        var d = At(w, unitTypeId, mark);
+        var d = At(w, unitTypeId, mark, c);
         return d is null ? "sem marca" : $"{d.Name} ({Roman(d.Mark)})";
     }
 
@@ -173,7 +185,7 @@ public static class Marks
         foreach (var (type, n) in need)
         {
             if (n <= 0) continue;
-            sum += n * Power(w, type, d.Mark); qty += n;
+            sum += n * Power(w, type, d.Mark, Owner(w, d)); qty += n;
         }
         return qty <= 0f ? 1f : sum / qty;
     }
@@ -188,7 +200,7 @@ public static class Marks
         foreach (var (type, n) in need)
         {
             if (n <= 0) continue;
-            sum += n * Wear(w, type, d.Mark); qty += n;
+            sum += n * Wear(w, type, d.Mark, Owner(w, d)); qty += n;
         }
         return qty <= 0f ? 1f : sum / qty;
     }

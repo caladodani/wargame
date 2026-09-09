@@ -1546,7 +1546,13 @@ INSERT INTO rule (key,value,note) VALUES
  ('depot_idle_lines',1,'1 = as fábricas militares sem encomenda fazem material para o armazém'),
  ('depot_idle_share',0.6,'quanto rende uma fábrica de depósito face a uma linha dedicada'),
  ('mark_switch_efficiency',0.55,'ritmo que sobra à linha quando ela muda para a marca seguinte'),
- ('mark_switch_min',1,'marcas de salto a partir das quais a linha tem de parar para se reafinar');
+ ('mark_switch_min',1,'marcas de salto a partir das quais a linha tem de parar para se reafinar'),
+ -- A prancheta dos carros (TankShop). A "aresta" é a lei que segura a ladeira das marcas de pé: o carro
+ -- desenhado é a geração SEGUINTE, por isso tem de bater o que a fábrica já sabe fazer — senão assinava-se
+ -- um carro pior e a tropa acordava com material que não pediu.
+ ('tank_design_xp',35,'experiência de exército que se paga para assinar um carro na prancheta'),
+ ('tank_design_edit_xp',14,'o que custa voltar a mexer num carro já assinado'),
+ ('tank_design_edge',1,'quanto o carro desenhado tem de bater a melhor marca aberta para se poder assinar');
 
 -- Desembarques da IA: bater da praia é caro, por isso exige mais vantagem do que um ataque por terra
 -- e reserva organização para a travessia.

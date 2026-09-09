@@ -28,6 +28,9 @@ public partial class ProductionPanel : PanelContainer
     private ScrollContainer _scroll = null!;
     private Label _tally = null!;
     private DesignerView _designer = null!;
+    private TankShopView _tank = null!;
+    private VBoxContainer _tanks = null!;
+    private Button _tankBtn = null!;
     private int _tab;
     private string _lastKey = "";
 
@@ -73,12 +76,20 @@ public partial class ProductionPanel : PanelContainer
         var snote = Ui.Lbl("as fábricas sem encomenda enchem-no sozinhas", 14);
         snote.AddThemeColorOverride("font_color", Ui.TextDim);
         shead.AddChild(snote);
+        // a prancheta dos carros mora aqui: o que sai dela é uma marca de material, e é neste armazém que
+        // ela aparece na prateleira ao lado das da tabela
+        _tankBtn = Ui.Btn("✎ Carros", OpenTankShop, 132);
+        shead.AddChild(_tankBtn);
+        _tanks = new VBoxContainer(); _tanks.AddThemeConstantOverride("separation", 2); _stockBox.AddChild(_tanks);
         _stock = new VBoxContainer(); _stock.AddThemeConstantOverride("separation", 4); _stockBox.AddChild(_stock);
 
         // a prancheta por cima do painel: abre-se daqui e volta-se aqui quando o desenho está assinado
         _designer = new DesignerView { Name = "Designer" };
         AddChild(_designer);
         _designer.Setup(game, () => { _lastKey = ""; Refresh(); });
+        _tank = new TankShopView { Name = "TankShop" };
+        AddChild(_tank);
+        _tank.Setup(game, () => { _lastKey = ""; Refresh(); });
         Show(0);
     }
 
@@ -122,7 +133,8 @@ public partial class ProductionPanel : PanelContainer
             IReadOnlyList<DivisionTemplate> tmpls;
             try { tmpls = w.Units.GetTemplates(pid); } catch (Exception ex) { GD.PushError("templates: " + ex.Message); tmpls = Array.Empty<DivisionTemplate>(); }
             var y = Industry.Of(w, pid);
-            var key = _tab + "#" + string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military + "#" + Mathf.RoundToInt(Warehouse.Average(w, c) * 100f) + "#" + Mathf.RoundToInt(c.Stock.Values.Sum());
+            var key = _tab + "#" + string.Join("|", tmpls.Select(t => t.Id)) + "#" + string.Join("|", c.Queue.Select(o => o.TemplateId + ":" + Pct(w, o) + (o.Repeat ? "R" : "") + "f" + o.Factories + "e" + Mathf.RoundToInt(o.Efficiency * 100f))) + "#" + (int)(c.Manpower / 1000f) + "#" + y.MilitaryBusy + "/" + y.Military + "#" + Mathf.RoundToInt(Warehouse.Average(w, c) * 100f) + "#" + Mathf.RoundToInt(c.Stock.Values.Sum())
+                + "#" + string.Join("|", TankShop.Of(w, pid).Select(d => d.Id + ":" + d.Chassis + ":" + string.Join(",", d.Modules))) + "#" + Mathf.RoundToInt(c.ArmyXp);
             if (key == _lastKey) return;
             _lastKey = key;
 
@@ -131,7 +143,8 @@ public partial class ProductionPanel : PanelContainer
                 + $"  ·  {c.Queue.Count} na fila");
             Ui.Clear(_tabs);
             _tabs.AddChild(Ui.Tabs(new[] { $"Fila ({c.Queue.Count})", $"Modelos ({tmpls.Count})", $"Armazém ({Warehouse.Average(w, c):P0})" }, _tab, Pick));
-            Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench); Ui.Clear(_stock);
+            Ui.Clear(_templates); Ui.Clear(_queue); Ui.Clear(_bench); Ui.Clear(_stock); Ui.Clear(_tanks);
+            Tanks(w, c);
             _stock.AddChild(StockView.Sheet(w, c, OrderKit));
             var gear = Ui.Lbl("⚙", 18); gear.AddThemeColorOverride("font_color", Ui.Accent); _bench.AddChild(gear);
             _bench.AddChild(Ui.Pips(y.MilitaryBusy, y.Military));
@@ -231,6 +244,57 @@ public partial class ProductionPanel : PanelContainer
         catch (Exception ex) { GD.PushError("ProductionPanel.Fill: " + ex); }
     }
 
+
+    /// <summary>Os carros desenhados em casa, por cima das prateleiras do armazém: uma linha por desenho com
+    /// a ficha em números, o "✎" para lhe voltar a mexer e o "×" para o deitar abaixo. Sem nenhum desenhado
+    /// diz-se o que a prancheta faz e quanto pede — a mecânica não pode viver escondida atrás de um botão
+    /// sem explicação.</summary>
+    private void Tanks(World w, Country c)
+    {
+        var mine = TankShop.Of(w, c.Id);
+        _tankBtn.Text = $"✎ Carros ({c.ArmyXp:0} xp)";
+        _tankBtn.TooltipText = "A prancheta dos carros: desenha a geração seguinte de material blindado à peça.";
+        if (mine.Count == 0)
+        {
+            var none = Ui.Wrapped($"Sem carros de casa. A prancheta desenha a geração seguinte de material "
+                                + $"blindado à peça, por {TankShop.Price(w, false):0} de experiência de exército.", 620f, 14);
+            none.AddThemeColorOverride("font_color", Ui.TextDim);
+            _tanks.AddChild(none);
+            return;
+        }
+        foreach (var d in mine)
+        {
+            int did = d.Id;
+            if (!w.EquipmentMarks.TryGetValue(TankShop.MarkId(did), out var mark)) continue;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 8);
+            row.AddChild(Glyph.Make(mark.Glyph, 24f, Ui.Accent, mark.Note));
+            var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 0);
+            col.AddChild(Ui.Lbl(TankShop.Short(w, mark), 15));
+            var note = Ui.Lbl(mark.Note, 13);
+            note.AddThemeColorOverride("font_color", Ui.TextDim);
+            col.AddChild(note);
+            row.AddChild(Ui.Grow(col));
+            row.AddChild(Ui.Btn("✎", () => _tank.Open(did), 56));
+            row.AddChild(Ui.Btn("×", () => ScrapTank(did), 56));
+            _tanks.AddChild(row);
+        }
+    }
+
+    /// <summary>Abre a prancheta dos carros, em branco.</summary>
+    private void OpenTankShop() => _tank.Open();
+
+    /// <summary>Deita abaixo um carro de casa. O material já feito fica no armazém — o comando recusa se
+    /// houver linha a fazê-lo, e é ele que o diz.</summary>
+    private void ScrapTank(int designId) => _game.RunWhenIdle(() =>
+    {
+        if (_game.PlayerId is not int pid) return;
+        var err = _game.Dispatch(new ScrapTankDesignCommand(pid, designId));
+        if (err is not null) _game.Notify(err);
+        else { _game.Notify("Desenho deitado abaixo"); _lastKey = ""; Refresh(); }
+    });
+
+    /// <summary>--smoke: a prancheta dos carros, provada de ponta a ponta.</summary>
+    public string SmokeTank() => _tank.Smoke();
 
     /// <summary>O ritmo da linha, à maneira dos mostradores de fábrica do HoI4: uma calha escura com a
     /// agulha de latão a subir do ritmo de origem (100%) até ao tecto, o número por extenso e a seta a dizer

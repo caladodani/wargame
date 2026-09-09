@@ -66,7 +66,7 @@ public static class Industry
     public static int Unfinished(World w, Country c)
     {
         int n = 0;
-        foreach (var o in c.Queue) if (o.Progress < w.OrderCost(o) - 1e-3f) n++;
+        foreach (var o in c.Queue) if (o.Progress < w.OrderCost(o, c) - 1e-3f) n++;
         return n;
     }
 
@@ -76,7 +76,7 @@ public static class Industry
     {
         int n = 0;
         foreach (var o in c.Queue)
-            if (o.Progress < w.OrderCost(o) - 1e-3f) n += Math.Max(1, o.Factories);
+            if (o.Progress < w.OrderCost(o, c) - 1e-3f) n += Math.Max(1, o.Factories);
         return n;
     }
 

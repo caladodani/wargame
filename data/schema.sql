@@ -43,6 +43,42 @@ CREATE TABLE IF NOT EXISTS equipment_mark (  -- as gerações de material (HoI4:
   note TEXT NOT NULL DEFAULT '',
   glyph TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS tank_chassis (     -- os cascos que se levam à prancheta dos carros (TankShop); estática
+  -- A prancheta dos carros é a terceira e última do jogo (aviões 0.3.70, navios 0.3.72). Aqui o que sai da
+  -- prancheta NÃO é uma classe à parte: é uma MARCA de material (equipment_mark) daquele tipo de unidade —
+  -- a geração seguinte da tabela, feita em casa. Por isso um carro desenhado entra sozinho na fábrica, no
+  -- armazém, nos reforços e no combate, sem uma linha de caso especial em lado nenhum.
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  unit_type_id INTEGER NOT NULL REFERENCES unit_type(id),   -- que ladeira de material é que este casco sobe
+  cost REAL NOT NULL DEFAULT 1,               -- as três colunas de equipment_mark, já com a base do casco
+  power REAL NOT NULL DEFAULT 1,
+  wear REAL NOT NULL DEFAULT 1,
+  tech_id TEXT NOT NULL DEFAULT '',           -- investigação que abre o casco ('' = casco de origem)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '',
+  slots TEXT NOT NULL DEFAULT ''              -- ranhuras do casco pela ordem da prancheta; '' = casco que não se desenha
+);
+CREATE TABLE IF NOT EXISTS tank_slot (        -- tipos de ranhura de um casco de carro (TankShop); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  required INTEGER NOT NULL DEFAULT 0,        -- 1 = ranhura que tem de levar peça (sem canhão não é carro de combate)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS tank_module (      -- peças que se montam nas ranhuras do casco (TankShop); estática
+  -- Cada coluna SOMA à do casco, como no avião e no navio. Um carro é caro (cost), bate (power) e aguenta
+  -- guerra (wear, abaixo de 1 é melhor) — e é sempre a mesma soma, não há carro nenhum escrito em código.
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  slot TEXT NOT NULL REFERENCES tank_slot(id),
+  cost REAL NOT NULL DEFAULT 0, power REAL NOT NULL DEFAULT 0, wear REAL NOT NULL DEFAULT 0,
+  tech_id TEXT NOT NULL DEFAULT '',           -- investigação que abre a peça ('' = peça de origem)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS s_tank_design (    -- carros desenhados em jogo na prancheta (save)
+  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL, chassis TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS s_tank_design_module (   -- o que está em cada ranhura desse desenho (save)
+  design_id INTEGER NOT NULL, slot_index INTEGER NOT NULL, module_id TEXT NOT NULL,
+  PRIMARY KEY (design_id, slot_index));
 CREATE TABLE IF NOT EXISTS modifier (
   id INTEGER PRIMARY KEY, source_kind TEXT NOT NULL,
   condition_key TEXT, condition_value TEXT,

@@ -539,6 +539,38 @@ public sealed class ShipDesign
     public List<string> Modules { get; set; } = new();
 }
 
+/// <summary>Um casco de carro de combate (tabela tank_chassis; TankShop). É a base da prancheta e diz, no
+/// UnitTypeId, que ladeira de material é que o carro desenhado sobe — o que sai da prancheta é uma marca
+/// (equipment_mark) daquele tipo, não uma classe à parte. Slots vazio = casco que não se desenha.</summary>
+public sealed record TankChassisDef(string Id, string Name, int UnitTypeId, float Cost, float Power, float Wear,
+                                    string TechId, string Note, int Sort, string Glyph, string Slots)
+{
+    public bool Designable => Slots.Length > 0;
+}
+
+/// <summary>Uma ranhura de casco de carro (tabela tank_slot; TankShop). Required a 1 é a ranhura sem a qual
+/// o desenho não se assina (o canhão: sem ele aquilo é um tractor com chapa).</summary>
+public sealed record TankSlotDef(string Id, string Name, bool Required, string Note, int Sort, string Glyph);
+
+/// <summary>Uma peça de carro (tabela tank_module; TankShop). Cada número SOMA ao do casco: Cost é o que o
+/// conjunto passa a custar à fábrica, Power o que vale em combate e Wear o desgaste (abaixo de zero é peça
+/// que faz o carro durar mais). TechId vazio = peça de origem.</summary>
+public sealed record TankModuleDef(string Id, string Name, string Slot, float Cost, float Power, float Wear,
+                                   string TechId, string Note, int Sort, string Glyph);
+
+/// <summary>Um carro desenhado em jogo (save s_tank_design). Guarda-se a ESCOLHA — o casco e a peça de cada
+/// ranhura — e nunca os números: esses voltam a sair da tabela pelo TankShop.Build, para uma peça reafinada
+/// valer logo em todos os carros que a levam.</summary>
+public sealed class TankDesign
+{
+    public int Id { get; init; }
+    public int CountryId { get; init; }
+    public string Name { get; set; } = "";
+    public string Chassis { get; set; } = "";
+    /// <summary>Uma entrada por ranhura do casco, pela ordem dela; "" = ranhura vazia.</summary>
+    public List<string> Modules { get; set; } = new();
+}
+
 /// <summary>Um modelo de avião (tabela plane_class; Air). O céu do jogo era um número só: agora cada asa
 /// tem modelo e o modelo decide para que serve. Air é o que ele vale num combate aéreo — e é também o que
 /// o salva do abate, porque quem não sabe lutar no ar é o primeiro a cair; Superiority/Support/Bombing/
@@ -581,8 +613,11 @@ public sealed class PlaneDesign
 /// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de
 /// unidade tem marcas, cada marca abre-se com uma tecnologia (TechId vazio = a de origem, que todos têm) e
 /// custa mais (Cost), vale mais em combate (Power) e gasta-se menos (Wear). Nada disto está em código.</summary>
+/// OwnerId a zero é a marca da tabela, que é de toda a gente; acima de zero é um carro desenhado na
+/// prancheta daquele país (TankShop) — a geração seguinte, feita em casa, que só ele sabe fazer.
 public sealed record EquipmentMarkDef(string Id, int UnitTypeId, int Mark, string Name, string TechId,
-                                      float Cost, float Power, float Wear, string Note, string Glyph);
+                                      float Cost, float Power, float Wear, string Note, string Glyph,
+                                      int OwnerId = 0);
 
 /// <summary>Uma esquadra destacada para o mar de uma região costeira (NavalMissionSystem; save
 /// s_naval_mission). Ships são navios do pool nacional (Country.Warships) que ficam presos a esta missão

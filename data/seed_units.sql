@@ -91,6 +91,52 @@ INSERT INTO equipment_mark (id,unit_type_id,mark,name,tech_id,cost,power,wear,no
  ('at_mk3', 6,3,'Ataque pelo topo','art_2',  1.35,1.22,0.88,'Entra por cima, onde nenhum carro leva aço a sério.','punho'),
  ('at_mk4', 6,4,'Míssil autónomo','art_3',   1.60,1.36,0.80,'Dispara-se e esquece-se: ele procura o carro sozinho.','coroa');
 
+-- ================= A PRANCHETA DOS CARROS (TankShop; HoI4: tank designer) =================
+-- As marcas de cima são as gerações que a INVESTIGAÇÃO abre: toda a gente sobe a mesma ladeira e chega ao
+-- mesmo carro. O que a prancheta faz é deixar o país desenhar a geração SEGUINTE com as mãos dele — mais
+-- canhão e menos aço, ou aço a mais e um motor que o arrasta, ou um carro barato que se faz aos molhos.
+-- O que sai não é uma classe à parte: é uma linha de equipment_mark com dono, a mark a seguir à última da
+-- tabela. Por isso a fábrica reafina-se para ela sozinha, o armazém mistura-a na pilha e a divisão bate-se
+-- com ela sem que uma única linha do jogo saiba que aquilo foi desenhado em casa.
+INSERT INTO tank_chassis (id,name,unit_type_id,cost,power,wear,tech_id,note,sort,glyph,slots) VALUES
+ ('ligeiro',  'Casco ligeiro',   3,0.75,0.90,1.05,'',     'Pouco aço, muita estrada: chega primeiro e foge antes de levar.',1,'lagarta','canhao,torre,motor,blindagem,extra'),
+ ('medio',    'Casco médio',     3,1.10,1.15,1.00,'',     'O carro de que se fazem exércitos: nem o mais grosso nem o mais rápido.',2,'lagarta','canhao,torre,motor,blindagem,lagartas,extra'),
+ ('pesado',   'Casco pesado',    3,1.70,1.35,0.95,'arm_1','Aço a sério e o preço que isso tem: abre a porta e aguenta lá dentro.',3,'muro','canhao,torre,motor,blindagem,blindagem,lagartas,extra'),
+ ('moderno',  'Casco moderno',   3,2.10,1.50,0.88,'arm_3','Torre não tripulada e tudo em rede: o carro que ainda está a chegar.',4,'coroa','canhao,torre,motor,blindagem,lagartas,extra,extra'),
+ ('rodas',    'Casco de rodas',  2,0.90,0.95,1.00,'',     'Viatura da infantaria: leva os homens ao sítio e fica a bater com eles.',5,'camiao','canhao,torre,motor,blindagem,extra'),
+ ('caca',     'Casco sem torre', 6,1.00,1.10,0.98,'arm_1','Canhão grande num casco baixo: espera o carro do outro e não o deixa passar.',6,'obus','canhao,motor,blindagem,extra');
+
+INSERT INTO tank_slot (id,name,required,note,sort,glyph) VALUES
+ ('canhao',   'Canhão',    1,'A boca de fogo. Sem ela isto é um tractor com chapa.',1,'canhao'),
+ ('torre',    'Torre',     0,'Onde o canhão gira — e quanta gente lá cabe a olhar para fora.',2,'coroa'),
+ ('motor',    'Motor',     0,'O que arrasta o aço todo: sem cavalos, blindagem é peso morto.',3,'mola'),
+ ('blindagem','Blindagem', 0,'O aço, e o que se lhe cola por fora para o míssil não entrar.',4,'muro'),
+ ('lagartas', 'Lagartas',  0,'Onde o carro assenta: lama, neve e serra decidem-se aqui.',5,'lagarta'),
+ ('extra',    'Extras',    0,'Óptica, rádio, fumo, drones — o que faz o carro ver antes de ser visto.',6,'antena');
+
+INSERT INTO tank_module (id,name,slot,cost,power,wear,tech_id,note,sort,glyph) VALUES
+ ('canhao_curto',  'Canhão curto',        'canhao',   0.05,0.05, 0.00,'',        'Bate bem em casa e em quem anda a pé; contra aço não faz nada.',1,'canhao'),
+ ('canhao_longo',  'Canhão de alta velocidade','canhao',0.20,0.20,0.02,'arm_1',  'Cano comprido e projéctil rápido: é assim que se fura um carro.',2,'canhao'),
+ ('canhao_130',    'Canhão de 130 mm',    'canhao',   0.38,0.34, 0.05,'arm_3',   'Passa por qualquer aço que hoje ande no mundo — e come munição a esse preço.',3,'obus'),
+ ('misseis_carro', 'Mísseis no carro',    'canhao',   0.30,0.28,-0.04,'art_2',   'Dispara-se de dois quilómetros, do sítio onde o outro nem olha.',4,'alvo'),
+ ('torre_dupla',   'Torre de dois homens','torre',    0.06,0.04, 0.02,'',        'Um aponta, o outro carrega — e o comandante faz as duas coisas mal.',5,'coroa'),
+ ('torre_tres',    'Torre de três homens','torre',    0.14,0.12,-0.02,'arm_1',   'Comandante só a mandar: o carro vê o combate em vez de olhar pela mira.',6,'coroa'),
+ ('torre_vazia',   'Torre não tripulada', 'torre',    0.28,0.24,-0.06,'arm_3',   'Tripulação fechada na cuba, torre só com máquina: o que a mata já não os mata.',7,'drone'),
+ ('motor_diesel',  'Motor diesel',        'motor',    0.05,0.04,-0.05,'',        'Puxa, bebe pouco e não pega fogo por qualquer coisa.',8,'mola'),
+ ('motor_turbina', 'Turbina a gás',       'motor',    0.22,0.16, 0.06,'ind_2',   'Cavalos a mais e uma sede de camião-cisterna atrás.',9,'mola'),
+ ('motor_hibrido', 'Transmissão híbrida', 'motor',    0.30,0.20,-0.10,'ind_3',   'Anda calado, arranca do nada e passa o dia à espera sem gastar.',10,'raio'),
+ ('chapa_soldada', 'Chapa soldada',       'blindagem',0.06,0.05, 0.00,'',        'Aço e mais nada: contra estilhaço chega, contra carga oca é papel.',11,'escudo'),
+ ('reactiva',      'Blindagem reactiva',  'blindagem',0.16,0.14, 0.02,'arm_1',   'Tijolos que rebentam para fora antes de o jacto entrar.',12,'escudo'),
+ ('composita',     'Blindagem compósita', 'blindagem',0.26,0.22,-0.03,'arm_2',   'Camadas de cerâmica: pesa menos do que o aço que substitui.',13,'muro'),
+ ('gaiola_drones', 'Gaiola anti-drone',   'blindagem',0.10,0.09,-0.05,'drones_2','A guerra de hoje cai de cima: rede, jammer e o carro chega ao fim do dia.',14,'antena'),
+ ('lagarta_larga', 'Lagarta larga',       'lagartas', 0.08,0.06,-0.04,'',        'Assenta na lama e na neve em vez de as escavar.',15,'lagarta'),
+ ('suspensao',     'Suspensão hidráulica','lagartas', 0.18,0.13,-0.03,'ind_2',   'Baixa-se para se esconder e sobe para bater por cima da crista.',16,'mola'),
+ ('optica',        'Óptica térmica',      'extra',    0.12,0.12,-0.02,'inf_2',   'Vê o outro pelo calor, de noite e através do fumo dele.',17,'luneta'),
+ ('radio_rede',    'Rádio em rede',       'extra',    0.14,0.14,-0.02,'doc_1',   'O que um carro vê, o esquadrão inteiro aponta.',18,'antena'),
+ ('aps',           'Protecção activa',    'extra',    0.24,0.20,-0.08,'arm_2',   'Deita abaixo o míssil antes de ele chegar ao aço.',19,'raio'),
+ ('drone_carro',   'Drone de acompanhamento','extra', 0.20,0.18,-0.03,'drones_3','Olha a curva antes do carro lá chegar, e às vezes bate primeiro.',20,'drone'),
+ ('fumo',          'Cortina de fumo',     'extra',    0.04,0.03,-0.04,'',        'Três segundos de nada à frente: às vezes é o dia todo.',21,'floco');
+
 INSERT INTO modifier (source_kind,condition_key,condition_value,stat_key,required_tag,op,value) VALUES
  ('terrain','terrain','forest',  'str_attacker',NULL,     'mul',0.8),
  ('terrain','terrain','urban',   'str_attacker',NULL,     'mul',0.6),

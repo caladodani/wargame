@@ -1356,6 +1356,58 @@ public sealed record ScrapShipDesignCommand(int CountryId, int DesignId) : IComm
     }
 }
 
+/// <summary>Assinar um carro de combate na prancheta (TankShop). O que sai daqui não é uma classe à parte:
+/// é a marca de material seguinte daquele tipo de unidade, só deste país — a fábrica reafina-se para ela
+/// sozinha e a tropa passa a bater-se com ela. Paga-se em experiência de exército, menos para mexer num
+/// carro que já existe.</summary>
+public sealed record DesignTankCommand(int CountryId, string Name, string Chassis,
+    IReadOnlyList<string> Modules, int DesignId = 0) : ICommand
+{
+    public string? Validate(World w)
+    {
+        string trimmed = Name?.Trim() ?? "";
+        if (trimmed.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
+        return TankShop.Check(w, CountryId, Chassis, Modules, DesignId);
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.ArmyXp = MathF.Max(0f, c.ArmyXp - TankShop.Price(w, DesignId != 0));
+        var design = DesignId != 0
+            ? w.TankDesigns.First(d => d.Id == DesignId)
+            : new TankDesign { Id = TankShop.NextId(w), CountryId = CountryId };
+        design.Name = Name.Trim();
+        design.Chassis = Chassis;
+        design.Modules = Modules.ToList();
+        TankShop.Register(w, design);
+        w.Events.Publish(new Events.TankDesigned(CountryId, design.Id, DesignId != 0));
+    }
+}
+
+/// <summary>Riscar um carro da prancheta. Só sai o que a fábrica não está a fazer: enquanto houver uma linha
+/// de material afinada nessa marca, o desenho fica — senão a linha ficava a fabricar uma geração que já não
+/// existe. O material já feito não desaparece: fica no armazém e volta a valer a última marca da tabela.</summary>
+public sealed record ScrapTankDesignCommand(int CountryId, int DesignId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        var d = w.TankDesigns.FirstOrDefault(x => x.Id == DesignId && x.CountryId == CountryId);
+        if (d is null) return "Esse desenho não é desta casa";
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País desconhecido";
+        var mark = TankShop.Build(w, d);
+        if (c.Queue.Any(o => o.IsKit && o.UnitTypeId == mark.UnitTypeId && o.Mark >= mark.Mark - 0.0001f))
+            return "A fábrica ainda está a fazer este carro: pára a linha primeiro";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var d = w.TankDesigns.FirstOrDefault(x => x.Id == DesignId && x.CountryId == CountryId);
+        if (d is not null) TankShop.Forget(w, d);
+    }
+}
+
 
 /// <summary>Destacar esquadrões para o céu de uma região (AirMissionSystem). As asas saem do pool nacional
 /// enquanto a missão durar, custam estadia todos os dias e podem ser abatidas onde o céu está disputado.
