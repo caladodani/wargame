@@ -1300,6 +1300,62 @@ public sealed record ScrapPlaneDesignCommand(int CountryId, int DesignId) : ICom
     }
 }
 
+/// <summary>Assinar um casco desenhado no estaleiro (ShipShop): o gémeo naval da oficina de aviões. Escolhe-se
+/// um casco da tabela e o que vai em cada ranhura; o que sai é uma classe de navio como as da tabela, que se
+/// compra no estaleiro e navega como as outras.
+///
+/// DesignId a 0 é desenho novo; com número, redesenha-se o que já está assinado — e nesse caso o aço que já
+/// anda no mar passa a valer o que o desenho novo diz, como acontece aos modelos de divisão e de avião.
+/// Paga-se em milhas navegadas (Country.NavyXp, regra ship_design_xp): a experiência que a marinha ganha no
+/// mar é o que abre a prancheta, e é por isso que um país que nunca navegou não desenha nada.</summary>
+public sealed record DesignShipCommand(int CountryId, string Name, string Chassis,
+    IReadOnlyList<string> Modules, int DesignId = 0) : ICommand
+{
+    public string? Validate(World w)
+    {
+        string trimmed = Name?.Trim() ?? "";
+        if (trimmed.Length is < 1 or > 40) return "Nome: 1 a 40 caracteres";
+        return ShipShop.Check(w, CountryId, Chassis, Modules, DesignId);
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.NavyXp = MathF.Max(0f, c.NavyXp - ShipShop.Price(w, DesignId != 0));
+        var design = DesignId != 0
+            ? w.ShipDesigns.First(d => d.Id == DesignId)
+            : new ShipDesign { Id = ShipShop.NextId(w), CountryId = CountryId };
+        design.Name = Name.Trim();
+        design.Chassis = Chassis;
+        design.Modules = Modules.ToList();
+        ShipShop.Register(w, design);
+        w.Events.Publish(new Events.ShipDesigned(CountryId, design.Id, DesignId != 0));
+    }
+}
+
+/// <summary>Riscar um desenho do estaleiro. Só sai o que não anda no mar: enquanto houver um casco daquele
+/// desenho no porto ou em missão, o desenho fica — senão ficava aço sem ficha nenhuma a navegar.</summary>
+public sealed record ScrapShipDesignCommand(int CountryId, int DesignId) : ICommand
+{
+    public string? Validate(World w)
+    {
+        var d = w.ShipDesigns.FirstOrDefault(x => x.Id == DesignId && x.CountryId == CountryId);
+        if (d is null) return "Esse desenho não é desta casa";
+        string cls = ShipShop.ClassId(DesignId);
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "País desconhecido";
+        float have = c.Ships.GetValueOrDefault(cls)
+                   + w.NavalMissions.Where(m => m.CountryId == CountryId).Sum(m => m.Squadron.GetValueOrDefault(cls));
+        if (have > 0.001f) return $"Ainda há {have:0.#} cascos deste desenho no mar";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        w.ShipDesigns.RemoveAll(d => d.Id == DesignId && d.CountryId == CountryId);
+        w.ShipClasses.Remove(ShipShop.ClassId(DesignId));
+    }
+}
+
 
 /// <summary>Destacar esquadrões para o céu de uma região (AirMissionSystem). As asas saem do pool nacional
 /// enquanto a missão durar, custam estadia todos os dias e podem ser abatidas onde o céu está disputado.

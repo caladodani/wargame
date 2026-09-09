@@ -136,7 +136,7 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
-        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw FROM ship_class ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw,slots FROM ship_class ORDER BY sort"))
             w.ShipClasses[(string)r["id"]!] = new ShipClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["battle"]),
                 Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]), Convert.ToSingle(r["escort"]),
@@ -144,7 +144,19 @@ public sealed class SqlWorldRepository : IWorldRepository
                 Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
                 r["deck"] is null ? 0f : Convert.ToSingle(r["deck"]),
                 r["stealth"] is null ? 0f : Convert.ToSingle(r["stealth"]),
-                r["asw"] is null ? 0f : Convert.ToSingle(r["asw"]));
+                r["asw"] is null ? 0f : Convert.ToSingle(r["asw"]),
+                r["slots"] as string ?? "");
+        foreach (var r in _static.Query("SELECT id,name,required,note,sort,glyph FROM ship_slot ORDER BY sort"))
+            w.ShipSlotDefs[(string)r["id"]!] = new ShipSlotDef((string)r["id"]!, (string)r["name"]!,
+                Convert.ToInt32(r["required"]) != 0, (string)r["note"]!, Convert.ToInt32(r["sort"]),
+                (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,slot,cost,upkeep,battle,screen,blockade,escort,patrol,deck,stealth,asw,tech_id,note,sort,glyph FROM ship_module ORDER BY sort"))
+            w.ShipModules[(string)r["id"]!] = new ShipModuleDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["slot"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]),
+                Convert.ToSingle(r["battle"]), Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]),
+                Convert.ToSingle(r["escort"]), Convert.ToSingle(r["patrol"]), Convert.ToSingle(r["deck"]),
+                Convert.ToSingle(r["stealth"]), Convert.ToSingle(r["asw"]), (string)r["tech_id"]!,
+                (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT id,name,slot,cost,upkeep,air,superiority,support,bombing,transport,naval,range_km,deck,tech_id,note,sort,glyph FROM plane_module ORDER BY sort"))
             w.PlaneModules[(string)r["id"]!] = new PlaneModuleDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["slot"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]),
@@ -680,6 +692,26 @@ public sealed class SqlWorldRepository : IWorldRepository
                 if (am.Squadron.ContainsKey("")) am.Squadron.Clear();
                 am.Squadron[(string)r["class_id"]!] = Convert.ToSingle(r["count"]);
             }
+        // O estaleiro antes dos cascos, pela mesma razão da oficina: os navios desenhados em casa têm de ser
+        // classes do mundo ANTES de se ler quantos deles o país tem, senão o porto acordava com aço de uma
+        // classe que ainda não existe.
+        foreach (var r in save.Query("SELECT id,country_id,name,chassis FROM s_ship_design ORDER BY id"))
+        {
+            int sid = Convert.ToInt32(r["id"]);
+            var design = new ShipDesign
+            {
+                Id = sid, CountryId = Convert.ToInt32(r["country_id"]),
+                Name = (string)r["name"]!, Chassis = (string)r["chassis"]!,
+            };
+            var slots = ShipShop.Slots(w, design.Chassis);
+            design.Modules = Enumerable.Repeat("", slots.Count).ToList();
+            foreach (var m in save.Query("SELECT slot_index,module_id FROM s_ship_design_module WHERE design_id=? ORDER BY slot_index", sid))
+            {
+                int at = Convert.ToInt32(m["slot_index"]);
+                if (at >= 0 && at < design.Modules.Count) design.Modules[at] = (string)m["module_id"]!;
+            }
+            ShipShop.Register(w, design);
+        }
         // as classes vêm depois do total: um save velho não tem estas linhas e fica com cascos sem classe,
         // que é exactamente o que aquele save era
         foreach (var r in save.Query("SELECT country_id,class_id,count FROM s_ship"))
@@ -857,7 +889,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -935,6 +967,16 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var (cls, n) in c.Planes.OrderBy(kv => kv.Key, StringComparer.Ordinal))
                 if (cls.Length > 0 && n > 0f)
                     save.Execute("INSERT INTO s_plane (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
+        // Do estaleiro guarda-se a ESCOLHA e não os números, como na oficina de aviões.
+        foreach (var d in w.ShipDesigns.OrderBy(x => x.Id))
+        {
+            save.Execute("INSERT INTO s_ship_design (id,country_id,name,chassis) VALUES (?,?,?,?)",
+                d.Id, d.CountryId, d.Name, d.Chassis);
+            for (int i = 0; i < d.Modules.Count; i++)
+                if (d.Modules[i].Length > 0)
+                    save.Execute("INSERT INTO s_ship_design_module (design_id,slot_index,module_id) VALUES (?,?,?)",
+                        d.Id, i, d.Modules[i]);
+        }
         foreach (var m in w.NavalMissions)
         {
             save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day,name) VALUES (?,?,?,?,?,?)",

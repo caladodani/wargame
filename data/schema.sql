@@ -412,7 +412,32 @@ CREATE TABLE IF NOT EXISTS ship_class (      -- classes de navio (Navy); estáti
   glyph TEXT NOT NULL DEFAULT '',             -- nome de um desenho do Glyph.cs — é este que se vê
   deck REAL NOT NULL DEFAULT 0,               -- asas que o casco leva ao mar (porta-aviões; AirBases.Decks)
   stealth REAL NOT NULL DEFAULT 0,            -- quanto o casco se esconde (submarino; Subs) — 0 = anda à vista
-  asw REAL NOT NULL DEFAULT 0);               -- caça anti-submarina: quanto este casco vê e afunda o que se esconde
+  asw REAL NOT NULL DEFAULT 0,                -- caça anti-submarina: quanto este casco vê e afunda o que se esconde
+  slots TEXT NOT NULL DEFAULT '');            -- ranhuras do casco pela ordem da prancheta (ShipShop); '' = casco que não se desenha
+CREATE TABLE IF NOT EXISTS ship_slot (        -- tipos de ranhura de um casco (ShipShop); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  required INTEGER NOT NULL DEFAULT 0,        -- 1 = ranhura que tem de levar peça (sem máquinas não larga)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+CREATE TABLE IF NOT EXISTS ship_module (      -- peças que se montam nas ranhuras do casco (ShipShop); estática
+  -- Cada coluna SOMA à do casco (ship_class), como no avião: é assim que o mesmo casco dá um caça-submarinos
+  -- ou um lança-mísseis sem haver navio nenhum escrito em código. O que a soma dá nunca desce abaixo de zero.
+  id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  slot TEXT NOT NULL REFERENCES ship_slot(id),
+  cost REAL NOT NULL DEFAULT 0, upkeep REAL NOT NULL DEFAULT 0,
+  battle REAL NOT NULL DEFAULT 0, screen REAL NOT NULL DEFAULT 0,
+  blockade REAL NOT NULL DEFAULT 0, escort REAL NOT NULL DEFAULT 0, patrol REAL NOT NULL DEFAULT 0,
+  deck REAL NOT NULL DEFAULT 0,               -- asas que a peça acrescenta ao convés
+  stealth REAL NOT NULL DEFAULT 0,            -- quanto a peça esconde o casco (revestimento anecóico, silêncio)
+  asw REAL NOT NULL DEFAULT 0,                -- sonar e cargas: o que a peça vê e afunda do que anda por baixo
+  tech_id TEXT NOT NULL DEFAULT '',           -- investigação que abre a peça ('' = peça de origem)
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS s_ship_design (    -- navios desenhados em jogo no estaleiro (save)
+  id INTEGER PRIMARY KEY, country_id INTEGER NOT NULL, name TEXT NOT NULL, chassis TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS s_ship_design_module (   -- o que está em cada ranhura desse desenho (save)
+  design_id INTEGER NOT NULL, slot_index INTEGER NOT NULL, module_id TEXT NOT NULL,
+  PRIMARY KEY (design_id, slot_index));
 CREATE TABLE IF NOT EXISTS s_ship (           -- navios de um país por classe (save)
   country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
   PRIMARY KEY (country_id, class_id));

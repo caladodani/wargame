@@ -968,14 +968,55 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
 -- submarino se esconde, e o que está escondido não leva tiro nenhum no combate de esquadra nem do ar; 'asw'
 -- é quem o vê e o vai buscar ao fundo. Toda a esquadra vê alguma coisa (asw_passive), mas afundar pede a
 -- missão de caça anti-submarina. É por isto que o contratorpedeiro existe.
-INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw) VALUES
- ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta',0,0,1.0),
- ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco',0,0,0.8),
- ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo',0,0,1.4),
- ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda',0,0,2.2),
- ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si. Anda escondido: quem não o vê não lhe acerta.',4,'submarino',0,0.85,0),
- ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas',0,0,0.3),
- ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'Campo de aviação a flutuar: leva o céu com ele e põe asas nossas sobre mar onde não há terra nossa nenhuma. Não se defende sozinho.',6,'conves',4,0,0.6);
+-- A coluna `slots` é o casco visto pelo estaleiro (ShipShop): que ranhuras tem e de que tipo, pela ordem
+-- em que se vêem na prancheta. Vazia = casco que não se desenha. Nada disto está em código.
+INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph,deck,stealth,asw,slots) VALUES
+ ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta',0,0,1.0,'maquinas,armamento,sensores'),
+ ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco',0,0,0.8,'maquinas,armamento,torpedos,sensores'),
+ ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo',0,0,1.4,'maquinas,armamento,torpedos,couraca,sensores'),
+ ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda',0,0,2.2,'maquinas,armamento,armamento,torpedos,sensores'),
+ ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si. Anda escondido: quem não o vê não lhe acerta.',4,'submarino',0,0.85,0,'maquinas,torpedos,couraca,sensores'),
+ ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas',0,0,0.3,'maquinas,armamento,armamento,couraca,sensores'),
+ ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'Campo de aviação a flutuar: leva o céu com ele e põe asas nossas sobre mar onde não há terra nossa nenhuma. Não se defende sozinho.',6,'conves',4,0,0.6,'maquinas,conves,couraca,sensores');
+
+-- O estaleiro (tabelas ship_slot e ship_module; ShipShop). O casco vinha feito da tabela, como o avião
+-- vinha antes da oficina: escolhia-se de uma lista de sete e mais nada, e uma marinha com trinta anos de
+-- investigação navegava exactamente na mesma fragata do vizinho que nunca investiu um tostão. No HoI4 o
+-- casco é só o princípio — o que se lhe mete em cima decide se aquilo é um caça-submarinos, um lança-mísseis
+-- ou um porta-helicópteros. É essa prancheta que estas duas tabelas abrem.
+INSERT INTO ship_slot (id,name,required,note,sort,glyph) VALUES
+ ('maquinas','Máquinas',1,'Sem máquinas não larga do cais. É delas que vem o alcance da esquadra e metade do que o casco aguenta.',0,'helice'),
+ ('armamento','Armamento',0,'O que ele aponta à superfície: canhões, mísseis e a defesa de ponto que o salva dos deles.',1,'canhao'),
+ ('torpedos','Armas submarinas',0,'O que ele larga por baixo de água: torpedos, cargas de profundidade, minas.',2,'torpedo'),
+ ('couraca','Couraça',0,'O que ele leva por fora: blindagem, compartimentagem e o revestimento que o cala.',3,'escudo'),
+ ('sensores','Sensores',0,'O que ele vê: radar, sonar, guerra electrónica e o centro que junta tudo isso numa decisão.',4,'antena'),
+ ('conves','Convés',0,'O que faz do navio um campo de aviação: hangar, elevadores e pista.',5,'conves');
+
+-- As peças. Cada coluna SOMA à do casco e a soma nunca desce abaixo de zero — é assim que a mesma fragata
+-- dá um caça-submarinos ou um bloqueador sem haver navio nenhum escrito em código. tech_id vazio = peça de
+-- origem, que todos têm; o resto abre-se com a investigação que lá está.
+INSERT INTO ship_module (id,name,slot,cost,upkeep,battle,screen,blockade,escort,patrol,deck,stealth,asw,tech_id,note,sort,glyph) VALUES
+ ('turbina_vapor','Turbina a vapor','maquinas',0.3,0.2,0.1,0.1,0.1,0.1,0.1,0,0,0,'','O que sempre houve: leva o casco ao mar e traz-no de volta, sem dar nada de especial.',0,'helice'),
+ ('diesel','Propulsão diesel-eléctrica','maquinas',0.5,0.1,0.1,0,0.3,0.2,0.5,0,0.05,0,'','Gasta pouco e faz pouco barulho: aguenta semanas no mar e é mais difícil de ouvir.',1,'helice'),
+ ('turbina_gas','Turbina a gás','maquinas',0.9,0.5,0.5,0.2,0.2,0.4,0.3,0,0,0,'ind_2','Acelera como nenhuma outra: chega ao combate e sai dele — e bebe o dobro.',2,'mola'),
+ ('nuclear','Propulsão nuclear','maquinas',2.4,-0.4,0.6,0.2,0.5,0.3,0.8,0,0.05,0,'nav_3','Não volta ao porto para comer: fica no mar enquanto houver gente a bordo.',3,'atomo'),
+ ('canhao_naval','Canhão naval','armamento',0.5,0.1,0.6,0.1,0.3,0.1,0.1,0,0,0,'','O tiro de sempre: bate no que está à vista e serve para tudo o que não é longe.',4,'canhao'),
+ ('misseis_antinavio','Mísseis anti-navio','armamento',1.3,0.3,1.5,0,1.0,0.2,0.2,0,0,0,'nav_2','Afunda do outro lado do horizonte: quem o leva escolhe a distância do combate.',5,'raio'),
+ ('defesa_ponto','Defesa antiaérea de ponto','armamento',0.9,0.2,0.2,1.1,0,0.6,0.1,0,0,0,'','Deita abaixo o que vem do céu antes de chegar ao convés: é o que faz a escolta valer alguma coisa.',6,'gancho'),
+ ('drone_naval','Drones de superfície','armamento',0.7,0.2,0.2,0.1,0.2,0.3,1.0,0,0,0.4,'drones_2','Manda a máquina ver o mar por si: patrulha uma bacia inteira sem pôr ninguém lá fora.',7,'drone'),
+ ('tubos_torpedo','Tubos lança-torpedos','torpedos',0.5,0.1,0.5,0,0.6,0,0.1,0,0,0.2,'','O que abre um casco ao meio: pouco alcance e muito estrago.',8,'torpedo'),
+ ('cargas_profundidade','Cargas de profundidade','torpedos',0.4,0.1,0.1,0,0,0.5,0.2,0,0,1.2,'','Larga-se por cima do que se ouviu: é o que vai buscar o submarino ao fundo.',9,'gota'),
+ ('torpedo_pesado','Torpedo pesado de longo curso','torpedos',1.1,0.3,0.9,0,1.1,0,0,0,0,0.3,'nav_2','Sai de longe e ninguém sabe de onde: é com ele que um casco só fecha um mar.',10,'torpedo'),
+ ('minas','Minas navais','torpedos',0.5,0.1,0,0,1.0,-0.3,0,0,0,0,'','Fecha o mar sem lá estar; e o que fica minado também não é sítio para levar um comboio.',11,'estilhaco'),
+ ('compartimentos','Compartimentagem','couraca',0.5,0.1,0.1,0.7,0,0.2,0,0,0,0,'','Um rombo deixa de ser o fim: o navio leva-o e continua a andar.',12,'muro'),
+ ('blindagem','Blindagem de cintura','couraca',1.1,0.4,0.4,1.3,0.1,0.2,0,0,0,0,'','Aço à volta da linha de água: leva os tiros que iam para a linha e traz gente para casa.',13,'escudo'),
+ ('anecoico','Revestimento anecóico','couraca',1.0,0.2,0,0.1,0.3,0,0.1,0,0.10,0,'nav_1','Cala o casco: o sonar do outro lado passa-lhe ao lado, e um casco que não se ouve não leva tiro.',14,'floco'),
+ ('radar_busca','Radar de busca','sensores',0.6,0.2,0.4,0.2,0.2,0.3,0.7,0,0,0,'','Vê o mar todo à volta, de noite e com mau tempo: dispara primeiro quem vê primeiro.',15,'antena'),
+ ('sonar_rebocado','Sonar rebocado','sensores',0.9,0.3,0.1,0,0,0.3,0.4,0,0,1.6,'nav_1','Ouve o que anda por baixo, longe do barulho do próprio casco: é o que faz de um navio um caçador.',16,'sonar'),
+ ('guerra_electronica','Guerra electrónica','sensores',1.0,0.3,0.3,0.6,0.1,0.3,0.2,0,0.05,0,'ind_2','Cega o radar deles e mente-lhes ao míssil: o navio deixa de estar onde eles julgam.',17,'globo'),
+ ('centro_comando','Centro de comando','sensores',1.2,0.4,0.6,0.2,0.2,0.7,0.3,0,0,0.2,'doc_1','Junta o que a esquadra toda vê numa decisão só: vale mais aos outros do que a si próprio.',18,'coluna'),
+ ('hangar_helicopteros','Hangar de helicópteros','conves',0.9,0.3,0.1,0.1,0.1,0.4,0.5,0.5,0,0.9,'','Um helicóptero a bordo estica o sonar por dezenas de milhas — e traz meia asa ao mar.',19,'conves'),
+ ('conves_corrido','Convés corrido','conves',2.6,0.7,0.3,0,0.2,0.3,0.6,3.0,0,0.2,'','Pista de ponta a ponta: é isto que põe uma esquadrilha inteira em cima de mar onde não há terra nossa.',20,'pista');
 
 -- Modelos de avião (tabela plane_class; Air). O céu era um número: uma asa era uma asa, fosse ela de caças
 -- ou de transportes, e por isso a aviação não tinha decisão nenhuma — só quantidade. Agora cada asa tem
@@ -1142,6 +1183,11 @@ INSERT INTO rule (key,value,note) VALUES
  ('plane_design_xp',25,'experiência de aviação que se paga para assinar um desenho na oficina'),
  ('plane_design_edit_xp',10,'experiência de aviação para mexer num desenho que já está assinado'),
  ('plane_design_max',12,'desenhos de avião que um país pode ter na oficina ao mesmo tempo'),
+ -- o estaleiro (ShipShop): assinar um casco desenhado em casa paga-se em milhas navegadas (Country.NavyXp),
+ -- e mexer num que já está assinado custa menos — é a mesma conta da oficina de aviões
+ ('ship_design_xp',30,'experiência de marinha que se paga para assinar um casco no estaleiro'),
+ ('ship_design_edit_xp',12,'experiência de marinha para mexer num casco que já está assinado'),
+ ('ship_design_max',12,'cascos que um país pode ter desenhados ao mesmo tempo'),
  ('naval_ship_cost',90,'custo de um navio de guerra'),
  ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),

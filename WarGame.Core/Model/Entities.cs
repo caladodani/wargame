@@ -503,7 +503,7 @@ public sealed record NavalMissionDef(string Id, string Name, string Icon, string
 public sealed record ShipClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                   float Battle, float Screen, float Blockade, float Escort, float Patrol,
                                   bool Basic, string Note, int Sort, string Glyph, float Deck = 0f,
-                                  float Stealth = 0f, float Asw = 0f)
+                                  float Stealth = 0f, float Asw = 0f, string Slots = "")
 {
     /// <summary>Casco que leva aviação ao mar: é campo de aviação a flutuar (AirBases.Decks).</summary>
     public bool IsCarrier => Deck > 0f;
@@ -511,6 +511,32 @@ public sealed record ShipClassDef(string Id, string Name, string Icon, string Ro
     public bool IsSub => Stealth > 0f;
     /// <summary>Casco que caça o que anda por baixo do mar.</summary>
     public bool IsHunter => Asw > 0f;
+    /// <summary>Casco que se leva ao estaleiro (ShipShop): tem ranhuras onde pôr peças.</summary>
+    public bool Designable => Slots.Length > 0;
+}
+
+/// <summary>Uma ranhura de casco (tabela ship_slot; ShipShop). Diz o que a prancheta mostra e o que aceita
+/// lá dentro; Required a 1 é a ranhura sem a qual o desenho não se assina (as máquinas).</summary>
+public sealed record ShipSlotDef(string Id, string Name, bool Required, string Note, int Sort, string Glyph);
+
+/// <summary>Uma peça de navio (tabela ship_module; ShipShop). Cada número SOMA ao do casco — é assim que a
+/// mesma fragata dá um caça-submarinos ou um lança-mísseis sem haver navio nenhum escrito em código.
+/// TechId vazio = peça de origem, que todos têm.</summary>
+public sealed record ShipModuleDef(string Id, string Name, string Slot, float Cost, float Upkeep, float Battle,
+                                   float Screen, float Blockade, float Escort, float Patrol, float Deck,
+                                   float Stealth, float Asw, string TechId, string Note, int Sort, string Glyph);
+
+/// <summary>Um navio desenhado em jogo (save s_ship_design). Como no avião, guarda-se a ESCOLHA — o casco e
+/// a peça de cada ranhura — e nunca os números que daí saem: esses voltam a sair da tabela pelo
+/// ShipShop.Build, para uma peça reafinada valer logo em todos os desenhos que a levam.</summary>
+public sealed class ShipDesign
+{
+    public int Id { get; init; }
+    public int CountryId { get; init; }
+    public string Name { get; set; } = "";
+    public string Chassis { get; set; } = "";
+    /// <summary>Uma entrada por ranhura do casco, pela ordem dela; "" = ranhura vazia.</summary>
+    public List<string> Modules { get; set; } = new();
 }
 
 /// <summary>Um modelo de avião (tabela plane_class; Air). O céu do jogo era um número só: agora cada asa

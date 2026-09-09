@@ -33,6 +33,7 @@ public partial class WarPanel : PanelContainer
 
     /// <summary>A oficina de aviões (PlaneShopView), montada por cima deste painel.</summary>
     private PlaneShopView _shop = null!;
+    private ShipShopView _yard = null!;
 
     /// <summary>Guerra com a mesa de negociação aberta (id do inimigo), e o que lhe estamos a exigir.</summary>
     private int? _deal;
@@ -58,6 +59,11 @@ public partial class WarPanel : PanelContainer
         _shop = new PlaneShopView { Name = "PlaneShop" };
         AddChild(_shop);
         _shop.Setup(game, () => { _lastKey = ""; _game.RunWhenIdle(Fill); });
+        // e o estaleiro por cima do painel do mar, pela mesma porta: abre-se do estaleiro e volta-se aqui
+        // com o casco assinado
+        _yard = new ShipShopView { Name = "ShipShop" };
+        AddChild(_yard);
+        _yard.Setup(game, () => { _lastKey = ""; _game.RunWhenIdle(Fill); });
     }
 
     /// <summary>Trocar de secção: guarda a aba e manda encher outra vez (o desenho é sempre no idle).</summary>
@@ -483,6 +489,9 @@ public partial class WarPanel : PanelContainer
     /// <summary>--smoke: a oficina, desenhada e assinada sem dedo nenhum.</summary>
     public string SmokeShop() => _shop.Smoke();
 
+    /// <summary>--smoke: o estaleiro, com o casco desenhado e assinado sem dedo nenhum.</summary>
+    public string SmokeYard() => _yard.Smoke();
+
     private void BuyPlane(int pid, string classId) => _game.RunWhenIdle(() =>
     {
         var err = _game.Dispatch(new BuyPlaneCommand(pid, classId));
@@ -672,8 +681,22 @@ public partial class WarPanel : PanelContainer
     {
         if (w.ShipClasses.Count == 0) return;
         var me = w.Countries[pid];
-        card.AddChild(Ui.Lbl($"Estaleiro ({Navy.Describe(w, me.Ships)}):", 15));
-        foreach (var d in w.ShipClasses.Values.OrderBy(x => x.Sort))
+        var yardHead = new HBoxContainer(); yardHead.AddThemeConstantOverride("separation", 6);
+        yardHead.AddChild(Ui.Grow(Ui.Lbl($"Estaleiro ({Navy.Describe(w, me.Ships)}):", 15)));
+        // A prancheta: o botão que faltava ao mar. Uma classe que vem feita da tabela é a mesma para toda a
+        // gente; aqui desenha-se a de casa, peça a peça, e paga-se em milhas navegadas.
+        if (ShipShop.Chassis(w).Count > 0)
+        {
+            var open = Ui.Btn($"✎ Prancheta ({me.NavyXp:0} mi)", () => _yard.Open(), 160);
+            open.TooltipText = $"Desenhar um navio à peça. Assinar um desenho custa {ShipShop.Price(w, false):0} "
+                             + $"de experiência naval (Country.NavyXp), que a marinha ganha no mar.";
+            yardHead.AddChild(open);
+        }
+        card.AddChild(yardHead);
+        // os desenhos são de quem os fez: o estaleiro de casa não mostra a prancheta do vizinho
+        var ourHulls = ShipShop.Of(w, pid).Select(x => ShipShop.ClassId(x.Id)).ToHashSet();
+        foreach (var d in w.ShipClasses.Values.Where(x => !ShipShop.IsDesign(x.Id) || ourHulls.Contains(x.Id))
+                           .OrderBy(x => x.Sort))
         {
             float have = me.Ships.GetValueOrDefault(d.Id), port = Navy.Free(w, pid, d.Id);
             float cost = Navy.Cost(w, d.Id);
@@ -690,6 +713,12 @@ public partial class WarPanel : PanelContainer
                             + (d.IsSub ? $"\nAnda escondido: {d.Stealth:0%} dele não leva tiro nenhum enquanto ninguém o vir." : "")
                             + (d.IsHunter ? $"\nCaça o que se esconde: {d.Asw:0.#} de sonar, a peso inteiro numa caça anti-submarina." : "");
             row.AddChild(Ui.Grow(lbl));
+            if (ShipShop.DesignId(cls) is int sid and > 0)
+            {
+                var edit = Ui.Btn("✎", () => _yard.Open(sid), 46);
+                edit.TooltipText = $"Voltar à prancheta deste desenho por {ShipShop.Price(w, true):0} milhas.";
+                row.AddChild(edit);
+            }
             var buy = Ui.Btn($"{cost:0}", () => BuyShip(pid, cls), 110);
             buy.Disabled = me.Money < cost;
             buy.TooltipText = $"Encomendar um {d.Name} por {cost:0} pontos de produção.";

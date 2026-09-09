@@ -256,8 +256,17 @@ public sealed class World
     /// (país, praia alvo): marcar a mesma praia outra vez engrossa a operação que já lá está.</summary>
     public List<NavalInvasion> NavalInvasions { get; } = new();
 
-    /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
+    /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar. Os desenhados no
+    /// estaleiro entram aqui com id "cas:N" — a partir daí são cascos como os outros para todo o jogo.</summary>
     public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
+
+    /// <summary>O estaleiro (tabelas ship_slot/ship_module; ShipShop): as ranhuras que um casco tem e as
+    /// peças que lá cabem.</summary>
+    public Dictionary<string, ShipSlotDef> ShipSlotDefs { get; } = new();
+    public Dictionary<string, ShipModuleDef> ShipModules { get; } = new();
+
+    /// <summary>Navios desenhados em jogo (save s_ship_design): grava-se a escolha, nunca os números.</summary>
+    public List<ShipDesign> ShipDesigns { get; } = new();
 
     /// <summary>Modelos de avião (tabela plane_class; Air): o que cada asa serve no céu. Os desenhados na
     /// oficina entram aqui com id "des:N" — a partir daí são modelos como os outros para todo o jogo.</summary>
