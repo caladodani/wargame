@@ -98,6 +98,18 @@ public partial class ArmySelect : PanelContainer
         if (_dropArmed) DropTo(regionId); else if (_railArmed) RailTo(regionId); else MoveTo(regionId);
     });
 
+    /// <summary>A ordem arrastada do contador: pousa-se o dedo na pilha, puxa-se até à província e larga-se.
+    /// Se a pilha de partida já estava marcada, vai a marcação toda — arrastar uma das caixas escolhidas leva
+    /// as outras, como no jogo original; se não estava, a ordem é só dela e passa a ser a marcação. Respeita
+    /// o que estiver armado: com o salto armado o arrasto larga pára-quedistas, com o comboio manda-os pelos
+    /// carris.</summary>
+    public void Order(int fromRegionId, int toRegionId) => _game.RunWhenIdle(() =>
+    {
+        if (!Mine(fromRegionId)) { _game.Notify("Essa caixa não é de tropa tua — arrasta a partir de uma pilha nossa"); return; }
+        if (!_sel.Contains(fromRegionId)) { _sel.Clear(); _sel.Add(fromRegionId); }
+        if (_dropArmed) DropTo(toRegionId); else if (_railArmed) RailTo(toRegionId); else MoveTo(toRegionId);
+    });
+
     private bool Mine(int regionId)
     {
         if (_game.PlayerId is not int pid) return false;

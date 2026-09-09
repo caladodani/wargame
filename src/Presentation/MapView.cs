@@ -15,6 +15,8 @@ public partial class MapView : Node2D
     /// <summary>Duplo toque: com regiões marcadas, é o destino para onde as divisões marcham.</summary>
     [Signal] public delegate void RegionDoubleTappedEventHandler(int regionId);
     [Signal] public delegate void ZoomChangedEventHandler(float zoom);
+    /// <summary>Arrastou-se do contador de uma pilha nossa até uma província e largou-se: é uma ordem.</summary>
+    [Signal] public delegate void OrderGivenEventHandler(int fromRegionId, int toRegionId);
 
     public RegionRenderer Regions => _regions;
 
@@ -31,6 +33,8 @@ public partial class MapView : Node2D
     public RouteOverlay Routes => _routes;
     /// <summary>Os contadores da guerra do ar e do mar: as asas por cima da terra e as esquadras ao largo.</summary>
     public WarMapMarks WarMarks => _warMarks;
+    /// <summary>A seta da ordem que ainda está debaixo do dedo.</summary>
+    public OrderDrag Order => _order;
 
     private const float TapMaxDrag = 14f;      // arrasto acumulado (px) a partir do qual deixa de ser toque curto
     private const ulong LongPressMs = 450;     // dedo parado neste tempo = toque longo
@@ -45,7 +49,11 @@ public partial class MapView : Node2D
     private PocketOverlay _pockets = null!;
     private RouteOverlay _routes = null!;
     private WarMapMarks _warMarks = null!;
+    private OrderDrag _order = null!;
+    private Game _game = null!;
     private readonly Dictionary<int, Vector2> _touches = new();
+    /// <summary>Província de onde a ordem em curso está a ser arrastada (0 = o dedo está a arrastar o mapa).</summary>
+    private int _orderFrom;
     private float _lastPinch, _dragDist;
     private bool _multi, _longFired;
     private ulong _pressAt, _lastTapAt;
@@ -56,6 +64,7 @@ public partial class MapView : Node2D
         _cam = GetNode<Camera2D>("Camera2D");
         _regions = GetNode<RegionRenderer>("Regions");
         var game = GetNode<Game>("/root/Game");
+        _game = game;
         _regions.Build(game.WorldRepo, game.StaticDb, game);
         // as setas dos planos entram depois das regiões: desenham-se por cima do mapa
         // as rotas de comboio entram antes das setas: os planos mandam mais e ficam por cima delas
@@ -68,6 +77,8 @@ public partial class MapView : Node2D
         _warMarks = new WarMapMarks { Name = "WarMarks" }; AddChild(_warMarks); _warMarks.Setup(game);
         // e por cima de tudo a rota da tropa escolhida: é a ordem de agora, não um plano para daqui a um mês
         _routes = new RouteOverlay { Name = "Routes" }; AddChild(_routes); _routes.Setup(game);
+        // e ainda mais acima a seta que está na mão: a ordem que ainda não foi dada manda em todas as outras
+        _order = new OrderDrag { Name = "OrderDrag" }; AddChild(_order); _order.Setup();
         SetZoom(GetViewportRect().Size.X / 8400f);   // arranque: mapa inteiro (8000 un. de largura) visível
         SetProcess(true);
     }
@@ -97,19 +108,24 @@ public partial class MapView : Node2D
                             _pressAt = Time.GetTicksMsec(); _pressPos = t.Position;
                         }
                         _touches[t.Index] = t.Position;
-                        if (_touches.Count >= 2) { _multi = true; _lastPinch = Pinch(); }
+                        if (_touches.Count == 1) BeginOrder(_regions.CounterAt(ToWorld(t.Position)));
+                        if (_touches.Count >= 2) { _multi = true; _lastPinch = Pinch(); EndOrder(); }
                     }
                     else
                     {
                         _touches.Remove(t.Index);
-                        if (_touches.Count == 0 && !_multi && !_longFired && _dragDist < TapMaxDrag)
+                        if (_touches.Count == 0 && _orderFrom != 0 && _dragDist >= TapMaxDrag) DropOrder(t.Position);
+                        else if (_touches.Count == 0 && !_multi && !_longFired && _dragDist < TapMaxDrag)
                             Tap(t.Position);
+                        if (_touches.Count == 0) EndOrder();
                     }
                     break;
                 case InputEventScreenDrag d:
                     _touches[d.Index] = d.Position;
                     _dragDist += d.Relative.Length();
-                    if (_touches.Count == 1) _cam.Position -= d.Relative / _cam.Zoom;
+                    // o dedo que saiu de uma pilha nossa está a dar uma ordem, não a arrastar o mapa
+                    if (_touches.Count == 1 && _orderFrom != 0) DragOrder(d.Position);
+                    else if (_touches.Count == 1) _cam.Position -= d.Relative / _cam.Zoom;
                     else if (_touches.Count == 2)
                     {
                         float p = Pinch();
@@ -157,6 +173,61 @@ public partial class MapView : Node2D
         return new Rect2(_cam.Position - size / 2f, size);
     }
 
+    /// <summary>O dedo pousou: se foi em cima do contador de uma pilha nossa, o arrasto que vier a seguir é
+    /// uma ordem e não um arrasto de mapa. Só das nossas — puxar uma seta de dentro de tropa alheia não quer
+    /// dizer nada, e quem toca numa caixa inimiga continua a arrastar o mapa como sempre fez.</summary>
+    private void BeginOrder(int? regionId)
+    {
+        _orderFrom = 0;
+        if (regionId is not int rid || _game.PlayerId is not int pid) return;
+        var w = _game.World;
+        if (!w.Regions.TryGetValue(rid, out var r)) return;
+        if (!r.DivisionIds.Any(id => w.Divisions.TryGetValue(id, out var d) && d.CountryId == pid)) return;
+        _orderFrom = rid;
+        _order.Begin(_regions.CounterPos(rid) ?? new Vector2(r.CenterX, r.CenterY));
+    }
+
+    /// <summary>O dedo anda com a ordem na mão: a seta segue-o e a etiqueta diz o que sai dali se largar.</summary>
+    private void DragOrder(Vector2 screen)
+    {
+        var world = ToWorld(screen);
+        var w = _game.World;
+        if (Ground(screen) is not int over || !w.Regions.TryGetValue(over, out var reg) || _game.PlayerId is not int pid)
+        { _order.To(world, "fora do mapa", false, false); return; }
+        // o núcleo é que diz se a ordem pode ser dada, quantos dias leva e quem parte: a seta nunca promete
+        // uma marcha que o comando depois recusa
+        var look = WarGame.Core.Systems.Orders.Look(w, pid, _orderFrom, over);
+        _order.To(world, WarGame.Core.Systems.Orders.Line(w, look, reg.Name), look.Hostile, look.Legal);
+    }
+
+    /// <summary>O dedo levantou em cima de uma província: a ordem parte.</summary>
+    private void DropOrder(Vector2 screen)
+    {
+        int from = _orderFrom;
+        EndOrder();
+        if (from != 0 && Ground(screen) is int to && to != from) EmitSignal(SignalName.OrderGiven, from, to);
+    }
+
+    private void EndOrder() { _orderFrom = 0; _order.End(); }
+
+    /// <summary>--smoke: o arrasto inteiro sem dedo nenhum — pousar no contador de `from`, puxar até ao
+    /// centro de `to` e largar. Devolve o que a etiqueta da seta dizia antes de a ordem partir.</summary>
+    public string SmokeDrag(int from, int to)
+    {
+        var w = _game.World;
+        if (!w.Regions.TryGetValue(to, out var target)) return "destino que não existe";
+        BeginOrder(from);
+        if (_orderFrom == 0) return "a pilha de partida não é nossa";
+        // o dedo larga no chão do destino, que é onde o jogador o levaria
+        var screen = GetCanvasTransform() * new Vector2(target.CenterX, target.CenterY);
+        DragOrder(screen);
+        string seen = _order.Text;
+        int? landed = Ground(screen);
+        DropOrder(screen);
+        return landed == to ? seen
+             : $"{seen} [largou em {(landed is int l && w.Regions.TryGetValue(l, out var got) ? got.Name : "nada")}]";
+    }
+
     /// <summary>Onde é que este toque caiu: primeiro nos contadores, só depois no chão. A caixa de uma
     /// pilha fica por baixo do centro da província e transborda para a terra do lado — sem esta ordem,
     /// tocar em cima de um contador dava ordens ao vizinho e a tropa desenhada debaixo do dedo ficava
@@ -165,6 +236,16 @@ public partial class MapView : Node2D
     {
         var world = ToWorld(screen);
         return _regions.CounterAt(world) ?? _regions.RegionAt(world);
+    }
+
+    /// <summary>Onde é que este dedo LARGA: primeiro no chão, e só depois nos contadores. Agarrar é ao
+    /// contrário — pega-se na caixa da pilha — mas o destino de uma ordem é a província que está debaixo do
+    /// dedo, não a caixa do vizinho que por acaso lhe assenta em cima. É a convenção do jogo original: o
+    /// contador serve para escolher a unidade, o chão serve para lhe dizer para onde ir.</summary>
+    private int? Ground(Vector2 screen)
+    {
+        var world = ToWorld(screen);
+        return _regions.RegionAt(world) ?? _regions.CounterAt(world);
     }
 
     private Vector2 ToWorld(Vector2 screen) => GetCanvasTransform().AffineInverse() * screen;
@@ -181,6 +262,7 @@ public partial class MapView : Node2D
         _fronts.SetZoom(z);
         _routes.SetZoom(z);
         _warMarks.SetZoom(z);
+        _order.SetZoom(z);
         EmitSignal(SignalName.ZoomChanged, z);
     }
 }

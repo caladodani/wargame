@@ -941,6 +941,15 @@ public partial class RegionRenderer : Node2D
         return best;
     }
 
+    /// <summary>O meio da caixa desta pilha em coordenadas de mundo — o sítio de onde a seta da ordem sai.
+    /// Sem contador desenhado devolve null e quem pergunta usa o centro da província.</summary>
+    public Vector2? CounterPos(int regionId)
+    {
+        if (!_counters.TryGetValue(regionId, out var c) || !c.Visible) return null;
+        var box = UnitCounter.Box();
+        return c.Position + (box.Position + box.Size / 2f) * _markerScale;
+    }
+
     /// <summary>As pilhas que o jogador tem em mãos: as caixas delas desenham-se marcadas.</summary>
     public void PickCounters(IReadOnlyCollection<int> regionIds)
     {
