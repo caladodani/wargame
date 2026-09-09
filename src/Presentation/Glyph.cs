@@ -48,6 +48,9 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "raio",
         // as tácticas de combate (as outras — punho, luneta, lagarta, gente, arvore — já cá estavam)
         "gancho", "brecha", "muro", "mola",
+        // o céu por modelos: a seta que caça, a prancha que bombardeia e o gordo que leva carga
+        // (as outras — asa, drone, bomba, alvo, paraquedas — já cá estavam)
+        "caca", "bombardeiro", "carga",
     };
 
     public static bool Knows(string name) => System.Array.IndexOf(Known, name) >= 0;
@@ -680,6 +683,35 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 Line(0.12f, 0.82f, 0.44f, 0.82f, 0.8f);
                 Line(0.54f, 0.82f, 0.88f, 0.82f, 0.8f);
                 Line(0.20f, 0.92f, 0.80f, 0.92f, 0.8f);
+                break;
+
+            // Caça visto de cima: fuselagem fina, asas em seta para trás e cauda em V. É a silhueta que
+            // qualquer reconhecimento desenha — asa curta e agressiva, nariz à frente de tudo.
+            case "caca":
+                Fill(0.50f, 0.04f, 0.55f, 0.30f, 0.94f, 0.62f, 0.94f, 0.72f, 0.55f, 0.58f, 0.55f, 0.76f,
+                     0.66f, 0.88f, 0.66f, 0.94f, 0.50f, 0.88f, 0.34f, 0.94f, 0.34f, 0.88f, 0.45f, 0.76f,
+                     0.45f, 0.58f, 0.06f, 0.72f, 0.06f, 0.62f, 0.45f, 0.30f);
+                break;
+
+            // Bombardeiro visto de cima: asa larga e recta, fuselagem grossa, cauda em cruz e quatro
+            // motores marcados. Onde o caça é uma seta, este é uma prancha — leva peso, não velocidade.
+            case "bombardeiro":
+                Fill(0.50f, 0.06f, 0.57f, 0.34f, 0.98f, 0.46f, 0.98f, 0.56f, 0.57f, 0.52f, 0.57f, 0.78f,
+                     0.72f, 0.88f, 0.72f, 0.94f, 0.28f, 0.94f, 0.28f, 0.88f, 0.43f, 0.78f, 0.43f, 0.52f,
+                     0.02f, 0.56f, 0.02f, 0.46f, 0.43f, 0.34f);
+                Dot(0.22f, 0.50f, 0.045f); Dot(0.36f, 0.46f, 0.045f);
+                Dot(0.64f, 0.46f, 0.045f); Dot(0.78f, 0.50f, 0.045f);
+                break;
+
+            // Avião de carga de perfil: fuselagem alta e gorda, asa por cima, cauda levantada e a rampa
+            // aberta atrás — o desenho diz o que ele faz antes de se ler o nome.
+            case "carga":
+                Poly(0.10f, 0.44f, 0.72f, 0.44f, 0.90f, 0.54f, 0.90f, 0.70f, 0.10f, 0.70f, 0.10f, 0.44f);
+                Line(0.24f, 0.44f, 0.40f, 0.24f, 1.1f);
+                Line(0.40f, 0.24f, 0.86f, 0.30f);
+                Poly(0.10f, 0.44f, 0.02f, 0.20f, 0.14f, 0.20f, 0.24f, 0.44f);
+                Line(0.10f, 0.70f, 0.26f, 0.84f, 1.1f);
+                Dot(0.44f, 0.78f, 0.05f); Dot(0.74f, 0.78f, 0.05f);
                 break;
 
             // Roda dentada: a peça neutra de quem não tem chapa própria.

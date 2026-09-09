@@ -1203,14 +1203,25 @@ public sealed record BuildBuildingCommand(int CountryId, int RegionId, string Bu
     }
 }
 
-/// <summary>Comprar um esquadrão aéreo: +1 AirPower por air_wing_cost pontos. O poder aéreo
-/// relativo dos dois lados modula a força no combate terrestre (CombatSystem, air_combat_weight).</summary>
+/// <summary>Comprar um esquadrão aéreo: +1 asa do modelo que a tabela marca como básico (plane_class.basic),
+/// por air_wing_cost pontos. O poder aéreo relativo dos dois lados modula a força no combate terrestre
+/// (CombatSystem, air_combat_weight). É o botão de sempre; escolher o modelo é o BuyPlaneCommand.</summary>
 public sealed record BuyAirWingCommand(int CountryId) : ICommand
+{
+    public string? Validate(World w) => new BuyPlaneCommand(CountryId, Air.Basic(w)).Validate(w);
+
+    public void Execute(World w) => new BuyPlaneCommand(CountryId, Air.Basic(w)).Execute(w);
+}
+
+/// <summary>Encomendar uma asa de um modelo (plane_class): custa air_wing_cost × o custo do modelo e entra
+/// no campo. É o botão do hangar — o antigo "comprar esquadrão" é este comando com o modelo básico.</summary>
+public sealed record BuyPlaneCommand(int CountryId, string ClassId) : ICommand
 {
     public string? Validate(World w)
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
-        float cost = w.Rule("air_wing_cost", 60f);
+        if (ClassId.Length > 0 && !w.PlaneClasses.ContainsKey(ClassId)) return "modelo de avião desconhecido";
+        float cost = Air.Cost(w, ClassId);
         if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
         return null;
     }
@@ -1218,8 +1229,7 @@ public sealed record BuyAirWingCommand(int CountryId) : ICommand
     public void Execute(World w)
     {
         var c = w.Countries[CountryId];
-        c.Money -= w.Rule("air_wing_cost", 60f);
-        c.AirPower += 1f;
+        Air.Buy(w, c, ClassId);
         w.Events.Publish(new Events.AirWingBought(CountryId, (int)c.AirPower));
     }
 }

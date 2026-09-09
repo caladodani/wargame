@@ -331,6 +331,22 @@ CREATE TABLE IF NOT EXISTS s_air_mission (    -- esquadrões destacados sobre re
   wings REAL NOT NULL, since_day INTEGER NOT NULL,
   name TEXT NOT NULL DEFAULT '',              -- nome próprio da asa (formation_name; '' = ainda sem nome)
   PRIMARY KEY (country_id, region_id));
+CREATE TABLE IF NOT EXISTS plane_class (      -- modelos de avião (Air); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  role TEXT NOT NULL,                         -- 'caca' | 'ataque' | 'bombardeiro' | 'transporte' — lê-se na ficha
+  cost REAL NOT NULL,                         -- multiplicador de air_wing_cost
+  upkeep REAL NOT NULL DEFAULT 1,             -- multiplicador de air_mission_upkeep
+  air REAL NOT NULL,                          -- peso no combate aéreo; é também o que salva o modelo do abate
+  superiority REAL NOT NULL, support REAL NOT NULL, bombing REAL NOT NULL, transport REAL NOT NULL,
+  basic INTEGER NOT NULL DEFAULT 0,           -- 1 = o modelo que o botão antigo de "comprar esquadrão" compra
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+CREATE TABLE IF NOT EXISTS s_plane (          -- aviões de um país por modelo (save)
+  country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
+  PRIMARY KEY (country_id, class_id));
+CREATE TABLE IF NOT EXISTS s_air_mission_plane (   -- composição da asa destacada (save)
+  country_id INTEGER, region_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
+  PRIMARY KEY (country_id, region_id, class_id));
 CREATE TABLE IF NOT EXISTS naval_mission (    -- tipos de missão naval (NavalMissionSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   effect TEXT NOT NULL, value REAL NOT NULL, note TEXT NOT NULL, sort INTEGER NOT NULL,

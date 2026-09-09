@@ -206,6 +206,8 @@ public partial class WarPanel : PanelContainer
     /// que o inimigo tem por cima delas.</summary>
     private string AirKey(World w, int pid) =>
         $"air{AirMissionSystem.Free(w, pid):0.0}:"
+        + string.Join(",", (w.Countries.TryGetValue(pid, out var me) ? me.Planes : new Dictionary<string, float>())
+            .OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"{kv.Key}{kv.Value:0.#}")) + ":"
         + string.Join("-", w.AirMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
             .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Wings:0.0}"))
         + ":" + (AirMissionSystem.Front(w, pid)?.ToString() ?? "-");
@@ -226,9 +228,15 @@ public partial class WarPanel : PanelContainer
 
         card.AddChild(Ui.Lbl($"✈ {me.AirPower:0.#} esquadrões — {free:0.#} em casa, {flying:0.#} no ar   ·   " +
                              $"estadia {flying * upkeep:0.0}/dia   ·   cofre {me.Money:0}", 16));
+        // de que é feita a aviação: sem esta linha, dez asas eram dez asas e comprar não era decisão nenhuma
+        var fleet = Ui.Lbl($"✈ {Air.Describe(w, me.Planes)}   ·   peso {Air.Power(w, me.Planes):0.#}", 15);
+        fleet.TooltipText = "O peso é o que decide um combate aéreo. Caros a mais para tudo, os caças são o que "
+                            + "impede que o resto seja abatido: as perdas caem primeiro em quem não sabe lutar lá em cima.";
+        card.AddChild(fleet);
         if (me.AirPower <= 0f)
         {
-            card.AddChild(Ui.Lbl("Sem esquadrões: compram-se no painel do País, e só depois há céu para mandar.", 16));
+            card.AddChild(Ui.Lbl("Sem esquadrões: compram-se aqui no hangar, e só depois há céu para mandar.", 16));
+            Hangar(card, w, pid);
             _body.AddChild(box);
             return;
         }
@@ -246,9 +254,21 @@ public partial class WarPanel : PanelContainer
             card.AddChild(FormationView.Plate(new FormationView.Info(
                 m.Name, FormationView.IsHome(w, pid, World.Air, m.Name), World.Air, def.Glyph, def.Name,
                 r.Name, m.Wings, foe, w.Clock.Day - m.SinceDay, def.Note), row));
+
+            // que aviões é que ali estão: quem manda para bombardear sem caça nenhum fica a saber porquê
+            var mix = new HBoxContainer(); mix.AddThemeConstantOverride("separation", 6);
+            foreach (var (cls, n) in m.Squadron.Where(kv => kv.Value > 0.05f)
+                     .OrderByDescending(kv => Air.Battle(w, kv.Key)).ThenBy(kv => kv.Key, StringComparer.Ordinal).Take(4))
+            {
+                mix.AddChild(Glyph.Make(Air.Glyph(w, cls), 15f, Ui.TextDim, Air.Name(w, cls)));
+                mix.AddChild(Ui.Lbl($"{Air.Name(w, cls)} ×{n:0.#}", 14));
+            }
+            mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Air.Power(w, m.Squadron):0.#}", 14)));
+            card.AddChild(mix);
         }
 
         ZoneBoard(card, w, Zones.AirBoard(w, pid), "asas", "céu");
+        Hangar(card, w, pid);
 
         // céus a que se pode mandar hoje: a frente inimiga e a nossa terra onde já se combate
         var skies = new List<int>();
@@ -309,6 +329,42 @@ public partial class WarPanel : PanelContainer
             card.AddChild(row);
         }
     }
+
+    /// <summary>O hangar: uma linha por modelo de avião (plane_class) com o que ele serve, o que já temos
+    /// dele, quantas asas estão em casa e o botão de encomendar. É o gémeo do estaleiro — e a mesma decisão
+    /// que faltava ao céu: até aqui comprar aviação era carregar num botão e não escolher nada.</summary>
+    private void Hangar(Node card, World w, int pid)
+    {
+        if (w.PlaneClasses.Count == 0) return;
+        var me = w.Countries[pid];
+        card.AddChild(Ui.Lbl($"Hangar ({Air.Describe(w, me.Planes)}):", 15));
+        foreach (var d in w.PlaneClasses.Values.OrderBy(x => x.Sort))
+        {
+            float have = me.Planes.GetValueOrDefault(d.Id), home = Air.Free(w, pid, d.Id);
+            float cost = Air.Cost(w, d.Id);
+            string cls = d.Id;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            row.AddChild(Glyph.Make(d.Glyph, 18f, have > 0f ? Ui.Accent : Ui.TextDim, d.Note));
+            var lbl = Ui.Lbl($"{d.Name} ({d.Role})   ·   {have:0.#} nossas, {home:0.#} em casa"
+                             + $"   ·   combate {d.Air:0.#}, estadia ×{d.Upkeep:0.#}", 15);
+            lbl.TooltipText = d.Note + $"\nSuperioridade ×{d.Superiority:0.#}, apoio ×{d.Support:0.#}, "
+                              + $"bombardeamento ×{d.Bombing:0.#}, transporte ×{d.Transport:0.#}.";
+            row.AddChild(Ui.Grow(lbl));
+            var buy = Ui.Btn($"{cost:0}", () => BuyPlane(pid, cls), 110);
+            buy.Disabled = me.Money < cost;
+            buy.TooltipText = $"Encomendar um {d.Name} por {cost:0} pontos de produção.";
+            row.AddChild(buy);
+            card.AddChild(row);
+        }
+    }
+
+    private void BuyPlane(int pid, string classId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new BuyPlaneCommand(pid, classId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"{Air.Name(_game.World, classId)} encomendado: entra hoje no hangar");
+        _lastKey = ""; Fill();
+    });
 
     private void SendAir(int pid, int regionId, string missionId, float wings) => _game.RunWhenIdle(() =>
     {

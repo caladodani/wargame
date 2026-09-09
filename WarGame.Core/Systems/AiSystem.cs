@@ -228,16 +228,27 @@ public sealed class AiSystem : ISystem
     }
 
     /// <summary>Aviação: em guerra e com dinheiro acima de ai_air_reserve, compra um esquadrão
-    /// por tick enquanto tiver menos poder aéreo que o inimigo mais forte no ar.</summary>
+    /// por tick enquanto tiver menos poder aéreo que o inimigo mais forte no ar.
+    ///
+    /// E compra o modelo certo, agora que há modelos: enquanto o céu do inimigo for melhor por avião do que
+    /// o nosso, caça — porque de nada serve um bombardeiro que é abatido à ida; ganho o céu, passa a comprar
+    /// quem bate no chão. É a ordem do jogo original e não está escrita em nomes de avião nenhuns.</summary>
     private static void Air(World w, Country c)
     {
         if (c.AtWarWith.Count == 0) return;
         if (c.Money < w.Rule("air_wing_cost", 60f) + w.Rule("ai_air_reserve", 250f)) return;
-        float maxEnemyAir = 0f;
+        float maxEnemyAir = 0f, enemyQuality = 0f;
         foreach (int e in c.AtWarWith)
-            if (w.Countries.TryGetValue(e, out var t) && t.AirPower > maxEnemyAir) maxEnemyAir = t.AirPower;
+            if (w.Countries.TryGetValue(e, out var t))
+            {
+                if (t.AirPower > maxEnemyAir) maxEnemyAir = t.AirPower;
+                enemyQuality = MathF.Max(enemyQuality, Systems.Air.Quality(w, t.Planes));
+            }
         if (c.AirPower > maxEnemyAir) return;
-        var cmd = new Commands.BuyAirWingCommand(c.Id);
+        float budget = c.Money - w.Rule("ai_air_reserve", 250f);
+        string want = Systems.Air.Quality(w, c.Planes) < enemyQuality ? "air" : "support";
+        var cmd = Systems.Air.Choose(w, budget, want) is string cls && cls.Length > 0
+                ? new Commands.BuyPlaneCommand(c.Id, cls) : (Commands.ICommand)new Commands.BuyAirWingCommand(c.Id);
         if (cmd.Validate(w) is null) cmd.Execute(w);
     }
 

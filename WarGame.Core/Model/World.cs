@@ -255,6 +255,9 @@ public sealed class World
     /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
     public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
 
+    /// <summary>Modelos de avião (tabela plane_class; Air): o que cada asa serve no céu.</summary>
+    public Dictionary<string, PlaneClassDef> PlaneClasses { get; } = new();
+
     /// <summary>Marcas de material (tabela equipment_mark; Marks): as gerações de equipamento que a
     /// investigação abre e que a fábrica passa a fazer.</summary>
     public Dictionary<string, EquipmentMarkDef> EquipmentMarks { get; } = new();

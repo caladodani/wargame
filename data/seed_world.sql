@@ -960,6 +960,24 @@ INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,esc
  ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas'),
  ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'O mar inteiro à volta dele: decide a batalha e a vigia, e não se defende sozinho.',6,'conves');
 
+-- Modelos de avião (tabela plane_class; Air). O céu era um número: uma asa era uma asa, fosse ela de caças
+-- ou de transportes, e por isso a aviação não tinha decisão nenhuma — só quantidade. Agora cada asa tem
+-- modelo, e o modelo decide para que serve: 'air' é o que ele vale num combate aéreo (e é também o que o
+-- salva do abate — quem não sabe lutar no ar é o primeiro a cair), e as quatro colunas seguintes dizem
+-- quanto rende em cada tarefa. Um caça varre o céu e não deita nada abaixo; um bombardeiro estratégico
+-- arrasa infraestrutura e não se defende de nada; um transporte não faz guerra nenhuma e é o único que
+-- larga pára-quedistas. Mudar a aviação do jogo é mudar estas linhas.
+INSERT INTO plane_class (id,name,icon,role,cost,upkeep,air,superiority,support,bombing,transport,basic,note,sort,glyph) VALUES
+ ('drone_leve','Drone de reconhecimento','🔭','caca',0.35,0.3,0.2,0.35,0.5,0.3,0,0,'Barato, pequeno e sempre no ar: vê tudo e não aguenta um caça em cima.',0,'drone'),
+ ('caca_leve','Caça ligeiro','🛩','caca',0.7,0.8,1.0,1.1,0.2,0.05,0,0,'O caça de todos os dias: defende o céu de casa sem esvaziar o cofre.',1,'asa'),
+ ('caca','Caça multifunções','✈','caca',1,1,1.6,1.5,0.6,0.25,0,1,'Faz um pouco de tudo e é o que se compra quando não se pode escolher — o esquadrão de sempre.',2,'caca'),
+ ('caca_pesado','Caça de superioridade','⚔','caca',2.0,1.6,2.6,2.4,0.3,0.1,0,0,'Feito para uma coisa só: ganhar o céu. Onde ele está, o resto da aviação inimiga não trabalha.',3,'espadas'),
+ ('drone_armado','Drone armado','💥','ataque',0.6,0.4,0.3,0.15,1.5,0.9,0,0,'Fica horas por cima da frente e larga quando é preciso; num céu disputado dura o que a sorte quiser.',4,'bomba'),
+ ('ataque','Avião de ataque ao solo','🎯','ataque',1.4,1.3,0.5,0.25,2.4,0.7,0,0,'Bate ao lado da tropa, à vista dela: é o que faz a diferença numa batalha apertada.',5,'obus'),
+ ('bombardeiro','Bombardeiro táctico','🛫','bombardeiro',2.2,1.8,0.4,0.15,1.1,2.0,0,0,'Corta estradas, pontes e depósitos atrás da frente — a guerra do dia seguinte.',6,'bombardeiro'),
+ ('estrategico','Bombardeiro estratégico','🏭','bombardeiro',4.5,3.2,0.25,0.1,0.4,3.6,0,0,'Vai fundo e deita abaixo o que sustenta a guerra; sem caça por cima, é um alvo caro.',7,'alvo'),
+ ('transporte','Avião de transporte','🪂','transporte',1.2,0.9,0.1,0.05,0,0,2.0,0,'Não faz guerra nenhuma: leva homens e carga, e é o único que larga pára-quedistas.',8,'carga');
+
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
 -- sort o primeiro nome do fundo que o país ainda não tenha no ar (ou no mar); esgotado o fundo, a formação
@@ -1057,6 +1075,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_mission_min_wings',1,'asas mínimas para destacar uma missão aérea'),
  ('air_ai_reserve',1,'asas que a IA guarda em casa antes de destacar missões'),
  ('ai_air_reserve',250,'reserva da IA antes de comprar esquadrões'),
+ ('air_loss_focus',0.7,'quanto as perdas do céu se concentram em quem não sabe lutar nele (0 = todos por igual)'),
+ ('air_start_mix',0.45,'fatia da aviação de partida que nasce em modelos de caça, o resto reparte-se pelo ataque'),
+ ('air_power_swing',1.6,'quanto a diferença de qualidade média de aviões pode agravar as perdas de um lado'),
  ('naval_ship_cost',90,'custo de um navio de guerra'),
  ('naval_mission_upkeep',0.8,'custo por navio e por dia de uma esquadra no mar'),
  ('naval_battle_loss',0.05,'navios ao fundo por dia em mar disputado, por navio do lado mais fraco'),

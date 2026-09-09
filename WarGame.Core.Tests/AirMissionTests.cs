@@ -119,8 +119,13 @@ public class AirMissionTests
         var w = Build();
         var r = w.Regions[4];
         r.Infrastructure = 1f;
+        // aviação toda do mesmo modelo: agora que uma asa vale o que o avião dela vale a bombardear, o que
+        // cai lê-se da tabela e não de uma contagem de asas — e sem passar pela repartição de partida
+        string bomber = w.PlaneClasses.Values.OrderByDescending(d => d.Bombing).ThenBy(d => d.Sort).First().Id;
+        var c = w.Countries[1];
+        c.Planes.Clear(); c.Planes[bomber] = 10f;
         new AssignAirMissionCommand(1, 4, "bombardeamento", 4f).Execute(w);
-        float per = 4f * w.AirMissionDefs["bombardeamento"].Value;
+        float per = 4f * Air.Value(w, bomber, "bombing") * w.AirMissionDefs["bombardeamento"].Value;
 
         w.Tick();
         Assert.Equal(1f - per, r.Infrastructure, 3);

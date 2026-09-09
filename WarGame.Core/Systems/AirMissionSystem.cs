@@ -32,11 +32,17 @@ public sealed class AirMissionSystem : ISystem
                 || !w.AirMissionDefs.ContainsKey(m.MissionId))
             { w.AirMissions.Remove(m); continue; }
 
-            float bill = m.Wings * upkeep * c.Stat("air_upkeep", 1f);
+            // a estadia é do que lá está: um bombardeiro estratégico come por três caças ligeiros
+            float bill = 0f;
+            foreach (var (cls, n) in m.Squadron) bill += n * upkeep * Air.Upkeep(w, cls);
+            bill *= c.Stat("air_upkeep", 1f);
             if (c.Money < bill) { w.AirMissions.Remove(m); continue; }
             c.Money -= bill;
             Learn(w, c, m.Wings * w.Rule("air_xp_per_wing_day", 0.05f));   // voar todos os dias ensina alguma coisa
         }
+
+        // asas sem modelo (aviação de partida, save antigo) passam pelo hangar e ganham modelo
+        foreach (var c in w.Countries.Values.OrderBy(x => x.Id)) Air.Classify(w, c);
 
         Dogfight(w);
 
@@ -49,7 +55,8 @@ public sealed class AirMissionSystem : ISystem
             float punch = w.Countries.TryGetValue(m.CountryId, out var bomber) ? bomber.Stat("air_bombing", 1f) : 1f;
             // com o céu fechado os bombardeiros levantam e não encontram o alvo: o que se arranca é o que o
             // tempo deixa arrancar (Weather.AirMult)
-            r.Infrastructure = MathF.Max(floor, r.Infrastructure - m.Wings * def.Value * punch * Weather.AirMult(w, r));
+            r.Infrastructure = MathF.Max(floor, r.Infrastructure
+                                                - Rendered(w, m, "bombing") * def.Value * punch * Weather.AirMult(w, r));
         }
 
         Ai(w);
@@ -78,9 +85,13 @@ public sealed class AirMissionSystem : ISystem
                 {
                     if (a.Country >= b.Country || !w.AreAtWar(a.Country, b.Country)) continue;
                     float hit = MathF.Min(a.Wings, b.Wings) * loss;
+                    // quem leva os melhores aviões perde menos: é a QUALIDADE do modelo a decidir, medida
+                    // por avião e não em bruto — o tamanho já conta no `hit`, e um céu com duzentos caças
+                    // contra duzentos caças iguais tem de dar exactamente o que dava antes
+                    float edge = Edge(w, a.Missions, b.Missions);
                     // cada lado leva o que a sua escola do ar lhe deixa levar: air_losses < 1 é caça melhor
-                    float aLost = Shoot(w, a.Missions, hit * Mult(w, a.Country));
-                    float bLost = Shoot(w, b.Missions, hit * Mult(w, b.Country));
+                    float aLost = Shoot(w, a.Missions, hit * Mult(w, a.Country) * edge);
+                    float bLost = Shoot(w, b.Missions, hit * Mult(w, b.Country) / edge);
                     // levou a pior quem deixou lá a maior fatia do que tinha: é a esquadrilha pequena
                     // mandada para um céu cheio, e é ela que arrisca o comandante
                     float aShare = Share(aLost, a.Wings), bShare = Share(bLost, b.Wings);
@@ -90,6 +101,25 @@ public sealed class AirMissionSystem : ISystem
                 }
         }
         w.AirMissions.RemoveAll(m => m.Wings <= 0.001f);
+    }
+
+    /// <summary>Quanto a diferença de modelos agrava as perdas de um lado: a qualidade média por avião de
+    /// um contra a do outro, travada por air_power_swing. Vale 1 num céu sem modelos nenhuns — e vale 1
+    /// entre duas forças do mesmo modelo, sejam duas asas ou duzentas.</summary>
+    private static float Edge(World w, List<AirMission> mine, List<AirMission> theirs)
+    {
+        float swing = MathF.Max(1f, w.Rule("air_power_swing", 1.6f));
+        float a = Quality(w, mine), b = Quality(w, theirs);
+        return a <= 0f || b <= 0f ? 1f : Math.Clamp(b / a, 1f / swing, swing);
+    }
+
+    /// <summary>Qualidade média por avião de tudo o que um país tem numa zona.</summary>
+    private static float Quality(World w, List<AirMission> missions)
+    {
+        var all = new Dictionary<string, float>();
+        foreach (var m in missions)
+            foreach (var (cls, n) in m.Squadron) all[cls] = all.GetValueOrDefault(cls) + n;
+        return Air.Quality(w, all);
     }
 
     private static float Mult(World w, int countryId) =>
@@ -104,13 +134,16 @@ public sealed class AirMissionSystem : ISystem
     {
         float pool = missions.Sum(m => m.Wings), gone = 0f;
         if (pool <= 0f) return 0f;
+        if (!w.Countries.TryGetValue(missions[0].CountryId, out var c)) return 0f;
         foreach (var m in missions)
         {
-            float take = MathF.Min(m.Wings, wings * m.Wings / pool);
-            m.Wings -= take; gone += take;
+            // dentro de cada asa cai primeiro quem não sabe lutar no céu (Air.Down), e o que cai sai do
+            // pool nacional pelo mesmo modelo: o campo e o ar têm de contar os mesmos aviões
+            var lost = Air.Down(w, m.Squadron, wings * m.Wings / pool);
+            Air.Lose(w, c, lost);
+            gone += lost.Values.Sum();
         }
-        if (gone <= 0f || !w.Countries.TryGetValue(missions[0].CountryId, out var c)) return gone;
-        c.AirPower = MathF.Max(0f, c.AirPower - gone);
+        if (gone <= 0f) return gone;
         Learn(w, c, gone * w.Rule("air_xp_per_loss", 3f));
         return gone;
     }
@@ -156,18 +189,29 @@ public sealed class AirMissionSystem : ISystem
     /// jogador e a IA passam os dois por aqui.</summary>
     public static void Assign(World w, int countryId, int regionId, string missionId, float wings)
     {
-        if (wings <= 0f || !w.AirMissionDefs.ContainsKey(missionId)) return;
+        if (wings <= 0f || !w.AirMissionDefs.TryGetValue(missionId, out var def)) return;
+        // que aviões é que levantam: os melhores para a tarefa que se lhes vai pedir (Air.Pick) — não se
+        // mandam transportes varrer o céu nem caças arrasar uma fábrica
+        var take = Air.Pick(w, countryId, def.Effect, wings);
         var have = w.AirMissions.FirstOrDefault(m => m.CountryId == countryId && m.RegionId == regionId);
-        if (have is not null && have.MissionId == missionId) { have.Wings += wings; return; }
+        if (have is not null && have.MissionId == missionId) { Join(have.Squadron, take); return; }
         // trocar de missão no mesmo céu não manda ninguém para casa: as asas que lá estavam mudam de tarefa,
         // e por isso guardam o nome — quem está naquele céu é a mesma gente
         if (have is not null) w.AirMissions.Remove(have);
-        w.AirMissions.Add(new AirMission
+        var born = new AirMission
         {
-            CountryId = countryId, RegionId = regionId, MissionId = missionId,
-            Wings = wings + (have?.Wings ?? 0f), SinceDay = w.Clock.Day,
+            CountryId = countryId, RegionId = regionId, MissionId = missionId, SinceDay = w.Clock.Day,
             Name = have?.Name is { Length: > 0 } old ? old : w.NextFormationName(countryId, World.Air, regionId),
-        });
+        };
+        if (have is not null) Join(born.Squadron, have.Squadron);
+        Join(born.Squadron, take);
+        w.AirMissions.Add(born);
+    }
+
+    /// <summary>Junta aviões a uma composição, modelo a modelo.</summary>
+    private static void Join(Dictionary<string, float> bag, IReadOnlyDictionary<string, float> add)
+    {
+        foreach (var (cls, n) in add) bag[cls] = bag.GetValueOrDefault(cls) + n;
     }
 
     /// <summary>Chama a missão de volta: as asas voltam ao pool livre no mesmo dia.</summary>
@@ -184,6 +228,19 @@ public sealed class AirMissionSystem : ISystem
         MathF.Max(0f, (w.Countries.TryGetValue(countryId, out var c) ? c.AirPower : 0f)
                       - Assigned(w, countryId) - ParadropSystem.InFlight(w, countryId));
 
+    /// <summary>Asas em casa que servem para uma tarefa concreta: um país cheio de caças não tem
+    /// transportes nenhuns para largar pára-quedistas, por muito grande que a aviação dele seja. Num mundo
+    /// sem modelos de avião toda a asa serve para tudo, e a conta é a de sempre.</summary>
+    public static float Free(World w, int countryId, string effect)
+    {
+        if (effect.Length == 0 || w.PlaneClasses.Count == 0) return Free(w, countryId);
+        float sum = 0f;
+        foreach (var (cls, wings) in Air.Field(w, countryId))
+            if (Air.Value(w, cls, effect) > 0f) sum += wings;
+        if (effect == "transport") sum -= ParadropSystem.InFlight(w, countryId);
+        return MathF.Max(0f, sum);
+    }
+
     /// <summary>Peso aéreo deste país no céu desta região: as asas de superioridade que lá tem, cada uma a
     /// valer o que a tabela diz — e só o que o céu de hoje as deixa valer (Weather.AirMult). É o que entra
     /// na balança do combate, ao lado do poder aéreo nacional.</summary>
@@ -196,7 +253,19 @@ public sealed class AirMissionSystem : ISystem
     private static float Weight(World w, int regionId, int countryId, string effect) =>
         w.AirMissions.Where(m => m.CountryId == countryId
                                  && w.AirMissionDefs.TryGetValue(m.MissionId, out var d) && d.Effect == effect)
-            .Sum(m => m.Wings * w.AirMissionDefs[m.MissionId].Value * Zones.Reach(w, regionId, m.RegionId, false));
+            .Sum(m => Rendered(w, m, effect) * w.AirMissionDefs[m.MissionId].Value
+                      * Zones.Reach(w, regionId, m.RegionId, false));
+
+    /// <summary>Quanto é que uma asa rende nesta tarefa: cada avião vale o que o modelo dele vale nela
+    /// (plane_class), somado. Uma asa de bombardeiros estratégicos mandada varrer o céu quase não conta;
+    /// a mesma asa a bombardear vale por três. Num mundo sem modelos cada avião vale 1 e a conta é a de
+    /// sempre — as asas a multiplicar pelo valor da missão, como sempre foi.</summary>
+    private static float Rendered(World w, AirMission m, string effect)
+    {
+        float sum = 0f;
+        foreach (var (cls, n) in m.Squadron) sum += n * Air.Value(w, cls, effect);
+        return sum;
+    }
 
     /// <summary>Bónus de apoio próximo à força de quem combate nesta região (tecto air_support_max). Debaixo
     /// de um nevão não há apoio próximo nenhum: os aviões não saem do chão.</summary>

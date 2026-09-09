@@ -103,7 +103,8 @@ public sealed class ParadropSystem : ISystem
         float minOrg = w.Rule("paradrop_min_org", 40f);
         if (d.Org < minOrg) return $"organização abaixo de {minOrg:0} para embarcar";
         float wings = w.Rule("paradrop_wings", 3f);
-        if (AirMissionSystem.Free(w, countryId) < wings)
+        // e têm de ser mesmo transportes: um céu cheio de caças não larga um pára-quedista que seja
+        if (AirMissionSystem.Free(w, countryId, "transport") < wings)
             return $"faltam transportes livres ({wings:0.#} asas por divisão)";
         int range = (int)w.Rule("paradrop_range_hops", 4f);
         if (Hops(w, d.RegionId, regionId, range) is null) return $"fora do alcance ({range} regiões)";

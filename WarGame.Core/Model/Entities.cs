@@ -458,7 +458,23 @@ public sealed class AirMission
     public int CountryId { get; init; }
     public int RegionId { get; init; }
     public string MissionId { get; init; } = "";
-    public float Wings { get; set; }
+    /// <summary>Que aviões é que esta asa levou, por modelo (save s_air_mission_plane). O modelo vazio é o
+    /// avião sem modelo: um mundo sem plane_class nenhuma continua a voar exactamente como antes.</summary>
+    public Dictionary<string, float> Squadron { get; } = new();
+    /// <summary>Asas desta missão ao todo. Escrever aqui reparte pela composição que já lá está — é como o
+    /// resto do jogo continua a contar asas sem ter de saber de modelos.</summary>
+    public float Wings
+    {
+        get { float t = 0f; foreach (var n in Squadron.Values) t += n; return t; }
+        set
+        {
+            float now = Wings;
+            if (value <= 0f) { Squadron.Clear(); return; }
+            if (now <= 0.0001f) { Squadron.Clear(); Squadron[""] = value; return; }
+            float k = value / now;
+            foreach (var id in Squadron.Keys.ToList()) Squadron[id] *= k;
+        }
+    }
     public int SinceDay { get; init; }
     /// <summary>Nome próprio da asa (tabela formation_name; save s_air_mission.name). Muda de tarefa sem
     /// mudar de nome: quem está no céu de uma região é sempre a mesma gente. "" = save antigo, sem nome.</summary>
@@ -479,6 +495,14 @@ public sealed record NavalMissionDef(string Id, string Name, string Icon, string
 public sealed record ShipClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
                                   float Battle, float Screen, float Blockade, float Escort, float Patrol,
                                   bool Basic, string Note, int Sort, string Glyph);
+
+/// <summary>Um modelo de avião (tabela plane_class; Air). O céu do jogo era um número só: agora cada asa
+/// tem modelo e o modelo decide para que serve. Air é o que ele vale num combate aéreo — e é também o que
+/// o salva do abate, porque quem não sabe lutar no ar é o primeiro a cair; Superiority/Support/Bombing/
+/// Transport é quanto rende em cada tarefa. Nada disto está em código: são linhas da tabela.</summary>
+public sealed record PlaneClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
+                                   float Air, float Superiority, float Support, float Bombing, float Transport,
+                                   bool Basic, string Note, int Sort, string Glyph);
 
 /// <summary>Uma geração de material (tabela equipment_mark; Marks). O armazém tinha uma espingarda só: um
 /// conjunto valia sempre o mesmo, e investigar não mudava o que a tropa levava ao ombro. Agora cada tipo de
@@ -630,7 +654,26 @@ public sealed class Country
     public int LastDefeatDay { get; set; } = -1;
     /// <summary>Região onde se perdeu a última batalha: é para lá que o aviso leva o mapa.</summary>
     public int LastDefeatRegion { get; set; }
-    public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
+    /// <summary>A aviação por modelo de avião (plane_class; save s_plane): 'caca' → 12, 'estrategico' → 3.
+    /// O modelo vazio é o avião sem modelo — a asa genérica dos saves antigos e dos mundos de teste, que
+    /// vale 1 em tudo. Escreve-se por aqui ou pelo AirPower, nunca pelos dois ao mesmo tempo.</summary>
+    public Dictionary<string, float> Planes { get; } = new();
+    /// <summary>Esquadrões aéreos ao todo (soma dos modelos). Continua a ser o pool nacional que se destaca
+    /// para o céu e que pesa no combate terrestre; pôr um número aqui reparte-o pelos modelos que o país já
+    /// tem (ou faz asas sem modelo, se ainda não tem nenhum), para os saves velhos e os mundos de teste não
+    /// terem de saber de modelos.</summary>
+    public float AirPower
+    {
+        get { float t = 0f; foreach (var n in Planes.Values) t += n; return t; }
+        set
+        {
+            float now = AirPower;
+            if (value <= 0f) { Planes.Clear(); return; }
+            if (now <= 0.0001f) { Planes.Clear(); Planes[""] = value; return; }
+            float k = value / now;
+            foreach (var id in Planes.Keys.ToList()) Planes[id] *= k;
+        }
+    }
     /// <summary>A marinha por classe de casco (ship_class; save s_ship): 'destroier' → 12, 'submarino' → 4.
     /// A classe vazia é o navio sem classe — o casco genérico dos saves antigos e dos mundos de teste, que
     /// vale 1 em tudo. Escreve-se por aqui ou pelo Warships, nunca pelos dois ao mesmo tempo.</summary>
