@@ -309,6 +309,14 @@ public sealed record CabinetSlotDef(string Id, string Name, string Icon, int Sor
 public sealed record AdvisorDef(string Id, string? CountryTag, string Slot, string Name, string Icon,
                                 float Cost, string Note, Dictionary<string, float> Effects);
 
+/// <summary>Partido (tabela party): a opinião do país tem nome. Base é para onde a popularidade volta
+/// quando nada a puxa; DriftWar/DriftUnstable/DriftExhaustion são os pontos por dia que a guerra, a
+/// instabilidade e o desgaste lhe dão (ou tiram); Elections=false é um partido que, no poder, não marca
+/// eleições — só se sai de lá por golpe. StatKey/StatMult é o que o país ganha enquanto ele governa.</summary>
+public sealed record PartyDef(string Id, string Name, string Note, float Base, bool Elections,
+                              string? StatKey, float StatMult, float DriftWar, float DriftUnstable,
+                              float DriftExhaustion, string Glyph, int Sort);
+
 /// <summary>Patamar de potência mundial (tabela power_tier): a partir de MinShare da potência total do
 /// mundo, um país é chamado assim. Puro rótulo — quem faz a conta é o PowerIndex.</summary>
 public sealed record PowerTier(int Level, string Name, float MinShare);
@@ -738,11 +746,19 @@ public sealed class Country
     public Dictionary<string, string> GeneralWoundKind { get; } = new();
     /// <summary>Fim do período de espera por decisão (dia; ActivateDecisionCommand).</summary>
     public Dictionary<string, int> DecisionCooldownUntil { get; } = new();
+    /// <summary>A opinião do país (PartySystem): partido → popularidade, sempre a somar 100.</summary>
+    public Dictionary<string, float> Parties { get; } = new();
+    /// <summary>O partido que governa. Vazio só antes de World.SettleParties passar por cá.</summary>
+    public string Party { get; set; } = "";
+    /// <summary>Dia das próximas eleições. 0 = não há relógio (governo que as não faz).</summary>
+    public int NextElection { get; set; }
+    /// <summary>Multiplicadores do partido no governo (World.ApplyParty recalcula ao mudar de governo).</summary>
+    public Dictionary<string, float> PartyMult { get; } = new();
     /// <summary>Stat de país com fallback 1 (multiplicadores): sem linha na tabela = neutro. × tecnologias.</summary>
     public float Stat(string key, float fallback = 1f) =>
         (Stats.Has(key) ? Stats[key] : fallback) * (TechMult.TryGetValue(key, out var m) ? m : 1f)
         * (ResourceMult.TryGetValue(key, out var rm) ? rm : 1f) * (BuildingMult.TryGetValue(key, out var bm) ? bm : 1f) * (DecisionMult.TryGetValue(key, out var dm) ? dm : 1f) * (GeneralMult.TryGetValue(key, out var gm) ? gm : 1f) * (PrisonerMult.TryGetValue(key, out var pm) ? pm : 1f)
-        * (CabinetMult.TryGetValue(key, out var cm) ? cm : 1f);
+        * (CabinetMult.TryGetValue(key, out var cm) ? cm : 1f) * (PartyMult.TryGetValue(key, out var ym) ? ym : 1f);
     /// <summary>Ranhuras de investigação ocupadas: tecnologia → dias acumulados (× research_speed). Quantas
     /// cabem é do ResearchSystem.Slots (regra research_slots × stat do país). Antes era uma só linha; um
     /// país industrial que investigasse infantaria não podia estar ao mesmo tempo a tratar de blindados,

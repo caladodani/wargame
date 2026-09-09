@@ -1606,6 +1606,30 @@ public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) :
     }
 }
 
+/// <summary>Manda a propaganda para a rua a favor de um partido (tabela party): paga party_push_cost de
+/// poder político e dá-lhe party_push_points de popularidade, tirados proporcionalmente aos outros —
+/// a opinião continua a somar 100. É a única forma de o jogador mexer na opinião do país de propósito;
+/// tudo o resto é o PartySystem a reagir ao que se passa.</summary>
+public sealed record PushPartyCommand(int CountryId, string Party) : ICommand
+{
+    public string? Validate(World w)
+    {
+        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.PartyDefs.ContainsKey(Party)) return "partido desconhecido";
+        if (c.Political < w.Rule("party_push_cost", 25f)) return "poder político insuficiente";
+        if (c.Parties.GetValueOrDefault(Party) >= 100f) return "já não há mais opinião para dar";
+        return null;
+    }
+
+    public void Execute(World w)
+    {
+        var c = w.Countries[CountryId];
+        c.Political -= w.Rule("party_push_cost", 25f);
+        c.Parties[Party] = c.Parties.GetValueOrDefault(Party) + w.Rule("party_push_points", 5f);
+        World.NormalizeParties(c);
+    }
+}
+
 /// <summary>Cria um grupo de exércitos vazio. Limitado a army_group_max por país; sem nome, dá-lhe
 /// a ordinal seguinte ("3.º Exército").</summary>
 public sealed record CreateArmyGroupCommand(int CountryId, string? Name = null) : ICommand

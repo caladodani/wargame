@@ -204,6 +204,12 @@ public sealed record SubjectMade(int SubjectId, int OverlordId) : IGameEvent;
 /// <summary>A autonomia chegou ao topo e o vassalo levantou-se: já não paga nada a ninguém.</summary>
 public sealed record SubjectFreed(int SubjectId, int OverlordId) : IGameEvent;
 
+/// <summary>Houve eleições: o país foi às urnas e saiu com este governo. Changed=false quando o partido
+/// que já lá estava se aguentou — a data seguinte marca-se na mesma.</summary>
+public sealed record ElectionHeld(int CountryId, string From, string To, bool Changed) : IGameEvent;
+/// <summary>Golpe: um partido da oposição com o país pelas ruas tomou o governo sem passar por urnas.</summary>
+public sealed record CoupHappened(int CountryId, string From, string To) : IGameEvent;
+
 /// <summary>Pub/sub tipado. UI e sistemas subscrevem; ninguém chama ninguém directamente.</summary>
 public sealed class EventBus
 {

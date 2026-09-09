@@ -327,6 +327,23 @@ CREATE TABLE IF NOT EXISTS law_group (        -- cabeçalho de cada escada de le
 CREATE TABLE IF NOT EXISTS law_effect (       -- multiplicadores da lei (entram no ApplyTechs)
   law_id TEXT NOT NULL REFERENCES law(id), stat_key TEXT NOT NULL, value REAL NOT NULL,
   PRIMARY KEY (law_id, stat_key));
+CREATE TABLE IF NOT EXISTS party (            -- partidos: a opinião do país (PartySystem)
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT,
+  base REAL NOT NULL DEFAULT 25,              -- para onde a popularidade volta quando nada a puxa
+  elections INTEGER NOT NULL DEFAULT 1,       -- 0 = no poder não há eleições (o relógio pára)
+  stat_key TEXT, stat_mult REAL NOT NULL DEFAULT 1,   -- o que muda no país quando governa
+  drift_war REAL NOT NULL DEFAULT 0,          -- puxão por dia em guerra
+  drift_unstable REAL NOT NULL DEFAULT 0,     -- puxão por dia com a estabilidade em baixo
+  drift_exhaustion REAL NOT NULL DEFAULT 0,   -- puxão por dia por ponto de desgaste de guerra
+  glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS country_party (    -- fotografia inicial: quem manda e com quanto
+  -- sem chave estrangeira para country(tag) de propósito: esta fotografia semeia-se antes de haver
+  -- países (o import_map cria-os do mapa depois do seed) e pode nomear tags que este mapa não trouxe
+  country_tag TEXT NOT NULL,
+  party TEXT NOT NULL REFERENCES party(id),
+  popularity REAL NOT NULL DEFAULT 0,
+  ruling INTEGER NOT NULL DEFAULT 0,          -- 1 = está no governo ao começar
+  PRIMARY KEY (country_tag, party));
 CREATE TABLE IF NOT EXISTS army_doctrine_branch (  -- escolas de doutrina (ramos da árvore), por arma
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0,
   country_tag TEXT REFERENCES country(tag),   -- NULL = escola de toda a gente; com tag, escola nacional
@@ -586,6 +603,13 @@ CREATE TABLE IF NOT EXISTS s_cabinet (           -- gabinete civil em funções 
   country_id INTEGER NOT NULL, slot TEXT NOT NULL, advisor TEXT NOT NULL,
   since_day INTEGER NOT NULL DEFAULT 0,         -- dia da nomeação, para o painel contar o tempo de casa
   PRIMARY KEY (country_id, slot));
+
+CREATE TABLE IF NOT EXISTS s_country_party (     -- a opinião do país, dia a dia (PartySystem)
+  country_id INTEGER NOT NULL, party TEXT NOT NULL,
+  popularity REAL NOT NULL DEFAULT 0,
+  ruling INTEGER NOT NULL DEFAULT 0,             -- 1 = governa; a linha que governa leva o relógio das eleições
+  next_election_day INTEGER NOT NULL DEFAULT 0,  -- 0 = sem eleições marcadas (partido que as não faz)
+  PRIMARY KEY (country_id, party));
 
 CREATE TABLE IF NOT EXISTS s_exile (           -- governos no exílio (ExileSystem)
   country_id INTEGER PRIMARY KEY,               -- o governo que caiu e continua a existir em papel

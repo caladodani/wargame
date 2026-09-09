@@ -99,6 +99,10 @@ public sealed class World
     public List<CabinetSlotDef> CabinetSlots { get; } = new();
     /// <summary>Conselheiros civis contratáveis (tabelas advisor/advisor_effect).</summary>
     public Dictionary<string, AdvisorDef> AdvisorDefs { get; } = new();
+    /// <summary>Partidos (tabela party), pela ordem em que se mostram.</summary>
+    public Dictionary<string, PartyDef> PartyDefs { get; } = new();
+    /// <summary>Fotografia inicial da opinião (tabela country_party): tag → partido → (popularidade, governa).</summary>
+    public Dictionary<string, List<(string Party, float Popularity, bool Ruling)>> StartParties { get; } = new();
     /// <summary>Postos de comandante (tabela general_rank), do mais baixo para o mais alto.</summary>
     public List<GeneralRank> GeneralRanks { get; } = new();
     /// <summary>Gravidades de baixa no comando (tabela wound_kind).</summary>
@@ -456,6 +460,57 @@ public sealed class World
                 foreach (var (key, mult) in a.Effects)
                     c.CabinetMult[key] = c.CabinetMult.GetValueOrDefault(key, 1f) * (1f + (mult - 1f) * factor);
             }
+    }
+
+    /// <summary>Põe a opinião do país em pé: as linhas que a tabela country_party deu, o resto repartido
+    /// pelas bases dos partidos, e a soma sempre em 100. Chama-se ao abrir o mundo e ao carregar um jogo
+    /// antigo (que não tinha partidos nenhuns) — quem não tem linha nenhuma nasce com o partido de maior
+    /// base no poder, que é o que faz um país sem ficha própria continuar a ter governo.</summary>
+    public static void SettleParties(World w, Country c)
+    {
+        if (w.PartyDefs.Count == 0) return;
+        if (c.Parties.Count == 0 && w.StartParties.TryGetValue(c.Tag, out var start))
+        {
+            foreach (var (party, pop, ruling) in start)
+                if (w.PartyDefs.ContainsKey(party))
+                {
+                    c.Parties[party] = pop;
+                    if (ruling) c.Party = party;
+                }
+        }
+        // o que a ficha não disse reparte-se pelas bases: o que sobra dos 100 vai para quem lá não estava
+        float named = c.Parties.Values.Sum();
+        var rest = w.PartyDefs.Values.Where(p => !c.Parties.ContainsKey(p.Id)).ToList();
+        float weight = rest.Sum(p => MathF.Max(0f, p.Base));
+        foreach (var p in rest)
+            c.Parties[p.Id] = weight > 0f ? MathF.Max(0f, 100f - named) * MathF.Max(0f, p.Base) / weight : 0f;
+        NormalizeParties(c);
+        if (c.Party.Length == 0 || !c.Parties.ContainsKey(c.Party))
+            c.Party = c.Parties.OrderByDescending(x => x.Value).ThenBy(x => x.Key).First().Key;
+        ApplyParty(w, c);
+    }
+
+    /// <summary>Empurra as popularidades para dentro de 0..100 e faz a soma dar 100. Uma opinião que não
+    /// some 100 deixava de ser uma opinião — passava a ser duas.</summary>
+    public static void NormalizeParties(Country c)
+    {
+        foreach (var k in c.Parties.Keys.ToList()) c.Parties[k] = MathF.Max(0f, c.Parties[k]);
+        float total = c.Parties.Values.Sum();
+        if (total <= 0f)
+        {
+            foreach (var k in c.Parties.Keys.ToList()) c.Parties[k] = 100f / c.Parties.Count;
+            return;
+        }
+        foreach (var k in c.Parties.Keys.ToList()) c.Parties[k] = c.Parties[k] * 100f / total;
+    }
+
+    /// <summary>Recalcula Country.PartyMult a partir de quem governa (ao mudar de governo e ao carregar).
+    /// Um partido sem stat_key não muda nada no país — governa e pronto.</summary>
+    public static void ApplyParty(World w, Country c)
+    {
+        c.PartyMult.Clear();
+        if (w.PartyDefs.TryGetValue(c.Party, out var p) && !string.IsNullOrEmpty(p.StatKey))
+            c.PartyMult[p.StatKey] = p.StatMult;
     }
 
     /// <summary>Rodagem do conselheiro desta pasta, de 0 (chegou hoje) a 1 (casa conhecida): os dias de casa

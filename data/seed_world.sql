@@ -1682,3 +1682,61 @@ INSERT INTO rule (key,value,note) VALUES
  ('map_key_max',12,'entradas máximas na legenda de um modo de mapa por classe');
 INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
  ('zonas','Zonas','🗺','zone','','',9,'globo');
+
+-- ===== A opinião do país: partidos, eleições e golpes (PartySystem) =====
+-- No HoI4 o país tem uma opinião que se mexe sozinha e um governo que pode cair. Aqui é a mesma ideia:
+-- cada partido puxa por dia conforme o que se passa (guerra, instabilidade, desgaste), volta devagar
+-- à sua base quando nada o puxa, e a soma anda sempre nos 100. Quem governa dá o seu multiplicador
+-- ao país; quem faz eleições tem relógio; quem as não faz governa até alguém dar o golpe.
+INSERT INTO party (id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,glyph,sort) VALUES
+ ('liberais','Liberais','A casa das leis e do comércio. Governa com as fábricas a render, mas a guerra come-lhe o chão.',
+  40,1,'industry',1.05,-0.030,-0.040,-0.020,'balanca',1),
+ ('nacionalistas','Nacionalistas','A bandeira primeiro. Cada dia de guerra é um cartaz que lhes enche a sala.',
+  25,1,'attack',1.05,0.035,0.010,0.005,'bandeira',2),
+ ('socialistas','Socialistas','A fábrica é de quem lá trabalha. Crescem quando as casas passam mal.',
+  20,1,'conscription',1.10,0.000,0.030,0.020,'punho',3),
+ ('autoritarios','Autoritários','Ordem sem urnas. Governa quem manda na polícia — e enquanto mandar não há eleições.',
+  15,0,'counter_intel',1.25,0.010,0.025,0.010,'capacete',4);
+
+INSERT INTO rule (key,value,note) VALUES
+ ('party_drift_day',1,'multiplicador global do puxão diário das popularidades'),
+ ('party_settle',0.02,'pontos por dia com que cada partido volta à sua base quando nada o puxa'),
+ ('election_years',4,'anos entre eleições de um governo que as faz'),
+ ('coup_popularity',60,'popularidade de um partido da oposição a partir da qual se pode dar o golpe'),
+ ('coup_stability',25,'estabilidade abaixo da qual o golpe pega'),
+ ('coup_stability_hit',15,'estabilidade que o golpe leva por diante'),
+ ('election_stability_hit',5,'estabilidade que uma mudança de governo nas urnas custa'),
+ ('party_push_cost',25,'poder político de um empurrão à propaganda de um partido'),
+ ('party_push_points',5,'pontos de popularidade que o empurrão dá');
+
+-- Fotografia inicial: quem governa cada país e com quanto. Quem não está aqui reparte-se pelas bases
+-- (World.SettleParties), e um país sem linha nenhuma nasce com o partido de maior base no poder.
+INSERT INTO country_party (country_tag,party,popularity,ruling) VALUES
+ ('AGO','socialistas',44,1), ('AGO','nacionalistas',26,0),
+ ('ARG','liberais',43,1), ('ARG','socialistas',24,0),
+ ('AUS','liberais',52,1),
+ ('BRA','liberais',41,1), ('BRA','nacionalistas',30,0),
+ ('CAN','liberais',50,1),
+ ('CHN','autoritarios',63,1), ('CHN','socialistas',22,0),
+ ('DEU','liberais',48,1), ('DEU','nacionalistas',24,0),
+ ('EGY','autoritarios',50,1), ('EGY','nacionalistas',26,0),
+ ('ESP','liberais',45,1), ('ESP','socialistas',26,0),
+ ('FRA','liberais',44,1), ('FRA','nacionalistas',27,0),
+ ('GBR','liberais',47,1), ('GBR','nacionalistas',22,0),
+ ('IDN','liberais',42,1),
+ ('IND','nacionalistas',47,1), ('IND','liberais',30,0),
+ ('IRN','autoritarios',52,1), ('IRN','nacionalistas',24,0),
+ ('ISR','nacionalistas',44,1), ('ISR','liberais',33,0),
+ ('ITA','nacionalistas',40,1), ('ITA','liberais',33,0),
+ ('JPN','liberais',46,1), ('JPN','nacionalistas',26,0),
+ ('KOR','liberais',45,1),
+ ('MOZ','socialistas',41,1),
+ ('PAK','nacionalistas',42,1), ('PAK','autoritarios',28,0),
+ ('POL','nacionalistas',45,1), ('POL','liberais',30,0),
+ ('PRK','autoritarios',72,1),
+ ('PRT','liberais',46,1), ('PRT','socialistas',24,0),
+ ('RUS','nacionalistas',58,1), ('RUS','autoritarios',22,0),
+ ('SAU','autoritarios',60,1),
+ ('TUR','nacionalistas',49,1), ('TUR','liberais',28,0),
+ ('UKR','liberais',46,1), ('UKR','nacionalistas',30,0),
+ ('USA','liberais',44,1), ('USA','nacionalistas',38,0);

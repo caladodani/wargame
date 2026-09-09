@@ -264,6 +264,20 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT advisor_id,stat_key,mult FROM advisor_effect"))
             if (w.AdvisorDefs.TryGetValue((string)r["advisor_id"]!, out var ad))
                 ad.Effects[(string)r["stat_key"]!] = Convert.ToSingle(r["mult"]);
+        w.PartyDefs.Clear();
+        foreach (var r in _static.Query("SELECT id,name,note,base,elections,stat_key,stat_mult,drift_war,drift_unstable,drift_exhaustion,glyph,sort FROM party ORDER BY sort,id"))
+            w.PartyDefs[(string)r["id"]!] = new PartyDef((string)r["id"]!, (string)r["name"]!,
+                r["note"] as string ?? "", Convert.ToSingle(r["base"]), Convert.ToInt32(r["elections"]) != 0,
+                r["stat_key"] as string, Convert.ToSingle(r["stat_mult"]), Convert.ToSingle(r["drift_war"]),
+                Convert.ToSingle(r["drift_unstable"]), Convert.ToSingle(r["drift_exhaustion"]),
+                (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        w.StartParties.Clear();
+        foreach (var r in _static.Query("SELECT country_tag,party,popularity,ruling FROM country_party"))
+        {
+            string tag = (string)r["country_tag"]!;
+            if (!w.StartParties.TryGetValue(tag, out var list)) w.StartParties[tag] = list = new();
+            list.Add(((string)r["party"]!, Convert.ToSingle(r["popularity"]), Convert.ToInt32(r["ruling"]) != 0));
+        }
         w.PowerTiers.Clear();
         foreach (var r in _static.Query("SELECT level,name,min_share FROM power_tier ORDER BY min_share"))
             w.PowerTiers.Add(new PowerTier(Convert.ToInt32(r["level"]), (string)r["name"]!, Convert.ToSingle(r["min_share"])));
@@ -321,6 +335,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT country_tag,tech_id FROM country_tech"))
             if (byTag.TryGetValue((string)r["country_tag"]!, out var c) && w.Techs.ContainsKey((string)r["tech_id"]!)) c.Techs.Add((string)r["tech_id"]!);
         foreach (var c in w.Countries.Values) w.ApplyTechs(c);
+        // a opinião do país só se pode pôr em pé depois de haver países e partidos
+        foreach (var c in w.Countries.Values) World.SettleParties(w, c);
 
         foreach (var r in _static.Query("SELECT id,name,kind,color,glyph,sort FROM zone ORDER BY sort"))
             w.Zones[(string)r["id"]!] = new ZoneDef((string)r["id"]!, (string)r["name"]!, (string)r["kind"]!,
@@ -620,6 +636,19 @@ public sealed class SqlWorldRepository : IWorldRepository
                 cab.CabinetSince[(string)r["slot"]!] = Convert.ToInt32(r["since_day"]);
             }
         foreach (var c in w.Countries.Values) World.ApplyCabinet(w, c);
+        foreach (var c in w.Countries.Values) c.Parties.Clear();   // o save manda; sem linhas, o SettleParties trata
+        foreach (var r in save.Query("SELECT country_id,party,popularity,ruling,next_election_day FROM s_country_party"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var pc))
+            {
+                pc.Parties[(string)r["party"]!] = Convert.ToSingle(r["popularity"]);
+                if (Convert.ToInt32(r["ruling"]) != 0)
+                {
+                    pc.Party = (string)r["party"]!;
+                    pc.NextElection = Convert.ToInt32(r["next_election_day"]);
+                }
+            }
+        // um save antigo não tem linha nenhuma: o país nasce agora com a opinião da ficha estática
+        foreach (var c in w.Countries.Values) World.SettleParties(w, c);
         foreach (var r in save.Query("SELECT country_id,decision,until_day,cooldown_until FROM s_decision"))
         {
             int cid = Convert.ToInt32(r["country_id"]); string did = (string)r["decision"]!;
@@ -922,7 +951,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_tank_design", "s_tank_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_air_mission_plane", "s_plane", "s_plane_design", "s_plane_design_module", "s_ship_design", "s_ship_design_module", "s_tank_design", "s_tank_design_module", "s_naval_mission", "s_naval_mission_ship", "s_naval_invasion", "s_naval_invasion_division", "s_ship", "s_occupation", "s_cabinet", "s_country_party", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -940,6 +969,10 @@ public sealed class SqlWorldRepository : IWorldRepository
             foreach (var (slot, advisor) in c.Cabinet)
                 save.Execute("INSERT INTO s_cabinet (country_id,slot,advisor,since_day) VALUES (?,?,?,?)",
                     c.Id, slot, advisor, c.CabinetSince.GetValueOrDefault(slot));
+        foreach (var c in w.Countries.Values)
+            foreach (var (party, pop) in c.Parties)
+                save.Execute("INSERT INTO s_country_party (country_id,party,popularity,ruling,next_election_day) VALUES (?,?,?,?,?)",
+                    c.Id, party, pop, party == c.Party ? 1 : 0, party == c.Party ? c.NextElection : 0);
         foreach (var c in w.Countries.Values)
             foreach (var (from, men) in c.Prisoners)
                 save.Execute("INSERT INTO s_prisoner (country_id,from_country_id,men) VALUES (?,?,?)", c.Id, from, men);
