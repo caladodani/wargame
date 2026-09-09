@@ -252,6 +252,9 @@ public sealed class World
     public Dictionary<string, NavalMissionDef> NavalMissionDefs { get; } = new();
     public List<NavalMission> NavalMissions { get; } = new();
 
+    /// <summary>Classes de navio (tabela ship_class; Navy): o que cada casco serve no mar.</summary>
+    public Dictionary<string, ShipClassDef> ShipClasses { get; } = new();
+
     /// <summary>Políticas de ocupação (tabela occupation_policy) e a que cada ocupante assinou sobre cada
     /// povo que tem debaixo de si (save s_occupation; OccupationSystem).</summary>
     public Dictionary<string, OccupationPolicyDef> OccupationPolicyDefs { get; } = new();

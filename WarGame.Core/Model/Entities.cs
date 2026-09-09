@@ -472,6 +472,14 @@ public sealed class AirMission
 public sealed record NavalMissionDef(string Id, string Name, string Icon, string Effect, float Value, string Note, int Sort,
                                      string Glyph = "");
 
+/// <summary>Uma classe de navio (tabela ship_class; Navy). A marinha do jogo era um número só: agora cada
+/// casco tem classe e a classe decide para que serve. Screen é a couraça — quem tem screen leva os tiros
+/// primeiro e poupa a linha; Battle é o que pesa no combate; Blockade/Escort/Patrol é quanto vale em cada
+/// tarefa naval. Nada disto está em código: são linhas da tabela.</summary>
+public sealed record ShipClassDef(string Id, string Name, string Icon, string Role, float Cost, float Upkeep,
+                                  float Battle, float Screen, float Blockade, float Escort, float Patrol,
+                                  bool Basic, string Note, int Sort, string Glyph);
+
 /// <summary>Uma esquadra destacada para o mar de uma região costeira (NavalMissionSystem; save
 /// s_naval_mission). Ships são navios do pool nacional (Country.Warships) que ficam presos a esta missão
 /// até serem chamados de volta — ou até irem ao fundo naquele mar.</summary>
@@ -480,7 +488,23 @@ public sealed class NavalMission
     public int CountryId { get; init; }
     public int RegionId { get; init; }
     public string MissionId { get; init; } = "";
-    public float Ships { get; set; }
+    /// <summary>Que cascos é que esta esquadra levou, por classe (save s_naval_mission_ship). A classe vazia
+    /// é o navio sem classe: um mundo sem ship_class nenhuma continua a lutar como antes.</summary>
+    public Dictionary<string, float> Squadron { get; } = new();
+    /// <summary>Navios desta esquadra ao todo. Escrever aqui reparte pela composição que já lá está — é como
+    /// o resto do jogo continua a somar navios sem ter de saber de classes.</summary>
+    public float Ships
+    {
+        get { float t = 0f; foreach (var n in Squadron.Values) t += n; return t; }
+        set
+        {
+            float now = Ships;
+            if (value <= 0f) { Squadron.Clear(); return; }
+            if (now <= 0.0001f) { Squadron.Clear(); Squadron[""] = value; return; }
+            float k = value / now;
+            foreach (var id in Squadron.Keys.ToList()) Squadron[id] *= k;
+        }
+    }
     public int SinceDay { get; init; }
     /// <summary>Nome próprio da esquadra (tabela formation_name; save s_naval_mission.name).</summary>
     public string Name { get; set; } = "";
@@ -596,7 +620,25 @@ public sealed class Country
     /// <summary>Região onde se perdeu a última batalha: é para lá que o aviso leva o mapa.</summary>
     public int LastDefeatRegion { get; set; }
     public float AirPower { get; set; }            // esquadrões aéreos (BuyAirWingCommand); pesam no combate terrestre
-    public float Warships { get; set; }            // navios de guerra (BuyWarshipCommand); destacam-se por NavalMissionSystem
+    /// <summary>A marinha por classe de casco (ship_class; save s_ship): 'destroier' → 12, 'submarino' → 4.
+    /// A classe vazia é o navio sem classe — o casco genérico dos saves antigos e dos mundos de teste, que
+    /// vale 1 em tudo. Escreve-se por aqui ou pelo Warships, nunca pelos dois ao mesmo tempo.</summary>
+    public Dictionary<string, float> Ships { get; } = new();
+    /// <summary>Navios de guerra ao todo (soma das classes). Continua a ser o pool nacional que se destaca
+    /// para o mar; pôr um número aqui reparte-o pelas classes que o país já tem (ou faz cascos sem classe,
+    /// se ainda não tem nenhuma), para os saves velhos e os mundos de teste não terem de saber de classes.</summary>
+    public float Warships
+    {
+        get { float t = 0f; foreach (var n in Ships.Values) t += n; return t; }
+        set
+        {
+            float now = Warships;
+            if (value <= 0f) { Ships.Clear(); return; }
+            if (now <= 0.0001f) { Ships.Clear(); Ships[""] = value; return; }
+            float k = value / now;
+            foreach (var id in Ships.Keys.ToList()) Ships[id] *= k;
+        }
+    }
     public float Convoys { get; set; }             // saldo de mercantes por cima da marinha de partida (ConvoySystem)
     /// <summary>Combustível em depósito (FuelSystem). Único número desta família que vai no save: os outros
     /// refazem-se todos os dias a partir do que o país controla.</summary>

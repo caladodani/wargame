@@ -323,6 +323,23 @@ CREATE TABLE IF NOT EXISTS s_naval_mission (  -- esquadras destacadas para o mar
   ships REAL NOT NULL, since_day INTEGER NOT NULL,
   name TEXT NOT NULL DEFAULT '',              -- nome próprio da esquadra (formation_name)
   PRIMARY KEY (country_id, region_id));
+CREATE TABLE IF NOT EXISTS ship_class (      -- classes de navio (Navy); estática
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
+  role TEXT NOT NULL,                         -- 'escolta' | 'linha' | 'caca' — o que se lê na ficha
+  cost REAL NOT NULL,                         -- multiplicador de naval_ship_cost
+  upkeep REAL NOT NULL DEFAULT 1,             -- multiplicador de naval_mission_upkeep
+  battle REAL NOT NULL,                       -- peso no combate de esquadra
+  screen REAL NOT NULL,                       -- couraça da escolta: quem tem screen leva os tiros primeiro
+  blockade REAL NOT NULL, escort REAL NOT NULL, patrol REAL NOT NULL,   -- valor em cada tarefa naval
+  basic INTEGER NOT NULL DEFAULT 0,           -- 1 = a classe que o botão antigo de "comprar navio" compra
+  note TEXT NOT NULL, sort INTEGER NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '');            -- nome de um desenho do Glyph.cs — é este que se vê
+CREATE TABLE IF NOT EXISTS s_ship (           -- navios de um país por classe (save)
+  country_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
+  PRIMARY KEY (country_id, class_id));
+CREATE TABLE IF NOT EXISTS s_naval_mission_ship (  -- composição da esquadra destacada (save)
+  country_id INTEGER, region_id INTEGER, class_id TEXT NOT NULL, count REAL NOT NULL,
+  PRIMARY KEY (country_id, region_id, class_id));
 CREATE TABLE IF NOT EXISTS occupation_policy ( -- políticas de ocupação (OccupationSystem); estática
   id TEXT PRIMARY KEY, name TEXT NOT NULL, icon TEXT NOT NULL,
   resistance_mult REAL NOT NULL, yield_mult REAL NOT NULL, manpower_mult REAL NOT NULL,

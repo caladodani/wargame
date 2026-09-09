@@ -945,6 +945,21 @@ INSERT INTO naval_mission (id,name,icon,effect,value,note,sort,glyph) VALUES
  ('escolta','Escolta de comboios','🛡','escort',1,'Acompanha os nossos comboios: enquanto houver mais navios nossos do que os do bloqueio, o mar continua aberto.',1,'escudo'),
  ('patrulha','Patrulha','🔭','patrol',1,'Vigia aquele mar: a costa deixa de estar no nevoeiro e vê-se o que lá está.',2,'luneta');
 
+-- Classes de navio (tabela ship_class; Navy). A marinha era um número: 10 navios eram 10 navios, fossem
+-- lanchas ou porta-aviões. Agora cada casco tem classe, e a classe decide o que aquele navio serve —
+-- 'screen' é a couraça da esquadra (quem tem screen leva os tiros primeiro e poupa a linha), e as três
+-- últimas colunas dizem quanto vale na tarefa. Um submarino aperta um bloqueio como nenhum outro e não
+-- protege ninguém; um contratorpedeiro escolta e leva a pancada; um porta-aviões ganha a batalha e não
+-- se guarda sozinho. Mudar a marinha do jogo é mudar estas linhas.
+INSERT INTO ship_class (id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph) VALUES
+ ('patrulha','Lancha de patrulha','🔭','escolta',0.5,0.5,0.3,0.5,0.3,0.6,1.8,0,'Casco pequeno e barato: vê o mar todo e não aguenta um combate a sério.',0,'luneta'),
+ ('corveta','Corveta','⚓','escolta',1,0.8,0.7,1.0,0.6,1.1,1.2,1,'O navio de todos os dias: escolta comboios, patrulha a costa e é o que se compra quando não se pode escolher.',1,'barco'),
+ ('fragata','Fragata','🛡','escolta',1.6,1.0,1.1,1.3,0.9,1.6,1.0,0,'Escolta de longo curso: leva os comboios ao outro lado do mar e ainda dá luta.',2,'escudo'),
+ ('destroier','Contratorpedeiro','🌊','escolta',2.0,1.2,1.3,2.0,1.0,1.9,1.2,0,'A couraça da esquadra: é ele que leva os tiros que iam para os cruzadores, e é ele que caça submarinos.',3,'onda'),
+ ('submarino','Submarino','🐋','caca',2.2,1.0,1.0,0.0,2.2,0.2,0.4,0,'Corta o mar a quem dele vive: aperta o bloqueio como nenhum outro e não protege ninguém, nem a si.',4,'submarino'),
+ ('cruzador','Cruzador','⚔','linha',3.5,1.8,2.4,0.3,1.4,1.0,0.8,0,'Peso de linha: ganha o mar disputado, mas sem escolta à frente é aço a afundar.',5,'espadas'),
+ ('porta_avioes','Porta-aviões','🛬','linha',6.0,3.0,4.2,0.0,1.3,1.2,1.6,0,'O mar inteiro à volta dele: decide a batalha e a vigia, e não se defende sozinho.',6,'conves');
+
 -- Nomes de formação (tabela formation_name; World.NextFormationName): as asas e as esquadras deixam de ser
 -- "3 asas sobre Braga" e passam a ter nome, como as divisões têm honras de batalha. Escolhe-se por ordem de
 -- sort o primeiro nome do fundo que o país ainda não tenha no ar (ou no mar); esgotado o fundo, a formação
@@ -1048,6 +1063,9 @@ INSERT INTO rule (key,value,note) VALUES
  ('naval_range_km',1500,'distância máxima, por rota marítima, entre a nossa costa e o mar da missão'),
  ('naval_mission_min_ships',1,'navios mínimos para destacar uma esquadra'),
  ('naval_ai_reserve',1,'navios que a IA guarda em casa antes de destacar esquadras'),
+ ('naval_screen_share',0.75,'fatia das perdas de um combate naval que a escolta (screen) leva por si'),
+ ('naval_power_swing',1.5,'quanto a diferença de força de esquadra pode agravar as perdas de um lado'),
+ ('navy_start_mix',0.35,'fatia da marinha de partida que nasce em classes de linha, o resto em escolta'),
  ('convoy_base',20,'marinha mercante de partida de cada país'),
  ('convoy_cost',25,'custo de um comboio mercante'),
  ('convoy_per_sea_division',1,'mercantes presos por cada divisão abastecida por mar'),

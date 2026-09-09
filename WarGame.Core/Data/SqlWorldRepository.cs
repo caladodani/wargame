@@ -133,6 +133,12 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM naval_mission ORDER BY sort"))
             w.NavalMissionDefs[(string)r["id"]!] = new NavalMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+        foreach (var r in _static.Query("SELECT id,name,icon,role,cost,upkeep,battle,screen,blockade,escort,patrol,basic,note,sort,glyph FROM ship_class ORDER BY sort"))
+            w.ShipClasses[(string)r["id"]!] = new ShipClassDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
+                (string)r["role"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["upkeep"]), Convert.ToSingle(r["battle"]),
+                Convert.ToSingle(r["screen"]), Convert.ToSingle(r["blockade"]), Convert.ToSingle(r["escort"]),
+                Convert.ToSingle(r["patrol"]), Convert.ToInt32(r["basic"]) != 0, (string)r["note"]!,
+                Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
         foreach (var r in _static.Query("SELECT id,name,icon,resistance_mult,yield_mult,manpower_mult,note,sort,glyph FROM occupation_policy ORDER BY sort"))
             w.OccupationPolicyDefs[(string)r["id"]!] = new OccupationPolicyDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["icon"]!, Convert.ToSingle(r["resistance_mult"]), Convert.ToSingle(r["yield_mult"]),
@@ -604,6 +610,21 @@ public sealed class SqlWorldRepository : IWorldRepository
                 MissionId = (string)r["mission_id"]!, Ships = Convert.ToSingle(r["ships"]),
                 SinceDay = Convert.ToInt32(r["since_day"]), Name = r["name"] as string ?? "",
             });
+        // as classes vêm depois do total: um save velho não tem estas linhas e fica com cascos sem classe,
+        // que é exactamente o que aquele save era
+        foreach (var r in save.Query("SELECT country_id,class_id,count FROM s_ship"))
+            if (w.Countries.TryGetValue(Convert.ToInt32(r["country_id"]), out var sc))
+            {
+                if (sc.Ships.ContainsKey("")) sc.Ships.Clear();
+                sc.Ships[(string)r["class_id"]!] = Convert.ToSingle(r["count"]);
+            }
+        foreach (var r in save.Query("SELECT country_id,region_id,class_id,count FROM s_naval_mission_ship"))
+            if (w.NavalMissions.FirstOrDefault(m => m.CountryId == Convert.ToInt32(r["country_id"])
+                                                    && m.RegionId == Convert.ToInt32(r["region_id"])) is NavalMission nm)
+            {
+                if (nm.Squadron.ContainsKey("")) nm.Squadron.Clear();
+                nm.Squadron[(string)r["class_id"]!] = Convert.ToSingle(r["count"]);
+            }
         // saves feitos antes de haver nomes de formação trazem as missões com a coluna vazia (é o DEFAULT ''
         // da migração): baptizam-se aqui, senão a asa ficava para sempre "asa sem nome" na ficha da Guerra
         foreach (var m in w.AirMissions.Where(m => m.Name.Length == 0).ToList())
@@ -742,7 +763,7 @@ public sealed class SqlWorldRepository : IWorldRepository
     public void WriteSave(World w, IDatabase save)
     {
         save.BeginTransaction();
-        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_occupation", "s_cabinet", "s_exile" })
+        foreach (var t in new[] { "s_region", "s_division", "s_war", "save_meta", "s_country", "s_country_tech", "s_focus", "s_production_queue", "s_battle", "s_battle_division", "template_unit", "template", "s_news_choice", "s_news_fired", "s_faction_member", "s_faction", "s_country_law", "s_spy_op", "s_intel", "s_pact", "s_trade_deal", "s_lend_lease", "s_history", "s_region_building", "s_decision", "s_general", "s_war_history", "s_war_goal", "s_division_medal", "s_division_kit", "s_stock", "s_army_group", "s_army_group_member", "s_chronicle", "s_prisoner", "s_offer", "s_research", "s_army_doctrine", "s_attache", "s_air_mission", "s_naval_mission", "s_naval_mission_ship", "s_ship", "s_occupation", "s_cabinet", "s_exile" })
             save.Execute("DELETE FROM " + t);
         save.Execute("INSERT INTO save_meta VALUES ('day',?)", w.Clock.Day);
         save.Execute("INSERT INTO save_meta VALUES ('saved_at',?)", DateTime.UtcNow.ToString("o"));
@@ -800,8 +821,18 @@ public sealed class SqlWorldRepository : IWorldRepository
             save.Execute("INSERT INTO s_air_mission (country_id,region_id,mission_id,wings,since_day,name) VALUES (?,?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Wings, m.SinceDay, m.Name);
         foreach (var m in w.NavalMissions)
+        {
             save.Execute("INSERT INTO s_naval_mission (country_id,region_id,mission_id,ships,since_day,name) VALUES (?,?,?,?,?,?)",
                 m.CountryId, m.RegionId, m.MissionId, m.Ships, m.SinceDay, m.Name);
+            foreach (var (cls, n) in m.Squadron.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+                if (cls.Length > 0 && n > 0f)
+                    save.Execute("INSERT INTO s_naval_mission_ship (country_id,region_id,class_id,count) VALUES (?,?,?,?)",
+                        m.CountryId, m.RegionId, cls, n);
+        }
+        foreach (var c in w.Countries.Values.OrderBy(x => x.Id))
+            foreach (var (cls, n) in c.Ships.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+                if (cls.Length > 0 && n > 0f)
+                    save.Execute("INSERT INTO s_ship (country_id,class_id,count) VALUES (?,?,?)", c.Id, cls, n);
         foreach (var o in w.Occupations)
             save.Execute("INSERT INTO s_occupation (country_id,target_id,policy_id,since_day) VALUES (?,?,?,?)",
                 o.CountryId, o.TargetId, o.PolicyId, o.SinceDay);

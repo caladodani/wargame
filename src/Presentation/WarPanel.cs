@@ -333,6 +333,8 @@ public partial class WarPanel : PanelContainer
     /// o que o inimigo tem à porta e as costas que hoje estão fechadas.</summary>
     private string SeaKey(World w, int pid) =>
         $"sea{NavalMissionSystem.Free(w, pid):0.0}:"
+        + string.Join(",", (w.Countries.TryGetValue(pid, out var me) ? me.Ships : new Dictionary<string, float>())
+            .OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"{kv.Key}{kv.Value:0.#}")) + ":"
         + string.Join("-", w.NavalMissions.OrderBy(m => m.RegionId).ThenBy(m => m.CountryId)
             .Select(m => $"{m.CountryId}@{m.RegionId}={m.MissionId}:{m.Ships:0.0}"))
         + ":" + (NavalMissionSystem.Target(w, pid)?.ToString() ?? "-")
@@ -388,9 +390,21 @@ public partial class WarPanel : PanelContainer
                 m.Name, FormationView.IsHome(w, pid, World.Sea, m.Name), World.Sea, def.Glyph, def.Name,
                 r.Name, m.Ships, foe, w.Clock.Day - m.SinceDay, def.Note,
                 NavalMissionSystem.Blockaded(w, rid) ? "costa fechada" : ""), row));
+
+            // de que é feita a esquadra: é a composição que ganha o mar, não a contagem de cascos
+            var mix = new HBoxContainer(); mix.AddThemeConstantOverride("separation", 6);
+            foreach (var (cls, n) in m.Squadron.Where(kv => kv.Value > 0.05f)
+                     .OrderByDescending(kv => Navy.Battle(w, kv.Key)).ThenBy(kv => kv.Key, StringComparer.Ordinal).Take(4))
+            {
+                mix.AddChild(Glyph.Make(Navy.Glyph(w, cls), 15f, Ui.TextDim, Navy.Name(w, cls)));
+                mix.AddChild(Ui.Lbl($"{Navy.Name(w, cls)} ×{n:0.#}", 14));
+            }
+            mix.AddChild(Ui.Grow(Ui.Lbl($"peso {Navy.Power(w, m.Squadron):0.#}", 14)));
+            card.AddChild(mix);
         }
 
         ZoneBoard(card, w, Zones.SeaBoard(w, pid), "navios", "mar");
+        Shipyard(card, w, pid);
 
         // mares a que se pode mandar hoje: a melhor costa deles ao nosso alcance e as nossas costas com porto
         var seas = new List<int>();
@@ -443,6 +457,41 @@ public partial class WarPanel : PanelContainer
         if (err is not null) { _game.Notify(err); return; }
         string sailed = _game.World.NavalMissions.FirstOrDefault(m => m.CountryId == pid && m.RegionId == regionId)?.Name ?? "";
         _game.Notify((sailed.Length > 0 ? sailed : $"{ships:0.#} navios") + $" a caminho de {_game.World.Regions[regionId].Name}");
+        _lastKey = ""; Fill();
+    });
+
+    /// <summary>O estaleiro: uma linha por classe de casco (ship_class) com o que ela serve, o que já temos
+    /// dela, quantos estão no porto e o botão de encomendar. Era aqui que faltava a decisão da marinha —
+    /// antes só havia "comprar navio", e um navio era um navio.</summary>
+    private void Shipyard(Node card, World w, int pid)
+    {
+        if (w.ShipClasses.Count == 0) return;
+        var me = w.Countries[pid];
+        card.AddChild(Ui.Lbl($"Estaleiro ({Navy.Describe(w, me.Ships)}):", 15));
+        foreach (var d in w.ShipClasses.Values.OrderBy(x => x.Sort))
+        {
+            float have = me.Ships.GetValueOrDefault(d.Id), port = Navy.Free(w, pid, d.Id);
+            float cost = Navy.Cost(w, d.Id);
+            string cls = d.Id;
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
+            row.AddChild(Glyph.Make(d.Glyph, 18f, have > 0f ? Ui.Accent : Ui.TextDim, d.Note));
+            var lbl = Ui.Lbl($"{d.Name} ({d.Role})   ·   {have:0.#} nossos, {port:0.#} no porto"
+                             + $"   ·   combate {d.Battle:0.#}, couraça {d.Screen:0.#}", 15);
+            lbl.TooltipText = d.Note + $"\nBloqueio ×{d.Blockade:0.#}, escolta ×{d.Escort:0.#}, patrulha ×{d.Patrol:0.#}.";
+            row.AddChild(Ui.Grow(lbl));
+            var buy = Ui.Btn($"{cost:0}", () => BuyShip(pid, cls), 110);
+            buy.Disabled = me.Money < cost;
+            buy.TooltipText = $"Encomendar um {d.Name} por {cost:0} pontos de produção.";
+            row.AddChild(buy);
+            card.AddChild(row);
+        }
+    }
+
+    private void BuyShip(int pid, string classId) => _game.RunWhenIdle(() =>
+    {
+        var err = _game.Dispatch(new BuyShipCommand(pid, classId));
+        if (err is not null) { _game.Notify(err); return; }
+        _game.Notify($"{Navy.Name(_game.World, classId)} encomendado: entra hoje no porto");
         _lastKey = ""; Fill();
     });
 

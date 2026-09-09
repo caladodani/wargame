@@ -64,8 +64,11 @@ public sealed class FuelSystem : ISystem
         foreach (var d in w.Divisions.Values)
             if (d.CountryId == countryId) ground += w.Stats.Get(d.TemplateId)["fuel_use"];
         if (c.AtWarWith.Count > 0) ground *= w.Rule("fuel_war_mult", 1.6f);
+        // o mar bebe pela classe do casco: um porta-aviões não gasta o mesmo que uma lancha de patrulha
+        float sea = 0f;
+        foreach (var (cls, n) in c.Ships) sea += n * Navy.Upkeep(w, cls);
         return ground + c.AirPower * w.Rule("fuel_per_air", 0.02f)
-                      + c.Warships * w.Rule("fuel_per_ship", 0.05f);
+                      + sea * w.Rule("fuel_per_ship", 0.05f);
     }
 
     /// <summary>O que o depósito aguenta: um fundo que todos têm mais os dias de produção que se conseguem

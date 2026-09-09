@@ -1269,20 +1269,26 @@ public sealed record RedeployCommand(int CountryId, int DivisionId, int TargetRe
 
 public sealed record BuyWarshipCommand(int CountryId) : ICommand
 {
+    public string? Validate(World w) => new BuyShipCommand(CountryId, Navy.Basic(w)).Validate(w);
+
+    public void Execute(World w) => new BuyShipCommand(CountryId, Navy.Basic(w)).Execute(w);
+}
+
+/// <summary>Encomendar um casco de uma classe (ship_class): custa naval_ship_cost × o custo da classe e
+/// entra no porto. É o botão do estaleiro — o antigo "comprar navio" é este comando com a classe que a
+/// tabela marca como básica.</summary>
+public sealed record BuyShipCommand(int CountryId, string ClassId) : ICommand
+{
     public string? Validate(World w)
     {
         if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
-        float cost = w.Rule("naval_ship_cost", 90f);
+        if (ClassId.Length > 0 && !w.ShipClasses.ContainsKey(ClassId)) return "classe de navio desconhecida";
+        float cost = Navy.Cost(w, ClassId);
         if (c.Money < cost) return $"faltam pontos de produção ({cost:0})";
         return null;
     }
 
-    public void Execute(World w)
-    {
-        var c = w.Countries[CountryId];
-        c.Money -= w.Rule("naval_ship_cost", 90f);
-        c.Warships += 1f;
-    }
+    public void Execute(World w) => Navy.Buy(w, w.Countries[CountryId], ClassId);
 }
 
 /// <summary>Assinar a política de ocupação que se aplica ao povo de um país ocupado (occupation_policy).

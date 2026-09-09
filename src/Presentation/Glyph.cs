@@ -38,6 +38,8 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
         "espadas", "pomba", "bandeira", "medalha", "coluna", "coroa", "aperto", "fita",
         "galao", "taca", "barco", "estilhaco", "pasta", "corrente", "balanca", "caveira",
         "megafone", "penso", "gota", "cruz", "paraquedas", "onda",
+        // o mar por classes: o casco que se esconde e o que leva a pista às costas
+        "submarino", "conves",
         // a barra de cima: as duas que não vêm de tabela nenhuma — o cofre e o barril
         "cofre", "barril",
         // o chão: um por terreno, para a região se ver antes de se ler
@@ -551,6 +553,28 @@ public static partial class Glyph        // partial: leva um nó Godot lá dentr
                 break;
 
             // Vagas: o comandante de esquadra afundado com o navio.
+            // Submarino: casco cheio, torre e periscópio a furar a linha de água. É o navio que não protege
+            // ninguém e corta o mar a quem dele vive.
+            case "submarino":
+                Poly(0.10f, 0.62f, 0.20f, 0.54f, 0.80f, 0.54f, 0.92f, 0.62f, 0.80f, 0.70f, 0.20f, 0.70f, 0.10f, 0.62f);
+                Poly(0.44f, 0.54f, 0.44f, 0.40f, 0.60f, 0.40f, 0.60f, 0.54f);
+                Line(0.52f, 0.40f, 0.52f, 0.24f, 1.1f);
+                Line(0.52f, 0.24f, 0.64f, 0.24f);
+                Line(0.14f, 0.84f, 0.86f, 0.84f);
+                Dot(0.30f, 0.62f, 0.028f); Dot(0.42f, 0.62f, 0.028f); Dot(0.54f, 0.62f, 0.028f);
+                break;
+
+            // Convés de porta-aviões: a pista em diagonal, a ilha de comando e o avião a levantar. O mar
+            // todo à volta dele.
+            case "conves":
+                Poly(0.08f, 0.66f, 0.92f, 0.66f, 0.80f, 0.84f, 0.20f, 0.84f, 0.08f, 0.66f);
+                Poly(0.10f, 0.50f, 0.90f, 0.50f, 0.90f, 0.66f, 0.10f, 0.66f, 0.10f, 0.50f);
+                Line(0.16f, 0.62f, 0.84f, 0.54f);
+                Poly(0.66f, 0.50f, 0.66f, 0.38f, 0.76f, 0.38f, 0.76f, 0.50f);
+                Line(0.71f, 0.38f, 0.71f, 0.28f);
+                Poly(0.24f, 0.34f, 0.40f, 0.34f, 0.32f, 0.44f, 0.24f, 0.34f);
+                break;
+
             case "onda":
                 foreach (float y in new[] { 0.32f, 0.52f, 0.72f })
                 {

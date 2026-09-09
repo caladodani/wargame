@@ -233,7 +233,8 @@ public partial class CountryPanel : PanelContainer
                     // a frota ao lado do poder aéreo: as duas compram-se aqui e mandam-se no painel da Guerra
                     var nrow = new HBoxContainer();
                     nrow.AddChild(Ui.Grow(Ui.Lbl($"⚓ Frota: {c.Warships:0} navios"
-                        + (c.Warships > 0f ? $" ({NavalMissionSystem.Assigned(w, c.Id):0.#} no mar)" : ""), 16)));
+                        + (c.Warships > 0f ? $" ({NavalMissionSystem.Assigned(w, c.Id):0.#} no mar)" : "")
+                        + (c.Warships > 0f ? $"   ·   {Navy.Describe(w, c.Ships)}" : ""), 16)));
                     if (mine) nrow.AddChild(Ui.Btn($"Comprar navio ({_game.World.Rule("naval_ship_cost", 90f):0})",
                         () => Faction(new BuyWarshipCommand(c.Id)), 260));
                     _body.AddChild(nrow);
