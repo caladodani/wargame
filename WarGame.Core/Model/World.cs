@@ -93,6 +93,14 @@ public sealed class World
         SeasonTerrain.TryGetValue(seasonId, out var byTerrain) && byTerrain.TryGetValue(terrain, out var f) ? f : 1f;
     /// <summary>Decisões nacionais (tabela decision) e as activas.</summary>
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
+    /// <summary>Categorias das decisões (tabela decision_category), pela ordem em que se mostram.</summary>
+    public Dictionary<string, DecisionCategoryDef> DecisionCategories { get; } = new();
+    /// <summary>O que cada decisão multiplica enquanto corre (tabela decision_effect).</summary>
+    public Dictionary<string, List<(string Key, float Mult)>> DecisionEffects { get; } = new();
+    /// <summary>As portas de cada decisão (tabela decision_req).</summary>
+    public Dictionary<string, List<DecisionReq>> DecisionReqs { get; } = new();
+    /// <summary>Como se chamam as características de país (tabela country_stat_def).</summary>
+    public Dictionary<string, CountryStatDef> CountryStatDefs { get; } = new();
     /// <summary>Comandantes contratáveis (tabela general).</summary>
     public Dictionary<string, GeneralDef> GeneralDefs { get; } = new();
     /// <summary>Pastas do gabinete civil (tabela cabinet_slot), pela ordem em que se mostram.</summary>

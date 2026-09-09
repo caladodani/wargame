@@ -594,7 +594,10 @@ CREATE TABLE IF NOT EXISTS s_region_building (   -- níveis de edifícios por re
   region_id INTEGER NOT NULL, building TEXT NOT NULL, level INTEGER NOT NULL,
   PRIMARY KEY (region_id, building));
 CREATE TABLE IF NOT EXISTS s_decision (          -- decisões nacionais (DecisionSystem): activa se until_day>=dia
+  -- mission_until é o dia do prazo (-1 = não é missão) e goal_base a leitura da métrica no dia da
+  -- assinatura: a meta de uma missão é a subida desde essa leitura, não um número absoluto
   country_id INTEGER NOT NULL, decision TEXT NOT NULL, until_day INTEGER NOT NULL, cooldown_until INTEGER NOT NULL,
+  mission_until INTEGER NOT NULL DEFAULT -1, goal_base REAL NOT NULL DEFAULT 0,
   PRIMARY KEY (country_id, decision));
 CREATE TABLE IF NOT EXISTS s_general (           -- comandantes ao serviço (HireGeneralCommand)
   country_id INTEGER NOT NULL, general TEXT NOT NULL,

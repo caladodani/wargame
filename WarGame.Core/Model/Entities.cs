@@ -294,9 +294,30 @@ public sealed record BuildingDef(string Id, string Name, float Cost, float Days,
 /// que se conta a árvore do exército sem escrever a lista dos ramos em C#.</summary>
 public sealed record TechBranchDef(string Id, string Name, string Glyph, int Sort, string Arm = "");
 
-/// <summary>Decisão nacional (tabela decision): buff temporário pago — Mult no StatKey durante Days,
-/// depois Cooldown dias de espera.</summary>
-public sealed record DecisionDef(string Id, string Name, float Cost, int Days, int Cooldown, string StatKey, float Mult);
+/// <summary>Decisão nacional (tabela decision). Paga-se à cabeça (poder político, dinheiro, homens,
+/// estabilidade), corre Days dias a multiplicar o que a decision_effect disser, e depois fica Cooldown
+/// dias em espera. Com MissionDays &gt; 0 é uma MISSÃO: há um prazo para a métrica GoalKey subir GoalValue
+/// desde o dia em que se assinou (valor negativo = tem de descer) — cumprida paga prémio, falhada castigo.</summary>
+public sealed record DecisionDef(string Id, string Name, string Category, string Note, float Cost, float Money,
+                                 float Manpower, float Stability, int Days, int Cooldown, int MissionDays,
+                                 string GoalKey, float GoalValue, float RewardPolitical, float RewardStability,
+                                 float FailPolitical, float FailStability, string Glyph, int Sort)
+{
+    /// <summary>Tem prazo? Uma missão mostra barra de tempo e resolve-se sozinha ao fim dele.</summary>
+    public bool IsMission => MissionDays > 0 && GoalKey.Length > 0;
+}
+
+/// <summary>Categoria de decisões (tabela decision_category): as abas do ecrã. Quais existem e por que
+/// ordem aparecem é da tabela — nenhuma lista destas vive em C#.</summary>
+public sealed record DecisionCategoryDef(string Id, string Name, string Glyph, int Sort);
+
+/// <summary>Nome de uma característica de país (tabela country_stat_def): como se chama e que chapa leva
+/// a chave que leis, espíritos, conselheiros, tecnologias e decisões multiplicam.</summary>
+public sealed record CountryStatDef(string Key, string Name, string Note, string Glyph, int Sort);
+
+/// <summary>Porta de uma decisão (tabela decision_req): a métrica Key tem de estar entre Min e Max
+/// (null = sem limite desse lado). O vocabulário das métricas está em Decisions.Metric.</summary>
+public sealed record DecisionReq(string DecisionId, string Key, float? Min, float? Max);
 
 /// <summary>Nível de dificuldade (tabelas difficulty/difficulty_effect): as regras que reescreve.</summary>
 public sealed record DifficultyDef(string Id, string Name, int Sort, Dictionary<string, float> Effects);
@@ -350,12 +371,16 @@ public sealed record GeneralRank(string Domain, int Level, string Name, float Xp
 public sealed record WoundKind(string Id, string Name, string Icon, int Days, float Weight, bool Fatal,
                                string? Domain = null, string Glyph = "");
 
-/// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision).</summary>
+/// <summary>Decisão activa (World.ActiveDecisions; persistida em s_decision). Numa missão, MissionUntil é
+/// o dia do prazo e GoalBase a leitura da métrica no dia da assinatura — a meta é a subida desde essa
+/// leitura, e é por isso que a mesma missão serve um país grande e um pequeno.</summary>
 public sealed class ActiveDecision
 {
     public int CountryId { get; init; }
     public string DecisionId { get; init; } = "";
     public int UntilDay { get; set; }
+    public int MissionUntil { get; set; } = -1;
+    public float GoalBase { get; set; }
 }
 
 /// <summary>Amostra periódica para os gráficos de evolução (HistorySystem, tabela s_history).</summary>

@@ -290,10 +290,35 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT domain,level,name,xp,bonus,country_tag FROM general_rank ORDER BY domain,xp"))
             w.GeneralRanks.Add(new GeneralRank((string)r["domain"]!, Convert.ToInt32(r["level"]), (string)r["name"]!,
                 Convert.ToSingle(r["xp"]), Convert.ToSingle(r["bonus"]), r["country_tag"] as string));
-        foreach (var r in _static.Query("SELECT id,name,cost,days,cooldown,stat_key,mult FROM decision"))
+        foreach (var r in _static.Query("SELECT key,name,note,glyph,sort FROM country_stat_def ORDER BY sort"))
+            w.CountryStatDefs[(string)r["key"]!] = new CountryStatDef((string)r["key"]!, (string)r["name"]!,
+                (string)r["note"]!, (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM decision_category ORDER BY sort"))
+            w.DecisionCategories[(string)r["id"]!] = new DecisionCategoryDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,category,note,cost,money,manpower,stability,days,cooldown,"
+                                      + "mission_days,goal_key,goal_value,reward_political,reward_stability,"
+                                      + "fail_political,fail_stability,glyph,sort FROM decision ORDER BY sort"))
             w.DecisionDefs[(string)r["id"]!] = new DecisionDef((string)r["id"]!, (string)r["name"]!,
-                Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), Convert.ToInt32(r["cooldown"]),
-                (string)r["stat_key"]!, Convert.ToSingle(r["mult"]));
+                (string)r["category"]!, (string)r["note"]!, Convert.ToSingle(r["cost"]), Convert.ToSingle(r["money"]),
+                Convert.ToSingle(r["manpower"]), Convert.ToSingle(r["stability"]), Convert.ToInt32(r["days"]),
+                Convert.ToInt32(r["cooldown"]), Convert.ToInt32(r["mission_days"]), (string)r["goal_key"]!,
+                Convert.ToSingle(r["goal_value"]), Convert.ToSingle(r["reward_political"]),
+                Convert.ToSingle(r["reward_stability"]), Convert.ToSingle(r["fail_political"]),
+                Convert.ToSingle(r["fail_stability"]), (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT decision_id,stat_key,mult FROM decision_effect"))
+        {
+            string did = (string)r["decision_id"]!;
+            if (!w.DecisionEffects.TryGetValue(did, out var list)) w.DecisionEffects[did] = list = new();
+            list.Add(((string)r["stat_key"]!, Convert.ToSingle(r["mult"])));
+        }
+        foreach (var r in _static.Query("SELECT decision_id,key,min,max FROM decision_req"))
+        {
+            string did = (string)r["decision_id"]!;
+            if (!w.DecisionReqs.TryGetValue(did, out var list)) w.DecisionReqs[did] = list = new();
+            list.Add(new DecisionReq(did, (string)r["key"]!, r["min"] is null ? null : Convert.ToSingle(r["min"]),
+                                     r["max"] is null ? null : Convert.ToSingle(r["max"])));
+        }
         foreach (var r in _static.Query("SELECT id,name,description,cost,days,effect,magnitude,scope FROM spy_op"))
             w.SpyOps[(string)r["id"]!] = new SpyOp((string)r["id"]!, (string)r["name"]!, r["description"] as string ?? "",
                 Convert.ToSingle(r["cost"]), Convert.ToInt32(r["days"]), (string)r["effect"]!, Convert.ToSingle(r["magnitude"]),
@@ -455,6 +480,8 @@ public sealed class SqlWorldRepository : IWorldRepository
         ("s_spy_op", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_offer", "region_id", "INTEGER NOT NULL DEFAULT 0"),
         ("s_history", "power", "REAL NOT NULL DEFAULT 0"),
+        ("s_decision", "mission_until", "INTEGER NOT NULL DEFAULT -1"),
+        ("s_decision", "goal_base", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "research_tech", "TEXT"),
         ("s_country", "research_progress", "REAL NOT NULL DEFAULT 0"),
         ("s_country", "capitulated", "INTEGER NOT NULL DEFAULT 0"),
@@ -650,12 +677,16 @@ public sealed class SqlWorldRepository : IWorldRepository
             }
         // um save antigo não tem linha nenhuma: o país nasce agora com a opinião da ficha estática
         foreach (var c in w.Countries.Values) World.SettleParties(w, c);
-        foreach (var r in save.Query("SELECT country_id,decision,until_day,cooldown_until FROM s_decision"))
+        foreach (var r in save.Query("SELECT country_id,decision,until_day,cooldown_until,mission_until,goal_base FROM s_decision"))
         {
             int cid = Convert.ToInt32(r["country_id"]); string did = (string)r["decision"]!;
             int until = Convert.ToInt32(r["until_day"]);
             if (until >= w.Clock.Day)
-                w.ActiveDecisions.Add(new ActiveDecision { CountryId = cid, DecisionId = did, UntilDay = until });
+                w.ActiveDecisions.Add(new ActiveDecision
+                {
+                    CountryId = cid, DecisionId = did, UntilDay = until,
+                    MissionUntil = Convert.ToInt32(r["mission_until"]), GoalBase = Convert.ToSingle(r["goal_base"]),
+                });
             if (w.Countries.TryGetValue(cid, out var dc)) dc.DecisionCooldownUntil[did] = Convert.ToInt32(r["cooldown_until"]);
         }
         foreach (var r in save.Query("SELECT region_id,building,level FROM s_region_building"))
@@ -983,8 +1014,12 @@ public sealed class SqlWorldRepository : IWorldRepository
                     c.Id, exileHost, c.ExileDay ?? 0, c.ExileLegitimacy);
         foreach (var c in w.Countries.Values)
             foreach (var (did, cd) in c.DecisionCooldownUntil)
-                save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until) VALUES (?,?,?,?)",
-                    c.Id, did, w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == did)?.UntilDay ?? -1, cd);
+            {
+                var act = w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == did);
+                save.Execute("INSERT INTO s_decision (country_id,decision,until_day,cooldown_until,mission_until,goal_base) "
+                           + "VALUES (?,?,?,?,?,?)",
+                    c.Id, did, act?.UntilDay ?? -1, cd, act?.MissionUntil ?? -1, act?.GoalBase ?? 0f);
+            }
         foreach (var h in w.History)
             save.Execute("INSERT INTO s_history (day,country_id,money,divisions,regions,power) VALUES (?,?,?,?,?,?)",
                 h.Day, h.CountryId, h.Money, h.Divisions, h.Regions, h.Power);

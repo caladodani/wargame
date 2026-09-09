@@ -1259,13 +1259,216 @@ INSERT INTO rule (key,value,note) VALUES
  ('ai_nuke_reserve',600,'reserva da IA antes de construir ogivas'),
  ('ai_nuke_min_divs',3,'divisões inimigas mínimas para a IA gastar uma ogiva');
 
--- Decisões nacionais (tabela decision; ActivateDecisionCommand/DecisionSystem)
+-- Como se chamam as características de país (Country.Stat). As chaves andavam pelo jogo todo — leis,
+-- espíritos, conselheiros, tecnologias, decisões — e quem as mostrava tinha um switch de três casos em C#
+-- e o resto saía cru ("occupied_yield") na cara do jogador. Agora o nome e a chapa são uma linha.
+CREATE TABLE IF NOT EXISTS country_stat_def (
+  key TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', glyph TEXT NOT NULL DEFAULT '',
+  sort INTEGER NOT NULL DEFAULT 0);
+INSERT INTO country_stat_def (key,name,note,glyph,sort) VALUES
+ ('industry','indústria','fábricas e obra a andar ao mesmo tempo','fabrica',1),
+ ('production_speed','produção','depressa a que as linhas entregam material','bigorna',2),
+ ('research_speed','investigação','depressa a que os laboratórios sobem um degrau','frasco',3),
+ ('research_slots','ranhuras de investigação','quantos degraus se sobem ao mesmo tempo','livro',4),
+ ('conscription','recrutamento','homens que a população dá por dia','gente',5),
+ ('org_regain','organização','depressa a que a tropa se refaz depois do combate','coluna',6),
+ ('move_speed','marcha','depressa a que as colunas andam','estrada',7),
+ ('political_gain','poder político','pontos de política por dia','balanca',8),
+ ('counter_intel','contra-espionagem','quanto se apanha de quem nos espia','cofre',9),
+ ('occupied_yield','rendimento da ocupação','o que a terra administrada rende','corrente',10),
+ ('resistance_growth','revolta','depressa a que a terra ocupada se levanta','punho',11),
+ ('integration_speed','integração','depressa a que a terra tomada passa a ser nossa','bandeira',12),
+ ('export_price','preço de venda','o que nos pagam pelo que exportamos','balanca',13),
+ ('export_share','fatia exportável','quanto do que temos podemos vender','caixa',14),
+ ('volunteer_cap','voluntários','divisões que podemos mandar a guerras alheias','bandeira',15),
+ ('fuel_gain','combustível','quanto combustível entra por dia','galao',16),
+ ('fuel_capacity','depósitos','quanto combustível cabe guardado','barril',17),
+ ('air_bombing','bombardeamento','estrago que as asas fazem no chão','bomba',18),
+ ('air_losses','perdas no ar','aviões que ficam pelo caminho','asa',19),
+ ('air_upkeep','custo do ar','o que custa manter as asas no ar','helice',20),
+ ('naval_blockade','bloqueio','quanto apertamos o mar deles','ancora',21),
+ ('naval_escort','escolta','quanto seguramos os nossos comboios','barco',22),
+ ('naval_patrol','patrulha','quanto vemos e caçamos no mar','sonar',23),
+ ('naval_losses','perdas no mar','navios que se perdem','onda',24),
+ ('naval_upkeep','custo do mar','o que custa manter a esquadra','porao',25),
+ ('nuclear','programa nuclear','depressa a que se junta uma ogiva','atomo',26),
+ ('aggression','agressividade','quanto a máquina do país arrisca','caveira',27),
+ ('start_army_mult','exército de partida','tamanho do exército no primeiro dia','capacete',28);
+
+-- ===== Decisões nacionais (0.3.77) =====
+-- Eram três linhas com um multiplicador cada e uma listinha na aba Nação. No HoI4 as decisões são um ecrã
+-- inteiro: categorias, portas (só aparece o que faz sentido hoje), preço em várias moedas e — o que mais
+-- lhes dá vida — MISSÕES com prazo, que se ganham ou se perdem. Tudo isso passa a ser tabela.
+CREATE TABLE IF NOT EXISTS decision_category (   -- as abas do ecrã das decisões
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
+INSERT INTO decision_category (id,name,glyph,sort) VALUES
+ ('industria','Indústria','fabrica',1),
+ ('interna','Política interna','balanca',2),
+ ('guerra','Esforço de guerra','espadas',3),
+ ('diplomacia','Diplomacia','pomba',4),
+ ('segredo','Informações','luneta',5),
+ ('retaguarda','Retaguarda','muro',6);
+
 CREATE TABLE IF NOT EXISTS decision (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, cost REAL NOT NULL, days INTEGER NOT NULL,
-  cooldown INTEGER NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL);
-INSERT INTO decision VALUES ('mobilizacao_industrial','Mobilização industrial',30,30,60,'industry',1.15);
-INSERT INTO decision VALUES ('esforco_guerra','Esforço de guerra',35,30,60,'production_speed',1.2);
-INSERT INTO decision VALUES ('fundos_ciencia','Fundos para a ciência',40,45,90,'research_speed',1.25);
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'interna',
+  note TEXT NOT NULL DEFAULT '',            -- a frase que se lê no cartão
+  cost REAL NOT NULL DEFAULT 0,             -- poder político à cabeça
+  money REAL NOT NULL DEFAULT 0,            -- dinheiro à cabeça
+  manpower REAL NOT NULL DEFAULT 0,         -- homens à cabeça
+  stability REAL NOT NULL DEFAULT 0,        -- estabilidade que custa (negativo = dá)
+  days INTEGER NOT NULL DEFAULT 0,          -- quanto tempo dura o efeito
+  cooldown INTEGER NOT NULL DEFAULT 0,      -- espera depois de acabar
+  -- Missão: >0 põe um prazo. A meta é sempre um DELTA — quanto tem de SUBIR a métrica goal_key desde o dia
+  -- em que se assinou (negativo = tem de descer). Guarda-se a leitura de partida no save, por isso a mesma
+  -- missão serve um país grande e um pequeno sem números escritos à mão para cada um.
+  mission_days INTEGER NOT NULL DEFAULT 0,
+  goal_key TEXT NOT NULL DEFAULT '', goal_value REAL NOT NULL DEFAULT 0,
+  reward_political REAL NOT NULL DEFAULT 0, reward_stability REAL NOT NULL DEFAULT 0,
+  fail_political REAL NOT NULL DEFAULT 0, fail_stability REAL NOT NULL DEFAULT 0,
+  glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
+
+CREATE TABLE IF NOT EXISTS decision_effect (     -- Country.Stat(stat_key) × mult enquanto a decisão corre
+  decision_id TEXT NOT NULL, stat_key TEXT NOT NULL, mult REAL NOT NULL,
+  PRIMARY KEY (decision_id, stat_key));
+
+-- A porta de cada decisão: a métrica `key` (Decisions.Metric — war, tension, stability, political, money,
+-- manpower, exhaustion, divisions, regions, occupied, factories_civil, factories_mil, techs, nukes, air,
+-- navy, resistance, party:<id>, ruling:<id>) tem de estar entre min e max. NULL = sem limite desse lado.
+CREATE TABLE IF NOT EXISTS decision_req (
+  decision_id TEXT NOT NULL, key TEXT NOT NULL, min REAL, max REAL,
+  PRIMARY KEY (decision_id, key));
+
+INSERT INTO decision (id,name,category,note,cost,money,manpower,stability,days,cooldown,mission_days,goal_key,goal_value,reward_political,reward_stability,fail_political,fail_stability,glyph,sort) VALUES
+ -- Indústria
+ ('mobilizacao_industrial','Mobilização industrial','industria','As fábricas passam a trabalhar para a guerra.',30,0,0,0,60,120,0,'',0,0,0,0,0,'fabrica',1),
+ ('turnos_dobrados','Turnos dobrados','industria','Mais uma volta ao relógio em cada linha — e o país a queixar-se.',25,200,0,4,30,60,0,'',0,0,0,0,0,'bigorna',2),
+ ('compra_de_maquinas','Compra de máquinas','industria','Comprar ferramenta lá fora custa divisas e uma fatia da exportação.',20,500,0,0,90,180,0,'',0,0,0,0,0,'caixa',3),
+ ('plano_reconstrucao','Plano de reconstrução','industria','Prometeu-se obra: duas fábricas civis novas no prazo.',40,0,0,0,90,150,90,'factories_civil',2,60,5,0,6,'bigorna',4),
+ ('racionamento_combustivel','Racionamento de combustível','industria','Os depósitos enchem-se, as colunas andam mais devagar.',15,0,0,2,60,90,0,'',0,0,0,0,0,'galao',5),
+ ('reservas_estrategicas','Reservas estratégicas','industria','Comprar barato hoje para não faltar amanhã.',30,300,0,0,120,200,0,'',0,0,0,0,0,'barril',6),
+ ('estimulo_exportador','Estímulo à exportação','industria','Vender melhor e mais — enquanto durar.',20,0,0,0,60,120,0,'',0,0,0,0,0,'balanca',7),
+ ('linha_de_montagem','Nova linha de montagem','industria','Reafinar o chão de fábrica: promete-se material a sair mais depressa.',35,400,0,0,120,180,120,'factories_mil',1,70,4,0,5,'bigorna',8),
+ -- Política interna
+ ('discurso_a_nacao','Discurso à nação','interna','O chefe de Estado fala; o país acalma e o gabinete ganha fôlego.',20,0,0,-5,30,60,0,'',0,0,0,0,0,'megafone',10),
+ ('lei_marcial','Lei marcial','interna','Recolher obrigatório na retaguarda: menos revolta, mais descontentamento.',40,0,0,8,60,120,0,'',0,0,0,0,0,'punho',11),
+ ('campanha_recrutamento','Campanha de recrutamento','interna','Cartazes em todas as praças: prometem-se cinco divisões novas.',30,0,0,0,120,150,120,'divisions',5,50,4,20,4,'capacete',12),
+ ('aumento_de_salarios','Aumento de salários','interna','Paga-se a paz social do cofre.',15,400,0,-8,60,90,0,'',0,0,0,0,0,'cofre',13),
+ ('combate_a_corrupcao','Combate à corrupção','interna','Prometeu-se limpeza: dez pontos de estabilidade no prazo.',35,0,0,0,120,180,120,'stability',10,80,0,10,5,'balanca',14),
+ ('estado_de_emergencia','Estado de emergência','interna','Poderes especiais: mais homens e mais guardas, menos liberdade.',50,0,0,12,90,180,0,'',0,0,0,0,0,'muro',15),
+ ('reforma_educativa','Reforma educativa','interna','Escolas e laboratórios: rende daqui a muito tempo.',45,300,0,0,180,365,0,'',0,0,0,0,0,'livro',16),
+ -- Esforço de guerra
+ ('alerta_maximo','Alerta máximo','guerra','Os quartéis dormem fardados.',25,0,0,0,30,60,0,'',0,0,0,0,0,'raio',20),
+ ('mobilizacao_geral','Mobilização geral','guerra','Chamam-se as classes todas — e a rua sente-o.',60,0,0,10,120,240,0,'',0,0,0,0,0,'gente',21),
+ ('ofensiva_de_verao','Grande ofensiva','guerra','Prometeu-se avanço: três regiões novas em dois meses.',45,0,0,0,60,120,60,'regions',3,70,5,15,6,'espadas',22),
+ ('campanha_bombardeamento','Campanha de bombardeamento','guerra','Manda-se tudo o que voa contra as fábricas deles.',30,0,0,0,45,90,0,'',0,0,0,0,0,'bombardeiro',23),
+ ('cerco_aos_submarinos','Cerco aos submarinos','guerra','Sonares no mar de casa dia e noite.',25,0,0,0,60,120,0,'',0,0,0,0,0,'sonar',24),
+ ('bloqueio_naval','Bloqueio naval','guerra','Fecha-se-lhes o mar.',30,0,0,0,60,120,0,'',0,0,0,0,0,'ancora',25),
+ ('escolta_reforcada','Escolta reforçada','guerra','Nenhum comboio sai sozinho.',20,0,0,0,60,90,0,'',0,0,0,0,0,'barco',26),
+ ('manutencao_de_asas','Manutenção das asas','guerra','Oficinas a trabalhar de noite: voa-se mais barato.',20,150,0,0,45,90,0,'',0,0,0,0,0,'helice',27),
+ ('programa_nuclear','Programa nuclear acelerado','guerra','Turnos dobrados no sítio de que ninguém fala.',80,1000,0,0,180,365,0,'',0,0,0,0,0,'atomo',28),
+ -- Diplomacia
+ ('missao_comercial','Missão comercial','diplomacia','Uma delegação a vender o que temos a mais.',20,0,0,0,90,120,0,'',0,0,0,0,0,'aperto',30),
+ ('chamada_voluntarios','Chamada aos voluntários','diplomacia','Quem quiser ir, vai — e leva a nossa bandeira.',25,0,0,0,90,120,0,'',0,0,0,0,0,'bandeira',31),
+ ('propaganda_externa','Propaganda externa','diplomacia','Falar bem de nós na terra que administramos.',20,200,0,0,60,90,0,'',0,0,0,0,0,'megafone',32),
+ ('ponte_aerea','Ponte aérea de ajuda','diplomacia','Carga para quem está pior do que nós.',25,300,0,-3,60,120,0,'',0,0,0,0,0,'carga',33),
+ -- Informações
+ ('rede_de_informadores','Rede de informadores','segredo','Ouvidos em todo o lado.',25,0,0,0,90,120,0,'',0,0,0,0,0,'luneta',40),
+ ('contra_espionagem','Contra-espionagem reforçada','segredo','Fecham-se as fugas — e o gabinete perde tempo com papéis.',30,200,0,0,60,120,0,'',0,0,0,0,0,'cofre',41),
+ ('guerra_cibernetica','Guerra cibernética','segredo','O que não se inventa, copia-se.',35,0,0,0,60,120,0,'',0,0,0,0,0,'antena',42),
+ ('desinformacao','Campanha de desinformação','segredo','Contar-lhes a história que nos convém.',20,150,0,0,45,90,0,'',0,0,0,0,0,'pasta',43),
+ -- Retaguarda
+ ('ocupacao_dura','Mão pesada na ocupação','retaguarda','Tira-se tudo o que a terra dá — e paga-se em revolta.',30,0,0,0,90,120,0,'',0,0,0,0,0,'corrente',50),
+ ('ocupacao_branda','Mão leve na ocupação','retaguarda','Menos rapina, menos gente no mato.',25,0,0,0,90,120,0,'',0,0,0,0,0,'folha',51),
+ ('amnistia','Amnistia','retaguarda','Abrem-se as prisões da terra ocupada.',25,0,0,-2,60,120,0,'',0,0,0,0,0,'pomba',52),
+ ('reparar_infraestruturas','Reparar infraestruturas','retaguarda','Estradas e pontes outra vez de pé.',20,400,0,0,90,180,0,'',0,0,0,0,0,'estrada',53),
+ ('campanha_pacificacao','Campanha de pacificação','retaguarda','Prometeu-se a retaguarda calma: a revolta média tem de descer.',35,0,0,0,120,150,120,'resistance',-10,60,5,10,4,'escudo',54);
+
+INSERT INTO decision_effect (decision_id,stat_key,mult) VALUES
+ ('mobilizacao_industrial','industry',1.15),
+ ('mobilizacao_industrial','production_speed',1.05),
+ ('turnos_dobrados','production_speed',1.15),
+ ('compra_de_maquinas','industry',1.1),
+ ('compra_de_maquinas','export_share',0.9),
+ ('plano_reconstrucao','industry',1.05),
+ ('racionamento_combustivel','fuel_capacity',1.2),
+ ('racionamento_combustivel','move_speed',0.95),
+ ('reservas_estrategicas','fuel_gain',1.25),
+ ('estimulo_exportador','export_price',1.15),
+ ('estimulo_exportador','export_share',1.1),
+ ('linha_de_montagem','production_speed',1.2),
+ ('discurso_a_nacao','political_gain',1.1),
+ ('lei_marcial','resistance_growth',0.75),
+ ('lei_marcial','conscription',1.1),
+ ('campanha_recrutamento','conscription',1.2),
+ ('combate_a_corrupcao','political_gain',1.1),
+ ('estado_de_emergencia','conscription',1.2),
+ ('estado_de_emergencia','counter_intel',1.2),
+ ('reforma_educativa','research_speed',1.12),
+ ('alerta_maximo','org_regain',1.15),
+ ('alerta_maximo','move_speed',1.05),
+ ('mobilizacao_geral','conscription',1.35),
+ ('ofensiva_de_verao','move_speed',1.1),
+ ('ofensiva_de_verao','org_regain',1.1),
+ ('campanha_bombardeamento','air_bombing',1.25),
+ ('campanha_bombardeamento','air_losses',1.1),
+ ('cerco_aos_submarinos','naval_patrol',1.25),
+ ('bloqueio_naval','naval_blockade',1.25),
+ ('escolta_reforcada','naval_escort',1.2),
+ ('escolta_reforcada','naval_upkeep',1.1),
+ ('manutencao_de_asas','air_upkeep',0.85),
+ ('manutencao_de_asas','air_losses',0.9),
+ ('programa_nuclear','nuclear',1.3),
+ ('missao_comercial','export_price',1.1),
+ ('missao_comercial','export_share',1.15),
+ ('chamada_voluntarios','volunteer_cap',1.5),
+ ('propaganda_externa','integration_speed',1.2),
+ ('propaganda_externa','resistance_growth',0.9),
+ ('ponte_aerea','political_gain',1.1),
+ ('rede_de_informadores','counter_intel',1.25),
+ ('contra_espionagem','counter_intel',1.4),
+ ('contra_espionagem','political_gain',0.95),
+ ('guerra_cibernetica','research_speed',1.08),
+ ('guerra_cibernetica','counter_intel',1.1),
+ ('desinformacao','resistance_growth',0.9),
+ ('desinformacao','counter_intel',1.1),
+ ('ocupacao_dura','occupied_yield',1.25),
+ ('ocupacao_dura','resistance_growth',1.2),
+ ('ocupacao_branda','resistance_growth',0.7),
+ ('ocupacao_branda','occupied_yield',0.9),
+ ('amnistia','resistance_growth',0.75),
+ ('amnistia','occupied_yield',0.95),
+ ('reparar_infraestruturas','move_speed',1.1),
+ ('campanha_pacificacao','resistance_growth',0.7),
+ ('campanha_pacificacao','integration_speed',1.15);
+
+INSERT INTO decision_req (decision_id,key,min,max) VALUES
+ ('plano_reconstrucao','factories_civil',2,NULL),
+ ('linha_de_montagem','factories_mil',1,NULL),
+ ('turnos_dobrados','stability',35,NULL),
+ ('lei_marcial','stability',NULL,60),
+ ('estado_de_emergencia','war',1,NULL),
+ ('campanha_recrutamento','manpower',1000,NULL),
+ ('alerta_maximo','tension',20,NULL),
+ ('mobilizacao_geral','war',1,NULL),
+ ('mobilizacao_geral','stability',30,NULL),
+ ('ofensiva_de_verao','war',1,NULL),
+ ('campanha_bombardeamento','war',1,NULL),
+ ('campanha_bombardeamento','air',10,NULL),
+ ('cerco_aos_submarinos','navy',3,NULL),
+ ('bloqueio_naval','war',1,NULL),
+ ('bloqueio_naval','navy',5,NULL),
+ ('escolta_reforcada','navy',3,NULL),
+ ('manutencao_de_asas','air',10,NULL),
+ ('programa_nuclear','factories_mil',5,NULL),
+ ('chamada_voluntarios','war',NULL,0),
+ ('propaganda_externa','occupied',1,NULL),
+ ('ponte_aerea','money',400,NULL),
+ ('guerra_cibernetica','techs',10,NULL),
+ ('ocupacao_dura','occupied',1,NULL),
+ ('ocupacao_branda','occupied',1,NULL),
+ ('amnistia','occupied',1,NULL),
+ ('reparar_infraestruturas','regions',3,NULL),
+ ('campanha_pacificacao','resistance',5,NULL);
 
 -- Peso económico do terreno (EconomySystem.TerrainMult; 1 = neutro)
 INSERT INTO rule VALUES ('terrain_income_urban', 1.35, 'cidades rendem mais');

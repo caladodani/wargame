@@ -190,6 +190,9 @@ public sealed record GeneralDismissed(int CountryId, string GeneralId) : IGameEv
 public sealed record DecisionActivated(int CountryId, string DecisionId) : IGameEvent;
 /// <summary>Decisão nacional expirou (DecisionSystem).</summary>
 public sealed record DecisionExpired(int CountryId, string DecisionId) : IGameEvent;
+/// <summary>Missão de uma decisão resolvida (DecisionSystem): cumprida ou falhada, já com prémio ou
+/// castigo pagos.</summary>
+public sealed record DecisionMissionEnded(int CountryId, string DecisionId, bool Met) : IGameEvent;
 /// <summary>Edifício concluído numa região (ConstructionSystem): nível novo.</summary>
 public sealed record BuildingBuilt(int RegionId, string BuildingId, int Level) : IGameEvent;
 public sealed record NukeBuilt(int CountryId, int Total) : IGameEvent;

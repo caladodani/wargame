@@ -26,7 +26,7 @@ public partial class CountryPanel : PanelContainer
     /// <summary>As abas do painel. O painel do país era uma tira única com tudo lá dentro — ficha, exército,
     /// diplomacia, laboratórios — e via-se um terço de cada vez, à custa de rolar. Agora arruma-se por
     /// secções, como no HoI4, na mesma chapa de latão que já divide o painel da Guerra.</summary>
-    private static readonly string[] Sections = { "Nação", "Guerra", "Diplomacia", "Ciência" };
+    private static readonly string[] Sections = { "Nação", "Decisões", "Guerra", "Diplomacia", "Ciência" };
 
     private Game _game = null!;
     private Label _title = null!;
@@ -38,6 +38,8 @@ public partial class CountryPanel : PanelContainer
     private int _tab;
     /// <summary>Arma do estado-maior à vista (índice em World.Domains): terra, ar ou mar.</summary>
     private int _staffArm;
+    /// <summary>Categoria de decisões à vista (índice na lista da tabela decision_category).</summary>
+    private int _decCat;
     private int _countryId;
     private string _lastKey = "";
 
@@ -171,7 +173,7 @@ public partial class CountryPanel : PanelContainer
             string occKey = _game.PlayerId is int po && po != c.Id
                 ? $"{OccupationSystem.Regions(w, po, c.Id)}:{OccupationSystem.Policy(w, po, c.Id).Id}:{(int)(OccupationSystem.Heat(w, po, c.Id) * 20f)}:{OccupationSystem.Since(w, po, c.Id)}"
                 : "";
-            var key = $"{_tab}:{_staffArm}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|par{c.Party}:{c.NextElection}:{string.Join(",", c.Parties.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + (int)kv.Value))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|nat{c.PowerRank}:{c.PowerScore:0.0}:{(int)EconomySystem.Income(w, c.Id)}:{(int)c.Manpower}:{(int)c.Money}:{Industry.Of(w, c.Id)}:{w.Regions.Values.Count(r => r.ControllerId == c.Id)}:{string.Join(",", w.ResourceDefs.Keys.Select(id => (int)ResourceSystem.Controlled(w, c.Id, id)))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
+            var key = $"{_tab}:{_staffArm}:{_decCat}|{c.Id}|{mine}|occ{occKey}|{string.Join(",", c.Research.Select(kv => kv.Key + ":" + (int)kv.Value))}|{c.Techs.Count}|{c.CurrentFocus}|{(int)c.FocusProgress}|{c.FocusesDone.Count}|{(int)c.Stability}|{c.JustifyTarget}|{(int)c.JustifyProgress}|{string.Join(",", w.Factions.Values.Select(f => f.Id + ":" + f.Members.Count))}|{string.Join(",", c.Laws.Select(kv => kv.Key + ":" + kv.Value))}|{string.Join(",", w.ActiveSpyOps.Where(o => o.TargetCountryId == c.Id || o.CountryId == c.Id).Select(o => o.OpId + ":" + (int)o.DaysLeft))}|{(_game.PlayerId is int pi && w.HasIntel(pi, c.Id) ? "i" + (int)c.Money : "")}|{(_game.PlayerId is int pp && w.HasPact(pp, c.Id) ? "p" : "")}|d{w.Divisions.Count}|xp{(int)c.ArmyXp}:{string.Join(",", c.Doctrines.OrderBy(x => x))}|a{(int)c.AirPower}|nv{c.Warships:0.#}:{NavalMissionSystem.Assigned(w, c.Id):0.#}|cv{ConvoySystem.Available(w, c.Id):0.#}:{ConvoySystem.SupplyNeed(w, c.Id) + ConvoySystem.TradeNeed(w, c.Id):0.#}:{ConvoySystem.GroundedCount(w, c.Id)}|n{c.Nukes}|h{w.History.Count}|dec{w.ActiveDecisions.Count}:{w.Clock.Day}|med{w.Divisions.Values.Where(d => d.CountryId == c.Id).Sum(d => d.Medals.Count)}|hon{w.Divisions.Values.Count(d => d.CountryId == c.Id && d.Honour is not null)}|pri{c.Prisoners.Values.Sum()}|cais{(int)c.PortCapacity}:{c.SeaSupplied}|fer{string.Join(",", c.GeneralWound.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + Math.Max(0, kv.Value - w.Clock.Day)))}|gen{c.Generals.Count}:{string.Join(",", w.ArmyGroups.Values.Where(g => g.CountryId == c.Id).Select(g => g.Id + ">" + g.GeneralId))}|tr{string.Join(",", w.TradeDeals.Where(t => t.BuyerId == c.Id || t.SellerId == c.Id).Select(t => t.ResourceId + (int)t.Units + ":" + (int)t.PricePerUnit + ":" + t.UntilDay))}|par{c.Party}:{c.NextElection}:{string.Join(",", c.Parties.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + (int)kv.Value))}|gov{string.Join(",", c.Cabinet.OrderBy(kv => kv.Key).Select(kv => kv.Key + ":" + kv.Value))}:{(int)CabinetSystem.Wages(w, c)}|sp{(_game.PlayerId is int spy && !mine && w.AreAtWar(spy, c.Id) ? PeaceSpoils.Points(w, spy, c.Id) : 0f):0}|nat{c.PowerRank}:{c.PowerScore:0.0}:{(int)EconomySystem.Income(w, c.Id)}:{(int)c.Manpower}:{(int)c.Money}:{Industry.Of(w, c.Id)}:{w.Regions.Values.Count(r => r.ControllerId == c.Id)}:{string.Join(",", w.ResourceDefs.Keys.Select(id => (int)ResourceSystem.Controlled(w, c.Id, id)))}|o{w.Regions.Values.Count(r => r.Building || r.FortBuilding || r.Project is not null)}:{(int)w.Regions.Values.Sum(r => r.BuildProgress + r.FortProgress + r.ProjectProgress)}";
             if (key == _lastKey) return;
             _lastKey = key;
             _flag.Texture = Flags.Of(c.Tag);
@@ -181,7 +183,7 @@ public partial class CountryPanel : PanelContainer
             Ui.Clear(_tabs);
             _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             // que secções é que esta aba deixa desenhar
-            bool tNation = _tab == 0, tWar = _tab == 1, tDip = _tab == 2, tSci = _tab == 3;
+            bool tNation = _tab == 0, tDec = _tab == 1, tWar = _tab == 2, tDip = _tab == 3, tSci = _tab == 4;
 
             // comparação directa: a pergunta antes de declarar guerra ("nós contra eles, como estamos?")
             if (tNation && !mine && _game.PlayerId is not null)
@@ -319,24 +321,22 @@ public partial class CountryPanel : PanelContainer
                 _body.AddChild(gov);
             }
 
-            // decisões nacionais (só o jogador decide)
-            if (tNation && mine && w.DecisionDefs.Count > 0)
+            // O quadro das decisões: aba própria, com uma fila de chapas por categoria (a lista vem da
+            // tabela) e um cartão por decisão. Só o dono do país assina, mas o quadro vê-se de qualquer
+            // país — saber que decisões o vizinho tem à mão faz parte de o conhecer.
+            if (tDec && w.DecisionDefs.Count > 0)
             {
-                Header("Decisões");
-                foreach (var def in w.DecisionDefs.Values.OrderBy(d => d.Id))
+                var cats = DecisionsView.Categories(w);
+                if (cats.Count > 0)
                 {
-                    var active = w.ActiveDecisions.FirstOrDefault(a => a.CountryId == c.Id && a.DecisionId == def.Id);
-                    string eff = $"{StatName(def.StatKey)} ×{def.Mult:0.00}";
-                    if (active is not null)
-                        Line($"✅ {def.Name} — {eff}, faltam {active.UntilDay - w.Clock.Day + 1} dias", 16);
-                    else if (c.DecisionCooldownUntil.TryGetValue(def.Id, out var until) && until > w.Clock.Day)
-                        Line($"⏳ {def.Name} — disponível daqui a {until - w.Clock.Day} dias", 15);
-                    else
-                    {
-                        var row = new HBoxContainer(); _body.AddChild(row);
-                        row.AddChild(Ui.Grow(Ui.Lbl($"{def.Name} — {eff} por {def.Days} dias", 16)));
-                        row.AddChild(Ui.Btn($"Activar ({def.Cost:0} pp)", () => Faction(new ActivateDecisionCommand(c.Id, def.Id)), 160));
-                    }
+                    _decCat = Math.Clamp(_decCat, 0, cats.Count - 1);
+                    _body.AddChild(Ui.Tabs(cats.Select(x => x.Name).ToList(), _decCat, i => { _decCat = i; _lastKey = ""; _game.RunWhenIdle(Fill); }));
+                    var cat = cats[_decCat];
+                    int ready = Decisions.Ready(w, c), running = w.ActiveDecisions.Count(a => a.CountryId == c.Id);
+                    Line($"{ready} decisõ{(ready == 1 ? "" : "es")} ao alcance, {running} a correr"
+                       + $" · poder político {c.Political:0}", 15);
+                    _body.AddChild(DecisionsView.Board(w, c, mine, cat,
+                        id => Faction(new ActivateDecisionCommand(c.Id, id))));
                 }
             }
 

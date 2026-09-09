@@ -1580,26 +1580,35 @@ public sealed record NuclearStrikeCommand(int CountryId, int RegionId) : IComman
     }
 }
 
-/// <summary>Activa uma decisão nacional (tabela decision): paga Cost, efeito Mult no StatKey durante
-/// Days, depois Cooldown dias de espera antes de repetir.</summary>
+/// <summary>Assina uma decisão nacional (tabela decision): paga o que ela pedir (poder político, cofre,
+/// homens, estabilidade), corre Days dias a multiplicar o que a decision_effect diz, e depois fica
+/// Cooldown dias em espera antes de repetir. Sendo missão, marca o prazo e guarda a leitura de partida
+/// da meta — a meta é a SUBIDA desde esse dia.
+///
+/// A porta é o Decisions.Check, a mesma que o ecrã usa para cinzentar o cartão e dizer o que falta: o
+/// botão nunca oferece o que o comando recusa.</summary>
 public sealed record ActivateDecisionCommand(int CountryId, string DecisionId) : ICommand
 {
     public string? Validate(World w)
     {
-        if (!w.Countries.TryGetValue(CountryId, out var c) || c.Capitulated) return "país inválido";
+        if (!w.Countries.TryGetValue(CountryId, out var c)) return "país inválido";
         if (!w.DecisionDefs.TryGetValue(DecisionId, out var def)) return "decisão desconhecida";
-        if (w.ActiveDecisions.Any(a => a.CountryId == CountryId && a.DecisionId == DecisionId)) return "já está activa";
-        if (c.DecisionCooldownUntil.TryGetValue(DecisionId, out var until) && until > w.Clock.Day)
-            return $"em espera até ao dia {until}";
-        if (c.Political < def.Cost) return "poder político insuficiente";
-        return null;
+        return Decisions.Check(w, c, def);
     }
 
     public void Execute(World w)
     {
         var c = w.Countries[CountryId]; var def = w.DecisionDefs[DecisionId];
         c.Political -= def.Cost;
-        w.ActiveDecisions.Add(new ActiveDecision { CountryId = CountryId, DecisionId = DecisionId, UntilDay = w.Clock.Day + def.Days });
+        c.Money -= def.Money;
+        if (def.Manpower > 0f) c.Manpower -= def.Manpower;
+        c.Stability = Math.Clamp(c.Stability - def.Stability, 0f, 100f);
+        w.ActiveDecisions.Add(new ActiveDecision
+        {
+            CountryId = CountryId, DecisionId = DecisionId, UntilDay = w.Clock.Day + def.Days,
+            MissionUntil = def.IsMission ? w.Clock.Day + def.MissionDays : -1,
+            GoalBase = def.IsMission ? Decisions.Metric(w, c, def.GoalKey) : 0f,
+        });
         c.DecisionCooldownUntil[DecisionId] = w.Clock.Day + def.Days + def.Cooldown;
         DecisionSystem.Recompute(w);
         w.Events.Publish(new DecisionActivated(CountryId, DecisionId));
