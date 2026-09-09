@@ -296,6 +296,9 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,name,glyph,sort FROM decision_category ORDER BY sort"))
             w.DecisionCategories[(string)r["id"]!] = new DecisionCategoryDef((string)r["id"]!, (string)r["name"]!,
                 (string)r["glyph"]!, Convert.ToInt32(r["sort"]));
+        foreach (var r in _static.Query("SELECT id,name,glyph,target,sort FROM outline_section ORDER BY sort"))
+            w.OutlineSections[(string)r["id"]!] = new OutlineSectionDef((string)r["id"]!, (string)r["name"]!,
+                (string)r["glyph"]!, (string)r["target"]!, Convert.ToInt32(r["sort"]));
         foreach (var r in _static.Query("SELECT id,name,category,note,cost,money,manpower,stability,days,cooldown,"
                                       + "mission_days,goal_key,goal_value,reward_political,reward_stability,"
                                       + "fail_political,fail_stability,glyph,sort FROM decision ORDER BY sort"))

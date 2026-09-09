@@ -311,6 +311,12 @@ public sealed record DecisionDef(string Id, string Name, string Category, string
 /// ordem aparecem é da tabela — nenhuma lista destas vive em C#.</summary>
 public sealed record DecisionCategoryDef(string Id, string Name, string Glyph, int Sort);
 
+/// <summary>Secção da coluna do estado (tabela outline_section): uma faixa da barra lateral que o HoI4 tem
+/// à direita do mapa. Target diz que ecrã é que o toque numa linha desta secção abre
+/// (foco|investigacao|producao|mapa|exercitos|ar|mar|decisoes). Quais existem, por que ordem e com que
+/// chapa é da tabela.</summary>
+public sealed record OutlineSectionDef(string Id, string Name, string Glyph, string Target, int Sort);
+
 /// <summary>Nome de uma característica de país (tabela country_stat_def): como se chama e que chapa leva
 /// a chave que leis, espíritos, conselheiros, tecnologias e decisões multiplicam.</summary>
 public sealed record CountryStatDef(string Key, string Name, string Note, string Glyph, int Sort);

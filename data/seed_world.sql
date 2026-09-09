@@ -1954,3 +1954,26 @@ INSERT INTO country_party (country_tag,party,popularity,ruling) VALUES
  ('TUR','nacionalistas',49,1), ('TUR','liberais',28,0),
  ('UKR','liberais',46,1), ('UKR','nacionalistas',30,0),
  ('USA','liberais',44,1), ('USA','nacionalistas',38,0);
+
+-- ===== Barra lateral do estado (0.3.79) =====
+-- O HoI4 tem uma coluna à direita do mapa — o "outliner" — que mostra, sem abrir nada, tudo o que o país
+-- tem a andar: o foco, as linhas de investigação, a fila de produção, as obras, os exércitos, as asas no
+-- céu, as esquadras no mar e as missões com prazo. Cada linha traz uma barra de progresso e leva ao ecrã
+-- que a trata. Aqui isso tudo existia mas cada coisa dentro do seu painel: só se sabia que a investigação
+-- tinha acabado quando se ia lá ver. As secções da coluna são tabela — mudar a ordem, o nome ou a chapa de
+-- uma secção é mudar uma linha, e o `target` diz que ecrã é que o toque abre.
+CREATE TABLE IF NOT EXISTS outline_section (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  glyph TEXT NOT NULL DEFAULT '',
+  target TEXT NOT NULL DEFAULT '',   -- que ecrã abre o toque: foco|investigacao|producao|mapa|exercitos|ar|mar|decisoes
+  sort INTEGER NOT NULL DEFAULT 0);
+INSERT INTO outline_section (id,name,glyph,target,sort) VALUES
+ ('foco','Foco nacional','bandeira','foco',10),
+ ('investigacao','Investigação','livro','investigacao',20),
+ ('producao','Produção','fabrica','producao',30),
+ ('obras','Obras','bigorna','mapa',40),
+ ('exercitos','Exércitos','capacete','exercitos',50),
+ ('ar','No ar','asa','ar',60),
+ ('mar','No mar','ancora','mar',70),
+ ('missoes','Missões','alvo','decisoes',80);

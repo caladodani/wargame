@@ -95,6 +95,8 @@ public sealed class World
     public Dictionary<string, DecisionDef> DecisionDefs { get; } = new();
     /// <summary>Categorias das decisões (tabela decision_category), pela ordem em que se mostram.</summary>
     public Dictionary<string, DecisionCategoryDef> DecisionCategories { get; } = new();
+    /// <summary>Secções da coluna do estado (tabela outline_section), pela ordem em que se mostram.</summary>
+    public Dictionary<string, OutlineSectionDef> OutlineSections { get; } = new();
     /// <summary>O que cada decisão multiplica enquanto corre (tabela decision_effect).</summary>
     public Dictionary<string, List<(string Key, float Mult)>> DecisionEffects { get; } = new();
     /// <summary>As portas de cada decisão (tabela decision_req).</summary>
