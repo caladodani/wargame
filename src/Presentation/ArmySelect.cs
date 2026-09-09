@@ -123,9 +123,11 @@ public partial class ArmySelect : PanelContainer
             }
         }
         string dest = w.Regions.TryGetValue(targetRegionId, out var t) ? t.Name : "R" + targetRegionId;
-        // n==0 sem erro nenhum = só o próprio destino estava marcado; dizê-lo, que o silêncio parece avaria
-        _game.Notify(first ?? (n > 0 ? $"{n} divisões a caminho de {dest}"
-                                     : $"{dest} já é onde estão as divisões marcadas — marca primeiro a região de partida"));
+        // A marcha que corre bem não avisa: a seta desenhada no mapa já diz para onde a tropa vai, e o aviso
+        // a cada duplo toque era ruído por cima do mapa (pedido do utilizador). Só se fala quando falha —
+        // o erro do comando, ou o duplo toque em cima da própria tropa, que sem resposta parece avaria.
+        if (first is not null) _game.Notify(first);
+        else if (n == 0) _game.Notify($"{dest} já é onde estão as divisões marcadas — marca primeiro a região de partida");
         Refresh();
     }
 

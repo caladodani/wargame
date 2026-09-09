@@ -260,8 +260,17 @@ public sealed record ChronicleEntry(int Day, string Kind, string Text, int Count
 
 /// <summary>Um modo de mapa (tabela map_mode): como o mapa se pinta e o que a legenda diz nas duas pontas.
 /// Métrica "owner" é o mapa político de sempre — cor do controlador, sem escala.</summary>
+/// <param name="Layers">Camadas desenhadas que este modo acende, separadas por vírgula (coluna map_mode.layers):
+/// "chao" para as marcas de terreno, "carris" para a linha férrea. Vazio deixa o mapa limpo — é o que o mapa
+/// político é. Quem lê isto é o RegionRenderer.</param>
 public sealed record MapModeDef(string Id, string Name, string Icon, string Metric, string Low, string High, int Sort,
-                                string Glyph = "");
+                                string Glyph = "", string Layers = "")
+{
+    /// <summary>Este modo acende esta camada? Comparação por nome inteiro, sem apanhar prefixos.</summary>
+    public bool HasLayer(string layer) =>
+        Layers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+              .Contains(layer, StringComparer.OrdinalIgnoreCase);
+}
 
 /// <param name="Yard">Fila de fábricas que este edifício alimenta (coluna building.yard): "civil", "militar",
 /// "naval" ou vazio. É o que liga um edifício aos contadores do Industry.</param>

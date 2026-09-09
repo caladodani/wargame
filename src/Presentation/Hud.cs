@@ -1778,18 +1778,26 @@ public partial class Hud : CanvasLayer
         if (census.Count == 0) return "mundo sem chão marcado";
         var seat = w.Regions.Values.First(r => Relief.Mark(w, r) == census[^1].Ground.Glyph);
         var eye = new Vector2(seat.CenterX, seat.CenterY);
+        // o chão desenhado é agora uma camada do modo de mapa (map_mode.layers): de perto e no modo Terreno
+        // aparece, de perto e no mapa político fica limpo, e ao longe nem no seu modo se desenha
+        string kept = _map.Regions.Mode;
+        _map.Regions.SetMode("terreno");
         _map.Focus(eye, 1f);
         string near = _map.Regions.TerrainReport();
         bool onNear = _map.Regions.TerrainVisible;
         _map.Focus(eye, RegionRenderer.TerrainZoomLimit / 2f);
         bool onFar = _map.Regions.TerrainVisible;
+        _map.Focus(eye, 1f);
+        _map.Regions.SetMode(MapModes.Political);
+        bool onPolitical = _map.Regions.TerrainVisible;
+        _map.Regions.SetMode(kept);
         _map.Focus(eye, 0.2f);
 
         var flat = w.Regions.Values.FirstOrDefault(r => Relief.Mark(w, r) is null);
         return $"{near}; {seat.Name}: {census[^1].Ground.Name} com o sinal «{Relief.Mark(w, seat)}»"
              + $"; {(flat is null ? "sem chão liso" : $"{flat.Name} sem sinal (passo de sempre)")}"
-             + $"; de perto {(onNear ? "à vista" : "escondido")} e ao longe {(onFar ? "à vista" : "apagado")}"
-             + $" (acende a {RegionRenderer.TerrainZoomLimit:0.00} de zoom)";
+             + $"; no modo Terreno de perto {(onNear ? "à vista" : "escondido")} e ao longe {(onFar ? "à vista" : "apagado")}"
+             + $" (acende a {RegionRenderer.TerrainZoomLimit:0.00} de zoom), no mapa político {(onPolitical ? "à vista" : "limpo")}";
     }
 
     /// <summary>--smoke: as cidades escritas no mapa. Conta o que a tabela traz, prova que de longe só se
@@ -2014,11 +2022,17 @@ public partial class Hud : CanvasLayer
             if (r.ControllerId == pid && r.Rail > 0) nossos++;
         }
 
-        // o mapa: os troços só se desenham a partir de RegionRenderer.RailZoomLimit, como os rios e o chão
+        // o mapa: os troços vivem no modo Abastecimento (map_mode.layers) e ainda pedem RailZoomLimit de zoom;
+        // no mapa político a via não se desenha — era lixo por cima da cor de quem manda
         var eye = _map.VisibleWorldRect().GetCenter();
+        string keptMode = _map.Regions.Mode;
+        _map.Regions.SetMode("abastecimento");
         _map.Focus(eye, RegionRenderer.RailZoomLimit + 0.05f);
         _map.Regions.Refresh();
         var rails = _map.Regions.Rails();
+        _map.Regions.SetMode(MapModes.Political);
+        bool railPolitical = _map.Regions.Rails().Visible;
+        _map.Regions.SetMode(keptMode);
         _map.Focus(eye, 0.2f);
         _map.Regions.Refresh();
 
@@ -2052,8 +2066,9 @@ public partial class Hud : CanvasLayer
         }
 
         return $"{nossos} regiões nossas com via (mundo por nível: {string.Join("/", byLevel)}),"
-             + $" {rails.Tracks} troços no mapa (melhor nível {rails.Best}, visíveis {(rails.Visible ? "sim" : "não")}"
-             + $" a partir de ×{RegionRenderer.RailZoomLimit:0.00}); {via}; rede de {net.Linked} regiões ligadas"
+             + $" {rails.Tracks} troços no mapa (melhor nível {rails.Best}, no modo Abastecimento {(rails.Visible ? "à vista" : "escondidos")}"
+             + $" a partir de ×{RegionRenderer.RailZoomLimit:0.00}, no mapa político {(railPolitical ? "à vista" : "limpo")});"
+             + $" {via}; rede de {net.Linked} regiões ligadas"
              + $" (a mais funda a {net.Deepest:0.0} saltos); {dep}";
     }
 

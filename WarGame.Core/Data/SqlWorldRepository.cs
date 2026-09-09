@@ -127,9 +127,10 @@ public sealed class SqlWorldRepository : IWorldRepository
         foreach (var r in _static.Query("SELECT id,title,description,metric,threshold,bonus,sort FROM division_honour ORDER BY sort"))
             w.HonourDefs[(string)r["id"]!] = new HonourDef((string)r["id"]!, (string)r["title"]!, (string)r["description"]!,
                 (string)r["metric"]!, Convert.ToSingle(r["threshold"]), Convert.ToSingle(r["bonus"]), Convert.ToInt32(r["sort"]));
-        foreach (var r in _static.Query("SELECT id,name,icon,metric,low,high,sort,glyph FROM map_mode ORDER BY sort"))
+        foreach (var r in _static.Query("SELECT id,name,icon,metric,low,high,sort,glyph,layers FROM map_mode ORDER BY sort"))
             w.MapModeDefs[(string)r["id"]!] = new MapModeDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
-                (string)r["metric"]!, (string)r["low"]!, (string)r["high"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);
+                (string)r["metric"]!, (string)r["low"]!, (string)r["high"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!,
+                r["layers"] as string ?? "");
         foreach (var r in _static.Query("SELECT id,name,icon,effect,value,note,sort,glyph FROM air_mission ORDER BY sort"))
             w.AirMissionDefs[(string)r["id"]!] = new AirMissionDef((string)r["id"]!, (string)r["name"]!, (string)r["icon"]!,
                 (string)r["effect"]!, Convert.ToSingle(r["value"]), (string)r["note"]!, Convert.ToInt32(r["sort"]), (string)r["glyph"]!);

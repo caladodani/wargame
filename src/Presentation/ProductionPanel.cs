@@ -172,10 +172,10 @@ public partial class ProductionPanel : PanelContainer
                 what.AddThemeColorOverride("font_color", sheet.Bad ? Ui.Danger.Lightened(0.25f) : Ui.TextDim);
                 col.AddChild(what);
                 row.AddChild(Ui.Grow(col));
-                var edit = Ui.Btn(mine ? "✎" : "⧉", () => _designer.Open(tid, edit: mine), 64);
+                var edit = Ui.Big(mine ? "✎" : "⧉", () => _designer.Open(tid, edit: mine), 72);
                 edit.TooltipText = mine ? "redesenhar este modelo" : "copiar para uma prancheta nova";
                 row.AddChild(edit);
-                row.AddChild(Ui.Btn("+", () => Order(tid), 72));
+                row.AddChild(Ui.Big("+", () => Order(tid), 84, Ui.Kind.Primary));
                 _templates.AddChild(row);
             }
             if (tmpls.Count == 0) _templates.AddChild(Ui.Lbl("Sem modelos de divisão"));
@@ -233,10 +233,10 @@ public partial class ProductionPanel : PanelContainer
                 // acabou de abrir, e é isto que o diz sem se ter de fazer a conta
                 cell.AddChild(Rhythm(w, o, working: !waitingLine && !waitingMen));
                 line.AddChild(cell);
-                var up = Ui.Btn("▲", () => Move(idx, idx - 1), 56); up.Disabled = idx == 0; line.AddChild(up);
-                var down = Ui.Btn("▼", () => Move(idx, idx + 1), 56); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
-                if (!o.IsKit) line.AddChild(Ui.Btn("🔁", () => Repeat(idx, tid, !rep), 72));
-                line.AddChild(Ui.Btn("×", () => Cancel(idx, tid), 72));
+                var up = Ui.Big("▲", () => Move(idx, idx - 1), 62); up.Disabled = idx == 0; line.AddChild(up);
+                var down = Ui.Big("▼", () => Move(idx, idx + 1), 62); down.Disabled = idx == c.Queue.Count - 1; line.AddChild(down);
+                if (!o.IsKit) line.AddChild(Ui.Big("🔁", () => Repeat(idx, tid, !rep), 72));
+                line.AddChild(Ui.Big("×", () => Cancel(idx, tid), 72, Ui.Kind.Danger));
                 _queue.AddChild(row);
             }
             if (c.Queue.Count == 0) _queue.AddChild(Ui.Lbl("Fila vazia"));
@@ -274,8 +274,8 @@ public partial class ProductionPanel : PanelContainer
             note.AddThemeColorOverride("font_color", Ui.TextDim);
             col.AddChild(note);
             row.AddChild(Ui.Grow(col));
-            row.AddChild(Ui.Btn("✎", () => _tank.Open(did), 56));
-            row.AddChild(Ui.Btn("×", () => ScrapTank(did), 56));
+            row.AddChild(Ui.Big("✎", () => _tank.Open(did), 62));
+            row.AddChild(Ui.Big("×", () => ScrapTank(did), 62, Ui.Kind.Danger));
             _tanks.AddChild(row);
         }
     }

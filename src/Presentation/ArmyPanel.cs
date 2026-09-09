@@ -151,8 +151,13 @@ public partial class ArmyPanel : PanelContainer
         // guerra grande tem vários troços (Theatre) — com um atribuído o grupo dedica-se só a esse, sem
         // RegionId marcha para o mais perto em toda a fronteira com o país.
         var frontRow = new HBoxContainer();
+        // o nome do troço atribuído. A âncora é re-atada todos os dias (ArmyGroupSystem.Reanchor), por isso
+        // isto acerta com um teatro vivo; se ainda assim não acertar, diz-se a região e não se finge que o
+        // grupo estava com o país inteiro atribuído
         string? theatreName = g.FrontCountryId is int tf && g.FrontRegionId is int trid
-            ? theatres.Where(t => t.FoeId == tf && t.FacingId == trid).Select(t => t.Name).FirstOrDefault() : null;
+            ? theatres.Where(t => t.FoeId == tf && t.FacingId == trid).Select(t => t.Name).FirstOrDefault()
+              ?? (w.Regions.TryGetValue(trid, out var ar) ? $"Frente de {ar.Name}" : null)
+            : null;
         string frontName = g.FrontCountryId is int f
             ? (theatreName is not null ? $"{Name(w, f)} — {theatreName}" : Name(w, f))
             : "sem frente";
@@ -169,20 +174,21 @@ public partial class ArmyPanel : PanelContainer
                 foreach (int foe in foes)
                 {
                     var foeTheatres = theatres.Where(t => t.FoeId == foe).ToList();
-                    if (foeTheatres.Count <= 1)
+                    // "toda a frente" e, por baixo, um botão por troço vivo — sempre, mesmo quando só há um.
+                    // Antes o troço único ficava escondido atrás do nome do país e, mal a linha se partia em
+                    // dois, o jogador que já andava a mandar num troço deixava de o conseguir voltar a escolher.
+                    flow.AddChild(Ui.Btn(foeTheatres.Count == 0 ? Name(w, foe) : $"{Name(w, foe)} — toda a frente",
+                        () => SetFront(pid, g.Id, foe, null), 0,
+                        g.FrontCountryId == foe && g.FrontRegionId is null ? Ui.Kind.Primary : Ui.Kind.Normal));
+                    foreach (var t in foeTheatres)
                     {
-                        // só um troço (ou nenhum ainda calculado): o país inteiro É a frente, como sempre foi
-                        flow.AddChild(Ui.Btn(Name(w, foe), () => SetFront(pid, g.Id, foe, null), 0,
-                            g.FrontCountryId == foe && g.FrontRegionId is null ? Ui.Kind.Primary : Ui.Kind.Normal));
-                    }
-                    else
-                    {
-                        // vários troços: um botão por teatro, mais "toda a frente" p/ quem não quer escolher
-                        flow.AddChild(Ui.Btn($"{Name(w, foe)} — toda a frente", () => SetFront(pid, g.Id, foe, null), 0,
-                            g.FrontCountryId == foe && g.FrontRegionId is null ? Ui.Kind.Primary : Ui.Kind.Normal));
-                        foreach (var t in foeTheatres)
-                            flow.AddChild(Ui.Btn(t.Name, () => SetFront(pid, g.Id, foe, t.FacingId), 0,
-                                g.FrontCountryId == foe && g.FrontRegionId == t.FacingId ? Ui.Kind.Primary : Ui.Kind.Normal));
+                        var tb = Ui.Btn(t.Holes > 0 ? $"{t.Name} · {t.Holes} buraco{(t.Holes == 1 ? "" : "s")}" : t.Name,
+                            () => SetFront(pid, g.Id, foe, t.FacingId), 0,
+                            g.FrontCountryId == foe && g.FrontRegionId == t.FacingId ? Ui.Kind.Primary : Ui.Kind.Normal);
+                        tb.TooltipText = $"{t.RegionIds.Count} regiões de contacto · {t.Divisions} divisões nossas"
+                                       + $" contra {t.FoeDivisions} · cobertura {t.Coverage:P0} do que a frente pede"
+                                       + (t.Holes > 0 ? $" · {t.Holes} sem ninguém" : "");
+                        flow.AddChild(tb);
                     }
                 }
                 if (g.FrontCountryId is not null) flow.AddChild(Ui.Btn("Sem frente", () => SetFront(pid, g.Id, null, null), 0));

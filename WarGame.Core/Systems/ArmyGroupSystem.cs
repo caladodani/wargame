@@ -24,6 +24,23 @@ public sealed class ArmyGroupSystem : ISystem
             foreach (int id in g.Divisions.Where(id => !w.Divisions.TryGetValue(id, out var d) || d.CountryId != g.CountryId).ToList())
                 w.LeaveGroup(id);
 
+        // A frente anda. A âncora de um grupo é uma região do inimigo (Theatre.FacingId) e, mal se avança,
+        // essa região passa a ser nossa: a âncora morre, o grupo cai para "o país todo" e o painel deixa de
+        // conseguir mostrar a frente específica que se estava a seguir. Por isso se volta a atá-lo, todos os
+        // dias e antes de qualquer ordem, ao troço vivo onde as suas divisões estão. Só se re-ata quem já
+        // tinha troço escolhido — quem escolheu o país inteiro fica com o país inteiro.
+        Dictionary<int, List<Theatre>>? theatres = null;
+        foreach (var g in w.ArmyGroups.Values)
+        {
+            if (g.FrontCountryId is not int f) { g.FrontRegionId = null; continue; }
+            if (g.FrontRegionId is not int anchor) continue;
+            if (w.Regions.TryGetValue(anchor, out var ar) && ar.ControllerId == f) continue;   // âncora ainda de pé
+            theatres ??= new Dictionary<int, List<Theatre>>();
+            if (!theatres.TryGetValue(g.CountryId, out var list))
+                theatres[g.CountryId] = list = TheatreSystem.Of(w, g.CountryId);
+            g.FrontRegionId = Reanchor(w, g, f, list);
+        }
+
         int period = Math.Max(1, (int)w.Rule("army_group_order_days", 2f));
         if (w.Clock.Day % period != 0) return;
 
@@ -52,6 +69,21 @@ public sealed class ArmyGroupSystem : ISystem
                     new MoveDivisionCommand(d.CountryId, d.Id, hop).Execute(w);
             }
         }
+    }
+
+    /// <summary>Onde é que este grupo passa a estar ancorado depois de a frente andar: o troço vivo contra o
+    /// mesmo inimigo onde estão mais divisões dele. Sem divisões em cima de troço nenhum (grupo a marchar,
+    /// grupo vazio), fica com o maior troço daquela guerra — que é a frente principal. Null quando aquela
+    /// guerra já não tem linha de contacto nenhuma: aí é mesmo o país inteiro, ou já não há guerra.</summary>
+    public static int? Reanchor(World w, ArmyGroup g, int foe, List<Theatre> theatres)
+    {
+        var mine = theatres.Where(t => t.FoeId == foe).ToList();
+        if (mine.Count == 0) return null;
+        var where = g.Divisions.Where(id => w.Divisions.ContainsKey(id)).Select(id => w.Divisions[id].RegionId).ToHashSet();
+        return mine.OrderByDescending(t => t.RegionIds.Count(where.Contains))
+                   .ThenByDescending(t => t.RegionIds.Count)
+                   .ThenBy(t => t.RegionIds[0])
+                   .First().FacingId;
     }
 
     /// <summary>Distância em saltos de cada região à frente do inimigo (0 = região controlada por ele).

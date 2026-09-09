@@ -335,6 +335,56 @@ public class ArmyGroupTests
         Assert.Null(g.FrontRegionId);
     }
 
+    /// <summary>A frente anda e a âncora de ontem passa a ser terra nossa. Sem re-atar, o grupo caía para
+    /// "o país inteiro" e o painel deixava de conseguir escolher o troço — foi o que o utilizador viu na
+    /// Ucrânia. Re-atado, o grupo fica no troço vivo onde as suas divisões estão.</summary>
+    [Fact]
+    public void QuandoAFrenteAvancaPorCimaDaAncora_OGrupoEAtadoAoTrocoVivoOndeEsta()
+    {
+        var w = YMap();
+        // um terceiro bolso inimigo colado ao braço comprido: tomada a região 6, ainda sobram dois troços
+        var r7 = new Region
+        {
+            Id = 7, Name = "R7", OwnerId = 2, InitialOwnerId = 2, ControllerId = 2,
+            Terrain = "plain", Population = 10_000_000, CenterX = 700, CenterY = 0,
+        };
+        r7.Neighbours.Add(4); w.Regions[4].Neighbours.Add(7); w.Regions[7] = r7;
+
+        new CreateArmyGroupCommand(1).Execute(w);
+        var g = w.ArmyGroups.Values.Single();
+        var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 4);
+        new AssignDivisionCommand(1, d.Id, g.Id).Execute(w);
+        new SetArmyGroupFrontCommand(1, g.Id, 2, 6).Execute(w);      // âncora no troço da região 6
+        new SetArmyGroupStanceCommand(1, g.Id, GroupStance.Hold).Execute(w);
+        Assert.Equal(6, g.FrontRegionId);
+
+        w.Regions[6].ControllerId = 1;                               // a frente avançou: a âncora morreu
+        w.Tick();
+
+        Assert.Equal(2, g.FrontCountryId);                           // a guerra é a mesma
+        Assert.Equal(7, g.FrontRegionId);                            // e o troço é o que tem o grupo em cima
+    }
+
+    /// <summary>Sem linha de contacto nenhuma contra aquele inimigo já não há troço para atar: fica o país
+    /// inteiro, que é o que resta dizer. Não se inventa uma âncora onde não há frente.</summary>
+    [Fact]
+    public void SemLinhaDeContacto_AAncoraCai()
+    {
+        var w = YMap();
+        new CreateArmyGroupCommand(1).Execute(w);
+        var g = w.ArmyGroups.Values.Single();
+        var d = TestWorld.AddDivision(w, 1, 1, TestWorld.Inf, 5);
+        new AssignDivisionCommand(1, d.Id, g.Id).Execute(w);
+        new SetArmyGroupFrontCommand(1, g.Id, 2, 6).Execute(w);
+        new SetArmyGroupStanceCommand(1, g.Id, GroupStance.Hold).Execute(w);
+
+        w.Regions[3].ControllerId = 1; w.Regions[6].ControllerId = 1;   // tomado tudo o que era dele
+        w.Tick();
+
+        Assert.Equal(2, g.FrontCountryId);
+        Assert.Null(g.FrontRegionId);
+    }
+
     [Fact]
     public void AnAnchorOnTerritoryNoLongerEnemyOwned_FailsValidation()
     {

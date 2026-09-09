@@ -904,17 +904,23 @@ CREATE TABLE IF NOT EXISTS map_mode (
                                              -- (owner e terrain pintam por classe, com cor de tabela; o resto é escala)
   low TEXT NOT NULL, high TEXT NOT NULL,     -- as duas pontas da legenda
   sort INTEGER NOT NULL,
-  glyph TEXT NOT NULL DEFAULT '');           -- nome de um desenho do Glyph.cs — é este que se vê
-INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
- ('politico','Político','🌍','owner','','',0,'globo'),
- ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1,'caixa'),
- ('resistencia','Resistência','✊','resistance','calma','revolta',2,'punho'),
- ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica'),
- ('populacao','População','♟','population','deserto','multidão',4,'gente'),
- ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva'),
- ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente'),
- ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa'),
- ('terreno','Terreno','⛰','terrain','','',8,'montanha');
+  glyph TEXT NOT NULL DEFAULT '',            -- nome de um desenho do Glyph.cs — é este que se vê
+  -- Camadas desenhadas que este modo acende, separadas por vírgula: 'chao' (a serra, a mata, a duna e o
+  -- quarteirão dentro da província) e 'carris' (a rede de linha férrea). Vazio = o mapa fica limpo. Foi o
+  -- utilizador que o pediu: os carris e os ícones de terreno enchiam o mapa político de lixo, e no HoI4
+  -- cada uma destas leituras tem o seu modo. Nomes novos entram aqui e no RegionRenderer.Layer — nada
+  -- disto é lista em código, a lista é esta coluna.
+  layers TEXT NOT NULL DEFAULT '');
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph,layers) VALUES
+ ('politico','Político','🌍','owner','','',0,'globo',''),
+ ('abastecimento','Abastecimento','📦','supply','a seco','cheio',1,'caixa','carris'),
+ ('resistencia','Resistência','✊','resistance','calma','revolta',2,'punho',''),
+ ('industria','Indústria','🏭','industry','terra rasa','fábricas',3,'fabrica','carris'),
+ ('populacao','População','♟','population','deserto','multidão',4,'gente',''),
+ ('tempo','Tempo','🌧','weather','céu limpo','nevão',5,'chuva',''),
+ ('vassalos','Vassalagem','⛓','subject','país livre','protectorado',6,'corrente',''),
+ ('vitoria','Pontos de vitória','👑','victory','terra vazia','capital',7,'coroa',''),
+ ('terreno','Terreno','⛰','terrain','','',8,'montanha','chao');
 
 -- Chão desenhado no mapa político (Relief + TerrainMarks): serras, cidades, dunas e mata marcadas por cima
 -- da cor do dono, como em qualquer carta militar — o mapa passa a dizer por onde é que se anda antes de se
@@ -1680,8 +1686,8 @@ INSERT INTO rule (key,value,note) VALUES
  ('air_zone_share',1,'quanto vale, no céu de uma região, uma asa destacada noutra região da mesma zona'),
  ('sea_zone_share',1,'quanto vale, no mar de uma costa, um navio destacado noutra costa da mesma zona'),
  ('map_key_max',12,'entradas máximas na legenda de um modo de mapa por classe');
-INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph) VALUES
- ('zonas','Zonas','🗺','zone','','',9,'globo');
+INSERT INTO map_mode (id,name,icon,metric,low,high,sort,glyph,layers) VALUES
+ ('zonas','Zonas','🗺','zone','','',9,'globo','');
 
 -- ===== A opinião do país: partidos, eleições e golpes (PartySystem) =====
 -- No HoI4 o país tem uma opinião que se mexe sozinha e um governo que pode cair. Aqui é a mesma ideia:

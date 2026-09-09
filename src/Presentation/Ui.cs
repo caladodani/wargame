@@ -35,10 +35,19 @@ internal static class Ui
         return l;
     }
 
-    public static Button Btn(string text, Action onPressed, float minWidth = 0f, Kind kind = Kind.Normal)
+    /// <summary>Altura mínima de um botão de dedo: o mínimo que uma mão acerta sem falhar.</summary>
+    public const float TouchHeight = 48f;
+    /// <summary>Altura da chapa grande (Ui.Big). Onde sobra altura — a lista de modelos da produção, a
+    /// pesquisa, o construir — a chapa cresce em vez de deixar o painel meio vazio: foi o que o utilizador
+    /// pediu, e é a chapa gorda dos jogos da casa Paradox. Não muda a cor nem o papel do botão, só o tamanho.</summary>
+    public const float TallHeight = 72f;
+
+    public static Button Btn(string text, Action onPressed, float minWidth = 0f, Kind kind = Kind.Normal,
+                             float minHeight = 0f)
     {
-        var b = new Button { Text = text, CustomMinimumSize = new Vector2(minWidth, 48) };
-        b.AddThemeFontSizeOverride("font_size", 20);
+        float h = minHeight > 0f ? minHeight : TouchHeight;
+        var b = new Button { Text = text, CustomMinimumSize = new Vector2(minWidth, h) };
+        b.AddThemeFontSizeOverride("font_size", h >= TallHeight ? 26 : 20);
         if (kind != Kind.Normal)
         {
             var c = kind == Kind.Primary ? Accent : Danger;
@@ -53,6 +62,11 @@ internal static class Ui
         b.Pressed += () => { try { onPressed(); } catch (Exception ex) { GD.PushError($"Botão '{b.Text}': {ex}"); } };
         return b;
     }
+
+    /// <summary>A mesma chapa, na altura grande (TallHeight). Usa-se onde o painel tem altura a sobrar e a
+    /// chapa pequena ficava perdida no meio do vazio — é a mesma função de sempre, com outro tamanho.</summary>
+    public static Button Big(string text, Action onPressed, float minWidth = 0f, Kind kind = Kind.Normal) =>
+        Btn(text, onPressed, minWidth, kind, TallHeight);
 
     /// <summary>O tom por que a chapa da tecla é multiplicada, em repouso, sob o dedo e premida.
     ///

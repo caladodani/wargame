@@ -71,6 +71,9 @@ public partial class RegionRenderer : Node2D
     private float _zoom = 1f;
     // Modo de mapa (MapModes): o político pinta pelo controlador, os outros pela conta escolhida.
     private string _mode = MapModes.Political, _metric = "owner";
+    /// <summary>Camadas desenhadas que o modo de agora acende (coluna map_mode.layers, já cortada). O mapa
+    /// político nasce limpo: os carris e as marcas de terreno só aparecem no modo que as pediu.</summary>
+    private string[] _layers = Array.Empty<string>();
     private Dictionary<int, float> _shades = new();
     private readonly Dictionary<int, int> _shadePainted = new();   // tom já pintado (0..20), para não repintar à toa
     private string _goalKey = "";                                   // objectivos desenhados (evita refazer o contorno todos os dias)
@@ -225,7 +228,23 @@ public partial class RegionRenderer : Node2D
                                             : MapModes.Shades(_game.World, 0, _metric);
         _shadePainted.Clear();
         _stripeRoot.Visible = _metric == "owner";   // nos modos temáticos a cor já é uma conta
+        _layers = def is null ? Array.Empty<string>()
+                              : def.Layers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        ApplyLayers();
         RepaintAll();
+    }
+
+    /// <summary>O modo de agora acende esta camada desenhada?</summary>
+    public bool Layer(string name) => Array.Exists(_layers, l => string.Equals(l, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Acende ou apaga as camadas desenhadas conforme o modo de mapa escolhido. O zoom continua a
+    /// ser um chão — uma serra desenhada à escala do planeta é um borrão —, mas já não é ele que decide:
+    /// quem decide é o modo. Os carris e as marcas de terreno enchiam o mapa político de lixo, e no HoI4
+    /// cada uma destas leituras vive no seu modo de mapa.</summary>
+    private void ApplyLayers()
+    {
+        _terrainRoot.Visible = Layer("chao") && _zoom >= TerrainZoom;
+        _railRoot.Visible = Layer("carris") && _zoom >= RailZoom;
     }
 
     /// <summary>Cor do país, tal como sai da base de dados (o Hud usa-a na barra de topo).</summary>
@@ -774,8 +793,7 @@ public partial class RegionRenderer : Node2D
         bool on = zoom >= CounterZoom;
         _counterRoot.Visible = on;
         _riverRoot.Visible = zoom >= RiverZoom;   // a água acende antes dos contadores: é chão, não tropa
-        _terrainRoot.Visible = zoom >= TerrainZoom;   // e o chão desenhado logo a seguir à água
-        _railRoot.Visible = zoom >= RailZoom;         // e os carris, que acendem ainda antes do chão
+        ApplyLayers();                            // o chão desenhado e os carris: modo de mapa primeiro, zoom como chão
         _cityRoot.Visible = zoom >= CityZoom;         // e os nomes de terra com as capitais
         if (_cityRoot.Visible) _cityRoot.SetZoom(zoom);
         _furnitureRoot.SetZoom(zoom);                 // e as chapas, que escolhem sozinhas o que cabe

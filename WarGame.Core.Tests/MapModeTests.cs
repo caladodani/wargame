@@ -202,4 +202,33 @@ public class MapModeTests
         Assert.Equal("chão por classificar", MapModes.Text(w, 1, w.Regions[1], "terrain"));
         Assert.DoesNotContain(MapModes.Key(w, "terrain"), k => k.Id == "lodo");
     }
+
+    /// <summary>Camadas desenhadas por modo de mapa (coluna map_mode.layers). Os carris e as marcas de
+    /// terreno enchiam o mapa político de lixo; passaram a ser leitura de um modo, como no HoI4. Quem
+    /// decide é a tabela — o código só lê a coluna.</summary>
+    [Fact]
+    public void Cada_modo_acende_as_camadas_desenhadas_que_a_tabela_lhe_deu()
+    {
+        var w = Setup();
+        var modes = MapModes.All(w);
+        var politico = modes.First(m => m.Id == MapModes.Political);
+        Assert.Equal("", politico.Layers);                       // o mapa político nasce limpo
+        Assert.False(politico.HasLayer("chao"));
+        Assert.False(politico.HasLayer("carris"));
+
+        var terreno = modes.First(m => m.Metric == "terrain");
+        Assert.True(terreno.HasLayer("chao"));                   // a serra e a mata vivem no modo Terreno
+        Assert.False(terreno.HasLayer("carris"));
+
+        var abastecimento = modes.First(m => m.Metric == "supply");
+        Assert.True(abastecimento.HasLayer("carris"));           // a via vive no modo do abastecimento
+        Assert.False(abastecimento.HasLayer("chao"));
+
+        // nome parecido não conta, e uma lista com espaços lê-se na mesma
+        var mock = terreno with { Layers = "carris, chao" };
+        Assert.True(mock.HasLayer("chao"));
+        Assert.True(mock.HasLayer("carris"));
+        Assert.False(mock.HasLayer("cha"));
+        Assert.False(new MapModeDef("x", "X", "", "owner", "", "", 0).HasLayer("chao"));
+    }
 }
