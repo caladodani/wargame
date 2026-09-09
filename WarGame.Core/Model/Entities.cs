@@ -317,6 +317,11 @@ public sealed record DecisionCategoryDef(string Id, string Name, string Glyph, i
 /// chapa é da tabela.</summary>
 public sealed record OutlineSectionDef(string Id, string Name, string Glyph, string Target, int Sort);
 
+/// <summary>Família de fonte de um modificador (tabela stat_source): como se chama e que chapa leva o que
+/// multiplica uma característica do país — tecnologia, lei, conselheiro, recurso… Quem diz que fontes
+/// existem é a tabela; o StatLedger só as preenche.</summary>
+public sealed record StatSourceDef(string Id, string Name, string Glyph, int Sort);
+
 /// <summary>Nome de uma característica de país (tabela country_stat_def): como se chama e que chapa leva
 /// a chave que leis, espíritos, conselheiros, tecnologias e decisões multiplicam.</summary>
 public sealed record CountryStatDef(string Key, string Name, string Note, string Glyph, int Sort);

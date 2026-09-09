@@ -26,7 +26,7 @@ public partial class CountryPanel : PanelContainer
     /// <summary>As abas do painel. O painel do país era uma tira única com tudo lá dentro — ficha, exército,
     /// diplomacia, laboratórios — e via-se um terço de cada vez, à custa de rolar. Agora arruma-se por
     /// secções, como no HoI4, na mesma chapa de latão que já divide o painel da Guerra.</summary>
-    private static readonly string[] Sections = { "Nação", "Decisões", "Guerra", "Diplomacia", "Ciência" };
+    private static readonly string[] Sections = { "Nação", "Decisões", "Guerra", "Diplomacia", "Ciência", "Números" };
 
     private Game _game = null!;
     private Label _title = null!;
@@ -194,7 +194,7 @@ public partial class CountryPanel : PanelContainer
             Ui.Clear(_tabs);
             _tabs.AddChild(Ui.Tabs(Sections, _tab, Pick));
             // que secções é que esta aba deixa desenhar
-            bool tNation = _tab == 0, tDec = _tab == 1, tWar = _tab == 2, tDip = _tab == 3, tSci = _tab == 4;
+            bool tNation = _tab == 0, tDec = _tab == 1, tWar = _tab == 2, tDip = _tab == 3, tSci = _tab == 4, tNum = _tab == 5;
 
             // comparação directa: a pergunta antes de declarar guerra ("nós contra eles, como estamos?")
             if (tNation && !mine && _game.PlayerId is not null)
@@ -723,6 +723,17 @@ public partial class CountryPanel : PanelContainer
                 _body.AddChild(TechView.Tree(w, c, mine, Research));
                 var known = c.Techs.Where(w.Techs.ContainsKey).Select(id => w.Techs[id].Name).OrderBy(n => n).ToList();
                 Line($"Concluídas ({known.Count}): " + (known.Count == 0 ? "nenhuma" : string.Join(", ", known)), 16);
+            }
+
+            // "Porquê?" — a conta aberta de cada número do país, como o HoI4 a abre por baixo do rato.
+            // Quem soma é o StatLedger; aqui só se desenha o que ele conta.
+            if (tNum)
+            {
+                Header("De onde vem cada número");
+                Line("Cada característica do país com o valor de partida, o de hoje e todas as fontes que "
+                   + "lhe mexem — leis, tecnologias, focos, escolas de guerra, decisões, conselheiros, "
+                   + "comandantes, governo, recursos, edifícios e prisioneiros.", 15);
+                foreach (var made in StatSheetView.Board(w, c)) _body.AddChild(made);
             }
         }
         catch (Exception ex) { GD.PushError("CountryPanel.Fill: " + ex); }

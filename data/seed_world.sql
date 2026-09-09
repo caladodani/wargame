@@ -1977,3 +1977,24 @@ INSERT INTO outline_section (id,name,glyph,target,sort) VALUES
  ('ar','No ar','asa','ar',60),
  ('mar','No mar','ancora','mar',70),
  ('missoes','Missões','alvo','decisoes',80);
+
+-- ===== De onde vem cada número (0.3.80) =====
+-- No HoI4 passa-se o rato por cima de qualquer número e ele abre-se: linha a linha, quem o multiplica e
+-- por quanto — esta lei, aquela tecnologia, aquele conselheiro. É o que faz aquele jogo ser legível apesar
+-- de ter centenas de modificadores. Aqui os números saíam certos e mudos: `Country.Stat` multiplica oito
+-- dicionários e nenhum ecrã sabia dizer porquê. As FAMÍLIAS de fonte são tabela — nome e chapa de cada uma.
+CREATE TABLE IF NOT EXISTS stat_source (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, glyph TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0);
+INSERT INTO stat_source (id,name,glyph,sort) VALUES
+ ('tecnologia','Tecnologia','livro',1),
+ ('foco','Foco nacional','bandeira',2),
+ ('doutrina','Escola de guerra','coluna',3),
+ ('lei','Lei','balanca',4),
+ ('noticia','Acontecimento','megafone',5),
+ ('decisao','Decisão','pasta',6),
+ ('conselheiro','Conselheiro','gente',7),
+ ('general','Comandante','medalha',8),
+ ('partido','Governo','punho',9),
+ ('recurso','Recurso','barril',10),
+ ('edificio','Edifício','bigorna',11),
+ ('prisioneiro','Prisioneiros','corrente',12);
